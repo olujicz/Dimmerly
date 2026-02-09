@@ -1,22 +1,23 @@
 // !$*UTF8*$!
 {
 	archiveVersion = 1;
-	classes = {};
+	classes = {
+	};
 	objectVersion = 56;
 	objects = {
 
 /* Begin PBXBuildFile section */
+		05024BFD6B91C5336F8E4CC1 /* AlertPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 473CD46DB2D77DD4EB8463DA /* AlertPresenter.swift */; };
+		34887812E1B9FF228147D4A5 /* KeyboardShortcut.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1B045C3D2AA639266BC0483 /* KeyboardShortcut.swift */; };
+		4418D8E7C90F85F1A0565B97 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76B136A03B60312AFD4F720E /* SettingsView.swift */; };
+		46A91AE061E879288C03F4F2 /* DisplayError.swift in Sources */ = {isa = PBXBuildFile; fileRef = E37863164B2170781448D5DC /* DisplayError.swift */; };
+		79B76AB2030457F5760B45AD /* LaunchAtLoginManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15EF8DD088138249EA3B9ED2 /* LaunchAtLoginManager.swift */; };
 		C1B2C3D4E5F6A7B8C9D0E1F1 /* DimmerlyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B2C3D4E5F6A7B8C9D0E1F1 /* DimmerlyApp.swift */; };
 		C1B2C3D4E5F6A7B8C9D0E1F2 /* DisplayController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B2C3D4E5F6A7B8C9D0E1F2 /* DisplayController.swift */; };
 		C1B2C3D4E5F6A7B8C9D0E1F3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B1B2C3D4E5F6A7B8C9D0E1F4 /* Assets.xcassets */; };
-		46A91AE061E879288C03F4F2 /* DisplayError.swift in Sources */ = {isa = PBXBuildFile; fileRef = E37863164B2170781448D5DC /* DisplayError.swift */; };
-		34887812E1B9FF228147D4A5 /* KeyboardShortcut.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1B045C3D2AA639266BC0483 /* KeyboardShortcut.swift */; };
-		F002FDE8D5FAD64627544CEC /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE7B95B7556B68B59FE0DC7B /* AppSettings.swift */; };
-		05024BFD6B91C5336F8E4CC1 /* AlertPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 473CD46DB2D77DD4EB8463DA /* AlertPresenter.swift */; };
-		79B76AB2030457F5760B45AD /* LaunchAtLoginManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15EF8DD088138249EA3B9ED2 /* LaunchAtLoginManager.swift */; };
-		D4F246BF3A0883989414211C /* KeyboardShortcutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4938628BCBDB203349940ACE /* KeyboardShortcutManager.swift */; };
 		D020A5D272EBF573C8F22F90 /* KeyboardShortcutRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = C50F163FD03D0874576E9962 /* KeyboardShortcutRecorder.swift */; };
-		4418D8E7C90F85F1A0565B97 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76B136A03B60312AFD4F720E /* SettingsView.swift */; };
+		D4F246BF3A0883989414211C /* KeyboardShortcutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4938628BCBDB203349940ACE /* KeyboardShortcutManager.swift */; };
+		F002FDE8D5FAD64627544CEC /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE7B95B7556B68B59FE0DC7B /* AppSettings.swift */; };
 		T1B2C3D4E5F6A7B8C9D0E301 /* DisplayControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1B2C3D4E5F6A7B8C9D0E300 /* DisplayControllerTests.swift */; };
 		T1B2C3D4E5F6A7B8C9D0E311 /* AppSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1B2C3D4E5F6A7B8C9D0E310 /* AppSettingsTests.swift */; };
 		T1B2C3D4E5F6A7B8C9D0E321 /* KeyboardShortcutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1B2C3D4E5F6A7B8C9D0E320 /* KeyboardShortcutTests.swift */; };
@@ -33,19 +34,19 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		15EF8DD088138249EA3B9ED2 /* LaunchAtLoginManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginManager.swift; sourceTree = "<group>"; };
+		473CD46DB2D77DD4EB8463DA /* AlertPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertPresenter.swift; sourceTree = "<group>"; };
+		4938628BCBDB203349940ACE /* KeyboardShortcutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutManager.swift; sourceTree = "<group>"; };
+		76B136A03B60312AFD4F720E /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6A7B8C9D0E1FF /* Dimmerly.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Dimmerly.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B1B2C3D4E5F6A7B8C9D0E1F1 /* DimmerlyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DimmerlyApp.swift; sourceTree = "<group>"; };
 		B1B2C3D4E5F6A7B8C9D0E1F2 /* DisplayController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayController.swift; sourceTree = "<group>"; };
 		B1B2C3D4E5F6A7B8C9D0E1F3 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B1B2C3D4E5F6A7B8C9D0E1F4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		A1B2C3D4E5F6A7B8C9D0E1FF /* Dimmerly.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Dimmerly.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		E37863164B2170781448D5DC /* DisplayError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayError.swift; sourceTree = "<group>"; };
-		D1B045C3D2AA639266BC0483 /* KeyboardShortcut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcut.swift; sourceTree = "<group>"; };
-		FE7B95B7556B68B59FE0DC7B /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
-		473CD46DB2D77DD4EB8463DA /* AlertPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertPresenter.swift; sourceTree = "<group>"; };
-		15EF8DD088138249EA3B9ED2 /* LaunchAtLoginManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginManager.swift; sourceTree = "<group>"; };
-		4938628BCBDB203349940ACE /* KeyboardShortcutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutManager.swift; sourceTree = "<group>"; };
 		C50F163FD03D0874576E9962 /* KeyboardShortcutRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutRecorder.swift; sourceTree = "<group>"; };
-		76B136A03B60312AFD4F720E /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		D1B045C3D2AA639266BC0483 /* KeyboardShortcut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcut.swift; sourceTree = "<group>"; };
+		E37863164B2170781448D5DC /* DisplayError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayError.swift; sourceTree = "<group>"; };
+		FE7B95B7556B68B59FE0DC7B /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		T1B2C3D4E5F6A7B8C9D0E1FF /* DimmerlyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DimmerlyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		T1B2C3D4E5F6A7B8C9D0E300 /* DisplayControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayControllerTests.swift; sourceTree = "<group>"; };
 		T1B2C3D4E5F6A7B8C9D0E310 /* AppSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsTests.swift; sourceTree = "<group>"; };
@@ -70,13 +71,31 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		A1B2C3D4E5F6A7B8C9D0E1F3 /* main */ = {
+		202BEEB29F4F688134482A54 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				C50F163FD03D0874576E9962 /* KeyboardShortcutRecorder.swift */,
+				76B136A03B60312AFD4F720E /* SettingsView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6A7B8C9D0E1F3 = {
 			isa = PBXGroup;
 			children = (
 				A1B2C3D4E5F6A7B8C9D0E200 /* Dimmerly */,
 				T1B2C3D4E5F6A7B8C9D0E203 /* DimmerlyTests */,
 				A1B2C3D4E5F6A7B8C9D0E1F4 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6A7B8C9D0E1F4 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F6A7B8C9D0E1FF /* Dimmerly.app */,
+				T1B2C3D4E5F6A7B8C9D0E1FF /* DimmerlyTests.xctest */,
+			);
+			name = Products;
 			sourceTree = "<group>";
 		};
 		A1B2C3D4E5F6A7B8C9D0E200 /* Dimmerly */ = {
@@ -103,15 +122,6 @@
 			path = Models;
 			sourceTree = "<group>";
 		};
-		202BEEB29F4F688134482A54 /* Views */ = {
-			isa = PBXGroup;
-			children = (
-				C50F163FD03D0874576E9962 /* KeyboardShortcutRecorder.swift */,
-				76B136A03B60312AFD4F720E /* SettingsView.swift */,
-			);
-			path = Views;
-			sourceTree = "<group>";
-		};
 		BEC7BD475215C49FED39FD34 /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
@@ -120,15 +130,6 @@
 				4938628BCBDB203349940ACE /* KeyboardShortcutManager.swift */,
 			);
 			path = Utilities;
-			sourceTree = "<group>";
-		};
-		A1B2C3D4E5F6A7B8C9D0E1F4 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				A1B2C3D4E5F6A7B8C9D0E1FF /* Dimmerly.app */,
-				T1B2C3D4E5F6A7B8C9D0E1FF /* DimmerlyTests.xctest */,
-			);
-			name = Products;
 			sourceTree = "<group>";
 		};
 		T1B2C3D4E5F6A7B8C9D0E203 /* DimmerlyTests */ = {
@@ -205,7 +206,7 @@
 				en,
 				Base,
 			);
-			mainGroup = A1B2C3D4E5F6A7B8C9D0E1F3 /* main */;
+			mainGroup = A1B2C3D4E5F6A7B8C9D0E1F3;
 			productRefGroup = A1B2C3D4E5F6A7B8C9D0E1F4 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -394,6 +395,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = MN5C3DH647;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Dimmerly/Info.plist;
 				MARKETING_VERSION = 1.0;
@@ -409,6 +411,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = MN5C3DH647;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Dimmerly/Info.plist;
 				MARKETING_VERSION = 1.0;
@@ -424,6 +427,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = MN5C3DH647;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 1.0;
@@ -441,6 +445,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = MN5C3DH647;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 1.0;

@@ -30,7 +30,7 @@ struct SettingsView: View {
                     Label("About", systemImage: "info.circle")
                 }
         }
-        .frame(width: 450, height: 350)
+        .frame(minWidth: 450, minHeight: 350)
     }
 }
 
@@ -86,15 +86,17 @@ struct KeyboardShortcutsSettingsView: View {
                 if !shortcutManager.hasAccessibilityPermission {
                     HStack {
                         Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(.yellow)
-                        Text("Accessibility permissions required")
+                            .foregroundStyle(.yellow)
+                            .accessibilityHidden(true)
+                        Text("Warning: Accessibility permissions required for global shortcuts.")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                         Button("Open Accessibility Settings") {
                             KeyboardShortcutManager.requestAccessibilityPermission()
                         }
                         .font(.caption)
                     }
+                    .accessibilityElement(children: .combine)
                     .padding(.vertical, 4)
                 }
             } header: {
@@ -103,7 +105,7 @@ struct KeyboardShortcutsSettingsView: View {
 
             Text("Global keyboard shortcuts allow you to trigger actions from any application.")
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
                 .padding(.top, 8)
 
             Spacer()
@@ -132,12 +134,12 @@ struct AboutSettingsView: View {
 
             Text(appVersion)
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
 
             Text("A minimal macOS menu bar utility for quickly sleeping displays.")
                 .font(.body)
                 .multilineTextAlignment(.center)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
                 .padding(.horizontal, 40)
 
             Divider()
@@ -148,14 +150,14 @@ struct AboutSettingsView: View {
                     .font(.headline)
                 Text("No data collection \u{2022} No network access \u{2022} No tracking")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
 
             Spacer()
 
             Text("\u{00A9} 2026 Dimmerly")
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
         }
         .padding(20)
     }

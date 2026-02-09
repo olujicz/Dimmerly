@@ -75,6 +75,9 @@ private struct ShortcutRecorderView: NSViewRepresentable {
             onShortcutRecorded(shortcut)
             isRecording = false
         }
+        view.onRecordingCancelled = {
+            isRecording = false
+        }
         return view
     }
 
@@ -89,12 +92,20 @@ private struct ShortcutRecorderView: NSViewRepresentable {
 private class ShortcutCaptureView: NSView {
     var isActive = false
     var onShortcutCaptured: ((KeyboardShortcut) -> Void)?
+    var onRecordingCancelled: (() -> Void)?
 
     override var acceptsFirstResponder: Bool { true }
 
     override func keyDown(with event: NSEvent) {
         guard isActive else {
             super.keyDown(with: event)
+            return
+        }
+
+        // Escape cancels recording (HIG Rule 5.3)
+        if event.keyCode == 53 { // kVK_Escape
+            isActive = false
+            onRecordingCancelled?()
             return
         }
 

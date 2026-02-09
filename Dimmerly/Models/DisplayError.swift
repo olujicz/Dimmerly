@@ -44,7 +44,7 @@ enum DisplayError: LocalizedError {
         case .pmsetExecutionFailed(let code):
             return "The display sleep command failed with exit code \(code). This may indicate insufficient permissions or a system configuration issue. Try running the app with administrator privileges."
         case .permissionDenied:
-            return "Dimmerly does not have permission to execute system commands. Please check System Preferences > Security & Privacy."
+            return "Dimmerly does not have permission to execute system commands. Please check System Settings > Privacy & Security."
         case .unknownError(let error):
             return "An unexpected error occurred: \(error.localizedDescription). Please try again or restart the app."
         }

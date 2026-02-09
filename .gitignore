@@ -97,3 +97,5 @@ iOSInjectionProject/
 
 # Documentation artifacts
 TEST_TARGET_SETUP.md
+
+.mcp.json
