@@ -124,9 +124,10 @@ struct AboutSettingsView: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            Image(nsImage: NSApp.applicationIconImage)
+            Image("AboutIcon")
                 .resizable()
                 .frame(width: 64, height: 64)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
             Text("Dimmerly")
                 .font(.title)
