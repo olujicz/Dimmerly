@@ -39,10 +39,14 @@ struct DimmerlyApp: App {
     }
 
     private func startGlobalShortcutMonitoring() {
-        shortcutManager.startMonitoring {
-            let result = DisplayController.sleepDisplays()
-            if case .failure(let error) = result {
-                AlertPresenter.showError(error)
+        shortcutManager.startMonitoring { [settings] in
+            if settings.preventScreenLock {
+                ScreenBlanker.shared.blank()
+            } else {
+                let result = DisplayController.sleepDisplays()
+                if case .failure(let error) = result {
+                    AlertPresenter.showError(error)
+                }
             }
         }
     }
@@ -109,9 +113,13 @@ struct MenuContent: View {
     }
 
     private func handleSleepDisplays() {
-        let result = DisplayController.sleepDisplays()
-        if case .failure(let error) = result {
-            AlertPresenter.showError(error)
+        if settings.preventScreenLock {
+            ScreenBlanker.shared.blank()
+        } else {
+            let result = DisplayController.sleepDisplays()
+            if case .failure(let error) = result {
+                AlertPresenter.showError(error)
+            }
         }
     }
 }

@@ -18,6 +18,7 @@
 		C1B2C3D4E5F6A7B8C9D0E1F3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B1B2C3D4E5F6A7B8C9D0E1F4 /* Assets.xcassets */; };
 		D020A5D272EBF573C8F22F90 /* KeyboardShortcutRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = C50F163FD03D0874576E9962 /* KeyboardShortcutRecorder.swift */; };
 		D4F246BF3A0883989414211C /* KeyboardShortcutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4938628BCBDB203349940ACE /* KeyboardShortcutManager.swift */; };
+		E8A1B2C3D4E5F6A7B8C9D001 /* ScreenBlanker.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8A1B2C3D4E5F6A7B8C9D002 /* ScreenBlanker.swift */; };
 		F002FDE8D5FAD64627544CEC /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE7B95B7556B68B59FE0DC7B /* AppSettings.swift */; };
 		T1B2C3D4E5F6A7B8C9D0E301 /* DisplayControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1B2C3D4E5F6A7B8C9D0E300 /* DisplayControllerTests.swift */; };
 		T1B2C3D4E5F6A7B8C9D0E311 /* AppSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1B2C3D4E5F6A7B8C9D0E310 /* AppSettingsTests.swift */; };
@@ -39,6 +40,7 @@
 		15EF8DD088138249EA3B9ED2 /* LaunchAtLoginManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginManager.swift; sourceTree = "<group>"; };
 		473CD46DB2D77DD4EB8463DA /* AlertPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertPresenter.swift; sourceTree = "<group>"; };
 		4938628BCBDB203349940ACE /* KeyboardShortcutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutManager.swift; sourceTree = "<group>"; };
+		E8A1B2C3D4E5F6A7B8C9D002 /* ScreenBlanker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenBlanker.swift; sourceTree = "<group>"; };
 		76B136A03B60312AFD4F720E /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6A7B8C9D0E1FF /* Dimmerly.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Dimmerly.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B1B2C3D4E5F6A7B8C9D0E1F1 /* DimmerlyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DimmerlyApp.swift; sourceTree = "<group>"; };
@@ -131,6 +133,7 @@
 				473CD46DB2D77DD4EB8463DA /* AlertPresenter.swift */,
 				15EF8DD088138249EA3B9ED2 /* LaunchAtLoginManager.swift */,
 				4938628BCBDB203349940ACE /* KeyboardShortcutManager.swift */,
+				E8A1B2C3D4E5F6A7B8C9D002 /* ScreenBlanker.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -253,6 +256,7 @@
 				79B76AB2030457F5760B45AD /* LaunchAtLoginManager.swift in Sources */,
 				D4F246BF3A0883989414211C /* KeyboardShortcutManager.swift in Sources */,
 				D020A5D272EBF573C8F22F90 /* KeyboardShortcutRecorder.swift in Sources */,
+				E8A1B2C3D4E5F6A7B8C9D001 /* ScreenBlanker.swift in Sources */,
 				4418D8E7C90F85F1A0565B97 /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

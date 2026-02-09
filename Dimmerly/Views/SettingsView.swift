@@ -24,7 +24,7 @@ struct SettingsView: View {
                     Label("About", systemImage: "info.circle")
                 }
         }
-        .frame(width: 400, height: 280)
+        .frame(width: 400, height: 300)
     }
 }
 
@@ -43,6 +43,9 @@ struct GeneralSettingsView: View {
                 }
             ))
             .help("Automatically start Dimmerly when you log in")
+
+            Toggle("Prevent Screen Lock", isOn: $settings.preventScreenLock)
+                .help("Blank screens instead of sleeping displays, so your session stays unlocked")
 
             Divider()
 
