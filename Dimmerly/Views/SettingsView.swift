@@ -3,7 +3,6 @@
 //  Dimmerly
 //
 //  Settings window for configuring app preferences.
-//  Includes keyboard shortcut configuration and launch-at-login toggle.
 //
 
 import SwiftUI
@@ -20,57 +19,36 @@ struct SettingsView: View {
                     Label("General", systemImage: "gear")
                 }
 
-            KeyboardShortcutsSettingsView()
-                .tabItem {
-                    Label("Shortcuts", systemImage: "keyboard")
-                }
-
             AboutSettingsView()
                 .tabItem {
                     Label("About", systemImage: "info.circle")
                 }
         }
-        .frame(minWidth: 450, minHeight: 350)
+        .frame(width: 400, height: 280)
     }
 }
 
-/// General settings tab
+/// General settings tab — all preferences in one place
 struct GeneralSettingsView: View {
-    @EnvironmentObject var settings: AppSettings
-
-    var body: some View {
-        Form {
-            Section {
-                Toggle("Launch at Login", isOn: Binding(
-                    get: { settings.launchAtLogin },
-                    set: { newValue in
-                        settings.launchAtLogin = newValue
-                        let _ = LaunchAtLoginManager.setEnabled(newValue)
-                    }
-                ))
-                .help("Automatically start Dimmerly when you log in")
-            } header: {
-                Text("Startup")
-            }
-
-            Spacer()
-        }
-        .padding(20)
-    }
-}
-
-/// Keyboard shortcuts settings tab
-struct KeyboardShortcutsSettingsView: View {
     @EnvironmentObject var settings: AppSettings
     @EnvironmentObject var shortcutManager: KeyboardShortcutManager
 
     var body: some View {
-        Form {
-            Section {
+        VStack(alignment: .leading, spacing: 20) {
+            Toggle("Launch at Login", isOn: Binding(
+                get: { settings.launchAtLogin },
+                set: { newValue in
+                    settings.launchAtLogin = newValue
+                    let _ = LaunchAtLoginManager.setEnabled(newValue)
+                }
+            ))
+            .help("Automatically start Dimmerly when you log in")
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     Text("Sleep Displays:")
-                        .frame(width: 120, alignment: .leading)
-
                     KeyboardShortcutRecorder(
                         shortcut: Binding(
                             get: { settings.keyboardShortcut },
@@ -81,32 +59,27 @@ struct KeyboardShortcutsSettingsView: View {
                         )
                     )
                 }
-                .padding(.vertical, 8)
+
+                Text("Global keyboard shortcuts work from any application.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
                 if !shortcutManager.hasAccessibilityPermission {
-                    HStack {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.yellow)
-                            .accessibilityHidden(true)
-                        Text("Warning: Accessibility permissions required for global shortcuts.")
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label("Accessibility permission is required for global shortcuts.", systemImage: "exclamationmark.triangle.fill")
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                            .symbolRenderingMode(.multicolor)
+
                         Button("Open Accessibility Settings") {
                             KeyboardShortcutManager.requestAccessibilityPermission()
                         }
                         .font(.caption)
                     }
                     .accessibilityElement(children: .combine)
-                    .padding(.vertical, 4)
+                    .padding(.top, 4)
                 }
-            } header: {
-                Text("Global Shortcuts")
             }
-
-            Text("Global keyboard shortcuts allow you to trigger actions from any application.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .padding(.top, 8)
 
             Spacer()
         }
@@ -137,24 +110,16 @@ struct AboutSettingsView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
-            Text("A minimal macOS menu bar utility for quickly sleeping displays.")
+            Text("A minimal macOS menu bar utility for quickly putting your displays to sleep.")
                 .font(.body)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 40)
 
-            Divider()
-                .padding(.horizontal, 40)
-
-            VStack(spacing: 8) {
-                Text("Privacy-focused")
-                    .font(.headline)
-                Text("No data collection \u{2022} No network access \u{2022} No tracking")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
             Spacer()
+
+            Link("GitHub", destination: URL(string: "https://github.com/olujicz/Dimmerly")!)
+                .font(.caption)
 
             Text("\u{00A9} 2026 Dimmerly")
                 .font(.caption)

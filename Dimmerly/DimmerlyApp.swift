@@ -57,7 +57,7 @@ struct MenuContent: View {
         Button("Turn Displays Off") {
             handleSleepDisplays()
         }
-        .keyboardShortcut("d", modifiers: [.command, .option, .shift])
+        .keyboardShortcut(.return, modifiers: [])
 
         Divider()
 
@@ -71,6 +71,33 @@ struct MenuContent: View {
                 NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
             }
             .keyboardShortcut(",", modifiers: .command)
+        }
+
+        Button("About Dimmerly") {
+            NSApp.activate(ignoringOtherApps: true)
+            let credits = NSMutableAttributedString()
+
+            let description = NSAttributedString(
+                string: "A minimal macOS menu bar utility for quickly putting your displays to sleep.\n\n",
+                attributes: [
+                    .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
+                    .foregroundColor: NSColor.secondaryLabelColor,
+                ]
+            )
+            credits.append(description)
+
+            let linkText = NSAttributedString(
+                string: "GitHub",
+                attributes: [
+                    .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
+                    .link: URL(string: "https://github.com/olujicz/Dimmerly")!,
+                ]
+            )
+            credits.append(linkText)
+
+            NSApp.orderFrontStandardAboutPanel(options: [
+                .credits: credits,
+            ])
         }
 
         Divider()
