@@ -53,12 +53,10 @@ class KeyboardShortcutManager: ObservableObject {
     func startMonitoring(onTriggered: @escaping () -> Void) {
         self.onShortcutTriggered = onTriggered
 
-        // Check for permissions
+        // Check for permissions (don't prompt — let the user enable via Settings)
         hasAccessibilityPermission = Self.checkAccessibilityPermission()
 
         if !hasAccessibilityPermission {
-            // Request permissions if not granted
-            Self.requestAccessibilityPermission()
             return
         }
 
