@@ -1,0 +1,50 @@
+//
+//  AlertPresenter.swift
+//  Dimmerly
+//
+//  Utility for presenting error alerts to the user.
+//  Uses NSAlert for reliable display in menu bar applications.
+//
+
+import AppKit
+
+/// Utility for presenting user-facing alerts
+struct AlertPresenter {
+    /// Presents an error alert to the user
+    ///
+    /// This method displays a modal alert dialog with the error's localized description
+    /// and recovery suggestion. The alert remains on screen until dismissed.
+    ///
+    /// - Parameter error: The error to display
+    ///
+    /// Example:
+    /// ```swift
+    /// let error = DisplayError.pmsetNotFound
+    /// AlertPresenter.showError(error)
+    /// ```
+    static func showError(_ error: DisplayError) {
+        let alert = NSAlert()
+        alert.messageText = error.localizedDescription
+        alert.informativeText = error.recoverySuggestion ?? ""
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "OK")
+
+        // Run the alert modally
+        // Note: In menu bar apps, NSAlert is more reliable than SwiftUI alerts
+        alert.runModal()
+    }
+
+    /// Presents a generic error alert for non-DisplayError cases
+    ///
+    /// - Parameters:
+    ///   - title: The alert title
+    ///   - message: The detailed error message
+    static func showError(title: String, message: String) {
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.informativeText = message
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
+    }
+}
