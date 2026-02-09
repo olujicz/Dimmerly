@@ -58,9 +58,7 @@ representative at an online or offline event.
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported to the community leaders responsible for enforcement at:
-
-- PLEASE_ADD_CONTACT_METHOD
+reported by opening an issue in this repository.
 
 All complaints will be reviewed and investigated promptly and fairly.
 
@@ -100,4 +98,3 @@ the consequences for any action they deem in violation of this Code of Conduct:
 
 This Code of Conduct is adapted from the Contributor Covenant, version 2.1,
 available at https://www.contributor-covenant.org/version/2/1/code_of_conduct.html
-
