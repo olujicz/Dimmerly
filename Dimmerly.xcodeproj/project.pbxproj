@@ -107,18 +107,33 @@
 		A1B2C3D4E5F6A7B8C9D0E200 /* Dimmerly */ = {
 			isa = PBXGroup;
 			children = (
+				AA00000000000000000A0001 /* App */,
 				B3835FE94A42F119C2E9B4CD /* Models */,
 				202BEEB29F4F688134482A54 /* Views */,
-				BEC7BD475215C49FED39FD34 /* Utilities */,
+				BEC7BD475215C49FED39FD34 /* Services */,
+				AA00000000000000000R0001 /* Resources */,
+			);
+			path = Dimmerly;
+			sourceTree = "<group>";
+		};
+		AA00000000000000000A0001 /* App */ = {
+			isa = PBXGroup;
+			children = (
 				B1B2C3D4E5F6A7B8C9D0E1F1 /* DimmerlyApp.swift */,
-				B1B2C3D4E5F6A7B8C9D0E1F2 /* DisplayController.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		AA00000000000000000R0001 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
 				B1B2C3D4E5F6A7B8C9D0E1F4 /* Assets.xcassets */,
 				AA1234560000000000000002 /* Dimmerly.icns */,
 				B1B2C3D4E5F6A7B8C9D0E1F3 /* Info.plist */,
 				ENT00000000000000000001 /* Dimmerly.entitlements */,
 				ENT00000000000000000002 /* DimmerlyAppStore.entitlements */,
 			);
-			path = Dimmerly;
+			path = Resources;
 			sourceTree = "<group>";
 		};
 		B3835FE94A42F119C2E9B4CD /* Models */ = {
@@ -131,15 +146,16 @@
 			path = Models;
 			sourceTree = "<group>";
 		};
-		BEC7BD475215C49FED39FD34 /* Utilities */ = {
+		BEC7BD475215C49FED39FD34 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				B1B2C3D4E5F6A7B8C9D0E1F2 /* DisplayController.swift */,
 				473CD46DB2D77DD4EB8463DA /* AlertPresenter.swift */,
 				15EF8DD088138249EA3B9ED2 /* LaunchAtLoginManager.swift */,
 				4938628BCBDB203349940ACE /* KeyboardShortcutManager.swift */,
 				E8A1B2C3D4E5F6A7B8C9D002 /* ScreenBlanker.swift */,
 			);
-			path = Utilities;
+			path = Services;
 			sourceTree = "<group>";
 		};
 		T1B2C3D4E5F6A7B8C9D0E203 /* DimmerlyTests */ = {
@@ -414,13 +430,13 @@
 		A1B2C3D4E5F6A7B8C9D0E1FA /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = Dimmerly/Dimmerly.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Dimmerly/Resources/Dimmerly.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = Dimmerly/Info.plist;
+				INFOPLIST_FILE = Dimmerly/Resources/Info.plist;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.dimmerly;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -430,13 +446,13 @@
 		A1B2C3D4E5F6A7B8C9D0E1FB /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = Dimmerly/Dimmerly.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Dimmerly/Resources/Dimmerly.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = Dimmerly/Info.plist;
+				INFOPLIST_FILE = Dimmerly/Resources/Info.plist;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.dimmerly;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -512,13 +528,13 @@
 		ASDEBUGAPPSTORE00000002 /* Debug-AppStore */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = Dimmerly/DimmerlyAppStore.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Dimmerly/Resources/DimmerlyAppStore.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = Dimmerly/Info.plist;
+				INFOPLIST_FILE = Dimmerly/Resources/Info.plist;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.dimmerly;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -605,13 +621,13 @@
 		ASRELEASEAPPSTORE0000002 /* Release-AppStore */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = Dimmerly/DimmerlyAppStore.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Dimmerly/Resources/DimmerlyAppStore.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = Dimmerly/Info.plist;
+				INFOPLIST_FILE = Dimmerly/Resources/Info.plist;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.dimmerly;
 				PRODUCT_NAME = "$(TARGET_NAME)";
