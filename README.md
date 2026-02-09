@@ -21,7 +21,7 @@ A minimal macOS menu bar utility for quickly sleeping displays with a single cli
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/yourusername/dimmerly.git
+   git clone https://github.com/olujicz/dimmerly.git
    cd dimmerly
    ```
 
@@ -155,6 +155,8 @@ This is the same mechanism used by System Settings to sleep displays, ensuring c
 ## Contributing
 
 Contributions are welcome! Please feel free to submit issues, feature requests, or pull requests.
+Please review the Code of Conduct before participating.
+See the security policy for reporting vulnerabilities.
 
 ### Development Setup
 
@@ -170,6 +172,14 @@ Contributions are welcome! Please feel free to submit issues, feature requests, 
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+## Code of Conduct
+
+This project follows the [Code of Conduct](CODE_OF_CONDUCT.md).
+
+## Security
+
+Please see the [Security Policy](SECURITY.md) for reporting vulnerabilities.
+
 ## Acknowledgments
 
 - Icon design inspired by macOS system icons
@@ -181,7 +191,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 If you encounter any issues or have questions:
 
 1. Check the [Troubleshooting](#troubleshooting) section above
-2. Search existing [GitHub Issues](https://github.com/yourusername/dimmerly/issues)
+2. Search existing [GitHub Issues](https://github.com/olujicz/dimmerly/issues)
 3. Create a new issue with:
    - macOS version
    - Dimmerly version
