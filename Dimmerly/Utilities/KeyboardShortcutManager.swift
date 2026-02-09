@@ -10,6 +10,7 @@ import Foundation
 import AppKit
 
 /// Manages global keyboard shortcuts for the application
+@MainActor
 class KeyboardShortcutManager: ObservableObject {
     /// The currently registered keyboard shortcut
     @Published var currentShortcut: KeyboardShortcut
@@ -100,6 +101,8 @@ class KeyboardShortcutManager: ObservableObject {
 
     /// Cleans up resources when the manager is deallocated
     deinit {
-        stopMonitoring()
+        if let monitor = eventMonitor {
+            NSEvent.removeMonitor(monitor)
+        }
     }
 }

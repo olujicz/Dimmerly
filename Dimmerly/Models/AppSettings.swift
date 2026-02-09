@@ -10,6 +10,7 @@ import Foundation
 import SwiftUI
 
 /// Application settings stored in UserDefaults
+@MainActor
 class AppSettings: ObservableObject {
     /// The configured keyboard shortcut for sleeping displays
     @AppStorage("dimmerlyKeyboardShortcut")

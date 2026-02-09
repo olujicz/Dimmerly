@@ -9,6 +9,7 @@
 import AppKit
 
 /// Utility for presenting user-facing alerts
+@MainActor
 struct AlertPresenter {
     /// Presents an error alert to the user
     ///
@@ -28,9 +29,6 @@ struct AlertPresenter {
         alert.informativeText = error.recoverySuggestion ?? ""
         alert.alertStyle = .warning
         alert.addButton(withTitle: "OK")
-
-        // Run the alert modally
-        // Note: In menu bar apps, NSAlert is more reliable than SwiftUI alerts
         alert.runModal()
     }
 

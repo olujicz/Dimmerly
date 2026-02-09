@@ -51,7 +51,6 @@ struct GeneralSettingsView: View {
                 .help("Automatically start Dimmerly when you log in")
             } header: {
                 Text("Startup")
-                    .font(.headline)
             }
 
             Spacer()
@@ -87,11 +86,11 @@ struct KeyboardShortcutsSettingsView: View {
                 if !shortcutManager.hasAccessibilityPermission {
                     HStack {
                         Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(.orange)
+                            .foregroundColor(.yellow)
                         Text("Accessibility permissions required")
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        Button("Grant Access") {
+                        Button("Open Accessibility Settings") {
                             KeyboardShortcutManager.requestAccessibilityPermission()
                         }
                         .font(.caption)
@@ -100,7 +99,6 @@ struct KeyboardShortcutsSettingsView: View {
                 }
             } header: {
                 Text("Global Shortcuts")
-                    .font(.headline)
             }
 
             Text("Global keyboard shortcuts allow you to trigger actions from any application.")
@@ -116,17 +114,23 @@ struct KeyboardShortcutsSettingsView: View {
 
 /// About tab
 struct AboutSettingsView: View {
+    private var appVersion: String {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+        return "Version \(version) (\(build))"
+    }
+
     var body: some View {
         VStack(spacing: 20) {
-            Image(systemName: "moon.fill")
-                .font(.system(size: 48))
-                .foregroundColor(.accentColor)
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .frame(width: 64, height: 64)
 
             Text("Dimmerly")
                 .font(.title)
                 .fontWeight(.bold)
 
-            Text("Version 1.0.0")
+            Text(appVersion)
                 .font(.subheadline)
                 .foregroundColor(.secondary)
 
@@ -142,14 +146,14 @@ struct AboutSettingsView: View {
             VStack(spacing: 8) {
                 Text("Privacy-focused")
                     .font(.headline)
-                Text("No data collection • No network access • No tracking")
+                Text("No data collection \u{2022} No network access \u{2022} No tracking")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
 
             Spacer()
 
-            Text("© 2026 Dimmerly")
+            Text("\u{00A9} 2026 Dimmerly")
                 .font(.caption)
                 .foregroundColor(.secondary)
         }

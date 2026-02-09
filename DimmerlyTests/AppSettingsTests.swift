@@ -10,6 +10,7 @@ import XCTest
 @testable import Dimmerly
 
 /// Tests for the AppSettings model
+@MainActor
 final class AppSettingsTests: XCTestCase {
 
     var settings: AppSettings!

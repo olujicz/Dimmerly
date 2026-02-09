@@ -20,7 +20,7 @@ struct KeyboardShortcutRecorder: View {
     /// The visual display text
     private var displayText: String {
         if isRecording {
-            return "Press shortcut..."
+            return "Press shortcut\u{2026}"
         } else {
             return shortcut.displayString
         }
@@ -34,12 +34,11 @@ struct KeyboardShortcutRecorder: View {
             }) {
                 Text(displayText)
                     .frame(minWidth: 120)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(isRecording ? Color.accentColor.opacity(0.2) : Color.secondary.opacity(0.1))
-                    .cornerRadius(6)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.bordered)
+            .tint(isRecording ? .accentColor : nil)
             .overlay(
                 ShortcutRecorderView(
                     isRecording: $isRecording,
@@ -49,6 +48,8 @@ struct KeyboardShortcutRecorder: View {
                 )
                 .opacity(0) // Invisible overlay to capture key events
             )
+            .accessibilityLabel("Keyboard shortcut: \(shortcut.displayString)")
+            .accessibilityHint(isRecording ? "Press a key combination to record" : "Click to record a new shortcut")
 
             // Clear button
             Button(action: {
@@ -56,8 +57,9 @@ struct KeyboardShortcutRecorder: View {
             }) {
                 Image(systemName: "arrow.counterclockwise")
             }
-            .buttonStyle(.plain)
-            .help("Reset to default")
+            .buttonStyle(.borderless)
+            .help("Reset to default shortcut")
+            .accessibilityLabel("Reset shortcut to default")
         }
     }
 }
