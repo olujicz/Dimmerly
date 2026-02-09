@@ -20,9 +20,11 @@ class AppSettings: ObservableObject {
     @AppStorage("dimmerlyLaunchAtLogin")
     var launchAtLogin: Bool = false
 
+    #if !APPSTORE
     /// Whether to blank screens instead of sleeping displays (prevents session lock)
     @AppStorage("dimmerlyPreventScreenLock")
     var preventScreenLock: Bool = false
+    #endif
 
     /// The current keyboard shortcut
     var keyboardShortcut: KeyboardShortcut {
@@ -45,6 +47,8 @@ class AppSettings: ObservableObject {
     func resetToDefaults() {
         keyboardShortcut = .default
         launchAtLogin = false
+        #if !APPSTORE
         preventScreenLock = false
+        #endif
     }
 }

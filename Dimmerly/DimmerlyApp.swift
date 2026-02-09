@@ -40,6 +40,9 @@ struct DimmerlyApp: App {
 
     private func startGlobalShortcutMonitoring() {
         shortcutManager.startMonitoring { [settings] in
+            #if APPSTORE
+            ScreenBlanker.shared.blank()
+            #else
             if settings.preventScreenLock {
                 ScreenBlanker.shared.blank()
             } else {
@@ -48,6 +51,7 @@ struct DimmerlyApp: App {
                     AlertPresenter.showError(error)
                 }
             }
+            #endif
         }
     }
 }
@@ -113,6 +117,9 @@ struct MenuContent: View {
     }
 
     private func handleSleepDisplays() {
+        #if APPSTORE
+        ScreenBlanker.shared.blank()
+        #else
         if settings.preventScreenLock {
             ScreenBlanker.shared.blank()
         } else {
@@ -121,6 +128,7 @@ struct MenuContent: View {
                 AlertPresenter.showError(error)
             }
         }
+        #endif
     }
 }
 
