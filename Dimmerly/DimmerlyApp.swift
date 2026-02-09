@@ -24,7 +24,10 @@ struct DimmerlyApp: App {
                 .environmentObject(settings)
                 .environmentObject(shortcutManager)
         } label: {
-            Image(systemName: "moon.stars")
+            Image("MenuBarIcon")
+                .onAppear {
+                    startGlobalShortcutMonitoring()
+                }
         }
 
         // Settings window
@@ -35,9 +38,13 @@ struct DimmerlyApp: App {
         }
     }
 
-    init() {
-        // Note: StateObject initialization happens automatically
-        // We can perform additional setup in the initializer if needed
+    private func startGlobalShortcutMonitoring() {
+        shortcutManager.startMonitoring {
+            let result = DisplayController.sleepDisplays()
+            if case .failure(let error) = result {
+                AlertPresenter.showError(error)
+            }
+        }
     }
 }
 
@@ -74,24 +81,10 @@ struct MenuContent: View {
         .keyboardShortcut("q", modifiers: .command)
     }
 
-    /// Handles the sleep displays action with error handling
     private func handleSleepDisplays() {
         let result = DisplayController.sleepDisplays()
-
-        switch result {
-        case .success:
-            // Success - displays are sleeping
-            break
-        case .failure(let error):
-            // Show error alert to user
+        if case .failure(let error) = result {
             AlertPresenter.showError(error)
-        }
-    }
-
-    /// Sets up the global keyboard shortcut monitoring
-    private func setupKeyboardShortcut() {
-        shortcutManager.startMonitoring {
-            handleSleepDisplays()
         }
     }
 }
