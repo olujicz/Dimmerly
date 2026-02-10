@@ -22,6 +22,10 @@ final class DisplayControllerTests: XCTestCase {
             XCTAssertTrue(true, "Sleep displays succeeded")
         case .failure(let error):
             switch error {
+            case .pmsetNotFound:
+                XCTAssertTrue(true, "pmset not found is a valid error in test environment")
+            case .pmsetFailed(let status):
+                XCTAssertNotEqual(status, 0, "Failed execution should have non-zero exit status")
             case .displayWranglerNotFound:
                 XCTAssertTrue(true, "Display wrangler not found is a valid error in test environment")
             case .iokitError(let code):
@@ -38,6 +42,17 @@ final class DisplayControllerTests: XCTestCase {
     /// Tests that error types have proper localized descriptions
     func testDisplayErrorDescriptions() {
         #if !APPSTORE
+        // Test pmsetNotFound error
+        let pmsetNotFoundError = DisplayError.pmsetNotFound
+        XCTAssertNotNil(pmsetNotFoundError.errorDescription, "pmsetNotFound should have error description")
+        XCTAssertNotNil(pmsetNotFoundError.recoverySuggestion, "pmsetNotFound should have recovery suggestion")
+
+        // Test pmsetFailed error
+        let pmsetFailedError = DisplayError.pmsetFailed(status: 1)
+        XCTAssertNotNil(pmsetFailedError.errorDescription, "pmsetFailed should have error description")
+        XCTAssertNotNil(pmsetFailedError.recoverySuggestion, "pmsetFailed should have recovery suggestion")
+        XCTAssertTrue(pmsetFailedError.errorDescription?.contains("1") ?? false, "Error description should contain exit status")
+
         // Test displayWranglerNotFound error
         let notFoundError = DisplayError.displayWranglerNotFound
         XCTAssertNotNil(notFoundError.errorDescription, "displayWranglerNotFound should have error description")

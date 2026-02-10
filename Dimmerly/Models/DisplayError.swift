@@ -11,6 +11,12 @@ import Foundation
 /// Errors that can occur during display sleep operations
 enum DisplayError: LocalizedError {
     #if !APPSTORE
+    /// The pmset utility was not found at /usr/bin/pmset
+    case pmsetNotFound
+
+    /// The pmset command exited with a non-zero status
+    case pmsetFailed(status: Int32)
+
     /// The IODisplayWrangler service was not found
     case displayWranglerNotFound
 
@@ -28,6 +34,10 @@ enum DisplayError: LocalizedError {
     var errorDescription: String? {
         switch self {
         #if !APPSTORE
+        case .pmsetNotFound:
+            return "Display Sleep Unavailable"
+        case .pmsetFailed(let status):
+            return "Failed to Sleep Displays (Exit \(status))"
         case .displayWranglerNotFound:
             return "Display Sleep Unavailable"
         case .iokitError(let code):
@@ -44,6 +54,10 @@ enum DisplayError: LocalizedError {
     var recoverySuggestion: String? {
         switch self {
         #if !APPSTORE
+        case .pmsetNotFound:
+            return "The pmset utility was not found at /usr/bin/pmset. This is unexpected — pmset is included with macOS."
+        case .pmsetFailed(let status):
+            return "The pmset command failed with exit code \(status). Check System Settings > Lock Screen and ensure display sleep is not disabled by policy."
         case .displayWranglerNotFound:
             return "The display wrangler service could not be found. This may indicate a system configuration issue."
         case .iokitError(let code):

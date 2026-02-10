@@ -17,7 +17,11 @@ A minimal macOS menu bar utility for quickly sleeping displays with a single cli
 
 ## Installation
 
-### From Source
+### Mac App Store
+
+Dimmerly is available on the [Mac App Store](https://apps.apple.com/app/dimmerly) for $1.99. The purchase supports continued development of the app. The App Store version uses screen blanking to comply with sandbox requirements.
+
+### From Source (Free)
 
 1. Clone this repository:
    ```bash
@@ -125,9 +129,9 @@ Dimmerly may request the following permissions:
 
 ### Displays Don't Sleep
 
-1. Ensure `/usr/bin/pmset` exists on your system (standard on macOS 10.9+)
+1. Ensure `/usr/bin/pmset` exists on your system (included with macOS)
 2. Check System Settings > Lock Screen and ensure display sleep is not disabled by policy
-3. Try running the app with administrator privileges if needed
+3. If using the App Store version, note that it blanks screens rather than sleeping displays — move your mouse or press any key to dismiss
 
 ### Keyboard Shortcut Doesn't Work
 
@@ -144,13 +148,26 @@ Dimmerly may request the following permissions:
 
 ## Technical Details
 
-Dimmerly uses the macOS `pmset` command-line utility to trigger display sleep:
+### Standard Build (Direct Distribution)
 
-```bash
-/usr/bin/pmset displaysleepnow
-```
+Dimmerly uses the macOS `pmset displaysleepnow` utility as the primary method to sleep displays, with an IOKit (`IODisplayWrangler`) fallback for older systems. The `pmset` utility is the same mechanism used by System Settings, ensuring compatibility across macOS versions.
 
-This is the same mechanism used by System Settings to sleep displays, ensuring compatibility and reliability.
+The standard build also includes an optional "Prevent Screen Lock" mode that blanks screens without triggering a session lock — useful when you want dark screens but don't want to re-authenticate.
+
+### App Store Build
+
+The App Store version uses fullscreen black windows (screen blanking) instead of `pmset`, since the App Store sandbox does not allow direct process execution. This achieves the same visual result without triggering a session lock.
+
+## Open Source + App Store
+
+Dimmerly is fully open source under the MIT License. You can build and run it from source for free.
+
+The [Mac App Store listing](https://apps.apple.com/app/dimmerly) ($1.99) is a convenient way to install the app and support ongoing development. Apple's Small Developer Program means 85% of each purchase goes directly to the developer.
+
+If you find Dimmerly useful, consider:
+- Purchasing from the App Store to support development
+- Starring the repository on GitHub
+- Contributing code, bug reports, or feature ideas
 
 ## Contributing
 
@@ -184,7 +201,7 @@ Please see the [Security Policy](SECURITY.md) for reporting vulnerabilities.
 
 - Icon design inspired by macOS system icons
 - Built with SwiftUI and AppKit
-- Uses the macOS `pmset` utility for display control
+- Uses the macOS `pmset` utility and IOKit for display control
 
 ## Support
 
