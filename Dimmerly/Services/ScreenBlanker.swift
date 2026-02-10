@@ -2,13 +2,15 @@
 //  ScreenBlanker.swift
 //  Dimmerly
 //
-//  Blanks all screens with black windows as an alternative to display sleep.
+//  Blanks all screens as an alternative to display sleep.
+//  Uses gamma table dimming (works over fullscreen apps and dims cursor)
+//  with black overlay windows as a complementary layer.
 //  Unlike pmset displaysleepnow, this does not trigger session lock.
 //
 
 import AppKit
 
-/// Manages fullscreen black windows to blank all displays without triggering session lock
+/// Manages screen blanking using gamma dimming and overlay windows
 @MainActor
 class ScreenBlanker {
     static let shared = ScreenBlanker()
@@ -23,12 +25,17 @@ class ScreenBlanker {
 
     private init() {}
 
-    /// Blanks all connected screens with black windows
+    /// Blanks all connected screens using gamma dimming and overlay windows
     func blank() {
         guard !isActive else { return }
         isActive = true
         activationTime = ProcessInfo.processInfo.systemUptime
 
+        // Zero out gamma on all displays — this dims everything including cursor
+        // and works over fullscreen apps
+        dimAllDisplays()
+
+        // Overlay windows as a complementary layer
         for screen in NSScreen.screens {
             let window = createBlankWindow(for: screen)
             windows.append(window)
@@ -39,19 +46,43 @@ class ScreenBlanker {
         startDismissMonitoring()
     }
 
-    /// Dismisses all blank windows and restores normal state
+    /// Dismisses blanking and restores normal display state
     func dismiss() {
         guard isActive else { return }
         // Ignore dismiss attempts during the grace period
         guard ProcessInfo.processInfo.systemUptime - activationTime >= gracePeriod else { return }
 
         stopDismissMonitoring()
+
+        // Restore gamma to ColorSync profile defaults
+        CGDisplayRestoreColorSyncSettings()
+
         for window in windows {
             window.orderOut(nil)
         }
         windows.removeAll()
         NSCursor.unhide()
         isActive = false
+    }
+
+    /// Sets gamma output to zero on all active displays
+    private func dimAllDisplays() {
+        var displayIDs = [CGDirectDisplayID](repeating: 0, count: 16)
+        var displayCount: UInt32 = 0
+
+        guard CGGetActiveDisplayList(UInt32(displayIDs.count), &displayIDs, &displayCount) == .success else {
+            return
+        }
+
+        for i in 0..<Int(displayCount) {
+            // Setting min=0 and max=0 makes output always 0 (black) regardless of input
+            CGSetDisplayTransferByFormula(
+                displayIDs[i],
+                0, 0, 1,  // red:   min, max, gamma
+                0, 0, 1,  // green: min, max, gamma
+                0, 0, 1   // blue:  min, max, gamma
+            )
+        }
     }
 
     private func createBlankWindow(for screen: NSScreen) -> NSWindow {

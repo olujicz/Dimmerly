@@ -156,7 +156,7 @@ The standard build also includes an optional "Prevent Screen Lock" mode that bla
 
 ### App Store Build
 
-The App Store version uses fullscreen black windows (screen blanking) instead of `pmset`, since the App Store sandbox does not allow direct process execution. This achieves the same visual result without triggering a session lock.
+The App Store version uses gamma table dimming (`CGSetDisplayTransferByFormula`) to black out all displays, including external monitors. This works over fullscreen apps and dims the cursor — unlike simple overlay windows. Black overlay windows are layered on top as a complementary safety net. Gamma is restored instantly on any keyboard or mouse input via `CGDisplayRestoreColorSyncSettings()`. If the app exits unexpectedly, macOS automatically restores gamma to normal.
 
 ## Open Source + App Store
 
