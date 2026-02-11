@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dimmerly - Support</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #1d1d1f;
+            background: #fff;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 680px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-size: 2em;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .tagline {
+            color: #86868b;
+            font-size: 1em;
+            margin-bottom: 32px;
+        }
+        h2 {
+            font-size: 1.3em;
+            font-weight: 600;
+            margin-top: 32px;
+            margin-bottom: 12px;
+        }
+        p, li {
+            font-size: 1em;
+            margin-bottom: 12px;
+            color: #333;
+        }
+        ul, ol {
+            padding-left: 24px;
+            margin-bottom: 12px;
+        }
+        a {
+            color: #0066cc;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .contact-box {
+            background: #f5f5f7;
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-top: 24px;
+        }
+        .contact-box p {
+            margin-bottom: 8px;
+        }
+        .contact-box p:last-child {
+            margin-bottom: 0;
+        }
+        .footer {
+            margin-top: 48px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e5e5;
+            color: #86868b;
+            font-size: 0.85em;
+        }
+        .footer a {
+            color: #86868b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Dimmerly Support</h1>
+        <p class="tagline">Control your external display brightness from the menu bar.</p>
+
+        <h2>Troubleshooting</h2>
+
+        <h3>Displays don't dim</h3>
+        <ul>
+            <li>Ensure your external display supports DDC/CI brightness control.</li>
+            <li>Some USB-C hubs or docks may not pass through DDC commands — try connecting the display directly to your Mac.</li>
+            <li>If using the App Store version, screens are blanked rather than put to sleep. Move your mouse or press any key to restore.</li>
+        </ul>
+
+        <h3>Keyboard shortcut doesn't work</h3>
+        <ol>
+            <li>Open System Settings > Privacy & Security > Accessibility.</li>
+            <li>Make sure Dimmerly is listed and enabled.</li>
+            <li>Restart Dimmerly after granting permission.</li>
+            <li>If the shortcut still doesn't work, try changing it in Settings > Shortcuts to avoid conflicts with other apps.</li>
+        </ol>
+
+        <h3>Brightness slider has no effect</h3>
+        <ul>
+            <li>Not all displays support software brightness control. Built-in MacBook displays are not supported — Dimmerly controls external displays only.</li>
+            <li>Verify your monitor supports DDC/CI (most modern monitors do).</li>
+        </ul>
+
+        <h3>Menu bar icon not visible</h3>
+        <ul>
+            <li>If your menu bar is crowded, macOS may hide some icons. Try removing other menu bar items or using a tool like Bartender.</li>
+            <li>Restart Dimmerly from Applications.</li>
+        </ul>
+
+        <h2>Frequently Asked Questions</h2>
+
+        <h3>Does Dimmerly work with built-in displays?</h3>
+        <p>Dimmerly is designed for external displays. Your Mac's built-in display brightness is controlled through System Settings or the keyboard brightness keys.</p>
+
+        <h3>How many presets can I save?</h3>
+        <p>You can save up to 10 brightness presets. Each preset can have its own keyboard shortcut for quick access.</p>
+
+        <h3>Does Dimmerly collect any data?</h3>
+        <p>No. Dimmerly has no network access, no analytics, and no tracking. All settings are stored locally on your Mac. See our <a href="privacy-policy.html">Privacy Policy</a>.</p>
+
+        <h3>What's the difference between the App Store and source versions?</h3>
+        <p>The App Store version runs in Apple's sandbox and dims screens using gamma tables. The source version can put displays to sleep using macOS system commands. Both versions include all other features.</p>
+
+        <h2>Contact</h2>
+
+        <div class="contact-box">
+            <p>For bug reports and feature requests, please open an issue on <a href="https://github.com/olujicz/Dimmerly/issues">GitHub Issues</a>.</p>
+            <p>When reporting a bug, please include:</p>
+            <ul>
+                <li>Your macOS version</li>
+                <li>Dimmerly version (from Settings > About)</li>
+                <li>Your display model and connection type</li>
+                <li>Steps to reproduce the issue</li>
+            </ul>
+        </div>
+
+        <div class="footer">
+            <p><a href="privacy-policy.html">Privacy Policy</a> · <a href="https://github.com/olujicz/Dimmerly">GitHub</a> · Copyright &copy; 2026 Zoran Olujic</p>
+        </div>
+    </div>
+</body>
+</html>

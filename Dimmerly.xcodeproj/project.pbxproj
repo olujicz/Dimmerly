@@ -1,0 +1,1106 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 70;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		05024BFD6B91C5336F8E4CC1 /* AlertPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 473CD46DB2D77DD4EB8463DA /* AlertPresenter.swift */; };
+		34887812E1B9FF228147D4A5 /* KeyboardShortcut.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1B045C3D2AA639266BC0483 /* KeyboardShortcut.swift */; };
+		4418D8E7C90F85F1A0565B97 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76B136A03B60312AFD4F720E /* SettingsView.swift */; };
+		46A91AE061E879288C03F4F2 /* DisplayError.swift in Sources */ = {isa = PBXBuildFile; fileRef = E37863164B2170781448D5DC /* DisplayError.swift */; };
+		4CFE3A082F3C8B1600E8C290 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4CFE3A072F3C8B1600E8C290 /* WidgetKit.framework */; };
+		4CFE3A0A2F3C8B1600E8C290 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4CFE3A092F3C8B1600E8C290 /* SwiftUI.framework */; };
+		4CFE3A172F3C8B1700E8C290 /* DimmerlyWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4CFE3A052F3C8B1600E8C290 /* DimmerlyWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		4CFE3A392F3C930E00E8C290 /* SharedConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CFE3A372F3C930E00E8C290 /* SharedConstants.swift */; };
+		4CFE3A432F3C931400E8C290 /* WidgetIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CFE3A3F2F3C931400E8C290 /* WidgetIntents.swift */; };
+		4CFE3A602F3C940000E8C290 /* SharedConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CFE3A372F3C930E00E8C290 /* SharedConstants.swift */; };
+		4CFE3A612F3C940000E8C290 /* WidgetIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CFE3A3F2F3C931400E8C290 /* WidgetIntents.swift */; };
+		4CFE3A622F3C940000E8C290 /* BrightnessPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF00000000000000000001 /* BrightnessPreset.swift */; };
+		4CFE3A632F3C940000E8C290 /* KeyboardShortcut.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1B045C3D2AA639266BC0483 /* KeyboardShortcut.swift */; };
+		79B76AB2030457F5760B45AD /* LaunchAtLoginManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15EF8DD088138249EA3B9ED2 /* LaunchAtLoginManager.swift */; };
+		9B4E7A11F2B9407BA3C0D1E2 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 9B4E7A11F2B9407BA3C0D1E3 /* Localizable.xcstrings */; };
+		9B4E7A11F2B9407BA3C0D1E4 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 9B4E7A11F2B9407BA3C0D1E5 /* InfoPlist.xcstrings */; };
+		AA1234560000000000000001 /* Dimmerly.icns in Resources */ = {isa = PBXBuildFile; fileRef = AA1234560000000000000002 /* Dimmerly.icns */; };
+		BA0000000000000000000001 /* BrightnessManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0000000000000000000002 /* BrightnessManager.swift */; };
+		BA0000000000000000000003 /* MenuBarPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0000000000000000000004 /* MenuBarPanel.swift */; };
+		C1B2C3D4E5F6A7B8C9D0E1F1 /* DimmerlyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B2C3D4E5F6A7B8C9D0E1F1 /* DimmerlyApp.swift */; };
+		C1B2C3D4E5F6A7B8C9D0E1F2 /* DisplayController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B2C3D4E5F6A7B8C9D0E1F2 /* DisplayController.swift */; };
+		C1B2C3D4E5F6A7B8C9D0E1F3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B1B2C3D4E5F6A7B8C9D0E1F4 /* Assets.xcassets */; };
+		D020A5D272EBF573C8F22F90 /* KeyboardShortcutRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = C50F163FD03D0874576E9962 /* KeyboardShortcutRecorder.swift */; };
+		D4F246BF3A0883989414211C /* KeyboardShortcutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4938628BCBDB203349940ACE /* KeyboardShortcutManager.swift */; };
+		E8A1B2C3D4E5F6A7B8C9D001 /* ScreenBlanker.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8A1B2C3D4E5F6A7B8C9D002 /* ScreenBlanker.swift */; };
+		F002FDE8D5FAD64627544CEC /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE7B95B7556B68B59FE0DC7B /* AppSettings.swift */; };
+		NF00000000000000000011 /* BrightnessPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF00000000000000000001 /* BrightnessPreset.swift */; };
+		NF00000000000000000012 /* PresetManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF00000000000000000002 /* PresetManager.swift */; };
+		NF00000000000000000013 /* IdleTimerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF00000000000000000003 /* IdleTimerManager.swift */; };
+		NF00000000000000000014 /* PresetShortcutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF00000000000000000004 /* PresetShortcutManager.swift */; };
+		NF00000000000000000015 /* DisplayEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF00000000000000000005 /* DisplayEntity.swift */; };
+		NF00000000000000000016 /* SleepDisplaysIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF00000000000000000006 /* SleepDisplaysIntent.swift */; };
+		NF00000000000000000017 /* SetDisplayBrightnessIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF00000000000000000007 /* SetDisplayBrightnessIntent.swift */; };
+		NF00000000000000000018 /* ToggleDimIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF00000000000000000008 /* ToggleDimIntent.swift */; };
+		NF00000000000000000019 /* DimmerlyShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF00000000000000000009 /* DimmerlyShortcuts.swift */; };
+		NF0000000000000000001A /* BrightnessPresetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF0000000000000000000A /* BrightnessPresetTests.swift */; };
+		PRV00000000000000000002 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = PRV00000000000000000001 /* PrivacyInfo.xcprivacy */; };
+		T1B2C3D4E5F6A7B8C9D0E301 /* DisplayControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1B2C3D4E5F6A7B8C9D0E300 /* DisplayControllerTests.swift */; };
+		T1B2C3D4E5F6A7B8C9D0E311 /* AppSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1B2C3D4E5F6A7B8C9D0E310 /* AppSettingsTests.swift */; };
+		T1B2C3D4E5F6A7B8C9D0E321 /* KeyboardShortcutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1B2C3D4E5F6A7B8C9D0E320 /* KeyboardShortcutTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		4CFE3A152F3C8B1700E8C290 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A1B2C3D4E5F6A7B8C9D0E1F2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4CFE3A042F3C8B1600E8C290;
+			remoteInfo = DimmerlyWidgetExtension;
+		};
+		T1B2C3D4E5F6A7B8C9D0E202 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A1B2C3D4E5F6A7B8C9D0E1F2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A1B2C3D4E5F6A7B8C9D0E1F5;
+			remoteInfo = Dimmerly;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		4CFE3A182F3C8B1700E8C290 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				4CFE3A172F3C8B1700E8C290 /* DimmerlyWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		15EF8DD088138249EA3B9ED2 /* LaunchAtLoginManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginManager.swift; sourceTree = "<group>"; };
+		473CD46DB2D77DD4EB8463DA /* AlertPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertPresenter.swift; sourceTree = "<group>"; };
+		4938628BCBDB203349940ACE /* KeyboardShortcutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutManager.swift; sourceTree = "<group>"; };
+		4CFE3A052F3C8B1600E8C290 /* DimmerlyWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = DimmerlyWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		4CFE3A072F3C8B1600E8C290 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		4CFE3A092F3C8B1600E8C290 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		4CFE3A372F3C930E00E8C290 /* SharedConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedConstants.swift; sourceTree = "<group>"; };
+		4CFE3A3F2F3C931400E8C290 /* WidgetIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetIntents.swift; sourceTree = "<group>"; };
+		76B136A03B60312AFD4F720E /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		9B4E7A11F2B9407BA3C0D1E3 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		9B4E7A11F2B9407BA3C0D1E5 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
+		A1B2C3D4E5F6A7B8C9D0E1FF /* Dimmerly.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Dimmerly.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA1234560000000000000002 /* Dimmerly.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = Dimmerly.icns; sourceTree = "<group>"; };
+		B1B2C3D4E5F6A7B8C9D0E1F1 /* DimmerlyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DimmerlyApp.swift; sourceTree = "<group>"; };
+		B1B2C3D4E5F6A7B8C9D0E1F2 /* DisplayController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayController.swift; sourceTree = "<group>"; };
+		B1B2C3D4E5F6A7B8C9D0E1F3 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		B1B2C3D4E5F6A7B8C9D0E1F4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		BA0000000000000000000002 /* BrightnessManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrightnessManager.swift; sourceTree = "<group>"; };
+		BA0000000000000000000004 /* MenuBarPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPanel.swift; sourceTree = "<group>"; };
+		C50F163FD03D0874576E9962 /* KeyboardShortcutRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutRecorder.swift; sourceTree = "<group>"; };
+		D1B045C3D2AA639266BC0483 /* KeyboardShortcut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcut.swift; sourceTree = "<group>"; };
+		E37863164B2170781448D5DC /* DisplayError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayError.swift; sourceTree = "<group>"; };
+		E8A1B2C3D4E5F6A7B8C9D002 /* ScreenBlanker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenBlanker.swift; sourceTree = "<group>"; };
+		ENT00000000000000000001 /* Dimmerly.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Dimmerly.entitlements; sourceTree = "<group>"; };
+		ENT00000000000000000002 /* DimmerlyAppStore.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DimmerlyAppStore.entitlements; sourceTree = "<group>"; };
+		FE7B95B7556B68B59FE0DC7B /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
+		NF00000000000000000001 /* BrightnessPreset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrightnessPreset.swift; sourceTree = "<group>"; };
+		NF00000000000000000002 /* PresetManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetManager.swift; sourceTree = "<group>"; };
+		NF00000000000000000003 /* IdleTimerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleTimerManager.swift; sourceTree = "<group>"; };
+		NF00000000000000000004 /* PresetShortcutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetShortcutManager.swift; sourceTree = "<group>"; };
+		NF00000000000000000005 /* DisplayEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayEntity.swift; sourceTree = "<group>"; };
+		NF00000000000000000006 /* SleepDisplaysIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepDisplaysIntent.swift; sourceTree = "<group>"; };
+		NF00000000000000000007 /* SetDisplayBrightnessIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetDisplayBrightnessIntent.swift; sourceTree = "<group>"; };
+		NF00000000000000000008 /* ToggleDimIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToggleDimIntent.swift; sourceTree = "<group>"; };
+		NF00000000000000000009 /* DimmerlyShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DimmerlyShortcuts.swift; sourceTree = "<group>"; };
+		NF0000000000000000000A /* BrightnessPresetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrightnessPresetTests.swift; sourceTree = "<group>"; };
+		PRV00000000000000000001 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		T1B2C3D4E5F6A7B8C9D0E1FF /* DimmerlyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DimmerlyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		T1B2C3D4E5F6A7B8C9D0E300 /* DisplayControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayControllerTests.swift; sourceTree = "<group>"; };
+		T1B2C3D4E5F6A7B8C9D0E310 /* AppSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsTests.swift; sourceTree = "<group>"; };
+		T1B2C3D4E5F6A7B8C9D0E320 /* KeyboardShortcutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutTests.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		4CFE3A1D2F3C8B1700E8C290 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 4CFE3A042F3C8B1600E8C290 /* DimmerlyWidgetExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		4CFE3A0B2F3C8B1600E8C290 /* DimmerlyWidget */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (4CFE3A1D2F3C8B1700E8C290 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = DimmerlyWidget; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		4CFE3A022F3C8B1600E8C290 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4CFE3A0A2F3C8B1600E8C290 /* SwiftUI.framework in Frameworks */,
+				4CFE3A082F3C8B1600E8C290 /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1B2C3D4E5F6A7B8C9D0E1FE /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		T1B2C3D4E5F6A7B8C9D0E1FE /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		202BEEB29F4F688134482A54 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				C50F163FD03D0874576E9962 /* KeyboardShortcutRecorder.swift */,
+				BA0000000000000000000004 /* MenuBarPanel.swift */,
+				76B136A03B60312AFD4F720E /* SettingsView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		4CFE3A062F3C8B1600E8C290 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				4CFE3A072F3C8B1600E8C290 /* WidgetKit.framework */,
+				4CFE3A092F3C8B1600E8C290 /* SwiftUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		4CFE3A382F3C930E00E8C290 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				4CFE3A372F3C930E00E8C290 /* SharedConstants.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6A7B8C9D0E1F3 = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F6A7B8C9D0E200 /* Dimmerly */,
+				T1B2C3D4E5F6A7B8C9D0E203 /* DimmerlyTests */,
+				4CFE3A0B2F3C8B1600E8C290 /* DimmerlyWidget */,
+				4CFE3A062F3C8B1600E8C290 /* Frameworks */,
+				A1B2C3D4E5F6A7B8C9D0E1F4 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6A7B8C9D0E1F4 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F6A7B8C9D0E1FF /* Dimmerly.app */,
+				T1B2C3D4E5F6A7B8C9D0E1FF /* DimmerlyTests.xctest */,
+				4CFE3A052F3C8B1600E8C290 /* DimmerlyWidgetExtension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6A7B8C9D0E200 /* Dimmerly */ = {
+			isa = PBXGroup;
+			children = (
+				AA00000000000000000A0001 /* App */,
+				NF00000000000000000020 /* Intents */,
+				B3835FE94A42F119C2E9B4CD /* Models */,
+				202BEEB29F4F688134482A54 /* Views */,
+				BEC7BD475215C49FED39FD34 /* Services */,
+				AA00000000000000000R0001 /* Resources */,
+				4CFE3A382F3C930E00E8C290 /* Shared */,
+			);
+			path = Dimmerly;
+			sourceTree = "<group>";
+		};
+		AA00000000000000000A0001 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				B1B2C3D4E5F6A7B8C9D0E1F1 /* DimmerlyApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		AA00000000000000000R0001 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				B1B2C3D4E5F6A7B8C9D0E1F4 /* Assets.xcassets */,
+				AA1234560000000000000002 /* Dimmerly.icns */,
+				9B4E7A11F2B9407BA3C0D1E5 /* InfoPlist.xcstrings */,
+				9B4E7A11F2B9407BA3C0D1E3 /* Localizable.xcstrings */,
+				B1B2C3D4E5F6A7B8C9D0E1F3 /* Info.plist */,
+				ENT00000000000000000001 /* Dimmerly.entitlements */,
+				ENT00000000000000000002 /* DimmerlyAppStore.entitlements */,
+				PRV00000000000000000001 /* PrivacyInfo.xcprivacy */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		B3835FE94A42F119C2E9B4CD /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				NF00000000000000000001 /* BrightnessPreset.swift */,
+				E37863164B2170781448D5DC /* DisplayError.swift */,
+				D1B045C3D2AA639266BC0483 /* KeyboardShortcut.swift */,
+				FE7B95B7556B68B59FE0DC7B /* AppSettings.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		BEC7BD475215C49FED39FD34 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				B1B2C3D4E5F6A7B8C9D0E1F2 /* DisplayController.swift */,
+				473CD46DB2D77DD4EB8463DA /* AlertPresenter.swift */,
+				BA0000000000000000000002 /* BrightnessManager.swift */,
+				NF00000000000000000003 /* IdleTimerManager.swift */,
+				15EF8DD088138249EA3B9ED2 /* LaunchAtLoginManager.swift */,
+				4938628BCBDB203349940ACE /* KeyboardShortcutManager.swift */,
+				NF00000000000000000002 /* PresetManager.swift */,
+				NF00000000000000000004 /* PresetShortcutManager.swift */,
+				E8A1B2C3D4E5F6A7B8C9D002 /* ScreenBlanker.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		NF00000000000000000020 /* Intents */ = {
+			isa = PBXGroup;
+			children = (
+				NF00000000000000000005 /* DisplayEntity.swift */,
+				NF00000000000000000009 /* DimmerlyShortcuts.swift */,
+				NF00000000000000000007 /* SetDisplayBrightnessIntent.swift */,
+				NF00000000000000000006 /* SleepDisplaysIntent.swift */,
+				NF00000000000000000008 /* ToggleDimIntent.swift */,
+				4CFE3A3F2F3C931400E8C290 /* WidgetIntents.swift */,
+			);
+			path = Intents;
+			sourceTree = "<group>";
+		};
+		T1B2C3D4E5F6A7B8C9D0E203 /* DimmerlyTests */ = {
+			isa = PBXGroup;
+			children = (
+				T1B2C3D4E5F6A7B8C9D0E310 /* AppSettingsTests.swift */,
+				NF0000000000000000000A /* BrightnessPresetTests.swift */,
+				T1B2C3D4E5F6A7B8C9D0E300 /* DisplayControllerTests.swift */,
+				T1B2C3D4E5F6A7B8C9D0E320 /* KeyboardShortcutTests.swift */,
+			);
+			path = DimmerlyTests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		4CFE3A042F3C8B1600E8C290 /* DimmerlyWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4CFE3A1E2F3C8B1700E8C290 /* Build configuration list for PBXNativeTarget "DimmerlyWidgetExtension" */;
+			buildPhases = (
+				4CFE3A012F3C8B1600E8C290 /* Sources */,
+				4CFE3A022F3C8B1600E8C290 /* Frameworks */,
+				4CFE3A032F3C8B1600E8C290 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				4CFE3A0B2F3C8B1600E8C290 /* DimmerlyWidget */,
+			);
+			name = DimmerlyWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = DimmerlyWidgetExtension;
+			productReference = 4CFE3A052F3C8B1600E8C290 /* DimmerlyWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		A1B2C3D4E5F6A7B8C9D0E1F5 /* Dimmerly */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1B2C3D4E5F6A7B8C9D0E1F7 /* Build configuration list for PBXNativeTarget "Dimmerly" */;
+			buildPhases = (
+				A1B2C3D4E5F6A7B8C9D0E1FC /* Sources */,
+				A1B2C3D4E5F6A7B8C9D0E1FD /* Resources */,
+				A1B2C3D4E5F6A7B8C9D0E1FE /* Frameworks */,
+				4CFE3A182F3C8B1700E8C290 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4CFE3A162F3C8B1700E8C290 /* PBXTargetDependency */,
+			);
+			name = Dimmerly;
+			productName = Dimmerly;
+			productReference = A1B2C3D4E5F6A7B8C9D0E1FF /* Dimmerly.app */;
+			productType = "com.apple.product-type.application";
+		};
+		T1B2C3D4E5F6A7B8C9D0E1F5 /* DimmerlyTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = T1B2C3D4E5F6A7B8C9D0E1F7 /* Build configuration list for PBXNativeTarget "DimmerlyTests" */;
+			buildPhases = (
+				T1B2C3D4E5F6A7B8C9D0E1FC /* Sources */,
+				T1B2C3D4E5F6A7B8C9D0E1FD /* Resources */,
+				T1B2C3D4E5F6A7B8C9D0E1FE /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				T1B2C3D4E5F6A7B8C9D0E204 /* PBXTargetDependency */,
+			);
+			name = DimmerlyTests;
+			productName = DimmerlyTests;
+			productReference = T1B2C3D4E5F6A7B8C9D0E1FF /* DimmerlyTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A1B2C3D4E5F6A7B8C9D0E1F2 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastSwiftUpdateCheck = 2620;
+				LastUpgradeCheck = 2620;
+				TargetAttributes = {
+					4CFE3A042F3C8B1600E8C290 = {
+						CreatedOnToolsVersion = 26.2;
+					};
+					A1B2C3D4E5F6A7B8C9D0E1F5 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+					T1B2C3D4E5F6A7B8C9D0E1F5 = {
+						CreatedOnToolsVersion = 15.0;
+						TestTargetID = A1B2C3D4E5F6A7B8C9D0E1F5;
+					};
+				};
+			};
+			buildConfigurationList = A1B2C3D4E5F6A7B8C9D0E1F6 /* Build configuration list for PBXProject "Dimmerly" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				es,
+				de,
+				ja,
+				fr,
+				it,
+				ko,
+				nl,
+				"pt-BR",
+				sr,
+				"zh-Hans",
+				Base,
+			);
+			mainGroup = A1B2C3D4E5F6A7B8C9D0E1F3;
+			productRefGroup = A1B2C3D4E5F6A7B8C9D0E1F4 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A1B2C3D4E5F6A7B8C9D0E1F5 /* Dimmerly */,
+				T1B2C3D4E5F6A7B8C9D0E1F5 /* DimmerlyTests */,
+				4CFE3A042F3C8B1600E8C290 /* DimmerlyWidgetExtension */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		4CFE3A032F3C8B1600E8C290 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1B2C3D4E5F6A7B8C9D0E1FD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C1B2C3D4E5F6A7B8C9D0E1F3 /* Assets.xcassets in Resources */,
+				AA1234560000000000000001 /* Dimmerly.icns in Resources */,
+				9B4E7A11F2B9407BA3C0D1E4 /* InfoPlist.xcstrings in Resources */,
+				9B4E7A11F2B9407BA3C0D1E2 /* Localizable.xcstrings in Resources */,
+				PRV00000000000000000002 /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		T1B2C3D4E5F6A7B8C9D0E1FD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		4CFE3A012F3C8B1600E8C290 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4CFE3A602F3C940000E8C290 /* SharedConstants.swift in Sources */,
+				4CFE3A612F3C940000E8C290 /* WidgetIntents.swift in Sources */,
+				4CFE3A622F3C940000E8C290 /* BrightnessPreset.swift in Sources */,
+				4CFE3A632F3C940000E8C290 /* KeyboardShortcut.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1B2C3D4E5F6A7B8C9D0E1FC /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C1B2C3D4E5F6A7B8C9D0E1F1 /* DimmerlyApp.swift in Sources */,
+				C1B2C3D4E5F6A7B8C9D0E1F2 /* DisplayController.swift in Sources */,
+				4CFE3A432F3C931400E8C290 /* WidgetIntents.swift in Sources */,
+				46A91AE061E879288C03F4F2 /* DisplayError.swift in Sources */,
+				34887812E1B9FF228147D4A5 /* KeyboardShortcut.swift in Sources */,
+				F002FDE8D5FAD64627544CEC /* AppSettings.swift in Sources */,
+				05024BFD6B91C5336F8E4CC1 /* AlertPresenter.swift in Sources */,
+				79B76AB2030457F5760B45AD /* LaunchAtLoginManager.swift in Sources */,
+				4CFE3A392F3C930E00E8C290 /* SharedConstants.swift in Sources */,
+				D4F246BF3A0883989414211C /* KeyboardShortcutManager.swift in Sources */,
+				D020A5D272EBF573C8F22F90 /* KeyboardShortcutRecorder.swift in Sources */,
+				E8A1B2C3D4E5F6A7B8C9D001 /* ScreenBlanker.swift in Sources */,
+				4418D8E7C90F85F1A0565B97 /* SettingsView.swift in Sources */,
+				BA0000000000000000000001 /* BrightnessManager.swift in Sources */,
+				BA0000000000000000000003 /* MenuBarPanel.swift in Sources */,
+				NF00000000000000000011 /* BrightnessPreset.swift in Sources */,
+				NF00000000000000000012 /* PresetManager.swift in Sources */,
+				NF00000000000000000013 /* IdleTimerManager.swift in Sources */,
+				NF00000000000000000014 /* PresetShortcutManager.swift in Sources */,
+				NF00000000000000000015 /* DisplayEntity.swift in Sources */,
+				NF00000000000000000016 /* SleepDisplaysIntent.swift in Sources */,
+				NF00000000000000000017 /* SetDisplayBrightnessIntent.swift in Sources */,
+				NF00000000000000000018 /* ToggleDimIntent.swift in Sources */,
+				NF00000000000000000019 /* DimmerlyShortcuts.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		T1B2C3D4E5F6A7B8C9D0E1FC /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				T1B2C3D4E5F6A7B8C9D0E301 /* DisplayControllerTests.swift in Sources */,
+				T1B2C3D4E5F6A7B8C9D0E311 /* AppSettingsTests.swift in Sources */,
+				T1B2C3D4E5F6A7B8C9D0E321 /* KeyboardShortcutTests.swift in Sources */,
+				NF0000000000000000001A /* BrightnessPresetTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		4CFE3A162F3C8B1700E8C290 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4CFE3A042F3C8B1600E8C290 /* DimmerlyWidgetExtension */;
+			targetProxy = 4CFE3A152F3C8B1700E8C290 /* PBXContainerItemProxy */;
+		};
+		T1B2C3D4E5F6A7B8C9D0E204 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A1B2C3D4E5F6A7B8C9D0E1F5 /* Dimmerly */;
+			targetProxy = T1B2C3D4E5F6A7B8C9D0E202 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		4CFE3A192F3C8B1700E8C290 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = DimmerlyWidget/Resources/DimmerlyWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = DimmerlyWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = DimmerlyWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.dimmerly.DimmerlyWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG WIDGET_EXTENSION";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		4CFE3A1A2F3C8B1700E8C290 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = DimmerlyWidget/Resources/DimmerlyWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = DimmerlyWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = DimmerlyWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.dimmerly.DimmerlyWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = WIDGET_EXTENSION;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		4CFE3A1B2F3C8B1700E8C290 /* Debug-AppStore */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = DimmerlyWidget/Resources/DimmerlyWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = DimmerlyWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = DimmerlyWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.dimmerly.DimmerlyWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG APPSTORE WIDGET_EXTENSION";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = "Debug-AppStore";
+		};
+		4CFE3A1C2F3C8B1700E8C290 /* Release-AppStore */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = DimmerlyWidget/Resources/DimmerlyWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = DimmerlyWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = DimmerlyWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.dimmerly.DimmerlyWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "APPSTORE WIDGET_EXTENSION";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = "Release-AppStore";
+		};
+		A1B2C3D4E5F6A7B8C9D0E1F8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = MN5C3DH647;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		A1B2C3D4E5F6A7B8C9D0E1F9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = MN5C3DH647;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		A1B2C3D4E5F6A7B8C9D0E1FA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Dimmerly/Resources/Dimmerly.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Dimmerly/Resources/Info.plist;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.dimmerly;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		A1B2C3D4E5F6A7B8C9D0E1FB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Dimmerly/Resources/Dimmerly.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Dimmerly/Resources/Info.plist;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.dimmerly;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		ASDEBUGAPPSTORE00000001 /* Debug-AppStore */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = MN5C3DH647;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG APPSTORE";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = "Debug-AppStore";
+		};
+		ASDEBUGAPPSTORE00000002 /* Debug-AppStore */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Dimmerly/Resources/DimmerlyAppStore.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Dimmerly/Resources/Info.plist;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.dimmerly;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = "Debug-AppStore";
+		};
+		ASDEBUGAPPSTORE00000003 /* Debug-AppStore */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.DimmerlyTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Dimmerly.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Dimmerly";
+			};
+			name = "Debug-AppStore";
+		};
+		ASRELEASEAPPSTORE0000001 /* Release-AppStore */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = MN5C3DH647;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = APPSTORE;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = "Release-AppStore";
+		};
+		ASRELEASEAPPSTORE0000002 /* Release-AppStore */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Dimmerly/Resources/DimmerlyAppStore.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Dimmerly/Resources/Info.plist;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.dimmerly;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = "Release-AppStore";
+		};
+		ASRELEASEAPPSTORE0000003 /* Release-AppStore */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.DimmerlyTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Dimmerly.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Dimmerly";
+			};
+			name = "Release-AppStore";
+		};
+		T1B2C3D4E5F6A7B8C9D0E1FA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.DimmerlyTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Dimmerly.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Dimmerly";
+			};
+			name = Debug;
+		};
+		T1B2C3D4E5F6A7B8C9D0E1FB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.DimmerlyTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Dimmerly.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Dimmerly";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		4CFE3A1E2F3C8B1700E8C290 /* Build configuration list for PBXNativeTarget "DimmerlyWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4CFE3A192F3C8B1700E8C290 /* Debug */,
+				4CFE3A1A2F3C8B1700E8C290 /* Release */,
+				4CFE3A1B2F3C8B1700E8C290 /* Debug-AppStore */,
+				4CFE3A1C2F3C8B1700E8C290 /* Release-AppStore */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1B2C3D4E5F6A7B8C9D0E1F6 /* Build configuration list for PBXProject "Dimmerly" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1B2C3D4E5F6A7B8C9D0E1F8 /* Debug */,
+				A1B2C3D4E5F6A7B8C9D0E1F9 /* Release */,
+				ASDEBUGAPPSTORE00000001 /* Debug-AppStore */,
+				ASRELEASEAPPSTORE0000001 /* Release-AppStore */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1B2C3D4E5F6A7B8C9D0E1F7 /* Build configuration list for PBXNativeTarget "Dimmerly" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1B2C3D4E5F6A7B8C9D0E1FA /* Debug */,
+				A1B2C3D4E5F6A7B8C9D0E1FB /* Release */,
+				ASDEBUGAPPSTORE00000002 /* Debug-AppStore */,
+				ASRELEASEAPPSTORE0000002 /* Release-AppStore */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		T1B2C3D4E5F6A7B8C9D0E1F7 /* Build configuration list for PBXNativeTarget "DimmerlyTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				T1B2C3D4E5F6A7B8C9D0E1FA /* Debug */,
+				T1B2C3D4E5F6A7B8C9D0E1FB /* Release */,
+				ASDEBUGAPPSTORE00000003 /* Debug-AppStore */,
+				ASRELEASEAPPSTORE0000003 /* Release-AppStore */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A1B2C3D4E5F6A7B8C9D0E1F2 /* Project object */;
+}
