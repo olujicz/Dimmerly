@@ -78,9 +78,10 @@ struct KeyboardShortcutRecorder: View {
             }
 
             if let message = conflictMessage {
-                Text(message)
+                Label(message, systemImage: "exclamationmark.triangle.fill")
                     .font(.caption)
                     .foregroundStyle(.red)
+                    .symbolRenderingMode(.multicolor)
             }
         }
     }

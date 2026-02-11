@@ -40,6 +40,7 @@ struct SmallWidgetView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(Text("Dim Displays"))
     }
 }
 
@@ -75,6 +76,7 @@ struct MediumWidgetView: View {
             )
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(Text("Dim Displays"))
     }
 
     private var presetButtons: some View {
@@ -98,6 +100,7 @@ struct MediumWidgetView: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(Text("Apply \(preset.name)"))
             }
         }
     }

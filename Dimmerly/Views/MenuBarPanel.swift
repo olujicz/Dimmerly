@@ -114,6 +114,7 @@ struct MenuBarPanel: View {
             }
             .frame(maxWidth: .infinity)
         }
+        .buttonStyle(.borderedProminent)
         .controlSize(.large)
         .keyboardShortcut(.return, modifiers: [])
     }

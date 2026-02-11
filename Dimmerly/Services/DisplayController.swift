@@ -5,6 +5,7 @@
 //  Controller for managing display sleep and dim operations.
 //
 
+import AppKit
 import Foundation
 
 /// Shared sleep/dim logic used by menu button, global shortcut, Shortcuts.app, and widgets
@@ -14,12 +15,12 @@ enum DisplayAction {
         #if APPSTORE
         // Sandbox prevents spawning pmset — always use gamma-based screen blanking
         ScreenBlanker.shared.ignoreMouseMovement = settings.ignoreMouseMovement
-        ScreenBlanker.shared.useFadeTransition = settings.fadeTransition
+        ScreenBlanker.shared.useFadeTransition = settings.fadeTransition && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         ScreenBlanker.shared.blank()
         #else
         if settings.preventScreenLock {
             ScreenBlanker.shared.ignoreMouseMovement = settings.ignoreMouseMovement
-            ScreenBlanker.shared.useFadeTransition = settings.fadeTransition
+            ScreenBlanker.shared.useFadeTransition = settings.fadeTransition && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
             ScreenBlanker.shared.blank()
         } else {
             Task {

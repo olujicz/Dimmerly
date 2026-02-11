@@ -31,7 +31,7 @@ struct GeneralSettingsView: View {
 
     var body: some View {
         Form {
-            Section {
+            Section("General") {
                 Toggle("Launch at Login", isOn: Binding(
                     get: { settings.launchAtLogin },
                     set: { newValue in
@@ -57,10 +57,6 @@ struct GeneralSettingsView: View {
                 Toggle("Fade transition", isOn: $settings.fadeTransition)
                     .font(.caption)
                     .help(Text("Gradually dims displays instead of turning them off instantly"))
-
-                Text("Gradually dims displays instead of turning them off instantly.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
                 #else
                 Picker("Turn Displays Off:", selection: Binding(
                     get: { settings.preventScreenLock ? 1 : 0 },
@@ -94,10 +90,6 @@ struct GeneralSettingsView: View {
                     Toggle("Fade transition", isOn: $settings.fadeTransition)
                         .font(.caption)
                         .help(Text("Gradually dims displays instead of turning them off instantly"))
-
-                    Text("Gradually dims displays instead of turning them off instantly.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                 }
                 #endif
             }
@@ -334,9 +326,10 @@ private struct PresetManagementRow: View {
         }
 
         if let conflictMessage {
-            Text(conflictMessage)
+            Label(conflictMessage, systemImage: "exclamationmark.triangle.fill")
                 .font(.caption)
                 .foregroundStyle(.red)
+                .symbolRenderingMode(.multicolor)
         }
     }
 }
