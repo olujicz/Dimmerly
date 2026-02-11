@@ -14,6 +14,7 @@ struct DimmerlyWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: DimmerlyWidgetProvider()) { entry in
             DimmerlyWidgetEntryView(entry: entry)
+                .widgetURL(URL(string: "dimmerly://open"))
                 .containerBackground(.fill.tertiary, for: .widget)
         }
         .configurationDisplayName("Dimmerly")

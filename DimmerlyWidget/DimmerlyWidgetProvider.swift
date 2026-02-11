@@ -13,16 +13,22 @@ struct PresetEntry: TimelineEntry {
 }
 
 struct DimmerlyWidgetProvider: TimelineProvider {
+    private static let samplePresets = [
+        WidgetPresetInfo(id: UUID().uuidString, name: "Movie Night"),
+        WidgetPresetInfo(id: UUID().uuidString, name: "Work"),
+        WidgetPresetInfo(id: UUID().uuidString, name: "Bright"),
+    ]
+
     func placeholder(in context: Context) -> PresetEntry {
-        PresetEntry(date: Date(), presets: [
-            WidgetPresetInfo(id: UUID().uuidString, name: "Movie Night"),
-            WidgetPresetInfo(id: UUID().uuidString, name: "Work"),
-            WidgetPresetInfo(id: UUID().uuidString, name: "Bright"),
-        ])
+        PresetEntry(date: Date(), presets: Self.samplePresets)
     }
 
     func getSnapshot(in context: Context, completion: @escaping (PresetEntry) -> Void) {
-        completion(PresetEntry(date: Date(), presets: loadPresets()))
+        if context.isPreview {
+            completion(PresetEntry(date: Date(), presets: Self.samplePresets))
+        } else {
+            completion(PresetEntry(date: Date(), presets: loadPresets()))
+        }
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<PresetEntry>) -> Void) {

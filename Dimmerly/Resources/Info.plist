@@ -34,5 +34,16 @@
     <string>Copyright © 2026 Zoran Olujic. All rights reserved.</string>
     <key>NSQuitAlwaysKeepsWindows</key>
     <false/>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>dimmerly</string>
+            </array>
+        </dict>
+    </array>
 </dict>
 </plist>

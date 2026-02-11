@@ -33,7 +33,7 @@ struct SmallWidgetView: View {
             VStack(spacing: 8) {
                 Image(systemName: "moon.fill")
                     .font(.system(size: 32, weight: .medium))
-                    .foregroundStyle(.blue)
+                    .widgetAccentable()
                 Text("Dim Displays")
                     .font(.system(.callout, weight: .semibold))
             }
@@ -55,6 +55,9 @@ struct MediumWidgetView: View {
             if !presets.isEmpty {
                 presetButtons
                     .padding(.leading, 8)
+            } else {
+                emptyPresetsHint
+                    .padding(.leading, 8)
             }
         }
         .padding(4)
@@ -65,8 +68,8 @@ struct MediumWidgetView: View {
             VStack(spacing: 6) {
                 Image(systemName: "moon.fill")
                     .font(.system(size: 26, weight: .medium))
-                    .foregroundStyle(.blue)
-                Text("Dim")
+                    .widgetAccentable()
+                Text("Dim Displays")
                     .font(.system(.caption, weight: .semibold))
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -79,6 +82,19 @@ struct MediumWidgetView: View {
         .accessibilityLabel(Text("Dim Displays"))
     }
 
+    private var emptyPresetsHint: some View {
+        VStack(spacing: 4) {
+            Image(systemName: "slider.horizontal.3")
+                .font(.title3)
+                .foregroundStyle(.secondary)
+            Text("Add presets in Dimmerly")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
     private var presetButtons: some View {
         VStack(spacing: 4) {
             ForEach(Array(presets.prefix(3))) { preset in
@@ -86,7 +102,7 @@ struct MediumWidgetView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "sun.max.fill")
                             .font(.caption2)
-                            .foregroundStyle(.orange)
+                            .widgetAccentable()
                         Text(preset.name)
                             .font(.system(.caption, weight: .medium))
                             .lineLimit(1)
