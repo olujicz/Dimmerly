@@ -49,6 +49,7 @@ struct DimmerlyApp: App {
                     startGlobalShortcutMonitoring()
                     configureIdleTimer()
                     configurePresetShortcuts()
+                    observeWidgetNotifications()
                 }
         }
         .menuBarExtraStyle(.window)
@@ -86,6 +87,32 @@ struct DimmerlyApp: App {
             readEnabled: { AppSettings.shared.idleTimerEnabled },
             readMinutes: { AppSettings.shared.idleTimerMinutes }
         )
+    }
+
+    private func observeWidgetNotifications() {
+        DistributedNotificationCenter.default().addObserver(
+            forName: SharedConstants.dimNotification,
+            object: nil, queue: .main
+        ) { [settings] _ in
+            Task { @MainActor in
+                DisplayAction.performSleep(settings: settings)
+            }
+        }
+
+        DistributedNotificationCenter.default().addObserver(
+            forName: SharedConstants.presetNotification,
+            object: nil, queue: .main
+        ) { [presetManager, brightnessManager] _ in
+            Task { @MainActor in
+                guard let presetIDString = SharedConstants.sharedDefaults?.string(forKey: SharedConstants.widgetPresetCommandKey),
+                      let uuid = UUID(uuidString: presetIDString),
+                      let preset = presetManager.presets.first(where: { $0.id == uuid }) else {
+                    return
+                }
+                presetManager.applyPreset(preset, to: brightnessManager)
+                SharedConstants.sharedDefaults?.removeObject(forKey: SharedConstants.widgetPresetCommandKey)
+            }
+        }
     }
 
     private func configurePresetShortcuts() {

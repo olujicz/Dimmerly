@@ -2,8 +2,9 @@
 //  WidgetIntents.swift
 //  Dimmerly
 //
-//  AppIntents for widget buttons. Uses openAppWhenRun to execute
-//  in the main app process (widget extensions cannot call gamma APIs).
+//  AppIntents for widget buttons. Uses DistributedNotificationCenter
+//  for cross-process communication since widget extensions cannot
+//  call gamma APIs directly.
 //
 
 import AppIntents
@@ -17,7 +18,10 @@ struct DimDisplaysWidgetIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult {
-        #if !WIDGET_EXTENSION
+        #if WIDGET_EXTENSION
+        DistributedNotificationCenter.default().postNotificationName(
+            SharedConstants.dimNotification, object: nil, userInfo: nil, deliverImmediately: true)
+        #else
         DisplayAction.performSleep(settings: AppSettings.shared)
         #endif
         return .result()
@@ -42,7 +46,12 @@ struct ApplyPresetWidgetIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult {
-        #if !WIDGET_EXTENSION
+        #if WIDGET_EXTENSION
+        SharedConstants.sharedDefaults?.set(presetID, forKey: SharedConstants.widgetPresetCommandKey)
+        SharedConstants.sharedDefaults?.synchronize()
+        DistributedNotificationCenter.default().postNotificationName(
+            SharedConstants.presetNotification, object: nil, userInfo: nil, deliverImmediately: true)
+        #else
         guard let uuid = UUID(uuidString: presetID) else { return .result() }
         let presetManager = PresetManager.shared
         let brightnessManager = BrightnessManager.shared

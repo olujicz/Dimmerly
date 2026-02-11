@@ -10,6 +10,12 @@ import Foundation
 enum SharedConstants {
     static let appGroupID = "MN5C3DH647.rs.in.olujic.dimmerly"
     static let widgetPresetsKey = "widgetPresets"
+    static let widgetPresetCommandKey = "widgetPresetCommand"
+
+    /// Distributed notification posted by the widget to dim displays
+    static let dimNotification = Notification.Name("rs.in.olujic.dimmerly.dim")
+    /// Distributed notification posted by the widget to apply a preset
+    static let presetNotification = Notification.Name("rs.in.olujic.dimmerly.preset")
 
     nonisolated(unsafe) static let sharedDefaults: UserDefaults? = {
         // Sandboxed apps (App Store, widget): containerURL creates the directory automatically.
