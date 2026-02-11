@@ -20,6 +20,10 @@ class PresetShortcutManager: ObservableObject {
     /// Global event monitor
     private var eventMonitor: Any?
 
+    /// Tracking state for UserDefaults observation
+    private var lastPresetData: Data?
+    private var presetsObserver: NSObjectProtocol?
+
     /// Updates the registered shortcuts from current presets
     func updateShortcuts(from presets: [BrightnessPreset]) {
         presetShortcuts = presets.compactMap { preset in
@@ -33,6 +37,33 @@ class PresetShortcutManager: ObservableObject {
         } else {
             startMonitoring()
         }
+    }
+
+    /// Begins observing preset changes and auto-updates shortcuts.
+    ///
+    /// - Parameter readPresets: Closure that returns the current list of presets
+    func observePresets(readPresets: @escaping () -> [BrightnessPreset]) {
+        let presets = readPresets()
+        updateShortcuts(from: presets)
+        lastPresetData = try? JSONEncoder().encode(presets)
+
+        presetsObserver = NotificationCenter.default.addObserver(
+            forName: UserDefaults.didChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.handlePresetsChange(readPresets: readPresets)
+            }
+        }
+    }
+
+    private func handlePresetsChange(readPresets: () -> [BrightnessPreset]) {
+        let presets = readPresets()
+        let currentData = try? JSONEncoder().encode(presets)
+        guard currentData != lastPresetData else { return }
+        lastPresetData = currentData
+        updateShortcuts(from: presets)
     }
 
     private func startMonitoring() {
@@ -65,5 +96,4 @@ class PresetShortcutManager: ObservableObject {
 
     // deinit omitted to avoid @MainActor data race (Swift 6).
     // The manager is held by @StateObject for the app lifetime, so deinit is never reached.
-    // Cleanup is handled by stopMonitoring().
 }

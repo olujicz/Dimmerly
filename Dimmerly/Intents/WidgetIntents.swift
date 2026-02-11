@@ -18,7 +18,7 @@ struct DimDisplaysWidgetIntent: AppIntent {
     @MainActor
     func perform() async throws -> some IntentResult {
         #if !WIDGET_EXTENSION
-        performSleepDisplays(settings: AppSettings.shared)
+        DisplayAction.performSleep(settings: AppSettings.shared)
         #endif
         return .result()
     }

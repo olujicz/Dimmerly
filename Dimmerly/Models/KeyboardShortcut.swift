@@ -48,6 +48,9 @@ struct GlobalShortcut: Codable, Equatable, Sendable {
         kVK_ANSI_4: "4", kVK_ANSI_5: "5", kVK_ANSI_6: "6", kVK_ANSI_7: "7",
         kVK_ANSI_8: "8", kVK_ANSI_9: "9",
         kVK_Return: "return", kVK_Space: "space", kVK_Escape: "escape",
+        kVK_F1: "f1", kVK_F2: "f2", kVK_F3: "f3", kVK_F4: "f4",
+        kVK_F5: "f5", kVK_F6: "f6", kVK_F7: "f7", kVK_F8: "f8",
+        kVK_F9: "f9", kVK_F10: "f10", kVK_F11: "f11", kVK_F12: "f12",
     ]
     #endif
 

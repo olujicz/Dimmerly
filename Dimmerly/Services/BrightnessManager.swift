@@ -29,6 +29,15 @@ class BrightnessManager: ObservableObject {
     private var persistTask: Task<Void, Never>?
 
     init() {
+        setupHardwareMonitoring()
+    }
+
+    /// Creates a BrightnessManager without hardware interaction, for unit testing
+    init(forTesting: Bool) {
+        // Skip hardware setup — no gamma changes, no observers
+    }
+
+    private func setupHardwareMonitoring() {
         refreshDisplays()
 
         // Re-apply gamma after wake (macOS resets gamma during wake)

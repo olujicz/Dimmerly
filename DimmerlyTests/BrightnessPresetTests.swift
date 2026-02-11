@@ -74,7 +74,7 @@ final class BrightnessPresetTests: XCTestCase {
             manager.deletePreset(id: manager.presets[0].id)
         }
 
-        let bm = BrightnessManager()
+        let bm = BrightnessManager(forTesting: true)
 
         // Add up to the limit
         for i in 0..<PresetManager.maxPresets {
@@ -95,7 +95,7 @@ final class BrightnessPresetTests: XCTestCase {
     /// Tests delete operation
     func testDeletePreset() {
         let manager = PresetManager()
-        let bm = BrightnessManager()
+        let bm = BrightnessManager(forTesting: true)
 
         manager.saveCurrentAsPreset(name: "To Delete", brightnessManager: bm)
         let count = manager.presets.count
@@ -111,7 +111,7 @@ final class BrightnessPresetTests: XCTestCase {
     /// Tests rename operation
     func testRenamePreset() {
         let manager = PresetManager()
-        let bm = BrightnessManager()
+        let bm = BrightnessManager(forTesting: true)
 
         manager.saveCurrentAsPreset(name: "Original", brightnessManager: bm)
         guard let id = manager.presets.last?.id else {

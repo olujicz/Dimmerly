@@ -74,40 +74,18 @@ struct DimmerlyApp: App {
 
     private func startGlobalShortcutMonitoring() {
         shortcutManager.startMonitoring { [settings] in
-            performSleepDisplays(settings: settings)
+            DisplayAction.performSleep(settings: settings)
         }
     }
 
     private func configureIdleTimer() {
         idleTimerManager.onIdleThresholdReached = { [settings] in
-            performSleepDisplays(settings: settings)
+            DisplayAction.performSleep(settings: settings)
         }
-        if settings.idleTimerEnabled {
-            idleTimerManager.start(thresholdMinutes: settings.idleTimerMinutes)
-        }
-
-        // Track last-known values to avoid redundant work on unrelated UserDefaults changes
-        var lastEnabled = settings.idleTimerEnabled
-        var lastMinutes = settings.idleTimerMinutes
-
-        NotificationCenter.default.addObserver(
-            forName: UserDefaults.didChangeNotification,
-            object: nil,
-            queue: .main
-        ) { [weak idleTimerManager] _ in
-            Task { @MainActor in
-                guard let idleTimerManager else { return }
-                let settings = AppSettings.shared
-                guard settings.idleTimerEnabled != lastEnabled || settings.idleTimerMinutes != lastMinutes else { return }
-                lastEnabled = settings.idleTimerEnabled
-                lastMinutes = settings.idleTimerMinutes
-                if settings.idleTimerEnabled {
-                    idleTimerManager.start(thresholdMinutes: settings.idleTimerMinutes)
-                } else {
-                    idleTimerManager.stop()
-                }
-            }
-        }
+        idleTimerManager.observeSettings(
+            readEnabled: { AppSettings.shared.idleTimerEnabled },
+            readMinutes: { AppSettings.shared.idleTimerMinutes }
+        )
     }
 
     private func configurePresetShortcuts() {
@@ -115,47 +93,8 @@ struct DimmerlyApp: App {
             guard let preset = presetManager.presets.first(where: { $0.id == presetID }) else { return }
             presetManager.applyPreset(preset, to: brightnessManager)
         }
-        presetShortcutManager.updateShortcuts(from: presetManager.presets)
-
-        // Track last-known presets to avoid redundant re-registration
-        var lastPresetData = try? JSONEncoder().encode(PresetManager.shared.presets)
-
-        NotificationCenter.default.addObserver(
-            forName: UserDefaults.didChangeNotification,
-            object: nil,
-            queue: .main
-        ) { [weak presetShortcutManager] _ in
-            Task { @MainActor in
-                guard let presetShortcutManager else { return }
-                let currentData = try? JSONEncoder().encode(PresetManager.shared.presets)
-                guard currentData != lastPresetData else { return }
-                lastPresetData = currentData
-                presetShortcutManager.updateShortcuts(from: PresetManager.shared.presets)
-            }
-        }
+        presetShortcutManager.observePresets(
+            readPresets: { PresetManager.shared.presets }
+        )
     }
-}
-
-/// Shared sleep/blank logic used by both menu button and global shortcut
-@MainActor
-func performSleepDisplays(settings: AppSettings) {
-    #if APPSTORE
-    // Sandbox prevents spawning pmset — always use gamma-based screen blanking
-    ScreenBlanker.shared.ignoreMouseMovement = settings.ignoreMouseMovement
-    ScreenBlanker.shared.useFadeTransition = settings.fadeTransition
-    ScreenBlanker.shared.blank()
-    #else
-    if settings.preventScreenLock {
-        ScreenBlanker.shared.ignoreMouseMovement = settings.ignoreMouseMovement
-        ScreenBlanker.shared.useFadeTransition = settings.fadeTransition
-        ScreenBlanker.shared.blank()
-    } else {
-        Task {
-            let result = await DisplayController.sleepDisplays()
-            if case .failure(let error) = result {
-                AlertPresenter.showError(error)
-            }
-        }
-    }
-    #endif
 }

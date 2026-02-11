@@ -101,7 +101,7 @@ struct MenuBarPanel: View {
 
     private var turnOffButton: some View {
         Button {
-            performSleepDisplays(settings: settings)
+            DisplayAction.performSleep(settings: settings)
         } label: {
             HStack {
                 #if APPSTORE

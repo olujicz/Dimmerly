@@ -12,24 +12,48 @@ import XCTest
 /// Tests for the DisplayController
 final class DisplayControllerTests: XCTestCase {
 
-    /// Tests that the controller returns a valid result
-    func testSleepDisplaysSuccess() {
-        let result = DisplayController.sleepDisplays()
+    override func tearDown() {
+        DisplayController.processRunner = nil
+        super.tearDown()
+    }
+
+    /// Tests that a successful sleep returns .success
+    func testSleepDisplaysSuccess() async {
+        DisplayController.processRunner = { .success(()) }
+
+        let result = await DisplayController.sleepDisplays()
 
         switch result {
         case .success:
-            XCTAssertTrue(true, "Sleep displays succeeded")
+            break // expected
         case .failure(let error):
-            switch error {
-            case .pmsetNotFound:
-                XCTAssertTrue(true, "pmset not found is a valid error in test environment")
-            case .pmsetFailed(let status):
-                XCTAssertNotEqual(status, 0, "Failed execution should have non-zero exit status")
-            case .permissionDenied:
-                XCTAssertTrue(true, "Permission denied is valid in test environment")
-            case .unknownError:
-                XCTAssertTrue(true, "Unknown error is valid in test environment")
-            }
+            XCTFail("Expected success, got \(error)")
+        }
+    }
+
+    /// Tests that pmsetNotFound is returned when pmset is missing
+    func testSleepDisplaysPmsetNotFound() async {
+        DisplayController.processRunner = { .failure(.pmsetNotFound) }
+
+        let result = await DisplayController.sleepDisplays()
+
+        if case .failure(.pmsetNotFound) = result {
+            // expected
+        } else {
+            XCTFail("Expected pmsetNotFound failure")
+        }
+    }
+
+    /// Tests that pmsetFailed propagates the exit status
+    func testSleepDisplaysPmsetFailed() async {
+        DisplayController.processRunner = { .failure(.pmsetFailed(status: 42)) }
+
+        let result = await DisplayController.sleepDisplays()
+
+        if case .failure(.pmsetFailed(let status)) = result {
+            XCTAssertEqual(status, 42)
+        } else {
+            XCTFail("Expected pmsetFailed failure")
         }
     }
 
@@ -52,8 +76,7 @@ final class DisplayControllerTests: XCTestCase {
         XCTAssertNotNil(permissionError.recoverySuggestion, "permissionDenied should have recovery suggestion")
 
         // Test unknownError
-        let testError = NSError(domain: "TestDomain", code: 123, userInfo: nil)
-        let unknownError = DisplayError.unknownError(testError)
+        let unknownError = DisplayError.unknownError("Test error message")
         XCTAssertNotNil(unknownError.errorDescription, "unknownError should have error description")
         XCTAssertNotNil(unknownError.recoverySuggestion, "unknownError should have recovery suggestion")
     }

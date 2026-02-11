@@ -25,7 +25,8 @@ final class AppSettingsTests: XCTestCase {
     }
 
     override func tearDown() {
-        // Clean up test data
+        // Reset settings to defaults to avoid polluting other tests
+        settings?.resetToDefaults()
         settings = nil
         super.tearDown()
     }

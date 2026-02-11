@@ -14,7 +14,7 @@ struct SleepDisplaysIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult {
-        performSleepDisplays(settings: AppSettings.shared)
+        DisplayAction.performSleep(settings: AppSettings.shared)
         return .result()
     }
 }
