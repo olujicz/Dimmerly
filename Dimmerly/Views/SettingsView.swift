@@ -51,11 +51,9 @@ struct GeneralSettingsView: View {
                     .foregroundStyle(.secondary)
 
                 Toggle("Ignore mouse movement", isOn: $settings.ignoreMouseMovement)
-                    .font(.caption)
                     .help(Text("Only wake the screen on keyboard input or mouse click, not mouse movement"))
 
                 Toggle("Fade transition", isOn: $settings.fadeTransition)
-                    .font(.caption)
                     .help(Text("Gradually dims displays instead of turning them off instantly"))
                 #else
                 Picker("Turn Displays Off:", selection: Binding(
@@ -84,11 +82,9 @@ struct GeneralSettingsView: View {
                         .foregroundStyle(.secondary)
 
                     Toggle("Ignore mouse movement", isOn: $settings.ignoreMouseMovement)
-                        .font(.caption)
                         .help(Text("Only wake the screen on keyboard input or mouse click, not mouse movement"))
 
                     Toggle("Fade transition", isOn: $settings.fadeTransition)
-                        .font(.caption)
                         .help(Text("Gradually dims displays instead of turning them off instantly"))
                 }
                 #endif
@@ -176,7 +172,11 @@ struct GeneralSettingsView: View {
     private var keyboardShortcutSection: some View {
         Section("Keyboard Shortcut") {
             HStack {
-                Text("Sleep Displays:")
+                #if APPSTORE
+                Text("Dim Displays:")
+                #else
+                Text(settings.preventScreenLock ? "Dim Displays:" : "Sleep Displays:")
+                #endif
                 KeyboardShortcutRecorder(
                     shortcut: Binding(
                         get: { settings.keyboardShortcut },
@@ -265,16 +265,24 @@ private struct PresetManagementRow: View {
             } else {
                 Text(preset.name)
                     .font(.callout)
-                    .onTapGesture(count: 2) {
-                        editedName = preset.name
-                        isEditing = true
-                    }
                     .contextMenu {
                         Button("Rename") {
                             editedName = preset.name
                             isEditing = true
                         }
                     }
+
+                Button {
+                    editedName = preset.name
+                    isEditing = true
+                } label: {
+                    Image(systemName: "pencil")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel(Text("Rename \(preset.name)"))
+                .help(Text("Rename Preset"))
             }
 
             Spacer()
