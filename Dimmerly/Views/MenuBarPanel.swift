@@ -109,6 +109,10 @@ struct MenuBarPanel: View {
                 Image(systemName: settings.preventScreenLock ? "sun.min.fill" : "moon.fill")
                 Text(settings.preventScreenLock ? "Dim Displays" : "Turn Displays Off")
                 #endif
+                Spacer()
+                Text("↩")
+                    .font(.callout)
+                    .foregroundStyle(.white.opacity(0.5))
             }
             .frame(maxWidth: .infinity)
         }
@@ -214,6 +218,7 @@ private struct PresetsSectionView: View {
             Text("Presets")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
 
             ForEach(presetManager.presets) { preset in
                 HStack {
@@ -302,6 +307,8 @@ private struct PresetsSectionView: View {
                     .foregroundStyle(.tertiary)
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(Text("Presets"))
     }
 
     private func savePreset() {
@@ -411,6 +418,8 @@ struct DisplayBrightnessRow: View {
         .onChange(of: display.brightness) {
             sliderValue = display.brightness
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(display.name)
         .contextMenu {
             Button(isBlanked ? "Restore Display" : "Dim Display") {
                 onToggleBlank()
