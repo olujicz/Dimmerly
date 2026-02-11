@@ -21,12 +21,10 @@ struct MenuBarPanel: View {
                     VStack(spacing: 0) {
                         displaySliders
 
-                        if !presetManager.presets.isEmpty {
-                            Divider()
-                            presetsSection
-                                .padding(.horizontal, 20)
-                                .padding(.vertical, 8)
-                        }
+                        Divider()
+                        presetsSection
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 8)
                     }
                 }
                 .frame(maxHeight: 400)
@@ -143,7 +141,7 @@ struct MenuBarPanel: View {
             Button {
                 showAboutPanel()
             } label: {
-                Text("About")
+                Text("About Dimmerly")
             }
             .buttonStyle(.borderless)
 
