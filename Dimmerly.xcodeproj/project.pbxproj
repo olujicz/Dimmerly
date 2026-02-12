@@ -49,6 +49,9 @@
 		T1B2C3D4E5F6A7B8C9D0E301 /* DisplayControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1B2C3D4E5F6A7B8C9D0E300 /* DisplayControllerTests.swift */; };
 		T1B2C3D4E5F6A7B8C9D0E311 /* AppSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1B2C3D4E5F6A7B8C9D0E310 /* AppSettingsTests.swift */; };
 		T1B2C3D4E5F6A7B8C9D0E321 /* KeyboardShortcutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1B2C3D4E5F6A7B8C9D0E320 /* KeyboardShortcutTests.swift */; };
+		UT00000000000000000001 /* BrightnessManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = UT00000000000000000010 /* BrightnessManagerTests.swift */; };
+		UT00000000000000000002 /* PresetManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = UT00000000000000000020 /* PresetManagerTests.swift */; };
+		UT00000000000000000003 /* MenuBarIconStyleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = UT00000000000000000030 /* MenuBarIconStyleTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -126,6 +129,9 @@
 		T1B2C3D4E5F6A7B8C9D0E300 /* DisplayControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayControllerTests.swift; sourceTree = "<group>"; };
 		T1B2C3D4E5F6A7B8C9D0E310 /* AppSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsTests.swift; sourceTree = "<group>"; };
 		T1B2C3D4E5F6A7B8C9D0E320 /* KeyboardShortcutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutTests.swift; sourceTree = "<group>"; };
+		UT00000000000000000010 /* BrightnessManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrightnessManagerTests.swift; sourceTree = "<group>"; };
+		UT00000000000000000020 /* PresetManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetManagerTests.swift; sourceTree = "<group>"; };
+		UT00000000000000000030 /* MenuBarIconStyleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarIconStyleTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -300,9 +306,12 @@
 			isa = PBXGroup;
 			children = (
 				T1B2C3D4E5F6A7B8C9D0E310 /* AppSettingsTests.swift */,
+				UT00000000000000000010 /* BrightnessManagerTests.swift */,
 				NF0000000000000000000A /* BrightnessPresetTests.swift */,
 				T1B2C3D4E5F6A7B8C9D0E300 /* DisplayControllerTests.swift */,
 				T1B2C3D4E5F6A7B8C9D0E320 /* KeyboardShortcutTests.swift */,
+				UT00000000000000000030 /* MenuBarIconStyleTests.swift */,
+				UT00000000000000000020 /* PresetManagerTests.swift */,
 			);
 			path = DimmerlyTests;
 			sourceTree = "<group>";
@@ -503,6 +512,9 @@
 				T1B2C3D4E5F6A7B8C9D0E311 /* AppSettingsTests.swift in Sources */,
 				T1B2C3D4E5F6A7B8C9D0E321 /* KeyboardShortcutTests.swift in Sources */,
 				NF0000000000000000001A /* BrightnessPresetTests.swift in Sources */,
+				UT00000000000000000001 /* BrightnessManagerTests.swift in Sources */,
+				UT00000000000000000002 /* PresetManagerTests.swift in Sources */,
+				UT00000000000000000003 /* MenuBarIconStyleTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

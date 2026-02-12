@@ -16,13 +16,32 @@ final class AppSettingsTests: XCTestCase {
     var settings: AppSettings!
     let testSuiteName = "DimmerlyTestSuite"
 
+    /// UserDefaults keys used by AppSettings via @AppStorage
+    private let appStorageKeys = [
+        "dimmerlyKeyboardShortcut",
+        "dimmerlyLaunchAtLogin",
+        "dimmerlyPreventScreenLock",
+        "dimmerlyIgnoreMouseMovement",
+        "dimmerlyMenuBarIcon",
+        "dimmerlyIdleTimerEnabled",
+        "dimmerlyIdleTimerMinutes",
+        "dimmerlyFadeTransition",
+        "dimmerlyRequireEscapeToDismiss",
+    ]
+
     override func setUp() async throws {
+        // Remove all AppSettings keys so @AppStorage sees its declared defaults
+        for key in appStorageKeys {
+            UserDefaults.standard.removeObject(forKey: key)
+        }
         settings = AppSettings()
     }
 
     override func tearDown() async throws {
-        settings?.resetToDefaults()
         settings = nil
+        for key in appStorageKeys {
+            UserDefaults.standard.removeObject(forKey: key)
+        }
     }
 
     /// Tests that AppSettings has proper default values
@@ -97,8 +116,9 @@ final class AppSettingsTests: XCTestCase {
 
     /// Tests that AppSettings is ObservableObject
     func testObservableObjectConformance() {
-        // AppSettings should conform to ObservableObject
-        XCTAssertTrue(settings is ObservableObject, "AppSettings should conform to ObservableObject")
+        // Compile-time conformance check via type constraint
+        func requiresObservable<T: ObservableObject>(_ obj: T) {}
+        requiresObservable(settings)
     }
 
     /// Tests keyboard shortcut encoding and decoding
@@ -124,5 +144,83 @@ final class AppSettingsTests: XCTestCase {
         // If decoding fails, the getter returns GlobalShortcut.default
         let currentShortcut = settings.keyboardShortcut
         XCTAssertNotNil(currentShortcut, "Should always return a valid shortcut")
+    }
+
+    // MARK: - Additional default value tests
+
+    func testPreventScreenLockDefault() {
+        XCTAssertFalse(settings.preventScreenLock, "preventScreenLock should default to false")
+    }
+
+    func testIgnoreMouseMovementDefault() {
+        XCTAssertFalse(settings.ignoreMouseMovement, "ignoreMouseMovement should default to false")
+    }
+
+    func testIdleTimerEnabledDefault() {
+        XCTAssertFalse(settings.idleTimerEnabled, "idleTimerEnabled should default to false")
+    }
+
+    func testIdleTimerMinutesDefault() {
+        XCTAssertEqual(settings.idleTimerMinutes, 5, "idleTimerMinutes should default to 5")
+    }
+
+    func testFadeTransitionDefault() {
+        XCTAssertTrue(settings.fadeTransition, "fadeTransition should default to true")
+    }
+
+    func testRequireEscapeToDismissDefault() {
+        XCTAssertFalse(settings.requireEscapeToDismiss, "requireEscapeToDismiss should default to false")
+    }
+
+    // MARK: - menuBarIcon computed property
+
+    func testMenuBarIconDefault() {
+        XCTAssertEqual(settings.menuBarIcon, .defaultIcon, "menuBarIcon should default to .defaultIcon")
+    }
+
+    func testMenuBarIconGetSetRoundTrip() {
+        settings.menuBarIcon = .moonFilled
+        XCTAssertEqual(settings.menuBarIcon, .moonFilled)
+        XCTAssertEqual(settings.menuBarIconRaw, "moonFilled")
+
+        settings.menuBarIcon = .monitor
+        XCTAssertEqual(settings.menuBarIcon, .monitor)
+    }
+
+    func testMenuBarIconInvalidRawValueFallback() {
+        settings.menuBarIconRaw = "nonexistent_style"
+        XCTAssertEqual(settings.menuBarIcon, .defaultIcon,
+                      "Invalid raw value should fall back to .defaultIcon")
+    }
+
+    // MARK: - Comprehensive resetToDefaults
+
+    func testResetToDefaultsComprehensive() {
+        // Modify all settings
+        settings.keyboardShortcut = GlobalShortcut(key: "x", modifiers: [.command])
+        settings.launchAtLogin = true
+        settings.preventScreenLock = true
+        settings.ignoreMouseMovement = true
+        settings.menuBarIcon = .moonOutline
+        settings.idleTimerEnabled = true
+        settings.idleTimerMinutes = 15
+        settings.fadeTransition = false
+        settings.requireEscapeToDismiss = true
+
+        // Reset
+        settings.resetToDefaults()
+
+        // Verify all properties
+        let defaultShortcut = GlobalShortcut.default
+        XCTAssertEqual(settings.keyboardShortcut.key, defaultShortcut.key)
+        XCTAssertEqual(settings.keyboardShortcut.modifiers, defaultShortcut.modifiers)
+        XCTAssertFalse(settings.launchAtLogin)
+        XCTAssertFalse(settings.preventScreenLock)
+        XCTAssertFalse(settings.ignoreMouseMovement)
+        XCTAssertEqual(settings.menuBarIcon, .defaultIcon)
+        XCTAssertFalse(settings.idleTimerEnabled)
+        XCTAssertEqual(settings.idleTimerMinutes, 5)
+        XCTAssertTrue(settings.fadeTransition)
+        XCTAssertFalse(settings.requireEscapeToDismiss)
     }
 }
