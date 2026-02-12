@@ -11,7 +11,7 @@ struct MenuBarPanel: View {
     @EnvironmentObject var brightnessManager: BrightnessManager
     @EnvironmentObject var settings: AppSettings
     @EnvironmentObject var presetManager: PresetManager
-    @AppStorage("showWarmthSliders") private var showWarmth = false
+    @AppStorage("showDisplayAdjustments") private var showAdjustments = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -76,12 +76,15 @@ struct MenuBarPanel: View {
                 DisplayBrightnessRow(
                     display: display,
                     isBlanked: ScreenBlanker.shared.isDisplayBlanked(display.id),
-                    showWarmth: showWarmth,
+                    showAdjustments: showAdjustments,
                     onChange: { newValue in
                         brightnessManager.setBrightness(for: display.id, to: newValue)
                     },
                     onWarmthChange: { newValue in
                         brightnessManager.setWarmth(for: display.id, to: newValue)
+                    },
+                    onContrastChange: { newValue in
+                        brightnessManager.setContrast(for: display.id, to: newValue)
                     },
                     onToggleBlank: {
                         brightnessManager.toggleBlank(for: display.id)
@@ -89,22 +92,22 @@ struct MenuBarPanel: View {
                 )
             }
 
-            colorTemperatureDisclosure
+            displayAdjustmentsDisclosure
         }
         .padding(20)
     }
 
-    private var colorTemperatureDisclosure: some View {
+    private var displayAdjustmentsDisclosure: some View {
         Button {
             withAnimation(.easeInOut(duration: 0.2)) {
-                showWarmth.toggle()
+                showAdjustments.toggle()
             }
         } label: {
             HStack(spacing: 4) {
                 Image(systemName: "chevron.right")
                     .font(.caption2)
-                    .rotationEffect(.degrees(showWarmth ? 90 : 0))
-                Text("Color Temperature")
+                    .rotationEffect(.degrees(showAdjustments ? 90 : 0))
+                Text("Display Adjustments")
                     .font(.caption)
                 Spacer()
             }
@@ -113,7 +116,7 @@ struct MenuBarPanel: View {
         }
         .buttonStyle(.borderless)
         .padding(.top, 8)
-        .accessibilityLabel(Text(showWarmth ? "Hide color temperature" : "Show color temperature"))
+        .accessibilityLabel(Text(showAdjustments ? "Hide display adjustments" : "Show display adjustments"))
     }
 
     // MARK: - Presets
@@ -358,23 +361,27 @@ private struct FooterLabel: View {
 struct DisplayBrightnessRow: View {
     let display: ExternalDisplay
     let isBlanked: Bool
-    let showWarmth: Bool
+    let showAdjustments: Bool
     let onChange: (Double) -> Void
     let onWarmthChange: (Double) -> Void
+    let onContrastChange: (Double) -> Void
     let onToggleBlank: () -> Void
 
     @State private var sliderValue: Double
     @State private var warmthValue: Double
+    @State private var contrastValue: Double
 
-    init(display: ExternalDisplay, isBlanked: Bool, showWarmth: Bool, onChange: @escaping (Double) -> Void, onWarmthChange: @escaping (Double) -> Void, onToggleBlank: @escaping () -> Void) {
+    init(display: ExternalDisplay, isBlanked: Bool, showAdjustments: Bool, onChange: @escaping (Double) -> Void, onWarmthChange: @escaping (Double) -> Void, onContrastChange: @escaping (Double) -> Void, onToggleBlank: @escaping () -> Void) {
         self.display = display
         self.isBlanked = isBlanked
-        self.showWarmth = showWarmth
+        self.showAdjustments = showAdjustments
         self.onChange = onChange
         self.onWarmthChange = onWarmthChange
+        self.onContrastChange = onContrastChange
         self.onToggleBlank = onToggleBlank
         self._sliderValue = State(initialValue: display.brightness)
         self._warmthValue = State(initialValue: display.warmth)
+        self._contrastValue = State(initialValue: display.contrast)
     }
 
     var body: some View {
@@ -435,7 +442,7 @@ struct DisplayBrightnessRow: View {
             .opacity(isBlanked ? 0.4 : 1.0)
             .disabled(isBlanked)
 
-            if showWarmth {
+            if showAdjustments {
                 HStack(spacing: 6) {
                     Image(systemName: "circle.fill")
                         .font(.system(size: 7))
@@ -470,6 +477,40 @@ struct DisplayBrightnessRow: View {
                 .opacity(isBlanked ? 0.4 : 1.0)
                 .disabled(isBlanked)
                 .transition(.opacity.combined(with: .move(edge: .top)))
+
+                HStack(spacing: 6) {
+                    Image(systemName: "circle.lefthalf.filled")
+                        .font(.system(size: 9))
+                        .frame(width: 12)
+                        .foregroundStyle(.secondary)
+                        .accessibilityHidden(true)
+
+                    Slider(value: $contrastValue, in: 0...1)
+                        .accessibilityLabel(
+                            String(
+                                format: NSLocalizedString("%@ contrast", comment: "Accessibility label: display contrast slider"),
+                                display.name
+                            )
+                        )
+                        .accessibilityValue(
+                            String(
+                                format: NSLocalizedString("%d percent", comment: "Accessibility value: contrast percentage"),
+                                Int(contrastValue * 100)
+                            )
+                        )
+                        .onChange(of: contrastValue) {
+                            onContrastChange(contrastValue)
+                        }
+
+                    Image(systemName: "circle.righthalf.filled")
+                        .font(.system(size: 9))
+                        .frame(width: 12)
+                        .foregroundStyle(.secondary)
+                        .accessibilityHidden(true)
+                }
+                .opacity(isBlanked ? 0.4 : 1.0)
+                .disabled(isBlanked)
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
         .onChange(of: display.brightness) {
@@ -477,6 +518,9 @@ struct DisplayBrightnessRow: View {
         }
         .onChange(of: display.warmth) {
             warmthValue = display.warmth
+        }
+        .onChange(of: display.contrast) {
+            contrastValue = display.contrast
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(display.name)
@@ -490,6 +534,7 @@ struct DisplayBrightnessRow: View {
             Button("Set to 25%") { onChange(0.25) }
             Divider()
             Button("Reset Warmth") { onWarmthChange(0.0) }
+            Button("Reset Contrast") { onContrastChange(0.5) }
         }
     }
 }

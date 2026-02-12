@@ -25,18 +25,19 @@ class PresetManager: ObservableObject {
         syncPresetsToWidget()
     }
 
-    /// Saves the current display brightness and warmth values as a new preset
+    /// Saves the current display brightness, warmth, and contrast values as a new preset
     func saveCurrentAsPreset(name: String, brightnessManager: BrightnessManager) {
         guard presets.count < Self.maxPresets else { return }
 
         let brightnessSnapshot = brightnessManager.currentBrightnessSnapshot()
         let warmthSnapshot = brightnessManager.currentWarmthSnapshot()
-        let preset = BrightnessPreset(name: name, displayBrightness: brightnessSnapshot, displayWarmth: warmthSnapshot)
+        let contrastSnapshot = brightnessManager.currentContrastSnapshot()
+        let preset = BrightnessPreset(name: name, displayBrightness: brightnessSnapshot, displayWarmth: warmthSnapshot, displayContrast: contrastSnapshot)
         presets.append(preset)
         persistPresets()
     }
 
-    /// Applies a preset's brightness and warmth values to currently connected displays
+    /// Applies a preset's brightness, warmth, and contrast values to currently connected displays
     func applyPreset(_ preset: BrightnessPreset, to brightnessManager: BrightnessManager) {
         if let universal = preset.universalBrightness {
             brightnessManager.setAllBrightness(to: universal)
@@ -49,6 +50,13 @@ class PresetManager: ObservableObject {
             brightnessManager.setAllWarmth(to: universalWarmth)
         } else if let displayWarmth = preset.displayWarmth {
             brightnessManager.applyWarmthValues(displayWarmth)
+        }
+
+        // Apply contrast if present (nil = legacy preset, leave contrast unchanged)
+        if let universalContrast = preset.universalContrast {
+            brightnessManager.setAllContrast(to: universalContrast)
+        } else if let displayContrast = preset.displayContrast {
+            brightnessManager.applyContrastValues(displayContrast)
         }
     }
 
@@ -81,9 +89,9 @@ class PresetManager: ObservableObject {
     // MARK: - Default Presets
 
     static let defaultPresets: [BrightnessPreset] = [
-        BrightnessPreset(name: "Full", universalBrightness: 1.0, universalWarmth: 0.0),
-        BrightnessPreset(name: "Evening", universalBrightness: 0.7, universalWarmth: 0.4),
-        BrightnessPreset(name: "Night", universalBrightness: 0.3, universalWarmth: 0.8),
+        BrightnessPreset(name: "Full", universalBrightness: 1.0, universalWarmth: 0.0, universalContrast: 0.5),
+        BrightnessPreset(name: "Evening", universalBrightness: 0.7, universalWarmth: 0.4, universalContrast: 0.5),
+        BrightnessPreset(name: "Night", universalBrightness: 0.3, universalWarmth: 0.8, universalContrast: 0.5),
     ]
 
     /// Replaces all presets with the default set

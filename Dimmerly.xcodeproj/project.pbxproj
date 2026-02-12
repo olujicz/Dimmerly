@@ -41,6 +41,7 @@
 		NF00000000000000000016 /* SleepDisplaysIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF00000000000000000006 /* SleepDisplaysIntent.swift */; };
 		NF00000000000000000017 /* SetDisplayBrightnessIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF00000000000000000007 /* SetDisplayBrightnessIntent.swift */; };
 		NF0000000000000000001B /* SetDisplayWarmthIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF0000000000000000000B /* SetDisplayWarmthIntent.swift */; };
+		NF0000000000000000001C /* SetDisplayContrastIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF0000000000000000000C /* SetDisplayContrastIntent.swift */; };
 		NF00000000000000000018 /* ToggleDimIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF00000000000000000008 /* ToggleDimIntent.swift */; };
 		NF00000000000000000019 /* DimmerlyShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF00000000000000000009 /* DimmerlyShortcuts.swift */; };
 		NF0000000000000000001A /* BrightnessPresetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF0000000000000000000A /* BrightnessPresetTests.swift */; };
@@ -116,6 +117,7 @@
 		NF00000000000000000006 /* SleepDisplaysIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepDisplaysIntent.swift; sourceTree = "<group>"; };
 		NF00000000000000000007 /* SetDisplayBrightnessIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetDisplayBrightnessIntent.swift; sourceTree = "<group>"; };
 		NF0000000000000000000B /* SetDisplayWarmthIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetDisplayWarmthIntent.swift; sourceTree = "<group>"; };
+		NF0000000000000000000C /* SetDisplayContrastIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetDisplayContrastIntent.swift; sourceTree = "<group>"; };
 		NF00000000000000000008 /* ToggleDimIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToggleDimIntent.swift; sourceTree = "<group>"; };
 		NF00000000000000000009 /* DimmerlyShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DimmerlyShortcuts.swift; sourceTree = "<group>"; };
 		NF0000000000000000000A /* BrightnessPresetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrightnessPresetTests.swift; sourceTree = "<group>"; };
@@ -285,6 +287,7 @@
 				NF00000000000000000005 /* DisplayEntity.swift */,
 				NF00000000000000000009 /* DimmerlyShortcuts.swift */,
 				NF00000000000000000007 /* SetDisplayBrightnessIntent.swift */,
+				NF0000000000000000000C /* SetDisplayContrastIntent.swift */,
 				NF0000000000000000000B /* SetDisplayWarmthIntent.swift */,
 				NF00000000000000000006 /* SleepDisplaysIntent.swift */,
 				NF00000000000000000008 /* ToggleDimIntent.swift */,
@@ -486,6 +489,7 @@
 				NF00000000000000000016 /* SleepDisplaysIntent.swift in Sources */,
 				NF00000000000000000017 /* SetDisplayBrightnessIntent.swift in Sources */,
 				NF0000000000000000001B /* SetDisplayWarmthIntent.swift in Sources */,
+				NF0000000000000000001C /* SetDisplayContrastIntent.swift in Sources */,
 				NF00000000000000000018 /* ToggleDimIntent.swift in Sources */,
 				NF00000000000000000019 /* DimmerlyShortcuts.swift in Sources */,
 			);

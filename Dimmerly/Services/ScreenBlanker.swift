@@ -36,6 +36,9 @@ class ScreenBlanker {
     /// Closure to read per-display warmth (set by BrightnessManager)
     var warmthForDisplay: ((CGDirectDisplayID) -> Double)?
 
+    /// Closure to read per-display contrast (set by BrightnessManager)
+    var contrastForDisplay: ((CGDirectDisplayID) -> Double)?
+
     /// Closure to restore a display's full gamma table (set by BrightnessManager)
     var restoreDisplay: ((CGDirectDisplayID) -> Void)?
 

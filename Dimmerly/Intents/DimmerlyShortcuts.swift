@@ -47,6 +47,15 @@ struct DimmerlyShortcuts: AppShortcutsProvider {
             systemImageName: "flame"
         )
         AppShortcut(
+            intent: SetDisplayContrastIntent(),
+            phrases: [
+                "Set display contrast with \(.applicationName)",
+                "Change contrast with \(.applicationName)",
+            ],
+            shortTitle: "Set Contrast",
+            systemImageName: "circle.lefthalf.filled"
+        )
+        AppShortcut(
             intent: ApplyPresetIntent(),
             phrases: [
                 "Apply brightness preset with \(.applicationName)",
