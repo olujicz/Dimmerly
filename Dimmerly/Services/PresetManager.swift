@@ -25,22 +25,30 @@ class PresetManager: ObservableObject {
         syncPresetsToWidget()
     }
 
-    /// Saves the current display brightness values as a new preset
+    /// Saves the current display brightness and warmth values as a new preset
     func saveCurrentAsPreset(name: String, brightnessManager: BrightnessManager) {
         guard presets.count < Self.maxPresets else { return }
 
-        let snapshot = brightnessManager.currentBrightnessSnapshot()
-        let preset = BrightnessPreset(name: name, displayBrightness: snapshot)
+        let brightnessSnapshot = brightnessManager.currentBrightnessSnapshot()
+        let warmthSnapshot = brightnessManager.currentWarmthSnapshot()
+        let preset = BrightnessPreset(name: name, displayBrightness: brightnessSnapshot, displayWarmth: warmthSnapshot)
         presets.append(preset)
         persistPresets()
     }
 
-    /// Applies a preset's brightness values to currently connected displays
+    /// Applies a preset's brightness and warmth values to currently connected displays
     func applyPreset(_ preset: BrightnessPreset, to brightnessManager: BrightnessManager) {
         if let universal = preset.universalBrightness {
             brightnessManager.setAllBrightness(to: universal)
         } else {
             brightnessManager.applyBrightnessValues(preset.displayBrightness)
+        }
+
+        // Apply warmth if present (nil = legacy preset, leave warmth unchanged)
+        if let universalWarmth = preset.universalWarmth {
+            brightnessManager.setAllWarmth(to: universalWarmth)
+        } else if let displayWarmth = preset.displayWarmth {
+            brightnessManager.applyWarmthValues(displayWarmth)
         }
     }
 
@@ -79,8 +87,9 @@ class PresetManager: ObservableObject {
         guard presets.isEmpty else { return }
 
         presets = [
-            BrightnessPreset(name: "Full", universalBrightness: 1.0),
-            BrightnessPreset(name: "Half", universalBrightness: 0.5),
+            BrightnessPreset(name: "Full", universalBrightness: 1.0, universalWarmth: 0.0),
+            BrightnessPreset(name: "Half", universalBrightness: 0.5, universalWarmth: 0.0),
+            BrightnessPreset(name: "Night", universalBrightness: 0.4, universalWarmth: 0.75),
         ]
         persistPresets()
     }

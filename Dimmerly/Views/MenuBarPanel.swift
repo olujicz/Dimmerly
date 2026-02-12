@@ -11,6 +11,7 @@ struct MenuBarPanel: View {
     @EnvironmentObject var brightnessManager: BrightnessManager
     @EnvironmentObject var settings: AppSettings
     @EnvironmentObject var presetManager: PresetManager
+    @AppStorage("showWarmthSliders") private var showWarmth = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -75,16 +76,44 @@ struct MenuBarPanel: View {
                 DisplayBrightnessRow(
                     display: display,
                     isBlanked: ScreenBlanker.shared.isDisplayBlanked(display.id),
+                    showWarmth: showWarmth,
                     onChange: { newValue in
                         brightnessManager.setBrightness(for: display.id, to: newValue)
+                    },
+                    onWarmthChange: { newValue in
+                        brightnessManager.setWarmth(for: display.id, to: newValue)
                     },
                     onToggleBlank: {
                         brightnessManager.toggleBlank(for: display.id)
                     }
                 )
             }
+
+            colorTemperatureDisclosure
         }
         .padding(20)
+    }
+
+    private var colorTemperatureDisclosure: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                showWarmth.toggle()
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "chevron.right")
+                    .font(.caption2)
+                    .rotationEffect(.degrees(showWarmth ? 90 : 0))
+                Text("Color Temperature")
+                    .font(.caption)
+                Spacer()
+            }
+            .foregroundStyle(.secondary)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.borderless)
+        .padding(.top, 8)
+        .accessibilityLabel(Text(showWarmth ? "Hide color temperature" : "Show color temperature"))
     }
 
     // MARK: - Presets
@@ -211,85 +240,27 @@ private struct PresetsSectionView: View {
     @State private var isAddingPreset = false
     @State private var newPresetName = ""
     @State private var hoveredPresetID: UUID?
-    @State private var presetToDelete: BrightnessPreset?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 2) {
             Text("Presets")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-                .accessibilityHidden(true)
+                .padding(.bottom, 2)
 
             ForEach(presetManager.presets) { preset in
-                HStack {
-                    Text(preset.name)
-                        .font(.callout)
-                        .lineLimit(1)
-                    Spacer()
-                    Button("Apply") {
-                        presetManager.applyPreset(preset, to: brightnessManager)
-                    }
-                    .buttonStyle(.borderless)
-                    .font(.callout)
-                    .accessibilityLabel(Text("Apply \(preset.name)"))
-                }
-                .padding(.vertical, 2)
-                .background(
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(hoveredPresetID == preset.id ? Color.primary.opacity(0.06) : .clear)
-                        .padding(.horizontal, -4)
-                )
-                .onHover { isHovered in
-                    hoveredPresetID = isHovered ? preset.id : nil
-                }
-                .contextMenu {
-                    Button("Apply Preset") {
-                        presetManager.applyPreset(preset, to: brightnessManager)
-                    }
-                    Divider()
-                    Button("Delete", role: .destructive) {
-                        presetToDelete = preset
-                    }
-                }
-            }
-            .alert("Delete Preset?", isPresented: Binding(
-                get: { presetToDelete != nil },
-                set: { if !$0 { presetToDelete = nil } }
-            )) {
-                Button("Cancel", role: .cancel) { presetToDelete = nil }
-                Button("Delete", role: .destructive) {
-                    if let preset = presetToDelete {
-                        presetManager.deletePreset(id: preset.id)
-                    }
-                    presetToDelete = nil
-                }
-            } message: {
-                if let preset = presetToDelete {
-                    Text("\"\(preset.name)\" will be permanently deleted.")
-                }
+                presetRow(preset)
             }
 
             if isAddingPreset {
                 HStack(spacing: 4) {
-                    TextField("Name this preset", text: $newPresetName)
+                    TextField("Preset name", text: $newPresetName)
                         .textFieldStyle(.roundedBorder)
                         .font(.callout)
-                        .onSubmit {
-                            savePreset()
-                        }
-                    Button("Save") {
-                        savePreset()
-                    }
-                    .buttonStyle(.borderless)
-                    .font(.callout)
-                    .disabled(newPresetName.trimmingCharacters(in: .whitespaces).isEmpty)
-                    Button("Cancel") {
-                        isAddingPreset = false
-                        newPresetName = ""
-                    }
-                    .buttonStyle(.borderless)
-                    .font(.callout)
+                        .onSubmit { savePreset() }
+                        .onExitCommand { cancelAddPreset() }
                 }
+                .padding(.top, 2)
             } else if presetManager.presets.count < PresetManager.maxPresets {
                 Button {
                     isAddingPreset = true
@@ -299,22 +270,63 @@ private struct PresetsSectionView: View {
                         Text("Save Current")
                     }
                     .font(.callout)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 3)
+                    .padding(.horizontal, 6)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.borderless)
-            } else {
-                Text("Maximum presets reached")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+                .foregroundStyle(.secondary)
             }
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text("Presets"))
     }
 
+    private func presetRow(_ preset: BrightnessPreset) -> some View {
+        Button {
+            presetManager.applyPreset(preset, to: brightnessManager)
+        } label: {
+            HStack {
+                Text(preset.name)
+                    .font(.callout)
+                    .lineLimit(1)
+                Spacer()
+                if let shortcut = preset.shortcut {
+                    Text(shortcut.displayString)
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .padding(.vertical, 3)
+            .padding(.horizontal, 6)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(hoveredPresetID == preset.id ? Color.primary.opacity(0.08) : .clear)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.borderless)
+        .onHover { isHovered in
+            hoveredPresetID = isHovered ? preset.id : nil
+        }
+        .accessibilityLabel(Text("Apply \(preset.name)"))
+        .contextMenu {
+            Button("Delete", role: .destructive) {
+                presetManager.deletePreset(id: preset.id)
+            }
+        }
+    }
+
     private func savePreset() {
         let name = newPresetName.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty else { return }
         presetManager.saveCurrentAsPreset(name: name, brightnessManager: brightnessManager)
+        cancelAddPreset()
+    }
+
+    private func cancelAddPreset() {
         newPresetName = ""
         isAddingPreset = false
     }
@@ -346,17 +358,23 @@ private struct FooterLabel: View {
 struct DisplayBrightnessRow: View {
     let display: ExternalDisplay
     let isBlanked: Bool
+    let showWarmth: Bool
     let onChange: (Double) -> Void
+    let onWarmthChange: (Double) -> Void
     let onToggleBlank: () -> Void
 
     @State private var sliderValue: Double
+    @State private var warmthValue: Double
 
-    init(display: ExternalDisplay, isBlanked: Bool, onChange: @escaping (Double) -> Void, onToggleBlank: @escaping () -> Void) {
+    init(display: ExternalDisplay, isBlanked: Bool, showWarmth: Bool, onChange: @escaping (Double) -> Void, onWarmthChange: @escaping (Double) -> Void, onToggleBlank: @escaping () -> Void) {
         self.display = display
         self.isBlanked = isBlanked
+        self.showWarmth = showWarmth
         self.onChange = onChange
+        self.onWarmthChange = onWarmthChange
         self.onToggleBlank = onToggleBlank
         self._sliderValue = State(initialValue: display.brightness)
+        self._warmthValue = State(initialValue: display.warmth)
     }
 
     var body: some View {
@@ -387,6 +405,7 @@ struct DisplayBrightnessRow: View {
             HStack(spacing: 6) {
                 Image(systemName: "sun.min")
                     .font(.caption2)
+                    .frame(width: 12)
                     .foregroundStyle(.secondary)
                     .accessibilityHidden(true)
 
@@ -409,14 +428,55 @@ struct DisplayBrightnessRow: View {
 
                 Image(systemName: "sun.max")
                     .font(.caption2)
+                    .frame(width: 12)
                     .foregroundStyle(.secondary)
                     .accessibilityHidden(true)
             }
             .opacity(isBlanked ? 0.4 : 1.0)
             .disabled(isBlanked)
+
+            if showWarmth {
+                HStack(spacing: 6) {
+                    Image(systemName: "circle.fill")
+                        .font(.system(size: 7))
+                        .frame(width: 12)
+                        .foregroundStyle(.blue)
+                        .accessibilityHidden(true)
+
+                    Slider(value: $warmthValue, in: 0...1)
+                        .tint(.orange)
+                        .accessibilityLabel(
+                            String(
+                                format: NSLocalizedString("%@ warmth", comment: "Accessibility label: display warmth slider"),
+                                display.name
+                            )
+                        )
+                        .accessibilityValue(
+                            String(
+                                format: NSLocalizedString("%d percent", comment: "Accessibility value: warmth percentage"),
+                                Int(warmthValue * 100)
+                            )
+                        )
+                        .onChange(of: warmthValue) {
+                            onWarmthChange(warmthValue)
+                        }
+
+                    Image(systemName: "circle.fill")
+                        .font(.system(size: 7))
+                        .frame(width: 12)
+                        .foregroundStyle(.orange)
+                        .accessibilityHidden(true)
+                }
+                .opacity(isBlanked ? 0.4 : 1.0)
+                .disabled(isBlanked)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
         }
         .onChange(of: display.brightness) {
             sliderValue = display.brightness
+        }
+        .onChange(of: display.warmth) {
+            warmthValue = display.warmth
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(display.name)
@@ -428,6 +488,8 @@ struct DisplayBrightnessRow: View {
             Button("Set to 100%") { onChange(1.0) }
             Button("Set to 50%") { onChange(0.5) }
             Button("Set to 25%") { onChange(0.25) }
+            Divider()
+            Button("Reset Warmth") { onWarmthChange(0.0) }
         }
     }
 }

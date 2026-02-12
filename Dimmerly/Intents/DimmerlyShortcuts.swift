@@ -38,6 +38,15 @@ struct DimmerlyShortcuts: AppShortcutsProvider {
             systemImageName: "moon.haze"
         )
         AppShortcut(
+            intent: SetDisplayWarmthIntent(),
+            phrases: [
+                "Set display warmth with \(.applicationName)",
+                "Change warmth with \(.applicationName)",
+            ],
+            shortTitle: "Set Warmth",
+            systemImageName: "flame"
+        )
+        AppShortcut(
             intent: ApplyPresetIntent(),
             phrases: [
                 "Apply brightness preset with \(.applicationName)",

@@ -33,6 +33,12 @@ class ScreenBlanker {
     /// Closure to read per-display brightness (set by BrightnessManager)
     var brightnessForDisplay: ((CGDirectDisplayID) -> Double)?
 
+    /// Closure to read per-display warmth (set by BrightnessManager)
+    var warmthForDisplay: ((CGDirectDisplayID) -> Double)?
+
+    /// Closure to restore a display's full gamma table (set by BrightnessManager)
+    var restoreDisplay: ((CGDirectDisplayID) -> Void)?
+
     /// Active fade animation task
     private var fadeTask: Task<Void, Never>?
 
@@ -151,15 +157,20 @@ class ScreenBlanker {
             isPerDisplayFullBlanked = false
         }
 
-        // Restore gamma via brightness callback
-        let brightness = brightnessForDisplay?(displayID) ?? 1.0
-        let gammaMax = Float(brightness)
-        CGSetDisplayTransferByFormula(
-            displayID,
-            0, gammaMax, 1,
-            0, gammaMax, 1,
-            0, gammaMax, 1
-        )
+        // Restore full gamma table (brightness + warmth) via callback
+        if let restoreDisplay {
+            restoreDisplay(displayID)
+        } else {
+            // Fallback: restore brightness only via formula
+            let brightness = brightnessForDisplay?(displayID) ?? 1.0
+            let gammaMax = Float(brightness)
+            CGSetDisplayTransferByFormula(
+                displayID,
+                0, gammaMax, 1,
+                0, gammaMax, 1,
+                0, gammaMax, 1
+            )
+        }
 
         // Remove overlay window
         if let window = perDisplayWindows.removeValue(forKey: displayID) {
@@ -186,13 +197,16 @@ class ScreenBlanker {
             let totalDuration: UInt64 = 500_000_000 // 0.5 seconds in nanoseconds
             let stepDelay = totalDuration / UInt64(steps)
 
-            // Read starting brightness per display
+            // Read starting brightness and warmth per display
             var startBrightness: [CGDirectDisplayID: Double] = [:]
+            var displayWarmth: [CGDirectDisplayID: Double] = [:]
             for displayID in displayIDs {
                 if CGDisplayIsBuiltin(displayID) != 0 {
                     startBrightness[displayID] = 1.0
+                    displayWarmth[displayID] = 0.0
                 } else {
                     startBrightness[displayID] = brightnessForDisplay?(displayID) ?? 1.0
+                    displayWarmth[displayID] = warmthForDisplay?(displayID) ?? 0.0
                 }
             }
 
@@ -203,14 +217,19 @@ class ScreenBlanker {
 
                 for displayID in displayIDs {
                     let start = startBrightness[displayID] ?? 1.0
+                    let warmth = displayWarmth[displayID] ?? 0.0
                     let current = start * (1.0 - progress)
-                    let gammaMax = Float(max(current, 0))
+                    let m = BrightnessManager.channelMultipliers(for: warmth)
+
+                    let rMax = Float(max(current * m.r, 0))
+                    let gMax = Float(max(current * m.g, 0))
+                    let bMax = Float(max(current * m.b, 0))
 
                     CGSetDisplayTransferByFormula(
                         displayID,
-                        0, gammaMax, 1,
-                        0, gammaMax, 1,
-                        0, gammaMax, 1
+                        0, rMax, 1,
+                        0, gMax, 1,
+                        0, bMax, 1
                     )
                 }
 

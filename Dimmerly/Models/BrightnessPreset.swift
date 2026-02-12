@@ -17,13 +17,19 @@ struct BrightnessPreset: Identifiable, Codable, Equatable, Sendable {
     var shortcut: GlobalShortcut?
     /// When set, applies this brightness to all connected displays (ignores displayBrightness)
     var universalBrightness: Double?
+    /// Map of display ID (as String) to warmth value (0.0–1.0). Optional for backward compat.
+    var displayWarmth: [String: Double]?
+    /// When set, applies this warmth to all connected displays. Optional for backward compat.
+    var universalWarmth: Double?
 
-    init(id: UUID = UUID(), name: String, displayBrightness: [String: Double] = [:], createdAt: Date = Date(), shortcut: GlobalShortcut? = nil, universalBrightness: Double? = nil) {
+    init(id: UUID = UUID(), name: String, displayBrightness: [String: Double] = [:], createdAt: Date = Date(), shortcut: GlobalShortcut? = nil, universalBrightness: Double? = nil, displayWarmth: [String: Double]? = nil, universalWarmth: Double? = nil) {
         self.id = id
         self.name = name
         self.displayBrightness = displayBrightness
         self.createdAt = createdAt
         self.shortcut = shortcut
         self.universalBrightness = universalBrightness
+        self.displayWarmth = displayWarmth
+        self.universalWarmth = universalWarmth
     }
 }

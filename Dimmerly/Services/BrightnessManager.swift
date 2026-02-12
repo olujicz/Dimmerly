@@ -14,6 +14,7 @@ struct ExternalDisplay: Identifiable, Sendable {
     let id: CGDirectDisplayID
     let name: String
     var brightness: Double // 0.0–1.0
+    var warmth: Double = 0.0 // 0.0 (neutral) – 1.0 (warmest)
 }
 
 @MainActor
@@ -24,6 +25,7 @@ class BrightnessManager: ObservableObject {
     @Published var displays: [ExternalDisplay] = []
 
     private let persistenceKey = "dimmerlyDisplayBrightness"
+    private let warmthPersistenceKey = "dimmerlyDisplayWarmth"
     private var reconfigurationToken: DisplayReconfigurationToken?
     private var wakeTask: Task<Void, Never>?
     private var persistTask: Task<Void, Never>?
@@ -67,11 +69,28 @@ class BrightnessManager: ObservableObject {
         ScreenBlanker.shared.brightnessForDisplay = { [weak self] displayID in
             self?.brightness(for: displayID) ?? 1.0
         }
+
+        // Provide per-display warmth to ScreenBlanker for fade animation
+        ScreenBlanker.shared.warmthForDisplay = { [weak self] displayID in
+            self?.warmth(for: displayID) ?? 0.0
+        }
+
+        // Provide restore callback so ScreenBlanker can restore the full gamma table
+        ScreenBlanker.shared.restoreDisplay = { [weak self] displayID in
+            guard let self else { return }
+            guard let display = self.displays.first(where: { $0.id == displayID }) else { return }
+            self.applyGamma(displayID: displayID, brightness: display.brightness, warmth: display.warmth)
+        }
     }
 
     /// Returns the current brightness for a given display ID
     func brightness(for displayID: CGDirectDisplayID) -> Double {
         displays.first(where: { $0.id == displayID })?.brightness ?? 1.0
+    }
+
+    /// Returns the current warmth for a given display ID
+    func warmth(for displayID: CGDirectDisplayID) -> Double {
+        displays.first(where: { $0.id == displayID })?.warmth ?? 0.0
     }
 
     /// Toggles blanking for a single display
@@ -108,18 +127,44 @@ class BrightnessManager: ObservableObject {
         }
     }
 
+    /// Returns a snapshot of current warmth values keyed by display ID string
+    func currentWarmthSnapshot() -> [String: Double] {
+        var snapshot: [String: Double] = [:]
+        for display in displays {
+            snapshot[String(display.id)] = display.warmth
+        }
+        return snapshot
+    }
+
+    /// Sets all connected displays to the same warmth value
+    func setAllWarmth(to value: Double) {
+        for display in displays {
+            setWarmth(for: display.id, to: value)
+        }
+    }
+
+    /// Applies saved warmth values from a preset (skips missing displays)
+    func applyWarmthValues(_ values: [String: Double]) {
+        for (idString, warmth) in values {
+            guard let displayID = CGDirectDisplayID(idString) else { continue }
+            setWarmth(for: displayID, to: warmth)
+        }
+    }
+
     func refreshDisplays() {
         let displayIDs = Self.activeDisplayIDs()
 
-        let saved = loadPersistedBrightness()
+        let savedBrightness = loadPersistedBrightness()
+        let savedWarmth = loadPersistedWarmth()
         var newDisplays: [ExternalDisplay] = []
 
         for displayID in displayIDs {
             guard CGDisplayIsBuiltin(displayID) == 0 else { continue }
 
             let name = displayName(for: displayID)
-            let brightness = Swift.max(saved[String(displayID)] ?? 1.0, Self.minimumBrightness)
-            newDisplays.append(ExternalDisplay(id: displayID, name: name, brightness: brightness))
+            let brightness = Swift.max(savedBrightness[String(displayID)] ?? 1.0, Self.minimumBrightness)
+            let warmth = min(max(savedWarmth[String(displayID)] ?? 0.0, 0.0), 1.0)
+            newDisplays.append(ExternalDisplay(id: displayID, name: name, brightness: brightness, warmth: warmth))
         }
 
         displays = newDisplays
@@ -134,22 +179,38 @@ class BrightnessManager: ObservableObject {
         guard let index = displays.firstIndex(where: { $0.id == displayID }) else { return }
         displays[index].brightness = clamped
 
-        // Debounce persistence — slider fires rapidly during drag
-        persistTask?.cancel()
-        persistTask = Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5s
-            guard !Task.isCancelled else { return }
-            self.persistBrightness()
-        }
+        debouncePersist()
 
         if !ScreenBlanker.shared.isBlanking {
-            applyGamma(displayID: displayID, brightness: clamped)
+            applyGamma(displayID: displayID, brightness: clamped, warmth: displays[index].warmth)
+        }
+    }
+
+    func setWarmth(for displayID: CGDirectDisplayID, to value: Double) {
+        let clamped = min(max(value, 0.0), 1.0)
+
+        guard let index = displays.firstIndex(where: { $0.id == displayID }) else { return }
+        displays[index].warmth = clamped
+
+        debouncePersist()
+
+        if !ScreenBlanker.shared.isBlanking {
+            applyGamma(displayID: displayID, brightness: displays[index].brightness, warmth: clamped)
         }
     }
 
     func reapplyAll() {
         for display in displays {
-            applyGamma(displayID: display.id, brightness: display.brightness)
+            applyGamma(displayID: display.id, brightness: display.brightness, warmth: display.warmth)
+        }
+    }
+
+    private func debouncePersist() {
+        persistTask?.cancel()
+        persistTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5s
+            guard !Task.isCancelled else { return }
+            self.persistAll()
         }
     }
 
@@ -179,15 +240,28 @@ class BrightnessManager: ObservableObject {
 
     // MARK: - Gamma
 
-    private func applyGamma(displayID: CGDirectDisplayID, brightness: Double) {
-        let gammaMax = Float(brightness)
+    /// Channel multipliers for the given warmth value.
+    /// At warmth=0: (1, 1, 1) — neutral.  At warmth=1: (1, 0.82, 0.56) — ~2700K.
+    static func channelMultipliers(for warmth: Double) -> (r: Double, g: Double, b: Double) {
+        (r: 1.0, g: 1.0 - warmth * 0.18, b: 1.0 - warmth * 0.44)
+    }
+
+    /// Builds a 256-entry gamma lookup table for one channel.
+    private static func buildTable(brightness: Double, channelMultiplier: Double) -> [CGGammaValue] {
+        let scale = brightness * channelMultiplier
+        return (0..<256).map { i in
+            CGGammaValue(Double(i) / 255.0 * scale)
+        }
+    }
+
+    private func applyGamma(displayID: CGDirectDisplayID, brightness: Double, warmth: Double) {
+        let m = Self.channelMultipliers(for: warmth)
+        var rTable = Self.buildTable(brightness: brightness, channelMultiplier: m.r)
+        var gTable = Self.buildTable(brightness: brightness, channelMultiplier: m.g)
+        var bTable = Self.buildTable(brightness: brightness, channelMultiplier: m.b)
+
         // Return value intentionally ignored — no recovery action if gamma set fails
-        CGSetDisplayTransferByFormula(
-            displayID,
-            0, gammaMax, 1,  // red:   min, max, gamma
-            0, gammaMax, 1,  // green: min, max, gamma
-            0, gammaMax, 1   // blue:  min, max, gamma
-        )
+        CGSetDisplayTransferByTable(displayID, 256, &rTable, &gTable, &bTable)
     }
 
     // MARK: - Display Name
@@ -390,12 +464,19 @@ class BrightnessManager: ObservableObject {
         UserDefaults.standard.dictionary(forKey: persistenceKey) as? [String: Double] ?? [:]
     }
 
-    private func persistBrightness() {
-        var dict: [String: Double] = [:]
+    private func loadPersistedWarmth() -> [String: Double] {
+        UserDefaults.standard.dictionary(forKey: warmthPersistenceKey) as? [String: Double] ?? [:]
+    }
+
+    private func persistAll() {
+        var brightnessDict: [String: Double] = [:]
+        var warmthDict: [String: Double] = [:]
         for display in displays {
-            dict[String(display.id)] = display.brightness
+            brightnessDict[String(display.id)] = display.brightness
+            warmthDict[String(display.id)] = display.warmth
         }
-        UserDefaults.standard.set(dict, forKey: persistenceKey)
+        UserDefaults.standard.set(brightnessDict, forKey: persistenceKey)
+        UserDefaults.standard.set(warmthDict, forKey: warmthPersistenceKey)
     }
 }
 
