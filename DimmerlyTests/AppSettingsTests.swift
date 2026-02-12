@@ -16,19 +16,13 @@ final class AppSettingsTests: XCTestCase {
     var settings: AppSettings!
     let testSuiteName = "DimmerlyTestSuite"
 
-    override func setUp() {
-        super.setUp()
-        // Create settings with a test UserDefaults suite to avoid affecting real settings
-        // Note: AppSettings uses @AppStorage which uses UserDefaults.standard
-        // For proper isolation, we would need to refactor AppSettings to accept a UserDefaults instance
+    override func setUp() async throws {
         settings = AppSettings()
     }
 
-    override func tearDown() {
-        // Reset settings to defaults to avoid polluting other tests
+    override func tearDown() async throws {
         settings?.resetToDefaults()
         settings = nil
-        super.tearDown()
     }
 
     /// Tests that AppSettings has proper default values
