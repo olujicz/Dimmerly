@@ -81,6 +81,10 @@ class AppSettings: ObservableObject {
     @AppStorage("dimmerlyFadeTransition")
     var fadeTransition: Bool = true
 
+    /// Whether to require Escape key to dismiss blanking (instead of any input)
+    @AppStorage("dimmerlyRequireEscapeToDismiss")
+    var requireEscapeToDismiss: Bool = false
+
     /// Computed property for the selected menu bar icon style
     var menuBarIcon: MenuBarIconStyle {
         get { MenuBarIconStyle(rawValue: menuBarIconRaw) ?? .defaultIcon }
@@ -117,5 +121,6 @@ class AppSettings: ObservableObject {
         idleTimerEnabled = false
         idleTimerMinutes = 5
         fadeTransition = true
+        requireEscapeToDismiss = false
     }
 }
