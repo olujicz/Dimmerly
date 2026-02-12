@@ -11,7 +11,9 @@ A lightweight macOS menu bar utility for controlling external display brightness
 ## Features
 
 - **Per-Display Brightness Control** — Individual sliders for each connected external display
-- **Brightness Presets** — Save, name, and instantly apply brightness configurations
+- **Color Temperature (Warmth)** — Per-display warmth adjustment from neutral to warm (~2700K)
+- **Contrast Control** — Per-display contrast via symmetric S-curve gamma adjustment
+- **Brightness Presets** — Save, name, and instantly apply display configurations (brightness, warmth, contrast)
 - **Global Keyboard Shortcuts** — Dim displays or apply presets from any app
 - **Desktop Widgets** — Small and medium widgets for quick access (macOS 14+)
 - **Control Center Integration** — Quick toggle from Control Center (macOS 15+)
@@ -63,9 +65,10 @@ Dimmerly is available on the [Mac App Store](https://apps.apple.com/app/dimmerly
 Click the Dimmerly icon in your menu bar to open the panel:
 
 - Adjust brightness per display with sliders
+- Expand "Display Adjustments" for warmth and contrast sliders
 - Dim individual displays with the moon toggle
-- Apply saved brightness presets
-- Save current brightness as a new preset
+- Apply saved presets with a click, or right-click to save current settings to a preset
+- Save current display settings as a new preset
 - Dim all displays with the main button
 
 ### Keyboard Shortcuts
@@ -81,12 +84,13 @@ Global shortcuts require Accessibility permission (System Settings > Privacy & S
 
 ### Presets
 
-Dimmerly includes two default presets:
+Dimmerly includes three default presets:
 
-- **Full** — Sets all displays to 100% brightness
-- **Half** — Sets all displays to 50% brightness
+- **Full** — 100% brightness, neutral warmth and contrast
+- **Evening** — 70% brightness, moderate warmth
+- **Night** — 30% brightness, high warmth
 
-You can save up to 10 custom presets and assign keyboard shortcuts to each.
+You can save up to 10 custom presets and assign keyboard shortcuts to each. Right-click a preset to update it with your current display settings.
 
 ### Widgets
 
