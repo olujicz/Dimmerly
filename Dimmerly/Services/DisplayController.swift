@@ -16,11 +16,13 @@ enum DisplayAction {
         // Sandbox prevents spawning pmset — always use gamma-based screen blanking
         ScreenBlanker.shared.ignoreMouseMovement = settings.ignoreMouseMovement
         ScreenBlanker.shared.useFadeTransition = settings.fadeTransition && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        ScreenBlanker.shared.requireEscapeToDismiss = settings.requireEscapeToDismiss
         ScreenBlanker.shared.blank()
         #else
         if settings.preventScreenLock {
             ScreenBlanker.shared.ignoreMouseMovement = settings.ignoreMouseMovement
             ScreenBlanker.shared.useFadeTransition = settings.fadeTransition && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+            ScreenBlanker.shared.requireEscapeToDismiss = settings.requireEscapeToDismiss
             ScreenBlanker.shared.blank()
         } else {
             Task {

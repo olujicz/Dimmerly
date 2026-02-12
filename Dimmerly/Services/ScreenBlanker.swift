@@ -36,6 +36,12 @@ class ScreenBlanker {
     /// Active fade animation task
     private var fadeTask: Task<Void, Never>?
 
+    /// When true, only Escape dismisses blanking (all other input is ignored)
+    var requireEscapeToDismiss = false
+
+    /// True when per-display blanking has covered every screen and monitoring is active
+    private var isPerDisplayFullBlanked = false
+
     // MARK: - Per-Display Blanking
 
     /// Set of individually blanked display IDs
@@ -53,7 +59,7 @@ class ScreenBlanker {
         activationTime = ProcessInfo.processInfo.systemUptime
 
         NSCursor.hide()
-        startDismissMonitoring()
+        startDismissMonitoring(action: { [weak self] in self?.dismiss() })
 
         if useFadeTransition {
             // Fade first, overlay windows appear after fade completes
@@ -94,12 +100,14 @@ class ScreenBlanker {
 
         NSCursor.unhide()
         isBlanking = false
+        isPerDisplayFullBlanked = false
         onDismiss?()
     }
 
     // MARK: - Per-Display Blank/Unblank
 
-    /// Blanks a single display (zeros gamma + overlay window)
+    /// Blanks a single display (zeros gamma + overlay window).
+    /// When all screens end up blanked, starts Escape-key monitoring for recovery.
     func blankDisplay(_ displayID: CGDirectDisplayID) {
         guard !blankedDisplayIDs.contains(displayID) else { return }
 
@@ -111,19 +119,37 @@ class ScreenBlanker {
             0, 0, 1
         )
 
+        blankedDisplayIDs.insert(displayID)
+
         // Create overlay window on the matching screen
         if let screen = screenForDisplay(displayID) {
             let window = createBlankWindow(for: screen)
             perDisplayWindows[displayID] = window
             window.orderFrontRegardless()
-        }
 
-        blankedDisplayIDs.insert(displayID)
+            // If every screen is now blanked, start dismiss monitoring
+            if allExternalScreensBlanked {
+                isPerDisplayFullBlanked = true
+                activationTime = ProcessInfo.processInfo.systemUptime
+                NSCursor.hide()
+                if requireEscapeToDismiss {
+                    addWakeHint(to: window, screen: screen)
+                }
+                startDismissMonitoring(action: { [weak self] in self?.unblankAllDisplays() })
+            }
+        }
     }
 
     /// Unblanks a single display (restores gamma + removes overlay)
     func unblankDisplay(_ displayID: CGDirectDisplayID) {
         guard blankedDisplayIDs.contains(displayID) else { return }
+
+        // Clean up per-display full-blank monitoring if active
+        if isPerDisplayFullBlanked {
+            stopDismissMonitoring()
+            NSCursor.unhide()
+            isPerDisplayFullBlanked = false
+        }
 
         // Restore gamma via brightness callback
         let brightness = brightnessForDisplay?(displayID) ?? 1.0
@@ -217,6 +243,9 @@ class ScreenBlanker {
     private func showOverlayWindows() {
         for screen in NSScreen.screens {
             let window = createBlankWindow(for: screen)
+            if requireEscapeToDismiss {
+                addWakeHint(to: window, screen: screen)
+            }
             windows.append(window)
             window.orderFrontRegardless()
         }
@@ -246,37 +275,109 @@ class ScreenBlanker {
         return window
     }
 
-    private func startDismissMonitoring() {
-        // Dismiss on any keyboard or mouse event
-        let keyMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.keyDown]) { [weak self] _ in
-            Task { @MainActor in
-                self?.dismiss()
+    /// Adds a subtle "Press Esc to wake" hint near the bottom of the overlay window
+    private func addWakeHint(to window: NSWindow, screen: NSScreen) {
+        let label = NSTextField(labelWithString: NSLocalizedString("Press Esc to wake", comment: "Hint shown on blanked single-display"))
+        label.font = .systemFont(ofSize: 13, weight: .medium)
+        label.textColor = .white.withAlphaComponent(0.25)
+        label.alignment = .center
+        label.sizeToFit()
+
+        let x = (screen.frame.width - label.frame.width) / 2
+        let y: CGFloat = 40 // offset from bottom
+        label.frame.origin = CGPoint(x: x, y: y)
+
+        window.contentView?.addSubview(label)
+
+        // Fade the hint out after 4 seconds
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 1.0
+                label.animator().alphaValue = 0
             }
+        }
+    }
+
+    /// Whether every external display is currently per-display blanked
+    private var allExternalScreensBlanked: Bool {
+        let externalIDs = BrightnessManager.activeDisplayIDs().filter { CGDisplayIsBuiltin($0) == 0 }
+        return !externalIDs.isEmpty && externalIDs.allSatisfy { blankedDisplayIDs.contains($0) }
+    }
+
+    /// Unblanks all per-display blanked screens (called when all screens were blanked via moon buttons)
+    private func unblankAllDisplays() {
+        guard isPerDisplayFullBlanked else { return }
+        guard ProcessInfo.processInfo.systemUptime - activationTime >= gracePeriod else { return }
+
+        let idsToUnblank = blankedDisplayIDs
+        for displayID in idsToUnblank {
+            unblankDisplay(displayID)
+        }
+        onDismiss?()
+    }
+
+    // MARK: - Dismiss Monitoring
+
+    /// Starts dismiss monitoring, dispatching to Escape-only or any-input based on settings.
+    /// The action closure is called when the user triggers a dismiss.
+    private func startDismissMonitoring(action: @escaping @MainActor @Sendable () -> Void) {
+        if requireEscapeToDismiss {
+            startEscapeOnlyDismissMonitoring(action: action)
+        } else {
+            startAnyInputDismissMonitoring(action: action)
+        }
+    }
+
+    /// Escape-only mode: only Escape key triggers the action.
+    /// All other keyboard and mouse input is swallowed so the screen stays dark.
+    private func startEscapeOnlyDismissMonitoring(action: @escaping @MainActor @Sendable () -> Void) {
+        let escapeKeyCode: UInt16 = 53
+
+        let keyMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.keyDown]) { event in
+            let keyCode = event.keyCode
+            guard keyCode == escapeKeyCode else { return }
+            Task { @MainActor in action() }
         }
         if let keyMonitor { eventMonitors.append(keyMonitor) }
 
-        let localKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { [weak self] event in
-            Task { @MainActor in
-                self?.dismiss()
+        let localKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { event in
+            if event.keyCode == escapeKeyCode {
+                Task { @MainActor in action() }
             }
             return nil
         }
         if let localKeyMonitor { eventMonitors.append(localKeyMonitor) }
 
-        let mouseClickEvents: NSEvent.EventTypeMask = [.leftMouseDown, .rightMouseDown, .scrollWheel]
-        let mouseEvents: NSEvent.EventTypeMask = ignoreMouseMovement ? mouseClickEvents : mouseClickEvents.union(.mouseMoved)
+        let localMouseMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .scrollWheel, .mouseMoved]) { _ in
+            return nil
+        }
+        if let localMouseMonitor { eventMonitors.append(localMouseMonitor) }
+    }
 
-        let mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: mouseEvents) { [weak self] _ in
-            Task { @MainActor in
-                self?.dismiss()
-            }
+    /// Default mode: any keyboard or mouse event triggers the action.
+    private func startAnyInputDismissMonitoring(action: @escaping @MainActor @Sendable () -> Void) {
+        let keyMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.keyDown]) { _ in
+            Task { @MainActor in action() }
+        }
+        if let keyMonitor { eventMonitors.append(keyMonitor) }
+
+        let localKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { _ in
+            Task { @MainActor in action() }
+            return nil
+        }
+        if let localKeyMonitor { eventMonitors.append(localKeyMonitor) }
+
+        let mouseClickEvents: NSEvent.EventTypeMask = [.leftMouseDown, .rightMouseDown]
+        let allMouseEvents: NSEvent.EventTypeMask = [.leftMouseDown, .rightMouseDown, .scrollWheel, .mouseMoved]
+        let mouseEvents: NSEvent.EventTypeMask = self.ignoreMouseMovement ? mouseClickEvents : allMouseEvents
+
+        let mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: mouseEvents) { _ in
+            Task { @MainActor in action() }
         }
         if let mouseMonitor { eventMonitors.append(mouseMonitor) }
 
-        let localMouseMonitor = NSEvent.addLocalMonitorForEvents(matching: mouseEvents) { [weak self] event in
-            Task { @MainActor in
-                self?.dismiss()
-            }
+        let localMouseMonitor = NSEvent.addLocalMonitorForEvents(matching: mouseEvents) { event in
+            Task { @MainActor in action() }
             return event
         }
         if let localMouseMonitor { eventMonitors.append(localMouseMonitor) }

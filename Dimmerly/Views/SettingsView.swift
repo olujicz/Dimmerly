@@ -9,10 +9,15 @@ import SwiftUI
 
 /// Main settings view for the application
 struct SettingsView: View {
+    /// Changes on each window appearance to reset scroll position to top
+    @State private var formIdentity = UUID()
+
     var body: some View {
         GeneralSettingsView()
+            .id(formIdentity)
             .frame(minWidth: 400, maxWidth: 500, minHeight: 500)
             .onAppear {
+                formIdentity = UUID()
                 if #available(macOS 14.0, *) {
                     NSApp.activate()
                 } else {
@@ -45,52 +50,10 @@ struct GeneralSettingsView: View {
                 ))
                 .help(Text("Automatically start Dimmerly when you log in"))
 
-                #if APPSTORE
-                Text("Dims screens without putting displays to sleep. Your session stays unlocked.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                Toggle("Ignore mouse movement", isOn: $settings.ignoreMouseMovement)
-                    .help(Text("Only wake the screen on keyboard input or mouse click, not mouse movement"))
-
-                Toggle("Fade transition", isOn: $settings.fadeTransition)
-                    .help(Text("Gradually dims displays instead of turning them off instantly"))
-                #else
-                Picker("Turn Displays Off:", selection: Binding(
-                    get: { settings.preventScreenLock ? 1 : 0 },
-                    set: { settings.preventScreenLock = $0 == 1 }
-                )) {
-                    Text("Sleep & Lock").tag(0)
-                    Text("Dim Only").tag(1)
-                }
-                .pickerStyle(.radioGroup)
-
-                if !settings.preventScreenLock {
-                    Text("Turns off all displays and locks your Mac, just like closing the lid. To control how quickly your password is required, adjust your Lock Screen settings.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                    Button("Open Lock Screen Settings") {
-                        if let url = URL(string: "x-apple.systempreferences:com.apple.Lock-Screen-Settings.extension") {
-                            NSWorkspace.shared.open(url)
-                        }
-                    }
-                    .font(.caption)
-                } else {
-                    Text("Dims screens without putting displays to sleep. Your session stays unlocked.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                    Toggle("Ignore mouse movement", isOn: $settings.ignoreMouseMovement)
-                        .help(Text("Only wake the screen on keyboard input or mouse click, not mouse movement"))
-
-                    Toggle("Fade transition", isOn: $settings.fadeTransition)
-                        .help(Text("Gradually dims displays instead of turning them off instantly"))
-                }
-                #endif
+                menuBarIconPicker
             }
 
-            menuBarIconSection
+            dimmingSection
 
             idleTimerSection
 
@@ -111,24 +74,88 @@ struct GeneralSettingsView: View {
 
     // MARK: - Menu Bar Icon
 
-    private var menuBarIconSection: some View {
-        Section("Menu Bar Icon") {
-            Picker("Style:", selection: $settings.menuBarIconRaw) {
-                ForEach(MenuBarIconStyle.allCases) { style in
-                    HStack(spacing: 6) {
-                        if let systemImage = style.systemImageName {
-                            Image(systemName: systemImage)
-                                .frame(width: 16)
-                        } else {
-                            Image("MenuBarIcon")
-                                .frame(width: 16)
-                        }
-                        Text(style.displayName)
+    private var menuBarIconPicker: some View {
+        Picker("Menu Bar Icon:", selection: $settings.menuBarIconRaw) {
+            ForEach(MenuBarIconStyle.allCases) { style in
+                HStack(spacing: 6) {
+                    if let systemImage = style.systemImageName {
+                        Image(systemName: systemImage)
+                            .frame(width: 16)
+                    } else {
+                        Image("MenuBarIcon")
+                            .frame(width: 16)
                     }
-                    .tag(style.rawValue)
+                    Text(style.displayName)
                 }
+                .tag(style.rawValue)
+            }
+        }
+        .pickerStyle(.radioGroup)
+    }
+
+    // MARK: - Dimming
+
+    private var dimmingSection: some View {
+        Section("Dimming") {
+            #if APPSTORE
+            Text("Dims screens without putting displays to sleep. Your session stays unlocked.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            #else
+            Picker("Turn Displays Off:", selection: Binding(
+                get: { settings.preventScreenLock ? 1 : 0 },
+                set: { settings.preventScreenLock = $0 == 1 }
+            )) {
+                Text("Sleep & Lock").tag(0)
+                Text("Dim Only").tag(1)
             }
             .pickerStyle(.radioGroup)
+
+            if !settings.preventScreenLock {
+                Text("Turns off all displays and locks your Mac, just like closing the lid. To control how quickly your password is required, adjust your Lock Screen settings.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Button {
+                    if let url = URL(string: "x-apple.systempreferences:com.apple.Lock-Screen-Settings.extension") {
+                        NSWorkspace.shared.open(url)
+                    }
+                } label: {
+                    HStack(spacing: 2) {
+                        Text("Open Lock Screen Settings")
+                        Image(systemName: "arrow.up.forward")
+                            .imageScale(.small)
+                    }
+                }
+                .font(.caption)
+            } else {
+                Text("Dims screens without putting displays to sleep. Your session stays unlocked.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            #endif
+
+            #if APPSTORE
+            let showDimOptions = true
+            #else
+            let showDimOptions = settings.preventScreenLock
+            #endif
+
+            if showDimOptions {
+                Toggle("Fade transition", isOn: $settings.fadeTransition)
+                    .help(Text("Gradually dims displays instead of turning them off instantly"))
+
+                Picker("Wake Displays:", selection: $settings.requireEscapeToDismiss) {
+                    Text("Any input").tag(false)
+                    Text("Escape key only").tag(true)
+                }
+                .pickerStyle(.radioGroup)
+
+                if !settings.requireEscapeToDismiss {
+                    Toggle("Ignore mouse movement", isOn: $settings.ignoreMouseMovement)
+                        .help(Text("Only wake the screen on keyboard input or mouse click, not mouse movement"))
+                }
+            }
         }
     }
 
@@ -150,7 +177,6 @@ struct GeneralSettingsView: View {
                         )
                     )
                 }
-                .font(.callout)
 
                 Text(
                     String(
@@ -199,8 +225,14 @@ struct GeneralSettingsView: View {
                         .foregroundStyle(.secondary)
                         .symbolRenderingMode(.multicolor)
 
-                    Button("Open Accessibility Settings") {
+                    Button {
                         KeyboardShortcutManager.requestAccessibilityPermission()
+                    } label: {
+                        HStack(spacing: 2) {
+                            Text("Open Accessibility Settings")
+                            Image(systemName: "arrow.up.forward")
+                                .imageScale(.small)
+                        }
                     }
                     .font(.caption)
                 }
@@ -261,10 +293,8 @@ private struct PresetManagementRow: View {
                     isEditing = false
                 })
                 .textFieldStyle(.roundedBorder)
-                .font(.callout)
             } else {
                 Text(preset.name)
-                    .font(.callout)
                     .contextMenu {
                         Button("Rename") {
                             editedName = preset.name

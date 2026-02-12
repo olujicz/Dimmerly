@@ -65,9 +65,13 @@ class KeyboardShortcutManager: ObservableObject {
 
         // Create a global event monitor for key down events
         eventMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            // Extract Sendable values before crossing isolation boundary (NSEvent is not Sendable)
+            let keyCode = event.keyCode
+            let modifierFlags = event.modifierFlags
             Task { @MainActor in
                 guard let self else { return }
-                if self.currentShortcut.matches(event: event) {
+                if let shortcut = GlobalShortcut.from(keyCode: keyCode, modifierFlags: modifierFlags),
+                   self.currentShortcut == shortcut {
                     self.onShortcutTriggered?()
                 }
             }
