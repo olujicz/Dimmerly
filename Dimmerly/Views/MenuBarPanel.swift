@@ -157,22 +157,18 @@ struct MenuBarPanel: View {
 
     private var footer: some View {
         HStack(spacing: 0) {
-            Group {
+            Button {
                 if #available(macOS 14.0, *) {
-                    SettingsLink {
-                        FooterLabel("Settings", icon: "gear", shortcut: "⌘,")
-                    }
-                    .keyboardShortcut(",", modifiers: .command)
+                    NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
                 } else {
-                    Button {
-                        NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
-                    } label: {
-                        FooterLabel("Settings", icon: "gear", shortcut: "⌘,")
-                    }
-                    .keyboardShortcut(",", modifiers: .command)
+                    NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
                 }
+                NSApp.activate()
+            } label: {
+                FooterLabel("Settings", icon: "gear", shortcut: "⌘,")
             }
             .buttonStyle(.borderless)
+            .keyboardShortcut(",", modifiers: .command)
 
             Spacer()
 
