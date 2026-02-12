@@ -60,6 +60,18 @@ class PresetManager: ObservableObject {
         }
     }
 
+    /// Updates an existing preset with the current display values
+    func updatePreset(id: UUID, brightnessManager: BrightnessManager) {
+        guard let index = presets.firstIndex(where: { $0.id == id }) else { return }
+        presets[index].displayBrightness = brightnessManager.currentBrightnessSnapshot()
+        presets[index].displayWarmth = brightnessManager.currentWarmthSnapshot()
+        presets[index].displayContrast = brightnessManager.currentContrastSnapshot()
+        presets[index].universalBrightness = nil
+        presets[index].universalWarmth = nil
+        presets[index].universalContrast = nil
+        persistPresets()
+    }
+
     /// Deletes a preset by ID
     func deletePreset(id: UUID) {
         presets.removeAll { $0.id == id }

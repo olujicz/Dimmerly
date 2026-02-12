@@ -316,6 +316,10 @@ private struct PresetsSectionView: View {
         }
         .accessibilityLabel(Text("Apply \(preset.name)"))
         .contextMenu {
+            Button("Save Current Settings") {
+                presetManager.updatePreset(id: preset.id, brightnessManager: brightnessManager)
+            }
+            Divider()
             Button("Delete", role: .destructive) {
                 presetManager.deletePreset(id: preset.id)
             }
