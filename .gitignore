@@ -102,4 +102,6 @@ TEST_TARGET_SETUP.md
 # Design source/preview files
 Design/
 
+# claude
 .mcp.json
+CLAUDE.md

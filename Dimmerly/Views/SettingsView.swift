@@ -59,9 +59,7 @@ struct GeneralSettingsView: View {
 
             keyboardShortcutSection
 
-            if !presetManager.presets.isEmpty {
-                presetsManagementSection
-            }
+            presetsManagementSection
         }
         .formStyle(.grouped)
         .onAppear {
@@ -244,6 +242,8 @@ struct GeneralSettingsView: View {
 
     // MARK: - Presets Management
 
+    @State private var showRestoreDefaults = false
+
     private var presetsManagementSection: some View {
         Section("Presets") {
             ForEach(presetManager.presets) { preset in
@@ -261,6 +261,17 @@ struct GeneralSettingsView: View {
                         presetManager.updateShortcut(for: preset.id, shortcut: shortcut)
                     }
                 )
+            }
+
+            Button("Restore Defaults") {
+                showRestoreDefaults = true
+            }
+            .font(.callout)
+            .alert("Restore Default Presets?", isPresented: $showRestoreDefaults) {
+                Button("Cancel", role: .cancel) {}
+                Button("Restore") { presetManager.restoreDefaultPresets() }
+            } message: {
+                Text("This will replace all your presets with the defaults. Custom presets and shortcuts will be lost.")
             }
         }
     }

@@ -80,17 +80,25 @@ class PresetManager: ObservableObject {
 
     // MARK: - Default Presets
 
+    static let defaultPresets: [BrightnessPreset] = [
+        BrightnessPreset(name: "Full", universalBrightness: 1.0, universalWarmth: 0.0),
+        BrightnessPreset(name: "Evening", universalBrightness: 0.7, universalWarmth: 0.4),
+        BrightnessPreset(name: "Night", universalBrightness: 0.3, universalWarmth: 0.8),
+    ]
+
+    /// Replaces all presets with the default set
+    func restoreDefaultPresets() {
+        presets = Self.defaultPresets
+        persistPresets()
+    }
+
     private func seedDefaultPresetsIfNeeded() {
         guard !UserDefaults.standard.bool(forKey: defaultsSeededKey) else { return }
         UserDefaults.standard.set(true, forKey: defaultsSeededKey)
 
         guard presets.isEmpty else { return }
 
-        presets = [
-            BrightnessPreset(name: "Full", universalBrightness: 1.0, universalWarmth: 0.0),
-            BrightnessPreset(name: "Half", universalBrightness: 0.5, universalWarmth: 0.0),
-            BrightnessPreset(name: "Night", universalBrightness: 0.4, universalWarmth: 0.75),
-        ]
+        presets = Self.defaultPresets
         persistPresets()
     }
 
