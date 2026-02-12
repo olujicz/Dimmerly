@@ -18,6 +18,7 @@ A lightweight macOS menu bar utility for controlling external display brightness
 - **Desktop Widgets** — Small and medium widgets for quick access (macOS 14+)
 - **Control Center Integration** — Quick toggle from Control Center (macOS 15+)
 - **Shortcuts App Support** — Automate display control with Shortcuts workflows
+- **Scheduled Presets** — Automatically apply presets at specific times, sunrise, or sunset
 - **Auto-Dim** — Automatically dim displays after a configurable idle period
 - **Fade Transition** — Smooth fade-to-black animation option
 - **Ignore Mouse Movement** — Only wake screens on keyboard or click
@@ -33,6 +34,7 @@ A lightweight macOS menu bar utility for controlling external display brightness
 - macOS 14.0 (Sonoma) or later
 - External display with DDC/CI brightness support
 - Optional: Accessibility permissions for global keyboard shortcuts
+- Optional: Location permission for sunrise/sunset schedules
 
 ## Installation
 
@@ -99,11 +101,21 @@ You can save up to 10 custom presets and assign keyboard shortcuts to each. Righ
 
 Add widgets by right-clicking the desktop > Edit Widgets > Dimmerly.
 
+### Scheduled Presets
+
+Automatically apply presets at specific times of day:
+
+- **Fixed Time** — Trigger at an exact time (e.g., 8:00 PM)
+- **Sunrise/Sunset** — Trigger relative to sunrise or sunset with an optional offset (e.g., 30 min before sunset)
+
+Schedules reference your existing presets, so editing a preset automatically updates what the schedule applies. Sunrise and sunset triggers require a location — use "Use Current Location" or enter coordinates manually in Settings.
+
 ### Settings
 
 Access via the menu bar panel (Settings... or ⌘,):
 
 - **General** — Launch at login, ignore mouse movement, fade transition, menu bar icon style, auto-dim idle timer
+- **Schedule** — Enable scheduled presets, set location, manage schedules
 - **Shortcuts** — Global keyboard shortcut for dimming, per-preset shortcuts
 - **About** — App information
 

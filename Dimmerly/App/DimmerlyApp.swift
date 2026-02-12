@@ -29,6 +29,12 @@ struct DimmerlyApp: App {
     /// Manager for preset keyboard shortcuts
     @StateObject private var presetShortcutManager = PresetShortcutManager()
 
+    /// Provider for location data (solar calculations)
+    @StateObject private var locationProvider = LocationProvider.shared
+
+    /// Manager for time-based dimming schedules
+    @StateObject private var scheduleManager = ScheduleManager()
+
     /// Guard against duplicate observer registration if onAppear fires more than once
     @State private var isConfigured = false
 
@@ -49,6 +55,7 @@ struct DimmerlyApp: App {
                     startGlobalShortcutMonitoring()
                     configureIdleTimer()
                     configurePresetShortcuts()
+                    configureScheduleManager()
                     observeWidgetNotifications()
                 }
         }
@@ -61,6 +68,8 @@ struct DimmerlyApp: App {
                 .environmentObject(shortcutManager)
                 .environmentObject(presetManager)
                 .environmentObject(brightnessManager)
+                .environmentObject(scheduleManager)
+                .environmentObject(locationProvider)
         }
     }
 
@@ -115,6 +124,16 @@ struct DimmerlyApp: App {
                 SharedConstants.sharedDefaults?.removeObject(forKey: SharedConstants.widgetPresetCommandKey)
             }
         }
+    }
+
+    private func configureScheduleManager() {
+        scheduleManager.onScheduleTriggered = { [presetManager, brightnessManager] presetID in
+            guard let preset = presetManager.presets.first(where: { $0.id == presetID }) else { return }
+            presetManager.applyPreset(preset, to: brightnessManager)
+        }
+        scheduleManager.observeSettings(
+            readEnabled: { UserDefaults.standard.bool(forKey: "dimmerlyScheduleEnabled") }
+        )
     }
 
     private func configurePresetShortcuts() {

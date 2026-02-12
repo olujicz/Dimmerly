@@ -85,6 +85,10 @@ class AppSettings: ObservableObject {
     @AppStorage("dimmerlyRequireEscapeToDismiss")
     var requireEscapeToDismiss: Bool = false
 
+    /// Whether schedule-based auto-dimming is enabled
+    @AppStorage("dimmerlyScheduleEnabled")
+    var scheduleEnabled: Bool = false
+
     /// Computed property for the selected menu bar icon style
     var menuBarIcon: MenuBarIconStyle {
         get { MenuBarIconStyle(rawValue: menuBarIconRaw) ?? .defaultIcon }
@@ -122,5 +126,6 @@ class AppSettings: ObservableObject {
         idleTimerMinutes = 5
         fadeTransition = true
         requireEscapeToDismiss = false
+        scheduleEnabled = false
     }
 }

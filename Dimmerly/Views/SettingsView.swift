@@ -33,6 +33,8 @@ struct GeneralSettingsView: View {
     @EnvironmentObject var shortcutManager: KeyboardShortcutManager
     @EnvironmentObject var presetManager: PresetManager
     @EnvironmentObject var brightnessManager: BrightnessManager
+    @EnvironmentObject var scheduleManager: ScheduleManager
+    @EnvironmentObject var locationProvider: LocationProvider
 
     var body: some View {
         Form {
@@ -56,6 +58,8 @@ struct GeneralSettingsView: View {
             dimmingSection
 
             idleTimerSection
+
+            scheduleSection
 
             keyboardShortcutSection
 
@@ -203,6 +207,105 @@ struct GeneralSettingsView: View {
                 .foregroundStyle(.secondary)
             }
         }
+    }
+
+    // MARK: - Schedule
+
+    @State private var showAddSchedule = false
+    @State private var showManualLocation = false
+
+    private var scheduleSection: some View {
+        Section("Schedule") {
+            Toggle("Apply presets on a schedule", isOn: $settings.scheduleEnabled)
+
+            if settings.scheduleEnabled {
+                locationRow
+
+                ForEach(scheduleManager.schedules) { schedule in
+                    let presetName = presetManager.presets.first(where: { $0.id == schedule.presetID })?.name
+                    let triggerTime = triggerTimeDescription(for: schedule)
+                    ScheduleRow(
+                        schedule: schedule,
+                        presetName: presetName,
+                        triggerTimeDescription: triggerTime,
+                        onToggle: { scheduleManager.toggleSchedule(id: schedule.id) },
+                        onDelete: { scheduleManager.deleteSchedule(id: schedule.id) }
+                    )
+                }
+
+                Button("Add Schedule\u{2026}") {
+                    showAddSchedule = true
+                }
+                .sheet(isPresented: $showAddSchedule) {
+                    AddScheduleSheet(presets: presetManager.presets)
+                        .environmentObject(scheduleManager)
+                }
+            }
+        }
+    }
+
+    private var locationRow: some View {
+        Group {
+            if locationProvider.hasLocation {
+                LabeledContent {
+                    Menu {
+                        Button("Use Current Location") {
+                            locationProvider.requestLocation()
+                        }
+                        Button("Enter Manually\u{2026}") {
+                            showManualLocation = true
+                        }
+                        Divider()
+                        Button("Clear Location", role: .destructive) {
+                            locationProvider.clearLocation()
+                        }
+                    } label: {
+                        Text(locationSummary)
+                            .foregroundStyle(.secondary)
+                    }
+                } label: {
+                    Label("Location", systemImage: "location.fill")
+                }
+            } else {
+                LabeledContent {
+                    HStack(spacing: 8) {
+                        Button("Use Current") {
+                            locationProvider.requestLocation()
+                        }
+                        Button("Enter Manually\u{2026}") {
+                            showManualLocation = true
+                        }
+                    }
+                } label: {
+                    Label("Location", systemImage: "location.slash")
+                }
+
+                Text("A location is needed for sunrise and sunset schedules.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .sheet(isPresented: $showManualLocation) {
+            ManualLocationSheet()
+                .environmentObject(locationProvider)
+        }
+    }
+
+    private var locationSummary: String {
+        let lat = locationProvider.latitude ?? 0
+        let lon = locationProvider.longitude ?? 0
+        return String(format: "%.2f, %.2f", lat, lon)
+    }
+
+    private func triggerTimeDescription(for schedule: DimmingSchedule) -> String? {
+        guard schedule.trigger.requiresLocation else { return nil }
+        guard let date = scheduleManager.resolveTriggerDate(schedule.trigger, on: Date()) else {
+            return nil
+        }
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        formatter.dateStyle = .none
+        return formatter.string(from: date)
     }
 
     // MARK: - Keyboard Shortcut
@@ -562,4 +665,6 @@ private class PresetShortcutNSView: NSView {
         .environmentObject(KeyboardShortcutManager())
         .environmentObject(PresetManager())
         .environmentObject(BrightnessManager())
+        .environmentObject(ScheduleManager())
+        .environmentObject(LocationProvider.shared)
 }

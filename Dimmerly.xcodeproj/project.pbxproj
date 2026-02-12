@@ -7,6 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		SC00000000000000000011 /* DimmingSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC00000000000000000001 /* DimmingSchedule.swift */; };
+		SC00000000000000000012 /* SolarCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC00000000000000000002 /* SolarCalculator.swift */; };
+		SC00000000000000000013 /* LocationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC00000000000000000003 /* LocationProvider.swift */; };
+		SC00000000000000000014 /* ScheduleManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC00000000000000000004 /* ScheduleManager.swift */; };
+		SC00000000000000000015 /* ScheduleViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC00000000000000000005 /* ScheduleViews.swift */; };
 		05024BFD6B91C5336F8E4CC1 /* AlertPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 473CD46DB2D77DD4EB8463DA /* AlertPresenter.swift */; };
 		34887812E1B9FF228147D4A5 /* KeyboardShortcut.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1B045C3D2AA639266BC0483 /* KeyboardShortcut.swift */; };
 		4418D8E7C90F85F1A0565B97 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76B136A03B60312AFD4F720E /* SettingsView.swift */; };
@@ -86,6 +91,11 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		SC00000000000000000001 /* DimmingSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DimmingSchedule.swift; sourceTree = "<group>"; };
+		SC00000000000000000002 /* SolarCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolarCalculator.swift; sourceTree = "<group>"; };
+		SC00000000000000000003 /* LocationProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationProvider.swift; sourceTree = "<group>"; };
+		SC00000000000000000004 /* ScheduleManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleManager.swift; sourceTree = "<group>"; };
+		SC00000000000000000005 /* ScheduleViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleViews.swift; sourceTree = "<group>"; };
 		15EF8DD088138249EA3B9ED2 /* LaunchAtLoginManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginManager.swift; sourceTree = "<group>"; };
 		473CD46DB2D77DD4EB8463DA /* AlertPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertPresenter.swift; sourceTree = "<group>"; };
 		4938628BCBDB203349940ACE /* KeyboardShortcutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutManager.swift; sourceTree = "<group>"; };
@@ -180,6 +190,7 @@
 			children = (
 				C50F163FD03D0874576E9962 /* KeyboardShortcutRecorder.swift */,
 				BA0000000000000000000004 /* MenuBarPanel.swift */,
+				SC00000000000000000005 /* ScheduleViews.swift */,
 				76B136A03B60312AFD4F720E /* SettingsView.swift */,
 			);
 			path = Views;
@@ -264,6 +275,7 @@
 			isa = PBXGroup;
 			children = (
 				NF00000000000000000001 /* BrightnessPreset.swift */,
+				SC00000000000000000001 /* DimmingSchedule.swift */,
 				E37863164B2170781448D5DC /* DisplayError.swift */,
 				D1B045C3D2AA639266BC0483 /* KeyboardShortcut.swift */,
 				FE7B95B7556B68B59FE0DC7B /* AppSettings.swift */,
@@ -279,10 +291,13 @@
 				BA0000000000000000000002 /* BrightnessManager.swift */,
 				NF00000000000000000003 /* IdleTimerManager.swift */,
 				15EF8DD088138249EA3B9ED2 /* LaunchAtLoginManager.swift */,
+				SC00000000000000000003 /* LocationProvider.swift */,
 				4938628BCBDB203349940ACE /* KeyboardShortcutManager.swift */,
 				NF00000000000000000002 /* PresetManager.swift */,
 				NF00000000000000000004 /* PresetShortcutManager.swift */,
+				SC00000000000000000004 /* ScheduleManager.swift */,
 				E8A1B2C3D4E5F6A7B8C9D002 /* ScreenBlanker.swift */,
+				SC00000000000000000002 /* SolarCalculator.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -501,6 +516,11 @@
 				NF0000000000000000001C /* SetDisplayContrastIntent.swift in Sources */,
 				NF00000000000000000018 /* ToggleDimIntent.swift in Sources */,
 				NF00000000000000000019 /* DimmerlyShortcuts.swift in Sources */,
+				SC00000000000000000011 /* DimmingSchedule.swift in Sources */,
+				SC00000000000000000012 /* SolarCalculator.swift in Sources */,
+				SC00000000000000000013 /* LocationProvider.swift in Sources */,
+				SC00000000000000000014 /* ScheduleManager.swift in Sources */,
+				SC00000000000000000015 /* ScheduleViews.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

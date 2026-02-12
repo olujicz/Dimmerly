@@ -34,6 +34,10 @@
     <string>Copyright © 2026 Zoran Olujic. All rights reserved.</string>
     <key>NSQuitAlwaysKeepsWindows</key>
     <false/>
+    <key>NSLocationUsageDescription</key>
+    <string>Dimmerly uses your location to calculate sunrise and sunset times for scheduled dimming.</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Dimmerly uses your location to calculate sunrise and sunset times for scheduled dimming.</string>
     <key>CFBundleURLTypes</key>
     <array>
         <dict>

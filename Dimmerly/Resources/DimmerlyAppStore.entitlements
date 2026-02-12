@@ -8,5 +8,7 @@
     <array>
         <string>$(TeamIdentifierPrefix)rs.in.olujic.dimmerly</string>
     </array>
+    <key>com.apple.security.personal-information.location</key>
+    <true/>
 </dict>
 </plist>
