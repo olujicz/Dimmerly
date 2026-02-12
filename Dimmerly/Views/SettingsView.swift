@@ -15,7 +15,7 @@ struct SettingsView: View {
     var body: some View {
         GeneralSettingsView()
             .id(formIdentity)
-            .frame(minWidth: 400, maxWidth: 500, minHeight: 500)
+            .frame(minWidth: 400, maxWidth: 550, minHeight: 500)
             .onAppear {
                 formIdentity = UUID()
                 if #available(macOS 14.0, *) {
@@ -60,6 +60,8 @@ struct GeneralSettingsView: View {
             keyboardShortcutSection
 
             presetsManagementSection
+
+            aboutSection
         }
         .formStyle(.grouped)
         .onAppear {
@@ -73,22 +75,34 @@ struct GeneralSettingsView: View {
     // MARK: - Menu Bar Icon
 
     private var menuBarIconPicker: some View {
-        Picker("Menu Bar Icon:", selection: $settings.menuBarIconRaw) {
-            ForEach(MenuBarIconStyle.allCases) { style in
-                HStack(spacing: 6) {
-                    if let systemImage = style.systemImageName {
-                        Image(systemName: systemImage)
-                            .frame(width: 16)
-                    } else {
-                        Image("MenuBarIcon")
-                            .frame(width: 16)
+        LabeledContent("Menu Bar Icon:") {
+            HStack(spacing: 8) {
+                ForEach(MenuBarIconStyle.allCases) { style in
+                    let isSelected = settings.menuBarIconRaw == style.rawValue
+                    Button {
+                        settings.menuBarIcon = style
+                    } label: {
+                        Group {
+                            if let systemImage = style.systemImageName {
+                                Image(systemName: systemImage)
+                            } else {
+                                Image("MenuBarIcon")
+                            }
+                        }
+                        .frame(width: 32, height: 32)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(isSelected ? Color.accentColor : Color.primary.opacity(0.05))
+                        )
+                        .foregroundStyle(isSelected ? .white : .primary)
                     }
-                    Text(style.displayName)
+                    .buttonStyle(.plain)
+                    .help(style.displayName)
+                    .accessibilityLabel(style.displayName)
+                    .accessibilityAddTraits(isSelected ? .isSelected : [])
                 }
-                .tag(style.rawValue)
             }
         }
-        .pickerStyle(.radioGroup)
     }
 
     // MARK: - Dimming
@@ -266,14 +280,66 @@ struct GeneralSettingsView: View {
             Button("Restore Defaults") {
                 showRestoreDefaults = true
             }
-            .font(.callout)
             .alert("Restore Default Presets?", isPresented: $showRestoreDefaults) {
                 Button("Cancel", role: .cancel) {}
-                Button("Restore") { presetManager.restoreDefaultPresets() }
+                Button("Restore", role: .destructive) { presetManager.restoreDefaultPresets() }
             } message: {
                 Text("This will replace all your presets with the defaults. Custom presets and shortcuts will be lost.")
             }
         }
+    }
+
+    // MARK: - About
+
+    private var aboutSection: some View {
+        Section("About") {
+            Button("About Dimmerly") {
+                showAboutPanel()
+            }
+
+            Button {
+                if let url = URL(string: "https://github.com/olujicz/Dimmerly") {
+                    NSWorkspace.shared.open(url)
+                }
+            } label: {
+                HStack(spacing: 2) {
+                    Text("Source Code on GitHub")
+                    Image(systemName: "arrow.up.forward")
+                        .imageScale(.small)
+                }
+            }
+        }
+    }
+
+    private func showAboutPanel() {
+        let centeredStyle = NSMutableParagraphStyle()
+        centeredStyle.alignment = .center
+
+        let credits = NSMutableAttributedString()
+
+        let description = NSAttributedString(
+            string: NSLocalizedString("A macOS menu bar utility for putting your displays to sleep \u{2014} with a single keyboard shortcut.\n", comment: "About panel description"),
+            attributes: [
+                .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
+                .foregroundColor: NSColor.secondaryLabelColor,
+                .paragraphStyle: centeredStyle,
+            ]
+        )
+        credits.append(description)
+
+        let linkText = NSAttributedString(
+            string: NSLocalizedString("Source Code on GitHub", comment: "About panel link label"),
+            attributes: [
+                .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
+                .link: URL(string: "https://github.com/olujicz/Dimmerly") as Any,
+                .paragraphStyle: centeredStyle,
+            ]
+        )
+        credits.append(linkText)
+
+        NSApp.orderFrontStandardAboutPanel(options: [
+            .credits: credits,
+        ])
     }
 }
 
@@ -292,6 +358,7 @@ private struct PresetManagementRow: View {
     @State private var isRecordingShortcut = false
     @State private var conflictMessage: String?
     @State private var showDeleteConfirmation = false
+    @State private var isHovered = false
 
     var body: some View {
         HStack {
@@ -313,17 +380,19 @@ private struct PresetManagementRow: View {
                         }
                     }
 
-                Button {
-                    editedName = preset.name
-                    isEditing = true
-                } label: {
-                    Image(systemName: "pencil")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
+                if isHovered {
+                    Button {
+                        editedName = preset.name
+                        isEditing = true
+                    } label: {
+                        Image(systemName: "pencil")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.borderless)
+                    .accessibilityLabel(Text("Rename \(preset.name)"))
+                    .help(Text("Rename Preset"))
                 }
-                .buttonStyle(.borderless)
-                .accessibilityLabel(Text("Rename \(preset.name)"))
-                .help(Text("Rename Preset"))
             }
 
             Spacer()
@@ -373,6 +442,7 @@ private struct PresetManagementRow: View {
                 Text("\"\(preset.name)\" will be permanently deleted.")
             }
         }
+        .onHover { isHovered = $0 }
 
         if let conflictMessage {
             Label(conflictMessage, systemImage: "exclamationmark.triangle.fill")

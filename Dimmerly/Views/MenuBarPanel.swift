@@ -108,7 +108,7 @@ struct MenuBarPanel: View {
                     .font(.caption2)
                     .rotationEffect(.degrees(showAdjustments ? 90 : 0))
                 Text("Display Adjustments")
-                    .font(.caption)
+                    .font(.callout)
                 Spacer()
             }
             .foregroundStyle(.secondary)
@@ -156,28 +156,21 @@ struct MenuBarPanel: View {
     // MARK: - Footer
 
     private var footer: some View {
-        HStack {
+        HStack(spacing: 0) {
             Group {
                 if #available(macOS 14.0, *) {
                     SettingsLink {
-                        FooterLabel("Settings...", shortcut: "⌘,")
+                        FooterLabel("Settings", icon: "gear", shortcut: "⌘,")
                     }
                     .keyboardShortcut(",", modifiers: .command)
                 } else {
                     Button {
                         NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
                     } label: {
-                        FooterLabel("Settings...", shortcut: "⌘,")
+                        FooterLabel("Settings", icon: "gear", shortcut: "⌘,")
                     }
                     .keyboardShortcut(",", modifiers: .command)
                 }
-            }
-            .buttonStyle(.borderless)
-
-            Button {
-                showAboutPanel()
-            } label: {
-                Text("About Dimmerly")
             }
             .buttonStyle(.borderless)
 
@@ -186,52 +179,13 @@ struct MenuBarPanel: View {
             Button {
                 NSApplication.shared.terminate(nil)
             } label: {
-                FooterLabel("Quit", shortcut: "⌘Q")
+                FooterLabel("Quit", icon: "power", shortcut: "⌘Q")
             }
             .buttonStyle(.borderless)
             .keyboardShortcut("q", modifiers: .command)
         }
         .font(.callout)
         .foregroundStyle(.secondary)
-    }
-
-    private func showAboutPanel() {
-        if #available(macOS 14.0, *) {
-            NSApp.activate()
-        } else {
-            NSApp.activate(ignoringOtherApps: true)
-        }
-
-        let centeredStyle = NSMutableParagraphStyle()
-        centeredStyle.alignment = .center
-
-        let credits = NSMutableAttributedString()
-
-        let description = NSAttributedString(
-            string: NSLocalizedString("A macOS menu bar utility for putting your displays to sleep — with a single keyboard shortcut.\n", comment: "About panel description"),
-            attributes: [
-                .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
-                .foregroundColor: NSColor.secondaryLabelColor,
-                .paragraphStyle: centeredStyle,
-            ]
-        )
-        credits.append(description)
-
-        #if !APPSTORE
-        let linkText = NSAttributedString(
-            string: NSLocalizedString("Source Code on GitHub", comment: "About panel link label"),
-            attributes: [
-                .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
-                .link: URL(string: "https://github.com/olujicz/Dimmerly") as Any,
-                .paragraphStyle: centeredStyle,
-            ]
-        )
-        credits.append(linkText)
-        #endif
-
-        NSApp.orderFrontStandardAboutPanel(options: [
-            .credits: credits,
-        ])
     }
 }
 
@@ -305,7 +259,7 @@ private struct PresetsSectionView: View {
             .padding(.horizontal, 6)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: 4)
+                RoundedRectangle(cornerRadius: 6)
                     .fill(hoveredPresetID == preset.id ? Color.primary.opacity(0.08) : .clear)
             )
             .contentShape(Rectangle())
@@ -343,20 +297,36 @@ private struct PresetsSectionView: View {
 
 private struct FooterLabel: View {
     let title: LocalizedStringKey
-    let shortcut: String
+    let icon: String
+    let shortcut: String?
 
-    init(_ title: LocalizedStringKey, shortcut: String) {
+    @State private var isHovered = false
+
+    init(_ title: LocalizedStringKey, icon: String, shortcut: String? = nil) {
         self.title = title
+        self.icon = icon
         self.shortcut = shortcut
     }
 
     var body: some View {
-        HStack(spacing: 2) {
-            Text(title)
-            Text(shortcut)
-                .foregroundStyle(.tertiary)
+        HStack(spacing: 4) {
+            Image(systemName: icon)
                 .font(.caption)
+            Text(title)
+            if let shortcut {
+                Text(shortcut)
+                    .foregroundStyle(.tertiary)
+                    .font(.caption)
+            }
         }
+        .padding(.vertical, 4)
+        .padding(.horizontal, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(isHovered ? Color.primary.opacity(0.08) : .clear)
+        )
+        .contentShape(RoundedRectangle(cornerRadius: 6))
+        .onHover { isHovered = $0 }
     }
 }
 
@@ -448,8 +418,8 @@ struct DisplayBrightnessRow: View {
 
             if showAdjustments {
                 HStack(spacing: 6) {
-                    Image(systemName: "circle.fill")
-                        .font(.system(size: 7))
+                    Image(systemName: "thermometer.snowflake")
+                        .font(.caption2)
                         .frame(width: 12)
                         .foregroundStyle(.blue)
                         .accessibilityHidden(true)
@@ -472,8 +442,8 @@ struct DisplayBrightnessRow: View {
                             onWarmthChange(warmthValue)
                         }
 
-                    Image(systemName: "circle.fill")
-                        .font(.system(size: 7))
+                    Image(systemName: "thermometer.sun")
+                        .font(.caption2)
                         .frame(width: 12)
                         .foregroundStyle(.orange)
                         .accessibilityHidden(true)
