@@ -72,8 +72,11 @@ class PresetShortcutManager: ObservableObject {
         guard KeyboardShortcutManager.checkAccessibilityPermission() else { return }
 
         eventMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            // Extract Sendable values before crossing isolation boundary (NSEvent is not Sendable)
+            let keyCode = event.keyCode
+            let modifierFlags = event.modifierFlags
             Task { @MainActor in
-                self?.handleKeyEvent(event)
+                self?.handleKeyEvent(keyCode: keyCode, modifierFlags: modifierFlags)
             }
         }
     }
@@ -85,9 +88,10 @@ class PresetShortcutManager: ObservableObject {
         }
     }
 
-    private func handleKeyEvent(_ event: NSEvent) {
+    private func handleKeyEvent(keyCode: UInt16, modifierFlags: NSEvent.ModifierFlags) {
+        guard let pressed = GlobalShortcut.from(keyCode: keyCode, modifierFlags: modifierFlags) else { return }
         for (id, shortcut) in presetShortcuts {
-            if shortcut.matches(event: event) {
+            if shortcut == pressed {
                 onPresetTriggered?(id)
                 return
             }

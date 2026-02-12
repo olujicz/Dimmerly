@@ -68,8 +68,10 @@ struct DimmerlyApp: App {
     private var menuBarLabel: some View {
         if let systemImage = settings.menuBarIcon.systemImageName {
             Image(systemName: systemImage)
+                .accessibilityLabel("Dimmerly")
         } else {
             Image("MenuBarIcon")
+                .accessibilityLabel("Dimmerly")
         }
     }
 

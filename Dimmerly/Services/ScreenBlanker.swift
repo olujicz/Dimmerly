@@ -367,8 +367,9 @@ class ScreenBlanker {
         }
         if let localKeyMonitor { eventMonitors.append(localKeyMonitor) }
 
-        let mouseClickEvents: NSEvent.EventTypeMask = [.leftMouseDown, .rightMouseDown, .scrollWheel]
-        let mouseEvents: NSEvent.EventTypeMask = self.ignoreMouseMovement ? mouseClickEvents : mouseClickEvents.union(.mouseMoved)
+        let mouseClickEvents: NSEvent.EventTypeMask = [.leftMouseDown, .rightMouseDown]
+        let allMouseEvents: NSEvent.EventTypeMask = [.leftMouseDown, .rightMouseDown, .scrollWheel, .mouseMoved]
+        let mouseEvents: NSEvent.EventTypeMask = self.ignoreMouseMovement ? mouseClickEvents : allMouseEvents
 
         let mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: mouseEvents) { _ in
             Task { @MainActor in action() }

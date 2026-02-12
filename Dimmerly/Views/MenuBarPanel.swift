@@ -112,7 +112,7 @@ struct MenuBarPanel: View {
                 Spacer()
                 Text("↩")
                     .font(.callout)
-                    .foregroundStyle(.white.opacity(0.5))
+                    .opacity(0.5)
             }
             .frame(maxWidth: .infinity)
         }
