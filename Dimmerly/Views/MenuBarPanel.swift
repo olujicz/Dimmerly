@@ -11,6 +11,7 @@ struct MenuBarPanel: View {
     @EnvironmentObject var brightnessManager: BrightnessManager
     @EnvironmentObject var settings: AppSettings
     @EnvironmentObject var presetManager: PresetManager
+    @Environment(\.openSettings) private var openSettings
     @AppStorage("showDisplayAdjustments") private var showAdjustments = false
 
     var body: some View {
@@ -158,11 +159,7 @@ struct MenuBarPanel: View {
     private var footer: some View {
         HStack(spacing: 0) {
             Button {
-                if #available(macOS 14.0, *) {
-                    NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-                } else {
-                    NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
-                }
+                openSettings()
                 NSApp.activate()
             } label: {
                 FooterLabel("Settings", icon: "gear", shortcut: "⌘,")
