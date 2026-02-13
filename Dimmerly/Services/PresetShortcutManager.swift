@@ -17,8 +17,10 @@ class PresetShortcutManager: ObservableObject {
     /// Currently registered preset shortcuts
     private var presetShortcuts: [(id: UUID, shortcut: GlobalShortcut)] = []
 
-    /// Global event monitor
-    private var eventMonitor: Any?
+    /// Global event monitor (active when app is not frontmost)
+    private var globalEventMonitor: Any?
+    /// Local event monitor (active when app is frontmost)
+    private var localEventMonitor: Any?
 
     /// Tracking state for UserDefaults observation
     private var lastPresetData: Data?
@@ -71,20 +73,32 @@ class PresetShortcutManager: ObservableObject {
 
         guard KeyboardShortcutManager.checkAccessibilityPermission() else { return }
 
-        eventMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            // Extract Sendable values before crossing isolation boundary (NSEvent is not Sendable)
+        globalEventMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
             let keyCode = event.keyCode
             let modifierFlags = event.modifierFlags
             Task { @MainActor in
                 self?.handleKeyEvent(keyCode: keyCode, modifierFlags: modifierFlags)
             }
         }
+
+        localEventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            let keyCode = event.keyCode
+            let modifierFlags = event.modifierFlags
+            Task { @MainActor in
+                self?.handleKeyEvent(keyCode: keyCode, modifierFlags: modifierFlags)
+            }
+            return event
+        }
     }
 
     private func stopMonitoring() {
-        if let monitor = eventMonitor {
+        if let monitor = globalEventMonitor {
             NSEvent.removeMonitor(monitor)
-            eventMonitor = nil
+            globalEventMonitor = nil
+        }
+        if let monitor = localEventMonitor {
+            NSEvent.removeMonitor(monitor)
+            localEventMonitor = nil
         }
     }
 

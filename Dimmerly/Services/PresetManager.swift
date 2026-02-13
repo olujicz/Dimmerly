@@ -141,9 +141,12 @@ class PresetManager: ObservableObject {
     // MARK: - Widget Sync
 
     private func syncPresetsToWidget() {
-        // Avoid touching App Group UserDefaults when there are no presets to sync.
-        // This prevents cfprefsd warnings on first launch before the container is populated.
-        guard !presets.isEmpty else { return }
+        if presets.isEmpty {
+            SharedConstants.sharedDefaults?.removeObject(forKey: SharedConstants.widgetPresetsKey)
+            WidgetCenter.shared.reloadAllTimelines()
+            return
+        }
+
         let widgetPresets = presets.map { WidgetPresetInfo(id: $0.id.uuidString, name: $0.name) }
         guard let data = try? JSONEncoder().encode(widgetPresets) else { return }
         SharedConstants.sharedDefaults?.set(data, forKey: SharedConstants.widgetPresetsKey)

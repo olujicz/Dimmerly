@@ -31,6 +31,7 @@ final class PresetManagerTests: XCTestCase {
         // Clean up UserDefaults keys used by PresetManager
         UserDefaults.standard.removeObject(forKey: "dimmerlyBrightnessPresets")
         UserDefaults.standard.removeObject(forKey: "dimmerlyDefaultPresetsSeeded")
+        SharedConstants.sharedDefaults?.removeObject(forKey: SharedConstants.widgetPresetsKey)
         manager = nil
         bm = nil
     }
@@ -211,6 +212,30 @@ final class PresetManagerTests: XCTestCase {
         manager.updateShortcut(for: id, shortcut: nil)
 
         XCTAssertNil(manager.presets.last?.shortcut, "Shortcut should be cleared")
+    }
+
+
+
+    func testWidgetPresetsAreClearedWhenAllPresetsAreDeleted() throws {
+        guard let sharedDefaults = SharedConstants.sharedDefaults else {
+            throw XCTSkip("Shared app-group defaults unavailable in test environment")
+        }
+
+        let staleData = try JSONEncoder().encode([WidgetPresetInfo(id: UUID().uuidString, name: "Stale")])
+        sharedDefaults.set(staleData, forKey: SharedConstants.widgetPresetsKey)
+
+        bm.displays = []
+        manager.saveCurrentAsPreset(name: "Live", brightnessManager: bm)
+        XCTAssertNotNil(sharedDefaults.data(forKey: SharedConstants.widgetPresetsKey))
+
+        while !manager.presets.isEmpty {
+            manager.deletePreset(id: manager.presets[0].id)
+        }
+
+        XCTAssertNil(
+            sharedDefaults.data(forKey: SharedConstants.widgetPresetsKey),
+            "Widget preset cache should be removed when no presets remain"
+        )
     }
 
     // MARK: - restoreDefaultPresets

@@ -20,6 +20,8 @@ class ScheduleManager: ObservableObject {
     private var timer: Timer?
     /// Tracks which schedules have already fired today (schedule ID → "yyyy-MM-dd")
     private var firedToday: [UUID: String] = [:]
+    /// Timestamp of the previous schedule check, used for catch-up after sleep/resume.
+    private var lastCheckDate: Date?
     private var settingsObserver: NSObjectProtocol?
     private var lastEnabled: Bool?
 
@@ -81,11 +83,14 @@ class ScheduleManager: ObservableObject {
     private func stopPolling() {
         timer?.invalidate()
         timer = nil
+        lastCheckDate = nil
     }
 
-    private func checkSchedules() {
-        let now = Date()
+    /// Checks schedules and fires any trigger crossed since the previous check.
+    /// Kept internal to allow deterministic unit tests with a fixed `now` date.
+    func checkSchedules(now: Date = Date()) {
         let todayString = Self.dateString(for: now)
+        let previousCheck = effectivePreviousCheckDate(for: now)
 
         for schedule in schedules where schedule.isEnabled {
             // Skip if already fired today
@@ -97,9 +102,8 @@ class ScheduleManager: ObservableObject {
                 continue
             }
 
-            // Fire if current time is 0–120 seconds past trigger time
-            let elapsed = now.timeIntervalSince(triggerDate)
-            if elapsed >= 0 && elapsed < 120 {
+            // Fire once if the trigger time falls within (previousCheck, now].
+            if triggerDate > previousCheck && triggerDate <= now {
                 firedToday[schedule.id] = todayString
                 onScheduleTriggered?(schedule.presetID)
             }
@@ -107,6 +111,16 @@ class ScheduleManager: ObservableObject {
 
         // Clean up old entries from firedToday (previous days)
         firedToday = firedToday.filter { $0.value == todayString }
+        lastCheckDate = now
+    }
+
+    /// Returns the prior check date, falling back to a 2-minute lookback window.
+    /// This preserves current behavior on startup while allowing catch-up after sleep.
+    private func effectivePreviousCheckDate(for now: Date) -> Date {
+        guard let lastCheckDate, lastCheckDate <= now else {
+            return now.addingTimeInterval(-120)
+        }
+        return lastCheckDate
     }
 
     /// Converts a ScheduleTrigger to a concrete Date for today
@@ -163,6 +177,8 @@ class ScheduleManager: ObservableObject {
     func updateSchedule(_ schedule: DimmingSchedule) {
         guard let index = schedules.firstIndex(where: { $0.id == schedule.id }) else { return }
         schedules[index] = schedule
+        // A modified schedule should be eligible to fire again today.
+        firedToday.removeValue(forKey: schedule.id)
         saveSchedules()
     }
 

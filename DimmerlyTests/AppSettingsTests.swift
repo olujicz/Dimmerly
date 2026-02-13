@@ -224,3 +224,86 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertFalse(settings.requireEscapeToDismiss)
     }
 }
+
+
+@MainActor
+final class ScheduleManagerTests: XCTestCase {
+
+    private var manager: ScheduleManager!
+
+    override func setUp() async throws {
+        UserDefaults.standard.removeObject(forKey: "dimmerlyDimmingSchedules")
+        manager = ScheduleManager()
+        manager.schedules = []
+    }
+
+    override func tearDown() async throws {
+        manager = nil
+        UserDefaults.standard.removeObject(forKey: "dimmerlyDimmingSchedules")
+    }
+
+    func testCheckSchedulesCatchesUpAfterLongGap() {
+        var triggerCount = 0
+        manager.onScheduleTriggered = { _ in triggerCount += 1 }
+
+        let schedule = DimmingSchedule(
+            id: UUID(),
+            name: "Morning",
+            trigger: .fixedTime(hour: 10, minute: 0),
+            presetID: UUID(),
+            isEnabled: true
+        )
+        manager.addSchedule(schedule)
+
+        let calendar = Calendar.current
+        let beforeTrigger = calendar.date(from: DateComponents(year: 2026, month: 1, day: 1, hour: 9, minute: 58, second: 30))!
+        manager.checkSchedules(now: beforeTrigger)
+        XCTAssertEqual(triggerCount, 0)
+
+        let afterGap = calendar.date(from: DateComponents(year: 2026, month: 1, day: 1, hour: 10, minute: 5, second: 0))!
+        manager.checkSchedules(now: afterGap)
+
+        XCTAssertEqual(triggerCount, 1, "Schedule should fire once if trigger was crossed while app was not checking")
+    }
+
+    func testUpdateScheduleClearsSameDayFiredState() {
+        var triggerCount = 0
+        let firstPreset = UUID()
+        let secondPreset = UUID()
+
+        manager.onScheduleTriggered = { presetID in
+            if presetID == firstPreset || presetID == secondPreset {
+                triggerCount += 1
+            }
+        }
+
+        let id = UUID()
+        let original = DimmingSchedule(
+            id: id,
+            name: "Evening",
+            trigger: .fixedTime(hour: 10, minute: 0),
+            presetID: firstPreset,
+            isEnabled: true
+        )
+        manager.addSchedule(original)
+
+        let calendar = Calendar.current
+        let firstRun = calendar.date(from: DateComponents(year: 2026, month: 1, day: 1, hour: 10, minute: 0, second: 30))!
+        manager.checkSchedules(now: firstRun)
+        XCTAssertEqual(triggerCount, 1)
+
+        let updated = DimmingSchedule(
+            id: id,
+            name: "Evening (Edited)",
+            trigger: .fixedTime(hour: 10, minute: 1),
+            presetID: secondPreset,
+            isEnabled: true
+        )
+        manager.updateSchedule(updated)
+
+        let secondRun = calendar.date(from: DateComponents(year: 2026, month: 1, day: 1, hour: 10, minute: 1, second: 30))!
+        manager.checkSchedules(now: secondRun)
+
+        XCTAssertEqual(triggerCount, 2, "Edited schedule should be allowed to fire again on the same day")
+    }
+}

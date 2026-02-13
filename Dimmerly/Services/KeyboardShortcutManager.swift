@@ -18,8 +18,10 @@ class KeyboardShortcutManager: ObservableObject {
     /// Whether accessibility permissions have been granted
     @Published var hasAccessibilityPermission: Bool = false
 
-    /// The global event monitor for keyboard events
-    private var eventMonitor: Any?
+    /// The global event monitor for keyboard events (active when app is not frontmost)
+    private var globalEventMonitor: Any?
+    /// The local event monitor for keyboard events (active when app is frontmost)
+    private var localEventMonitor: Any?
 
     /// Callback to invoke when the shortcut is triggered
     private var onShortcutTriggered: (() -> Void)?
@@ -52,6 +54,7 @@ class KeyboardShortcutManager: ObservableObject {
     /// - Parameter onTriggered: Callback to invoke when the shortcut is pressed
     func startMonitoring(onTriggered: @escaping () -> Void) {
         self.onShortcutTriggered = onTriggered
+        stopMonitoring()
 
         // Check for permissions (don't prompt — let the user enable via Settings)
         hasAccessibilityPermission = Self.checkAccessibilityPermission()
@@ -60,29 +63,35 @@ class KeyboardShortcutManager: ObservableObject {
             return
         }
 
-        // Stop existing monitor if any
-        stopMonitoring()
-
-        // Create a global event monitor for key down events
-        eventMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            // Extract Sendable values before crossing isolation boundary (NSEvent is not Sendable)
+        // Global monitor for when another app is frontmost
+        globalEventMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
             let keyCode = event.keyCode
             let modifierFlags = event.modifierFlags
             Task { @MainActor in
-                guard let self else { return }
-                if let shortcut = GlobalShortcut.from(keyCode: keyCode, modifierFlags: modifierFlags),
-                   self.currentShortcut == shortcut {
-                    self.onShortcutTriggered?()
-                }
+                self?.handleKeyEvent(keyCode: keyCode, modifierFlags: modifierFlags)
             }
+        }
+
+        // Local monitor for when Dimmerly is frontmost
+        localEventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            let keyCode = event.keyCode
+            let modifierFlags = event.modifierFlags
+            Task { @MainActor in
+                self?.handleKeyEvent(keyCode: keyCode, modifierFlags: modifierFlags)
+            }
+            return event
         }
     }
 
     /// Stops monitoring for keyboard shortcuts
     func stopMonitoring() {
-        if let monitor = eventMonitor {
+        if let monitor = globalEventMonitor {
             NSEvent.removeMonitor(monitor)
-            eventMonitor = nil
+            globalEventMonitor = nil
+        }
+        if let monitor = localEventMonitor {
+            NSEvent.removeMonitor(monitor)
+            localEventMonitor = nil
         }
     }
 
@@ -95,9 +104,18 @@ class KeyboardShortcutManager: ObservableObject {
         self.currentShortcut = shortcut
 
         // Restart monitoring if it was active
-        if eventMonitor != nil, let callback = onShortcutTriggered {
+        if (globalEventMonitor != nil || localEventMonitor != nil),
+            let callback = onShortcutTriggered {
             startMonitoring(onTriggered: callback)
         }
+    }
+
+    private func handleKeyEvent(keyCode: UInt16, modifierFlags: NSEvent.ModifierFlags) {
+        guard let shortcut = GlobalShortcut.from(keyCode: keyCode, modifierFlags: modifierFlags),
+              currentShortcut == shortcut else {
+            return
+        }
+        onShortcutTriggered?()
     }
 
     /// Cleans up the event monitor.

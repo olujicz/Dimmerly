@@ -14,6 +14,9 @@ struct KeyboardShortcutRecorder: View {
     /// The currently configured shortcut
     @Binding var shortcut: GlobalShortcut
 
+    /// Called when the recorder begins listening or is cancelled without recording
+    var onRecordingChanged: ((Bool) -> Void)?
+
     /// Whether the recorder is actively listening for input
     @State private var isRecording = false
 
@@ -83,6 +86,9 @@ struct KeyboardShortcutRecorder: View {
                     .foregroundStyle(.red)
                     .symbolRenderingMode(.multicolor)
             }
+        }
+        .onChange(of: isRecording) { _, newValue in
+            onRecordingChanged?(newValue)
         }
     }
 }

@@ -35,6 +35,7 @@ struct GeneralSettingsView: View {
     @EnvironmentObject var brightnessManager: BrightnessManager
     @EnvironmentObject var scheduleManager: ScheduleManager
     @EnvironmentObject var locationProvider: LocationProvider
+    @State private var mainShortcutConflictMessage: String?
 
     var body: some View {
         Form {
@@ -322,16 +323,25 @@ struct GeneralSettingsView: View {
                     shortcut: Binding(
                         get: { settings.keyboardShortcut },
                         set: { newValue in
-                            settings.keyboardShortcut = newValue
-                            shortcutManager.updateShortcut(newValue)
+                            updateMainShortcut(newValue)
                         }
-                    )
+                    ),
+                    onRecordingChanged: { _ in
+                        mainShortcutConflictMessage = nil
+                    }
                 )
             }
 
             Text("Global keyboard shortcuts work from any application.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+
+            if let mainShortcutConflictMessage {
+                Label(mainShortcutConflictMessage, systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .symbolRenderingMode(.multicolor)
+            }
 
             if !shortcutManager.hasAccessibilityPermission {
                 VStack(alignment: .leading, spacing: 8) {
@@ -355,6 +365,20 @@ struct GeneralSettingsView: View {
                 .padding(.top, 4)
             }
         }
+    }
+
+    private func updateMainShortcut(_ shortcut: GlobalShortcut) {
+        if let conflictingPreset = presetManager.presets.first(where: { $0.shortcut == shortcut }) {
+            mainShortcutConflictMessage = String(
+                format: NSLocalizedString("This shortcut conflicts with %@", comment: "Shortcut conflict message"),
+                conflictingPreset.name
+            )
+            return
+        }
+
+        mainShortcutConflictMessage = nil
+        settings.keyboardShortcut = shortcut
+        shortcutManager.updateShortcut(shortcut)
     }
 
     // MARK: - Presets Management
@@ -525,6 +549,9 @@ private struct PresetManagementRow: View {
                     }
                     conflictMessage = nil
                     onShortcutChanged(newShortcut)
+                },
+                onRecordingChanged: { _ in
+                    conflictMessage = nil
                 }
             )
 
@@ -561,6 +588,7 @@ private struct PresetManagementRow: View {
 private struct PresetShortcutRecorderButton: View {
     let shortcut: GlobalShortcut?
     let onRecord: (GlobalShortcut?) -> Void
+    var onRecordingChanged: ((Bool) -> Void)?
 
     @State private var isRecording = false
 
@@ -595,6 +623,9 @@ private struct PresetShortcutRecorderButton: View {
             .allowsHitTesting(isRecording)
             .opacity(0)
         )
+        .onChange(of: isRecording) { _, newValue in
+            onRecordingChanged?(newValue)
+        }
         .contextMenu {
             if shortcut != nil {
                 Button("Clear Shortcut") {
