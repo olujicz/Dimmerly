@@ -3,21 +3,41 @@
 //  Dimmerly
 //
 //  Pure-math NOAA solar position algorithm for calculating sunrise and sunset times.
-//  No external dependencies or network calls.
+//  No external dependencies, network calls, or third-party libraries.
+//
+//  Algorithm source: NOAA (National Oceanic and Atmospheric Administration)
+//  Solar Calculations: https://gml.noaa.gov/grad/solcalc/calcdetails.html
+//
+//  This implementation is fully self-contained and works offline, making it ideal for
+//  schedule-based dimming that doesn't require internet access or location services API.
 //
 
 import Foundation
 
-/// Calculates sunrise and sunset times using the NOAA solar position algorithm
+/// Calculates sunrise and sunset times using the NOAA solar position algorithm.
+///
+/// The algorithm accounts for:
+/// - Earth's axial tilt (obliquity of the ecliptic)
+/// - Orbital eccentricity (elliptical orbit)
+/// - Atmospheric refraction (adds ~34 arcminutes to visible horizon)
+/// - Equation of time (solar vs clock time difference)
+///
+/// Atmospheric refraction: The zenith angle is set to 90.833° instead of 90° to account
+/// for atmospheric refraction at the horizon. This matches the standard definition of
+/// sunrise/sunset (when the sun's upper limb appears to touch the horizon).
+///
+/// Polar regions: Returns nil for both sunrise and sunset when the sun doesn't rise or set
+/// (polar day in summer, polar night in winter). Schedules using sunrise/sunset triggers
+/// won't fire in these conditions.
 enum SolarCalculator {
     /// Calculates sunrise and sunset for a given location and date.
     ///
     /// - Parameters:
-    ///   - latitude: Latitude in degrees (positive north)
-    ///   - longitude: Longitude in degrees (positive east)
-    ///   - date: The date to calculate for
-    ///   - timeZone: The time zone for the result dates
-    /// - Returns: Tuple of sunrise and sunset dates, or nil for polar regions where the sun doesn't rise/set
+    ///   - latitude: Latitude in degrees (positive north, negative south)
+    ///   - longitude: Longitude in degrees (positive east, negative west)
+    ///   - date: The calendar date to calculate for
+    ///   - timeZone: The time zone for the result dates (defaults to current)
+    /// - Returns: Tuple of sunrise and sunset dates, or (nil, nil) for polar day/night
     static func sunriseSunset(
         latitude: Double,
         longitude: Double,
@@ -71,14 +91,21 @@ enum SolarCalculator {
             - 0.5 * y2 * y2 * sin(4.0 * longRad)
             - 1.25 * eccentEarthOrbit * eccentEarthOrbit * sin(2.0 * anomRad)) * 180.0 / .pi
 
-        // Hour angle for sunrise/sunset (zenith = 90.833 degrees for atmospheric refraction)
+        // Hour angle calculation for sunrise/sunset
+        // Zenith = 90.833 degrees to account for atmospheric refraction at the horizon:
+        //   90.0° = geometric horizon (sun's center at horizon)
+        //   +0.833° = atmospheric refraction (~34 arcminutes)
+        // This matches the standard definition where sunrise/sunset occurs when the sun's
+        // upper limb appears to touch the horizon as seen by an observer at sea level.
         let latRad = latitude * .pi / 180.0
         let declRad = sunDeclination * .pi / 180.0
         let zenith = 90.833 * .pi / 180.0
 
         let cosHourAngle = (cos(zenith) / (cos(latRad) * cos(declRad))) - tan(latRad) * tan(declRad)
 
-        // Check for polar day/night
+        // Check for polar day/night: if cosHourAngle is outside [-1, 1], acos is undefined
+        // This occurs in polar regions where the sun doesn't rise (polar night) or doesn't
+        // set (polar day) on this date.
         guard cosHourAngle >= -1.0 && cosHourAngle <= 1.0 else {
             return (sunrise: nil, sunset: nil)
         }

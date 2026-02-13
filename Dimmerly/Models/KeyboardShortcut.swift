@@ -2,8 +2,11 @@
 //  KeyboardShortcut.swift
 //  Dimmerly
 //
-//  Model representing a keyboard shortcut configuration.
-//  Supports encoding/decoding for UserDefaults persistence.
+//  Model representing a global keyboard shortcut configuration.
+//  Supports encoding/decoding for UserDefaults persistence and widget compatibility.
+//
+//  Carbon key codes: Uses Carbon.HIToolbox constants for key code mapping (legacy but stable).
+//  Widget extension: Conditional compilation excludes AppKit/Carbon in widget target.
 //
 
 import Foundation
@@ -12,7 +15,12 @@ import AppKit
 import Carbon.HIToolbox
 #endif
 
-/// Modifier keys for keyboard shortcuts
+/// Modifier keys for keyboard shortcuts (⌘⌥⇧⌃).
+///
+/// Design: Stored as enum instead of flags/bitmask for:
+/// - Clean Codable support (no custom encoding needed)
+/// - Type-safe Set operations
+/// - Sendable conformance (enum with no state is inherently sendable)
 enum ShortcutModifier: String, Codable, Hashable, Sendable {
     case command
     case option
@@ -20,15 +28,29 @@ enum ShortcutModifier: String, Codable, Hashable, Sendable {
     case control
 }
 
-/// Represents a keyboard shortcut with key and modifier keys
+/// Represents a global keyboard shortcut with a key and modifier combination.
+///
+/// Design decisions:
+/// - **String-based keys**: Stores keys as strings ("d", "return", "f1") instead of raw codes
+///   for readability and cross-architecture stability
+/// - **Set for modifiers**: Unordered set matches macOS behavior (Cmd+Opt = Opt+Cmd)
+/// - **Codable**: Persists to UserDefaults as JSON
+/// - **Sendable**: Can be safely passed across concurrency boundaries
+///
+/// Validation:
+/// - `isValid`: Requires at least one modifier (prevents bare keys like "d" as global shortcuts)
+/// - `isReservedSystemShortcut`: Checks against common macOS system shortcuts
 struct GlobalShortcut: Codable, Equatable, Sendable {
-    /// The primary key (e.g., "d", "s", "return")
+    /// The primary key (e.g., "d", "s", "return", "f1").
+    /// Lowercase for letters, semantic names for special keys.
     let key: String
 
-    /// Modifier keys (e.g., .command, .option, .shift, .control)
+    /// Modifier keys pressed with the key.
+    /// Order doesn't matter (Set handles comparison correctly).
     let modifiers: Set<ShortcutModifier>
 
-    /// The default keyboard shortcut: Cmd+Opt+Shift+D
+    /// The default keyboard shortcut: Cmd+Opt+Shift+D.
+    /// Three modifiers reduce conflicts with system and app shortcuts.
     static let `default` = GlobalShortcut(
         key: "d",
         modifiers: [.command, .option, .shift]
@@ -54,11 +76,21 @@ struct GlobalShortcut: Codable, Equatable, Sendable {
     ]
     #endif
 
-    /// A human-readable string representation of the shortcut (e.g., "⌘⌥⇧D")
+    /// A human-readable string representation of the shortcut (e.g., "⌘⌥⇧D").
+    ///
+    /// Format: Modifier symbols followed by uppercase key
+    /// - Control: ⌃
+    /// - Option: ⌥
+    /// - Shift: ⇧
+    /// - Command: ⌘
+    ///
+    /// Modifier order: Follows Apple Human Interface Guidelines convention:
+    /// Control → Option → Shift → Command (left to right)
+    /// This is the standard order used in macOS menus and system preferences.
     var displayString: String {
         var result = ""
 
-        // Order matters for conventional display: Control, Option, Shift, Command
+        // Apple HIG convention: Control, Option, Shift, Command
         if modifiers.contains(.control) {
             result += "⌃"
         }
@@ -72,7 +104,7 @@ struct GlobalShortcut: Codable, Equatable, Sendable {
             result += "⌘"
         }
 
-        // Append the key (capitalized for display)
+        // Append the key (capitalized for visual consistency)
         result += key.uppercased()
 
         return result

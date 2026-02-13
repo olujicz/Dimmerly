@@ -2,15 +2,44 @@
 //  ScreenBlanker.swift
 //  Dimmerly
 //
-//  Blanks all screens as an alternative to display sleep.
-//  Uses gamma table dimming (works over fullscreen apps and dims cursor)
-//  with black overlay windows as a complementary layer.
-//  Unlike pmset displaysleepnow, this does not trigger session lock.
+//  Blanks displays using a dual-layer approach: gamma table manipulation + overlay windows.
+//  This provides an alternative to pmset displaysleepnow that doesn't trigger session lock.
+//
+//  Key advantages over pmset displaysleepnow:
+//  - Works in App Store sandbox (no command-line tools needed)
+//  - Doesn't trigger screen lock on macOS Sonoma+
+//  - Works over fullscreen apps and system UI (gamma affects everything)
+//  - Can dim the cursor (gamma affects hardware output)
+//
+//  Design: Dual-layer approach
+//  1. Gamma tables: Set display output to zero via CGSetDisplayTransferByFormula
+//  2. Overlay windows: Black fullscreen windows at .screenSaver level
+//
+//  Why both layers?
+//  - Gamma alone: Works over everything, but leaves ghost cursor on some systems
+//  - Overlay alone: Can be occluded by other .screenSaver level windows
+//  - Combined: Bulletproof blanking that works in all scenarios
 //
 
 import AppKit
 
-/// Manages screen blanking using gamma dimming and overlay windows
+/// Manages screen blanking using gamma manipulation and overlay windows.
+///
+/// This class provides two blanking modes:
+/// 1. **Full blanking**: All displays blank simultaneously (menu bar action, global shortcut)
+/// 2. **Per-display blanking**: Individual displays can be blanked via moon button toggles
+///
+/// Dismissal behavior:
+/// - **Default mode**: Any keyboard press or mouse click unblanks
+/// - **Ignore mouse movement**: Only clicks and keys unblank (movement ignored)
+/// - **Escape-only mode**: Only Escape key unblanks (all other input swallowed)
+///
+/// Fade transition:
+/// - Optional smooth fade from current brightness to black over ~0.5 seconds
+/// - Respects per-display brightness and warmth for natural fade-out
+/// - Can be disabled for instant blanking (accessibility/reduced motion)
+///
+/// Thread safety: All methods must be called from the main actor.
 @MainActor
 class ScreenBlanker {
     static let shared = ScreenBlanker()
