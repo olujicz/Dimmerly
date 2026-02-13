@@ -73,6 +73,9 @@ struct DimmerlyApp: App {
         }
     }
 
+    /// Menu bar icon view that adapts to the user's selected icon style.
+    ///
+    /// Displays either an SF Symbol (for built-in styles) or a custom asset (for default style).
     @ViewBuilder
     private var menuBarLabel: some View {
         if let systemImage = settings.menuBarIcon.systemImageName {
@@ -84,12 +87,24 @@ struct DimmerlyApp: App {
         }
     }
 
+    /// Configures the global keyboard shortcut monitor to trigger display sleep.
+    ///
+    /// The shortcut is loaded from settings before monitoring starts (see Issue #1 fix).
+    /// Requires accessibility permissions to function.
     private func startGlobalShortcutMonitoring() {
         shortcutManager.startMonitoring { [settings] in
             DisplayAction.performSleep(settings: settings)
         }
     }
 
+    /// Configures the idle timer to automatically sleep displays after inactivity.
+    ///
+    /// Sets up:
+    /// 1. Callback for when idle threshold is reached
+    /// 2. Settings observation to start/stop timer and update timeout value
+    ///
+    /// Design pattern: Passes closures to read settings rather than injecting AppSettings
+    /// directly, reducing coupling and making the manager more testable.
     private func configureIdleTimer() {
         idleTimerManager.onIdleThresholdReached = { [settings] in
             DisplayAction.performSleep(settings: settings)
@@ -100,7 +115,20 @@ struct DimmerlyApp: App {
         )
     }
 
+    /// Observes distributed notifications from widgets to handle cross-process actions.
+    ///
+    /// Widgets run in a separate process (extension) and communicate with the main app via:
+    /// - Distributed notifications (trigger actions)
+    /// - Shared UserDefaults container (pass parameters)
+    ///
+    /// Two notification types:
+    /// 1. **Dim notification**: Widget's "Sleep Displays" button was tapped
+    /// 2. **Preset notification**: Widget's preset button was tapped (preset ID in shared defaults)
+    ///
+    /// Design note: Using DistributedNotificationCenter instead of Darwin notifications
+    /// provides better type safety and automatic main queue dispatch.
     private func observeWidgetNotifications() {
+        // Widget "Sleep Displays" button
         DistributedNotificationCenter.default().addObserver(
             forName: SharedConstants.dimNotification,
             object: nil, queue: .main
@@ -110,22 +138,30 @@ struct DimmerlyApp: App {
             }
         }
 
+        // Widget preset button (preset ID passed via shared defaults)
         DistributedNotificationCenter.default().addObserver(
             forName: SharedConstants.presetNotification,
             object: nil, queue: .main
         ) { [presetManager, brightnessManager] _ in
             Task { @MainActor in
+                // Read preset ID from shared defaults (set by widget before posting notification)
                 guard let presetIDString = SharedConstants.sharedDefaults?.string(forKey: SharedConstants.widgetPresetCommandKey),
                       let uuid = UUID(uuidString: presetIDString),
                       let preset = presetManager.presets.first(where: { $0.id == uuid }) else {
                     return
                 }
                 presetManager.applyPreset(preset, to: brightnessManager)
+                // Clean up after processing (prevents applying same preset on next app launch)
                 SharedConstants.sharedDefaults?.removeObject(forKey: SharedConstants.widgetPresetCommandKey)
             }
         }
     }
 
+    /// Configures the schedule manager to automatically apply presets at scheduled times.
+    ///
+    /// Sets up:
+    /// 1. Callback for when a schedule triggers (applies the referenced preset)
+    /// 2. Settings observation to start/stop polling based on user preference
     private func configureScheduleManager() {
         scheduleManager.onScheduleTriggered = { [presetManager, brightnessManager] presetID in
             guard let preset = presetManager.presets.first(where: { $0.id == presetID }) else { return }
@@ -136,6 +172,14 @@ struct DimmerlyApp: App {
         )
     }
 
+    /// Configures the preset shortcut manager to apply presets via global keyboard shortcuts.
+    ///
+    /// Sets up:
+    /// 1. Callback for when a preset shortcut is triggered (applies that preset)
+    /// 2. Preset observation to register/unregister shortcuts when presets change
+    ///
+    /// Each preset can have an optional keyboard shortcut that works globally (even when
+    /// the app isn't focused). Requires accessibility permissions.
     private func configurePresetShortcuts() {
         presetShortcutManager.onPresetTriggered = { [presetManager, brightnessManager] presetID in
             guard let preset = presetManager.presets.first(where: { $0.id == presetID }) else { return }

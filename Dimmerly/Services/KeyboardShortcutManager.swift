@@ -110,6 +110,19 @@ class KeyboardShortcutManager: ObservableObject {
         }
     }
 
+    /// Handles incoming keyboard events and triggers the callback if they match the current shortcut.
+    ///
+    /// This method:
+    /// 1. Constructs a GlobalShortcut from the raw key code and modifiers
+    /// 2. Compares it to the currently registered shortcut
+    /// 3. Invokes the callback if they match
+    ///
+    /// Design note: We reconstruct a shortcut from the event rather than directly comparing
+    /// key codes and modifiers to ensure consistent comparison logic (GlobalShortcut's Equatable).
+    ///
+    /// - Parameters:
+    ///   - keyCode: Raw keyboard key code from NSEvent
+    ///   - modifierFlags: Modifier keys (⌘⌥⌃⇧) from NSEvent
     private func handleKeyEvent(keyCode: UInt16, modifierFlags: NSEvent.ModifierFlags) {
         guard let shortcut = GlobalShortcut.from(keyCode: keyCode, modifierFlags: modifierFlags),
               currentShortcut == shortcut else {
@@ -118,7 +131,8 @@ class KeyboardShortcutManager: ObservableObject {
         onShortcutTriggered?()
     }
 
-    /// Cleans up the event monitor.
-    /// Called via stopMonitoring(); deinit omitted to avoid @MainActor data race (Swift 6).
-    /// The manager is held by @StateObject for the app lifetime, so deinit is never reached.
+    // MARK: - Lifecycle
+    // Note: deinit intentionally omitted to avoid @MainActor data race warnings in Swift 6.
+    // This manager is held by @StateObject in DimmerlyApp for the app's lifetime, so deinit
+    // never executes. Cleanup is handled explicitly via stopMonitoring() when needed.
 }
