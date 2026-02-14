@@ -9,6 +9,7 @@
 @testable import Dimmerly
 import XCTest
 
+#if !APPSTORE
 /// Tests for the DisplayController
 final class DisplayControllerTests: XCTestCase {
     override func tearDown() {
@@ -110,3 +111,4 @@ final class DisplayControllerTests: XCTestCase {
         }
     }
 }
+#endif

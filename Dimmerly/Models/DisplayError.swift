@@ -10,11 +10,13 @@ import Foundation
 
 /// Errors that can occur during display sleep operations
 enum DisplayError: LocalizedError, Sendable {
+    #if !APPSTORE
     /// The pmset utility was not found at /usr/bin/pmset
     case pmsetNotFound
 
     /// The pmset command exited with a non-zero status
     case pmsetFailed(status: Int32)
+    #endif
 
     /// The app does not have permission to execute system commands
     case permissionDenied
@@ -25,6 +27,7 @@ enum DisplayError: LocalizedError, Sendable {
     /// A user-friendly description of the error
     var errorDescription: String? {
         switch self {
+        #if !APPSTORE
         case .pmsetNotFound:
             return NSLocalizedString("Display Sleep Unavailable", comment: "Error title: pmset not found")
         case let .pmsetFailed(status):
@@ -35,6 +38,7 @@ enum DisplayError: LocalizedError, Sendable {
                 ),
                 status
             )
+        #endif
         case .permissionDenied:
             return NSLocalizedString("Permission Denied", comment: "Error title: missing permissions")
         case .unknownError:
@@ -45,6 +49,7 @@ enum DisplayError: LocalizedError, Sendable {
     /// A suggestion for how the user might recover from the error
     var recoverySuggestion: String? {
         switch self {
+        #if !APPSTORE
         case .pmsetNotFound:
             return NSLocalizedString(
                 "The pmset utility was not found at /usr/bin/pmset. This is unexpected — pmset is included with macOS.",
@@ -59,6 +64,7 @@ enum DisplayError: LocalizedError, Sendable {
                 ),
                 status
             )
+        #endif
         case .permissionDenied:
             return NSLocalizedString(
                 "Dimmerly does not have permission to control displays. "

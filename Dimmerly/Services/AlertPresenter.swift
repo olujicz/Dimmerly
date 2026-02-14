@@ -20,7 +20,7 @@ struct AlertPresenter {
     ///
     /// Example:
     /// ```swift
-    /// let error = DisplayError.pmsetNotFound
+    /// let error = DisplayError.permissionDenied
     /// AlertPresenter.showError(error)
     /// ```
     static func showError(_ error: DisplayError) {
