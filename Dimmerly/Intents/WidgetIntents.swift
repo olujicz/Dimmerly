@@ -56,7 +56,7 @@ struct ApplyPresetWidgetIntent: AppIntent {
         guard let preset = presetManager.presets.first(where: { $0.id == uuid }) else {
             return .result()
         }
-        presetManager.applyPreset(preset, to: brightnessManager)
+        presetManager.applyPreset(preset, to: brightnessManager, animated: true)
         #endif
         return .result()
     }

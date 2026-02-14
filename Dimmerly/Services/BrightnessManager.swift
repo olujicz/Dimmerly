@@ -67,6 +67,9 @@ class BrightnessManager: ObservableObject {
     /// Task for debounced persistence to UserDefaults (prevents excessive writes during slider drags)
     private var persistTask: Task<Void, Never>?
 
+    /// Active preset transition animation task (cancelled when a new transition starts)
+    private var transitionTask: Task<Void, Never>?
+
     /// Standard initializer that sets up full hardware monitoring and system integration.
     /// Registers observers for display changes, wake events, and ScreenBlanker coordination.
     init() {
@@ -353,6 +356,120 @@ class BrightnessManager: ObservableObject {
         for display in displays {
             applyGamma(displayID: display.id, brightness: display.brightness, warmth: display.warmth, contrast: display.contrast)
         }
+    }
+
+    // MARK: - Preset Transition
+
+    /// Smoothly transitions all displays from their current settings to a preset's target values.
+    ///
+    /// Animates brightness, warmth, and contrast simultaneously over ~300ms (20 steps at ~15ms each)
+    /// using gamma table interpolation. Cancels any in-progress transition when called.
+    ///
+    /// Skips animation (returns `false`) when:
+    /// - Screen blanking is active (gamma tables are zeroed)
+    /// - Reduce Motion accessibility preference is enabled
+    ///
+    /// During animation, display state is updated each step so UI sliders track the transition.
+    /// Persistence is deferred to a single write after the final step.
+    ///
+    /// - Parameter preset: The target preset to transition to
+    /// - Returns: `true` if animation was started, `false` if the caller should apply instantly
+    @discardableResult
+    func animateToPreset(_ preset: BrightnessPreset) -> Bool {
+        transitionTask?.cancel()
+
+        guard !ScreenBlanker.shared.isBlanking,
+              !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else {
+            return false
+        }
+
+        transitionTask = Task { @MainActor in
+            let steps = 20
+            let stepDelay = Duration.milliseconds(15)
+
+            // Snapshot current values and resolve target values per display
+            struct Target {
+                let displayID: CGDirectDisplayID
+                let startBrightness: Double
+                let startWarmth: Double
+                let startContrast: Double
+                let endBrightness: Double
+                let endWarmth: Double
+                let endContrast: Double
+            }
+
+            var targets: [Target] = []
+
+            for display in displays {
+                let idString = String(display.id)
+
+                let endBrightness: Double
+                if let universal = preset.universalBrightness {
+                    endBrightness = max(universal, Self.minimumBrightness)
+                } else if let value = preset.displayBrightness[idString] {
+                    endBrightness = max(value, Self.minimumBrightness)
+                } else {
+                    endBrightness = display.brightness
+                }
+
+                let endWarmth: Double
+                if let universal = preset.universalWarmth {
+                    endWarmth = min(max(universal, 0), 1)
+                } else if let values = preset.displayWarmth, let value = values[idString] {
+                    endWarmth = min(max(value, 0), 1)
+                } else {
+                    endWarmth = display.warmth
+                }
+
+                let endContrast: Double
+                if let universal = preset.universalContrast {
+                    endContrast = min(max(universal, 0), 1)
+                } else if let values = preset.displayContrast, let value = values[idString] {
+                    endContrast = min(max(value, 0), 1)
+                } else {
+                    endContrast = display.contrast
+                }
+
+                targets.append(Target(
+                    displayID: display.id,
+                    startBrightness: display.brightness,
+                    startWarmth: display.warmth,
+                    startContrast: display.contrast,
+                    endBrightness: endBrightness,
+                    endWarmth: endWarmth,
+                    endContrast: endContrast
+                ))
+            }
+
+            for step in 1...steps {
+                guard !Task.isCancelled else { return }
+
+                let progress = Double(step) / Double(steps)
+
+                for target in targets {
+                    guard let index = displays.firstIndex(where: { $0.id == target.displayID }) else { continue }
+
+                    let brightness = target.startBrightness + (target.endBrightness - target.startBrightness) * progress
+                    let warmth = target.startWarmth + (target.endWarmth - target.startWarmth) * progress
+                    let contrast = target.startContrast + (target.endContrast - target.startContrast) * progress
+
+                    displays[index].brightness = brightness
+                    displays[index].warmth = warmth
+                    displays[index].contrast = contrast
+
+                    applyGamma(displayID: target.displayID, brightness: brightness, warmth: warmth, contrast: contrast)
+                }
+
+                if step < steps {
+                    try? await Task.sleep(for: stepDelay)
+                }
+            }
+
+            guard !Task.isCancelled else { return }
+            persistAll()
+        }
+
+        return true
     }
 
     /// Debounces persistence to UserDefaults to prevent excessive writes during rapid changes.

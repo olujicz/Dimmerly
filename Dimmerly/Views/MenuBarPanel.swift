@@ -239,7 +239,7 @@ private struct PresetsSectionView: View {
 
     private func presetRow(_ preset: BrightnessPreset) -> some View {
         Button {
-            presetManager.applyPreset(preset, to: brightnessManager)
+            presetManager.applyPreset(preset, to: brightnessManager, animated: true)
         } label: {
             HStack {
                 Text(preset.name)

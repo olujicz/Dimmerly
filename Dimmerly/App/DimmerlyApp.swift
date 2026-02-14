@@ -150,7 +150,7 @@ struct DimmerlyApp: App {
                       let preset = presetManager.presets.first(where: { $0.id == uuid }) else {
                     return
                 }
-                presetManager.applyPreset(preset, to: brightnessManager)
+                presetManager.applyPreset(preset, to: brightnessManager, animated: true)
                 // Clean up after processing (prevents applying same preset on next app launch)
                 SharedConstants.sharedDefaults?.removeObject(forKey: SharedConstants.widgetPresetCommandKey)
             }
@@ -165,7 +165,7 @@ struct DimmerlyApp: App {
     private func configureScheduleManager() {
         scheduleManager.onScheduleTriggered = { [presetManager, brightnessManager] presetID in
             guard let preset = presetManager.presets.first(where: { $0.id == presetID }) else { return }
-            presetManager.applyPreset(preset, to: brightnessManager)
+            presetManager.applyPreset(preset, to: brightnessManager, animated: true)
         }
         scheduleManager.observeSettings(
             readEnabled: { UserDefaults.standard.bool(forKey: "dimmerlyScheduleEnabled") }
@@ -183,7 +183,7 @@ struct DimmerlyApp: App {
     private func configurePresetShortcuts() {
         presetShortcutManager.onPresetTriggered = { [presetManager, brightnessManager] presetID in
             guard let preset = presetManager.presets.first(where: { $0.id == presetID }) else { return }
-            presetManager.applyPreset(preset, to: brightnessManager)
+            presetManager.applyPreset(preset, to: brightnessManager, animated: true)
         }
         presetShortcutManager.observePresets(
             readPresets: { PresetManager.shared.presets }

@@ -68,13 +68,21 @@ class PresetManager: ObservableObject {
     /// - Per-display values (if present) are applied only to matching display IDs
     /// - Nil values (legacy presets) leave that setting unchanged
     ///
+    /// When `animated` is true, transitions smoothly over ~300ms using gamma table interpolation.
+    /// Falls back to instant application when Reduce Motion is enabled or blanking is active.
+    ///
     /// Example: A preset created on v1.0 (before warmth/contrast) will only change brightness,
     /// leaving the user's current warmth and contrast settings intact.
     ///
     /// - Parameters:
     ///   - preset: The preset to apply
     ///   - brightnessManager: The brightness manager to apply values to
-    func applyPreset(_ preset: BrightnessPreset, to brightnessManager: BrightnessManager) {
+    ///   - animated: Whether to animate the transition (default: false)
+    func applyPreset(_ preset: BrightnessPreset, to brightnessManager: BrightnessManager, animated: Bool = false) {
+        if animated && brightnessManager.animateToPreset(preset) {
+            return
+        }
+
         // Apply brightness (universal or per-display)
         if let universal = preset.universalBrightness {
             brightnessManager.setAllBrightness(to: universal)

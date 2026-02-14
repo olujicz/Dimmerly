@@ -51,7 +51,7 @@ struct ApplyPresetIntent: AppIntent {
             throw IntentError.presetNotFound
         }
 
-        presetManager.applyPreset(preset, to: brightnessManager)
+        presetManager.applyPreset(preset, to: brightnessManager, animated: true)
         return .result()
     }
 
