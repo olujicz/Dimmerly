@@ -18,11 +18,7 @@ struct SettingsView: View {
             .frame(minWidth: 400, maxWidth: 550, minHeight: 500)
             .onAppear {
                 formIdentity = UUID()
-                if #available(macOS 14.0, *) {
-                    NSApp.activate()
-                } else {
-                    NSApp.activate(ignoringOtherApps: true)
-                }
+                NSApp.activate()
             }
     }
 }
@@ -96,8 +92,8 @@ struct GeneralSettingsView: View {
                         }
                         .frame(width: 32, height: 32)
                         .background(
-                            RoundedRectangle(cornerRadius: 6)
-                                .fill(isSelected ? Color.accentColor : Color.primary.opacity(0.05))
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(isSelected ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.quaternary))
                         )
                         .foregroundStyle(isSelected ? .white : .primary)
                     }
@@ -107,6 +103,7 @@ struct GeneralSettingsView: View {
                     .accessibilityAddTraits(isSelected ? .isSelected : [])
                 }
             }
+            .animation(.spring(response: 0.2, dampingFraction: 0.8), value: settings.menuBarIconRaw)
         }
     }
 
@@ -127,6 +124,7 @@ struct GeneralSettingsView: View {
                 Text("Dim Only").tag(1)
             }
             .pickerStyle(.radioGroup)
+            .help("Choose between sleeping displays or dimming them")
 
             if !settings.preventScreenLock {
                 Text("Turns off all displays and locks your Mac, just like closing the lid. To control how quickly your password is required, adjust your Lock Screen settings.")
@@ -145,6 +143,7 @@ struct GeneralSettingsView: View {
                     }
                 }
                 .font(.caption)
+                .help("Open macOS Lock Screen settings")
             } else {
                 Text("Dims screens without putting displays to sleep. Your session stays unlocked.")
                     .font(.caption)
@@ -167,6 +166,7 @@ struct GeneralSettingsView: View {
                     Text("Escape key only").tag(true)
                 }
                 .pickerStyle(.radioGroup)
+                .help("Choose how to wake displays after dimming")
 
                 if !settings.requireEscapeToDismiss {
                     Toggle("Ignore mouse movement", isOn: $settings.ignoreMouseMovement)
@@ -181,6 +181,7 @@ struct GeneralSettingsView: View {
     private var idleTimerSection: some View {
         Section("Idle Timer") {
             Toggle("Auto-dim after inactivity", isOn: $settings.idleTimerEnabled)
+                .help("Automatically dim displays after a period of inactivity")
 
             if settings.idleTimerEnabled {
                 Stepper(value: $settings.idleTimerMinutes, in: 1...60) {
@@ -218,6 +219,7 @@ struct GeneralSettingsView: View {
     private var scheduleSection: some View {
         Section("Schedule") {
             Toggle("Apply presets on a schedule", isOn: $settings.scheduleEnabled)
+                .help("Automatically apply brightness presets at scheduled times")
 
             if settings.scheduleEnabled {
                 locationRow
@@ -237,6 +239,7 @@ struct GeneralSettingsView: View {
                 Button("Add Schedule\u{2026}") {
                     showAddSchedule = true
                 }
+                .help("Create a new scheduled preset")
                 .sheet(isPresented: $showAddSchedule) {
                     AddScheduleSheet(presets: presetManager.presets)
                         .environmentObject(scheduleManager)
@@ -360,6 +363,7 @@ struct GeneralSettingsView: View {
                         }
                     }
                     .font(.caption)
+                    .help("Open macOS Accessibility settings")
                 }
                 .accessibilityElement(children: .combine)
                 .padding(.top, 4)
@@ -407,6 +411,7 @@ struct GeneralSettingsView: View {
             Button("Restore Defaults") {
                 showRestoreDefaults = true
             }
+            .help("Replace all presets with the defaults")
             .alert("Restore Default Presets?", isPresented: $showRestoreDefaults) {
                 Button("Cancel", role: .cancel) {}
                 Button("Restore", role: .destructive) { presetManager.restoreDefaultPresets() }
@@ -423,6 +428,7 @@ struct GeneralSettingsView: View {
             Button("About Dimmerly") {
                 showAboutPanel()
             }
+            .help("Show app version and credits")
 
             Button {
                 if let url = URL(string: "https://github.com/olujicz/Dimmerly") {
@@ -435,6 +441,7 @@ struct GeneralSettingsView: View {
                         .imageScale(.small)
                 }
             }
+            .help("Open the Dimmerly GitHub repository")
         }
     }
 
@@ -573,6 +580,7 @@ private struct PresetManagementRow: View {
             }
         }
         .onHover { isHovered = $0 }
+        .animation(.spring(response: 0.2, dampingFraction: 0.8), value: isHovered)
 
         if let conflictMessage {
             Label(conflictMessage, systemImage: "exclamationmark.triangle.fill")

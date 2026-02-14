@@ -8,7 +8,6 @@
 import AppIntents
 import CoreGraphics
 
-@available(macOS 14.0, *)
 struct SetDisplayBrightnessIntent: AppIntent {
     static let title: LocalizedStringResource = "Set Display Brightness"
     static let description: IntentDescription = IntentDescription("Sets the brightness of a specific external display.")

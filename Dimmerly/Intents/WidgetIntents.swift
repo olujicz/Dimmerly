@@ -9,7 +9,6 @@
 
 import AppIntents
 
-@available(macOS 14.0, *)
 struct DimDisplaysWidgetIntent: AppIntent {
     static let title: LocalizedStringResource = "Dim Displays (Widget)"
     static let description: IntentDescription = "Dims all connected displays."
@@ -28,7 +27,6 @@ struct DimDisplaysWidgetIntent: AppIntent {
     }
 }
 
-@available(macOS 14.0, *)
 struct ApplyPresetWidgetIntent: AppIntent {
     static let title: LocalizedStringResource = "Apply Preset (Widget)"
     static let description: IntentDescription = "Applies a saved brightness preset."

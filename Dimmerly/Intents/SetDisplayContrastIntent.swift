@@ -8,7 +8,6 @@
 import AppIntents
 import CoreGraphics
 
-@available(macOS 14.0, *)
 struct SetDisplayContrastIntent: AppIntent {
     static let title: LocalizedStringResource = "Set Display Contrast"
     static let description: IntentDescription = IntentDescription("Sets the contrast of a specific external display.")

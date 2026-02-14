@@ -8,7 +8,6 @@
 import AppIntents
 import CoreGraphics
 
-@available(macOS 14.0, *)
 struct DisplayEntity: AppEntity {
     static var typeDisplayRepresentation: TypeDisplayRepresentation {
         TypeDisplayRepresentation(name: "Display")
@@ -29,7 +28,6 @@ struct DisplayEntity: AppEntity {
     }
 }
 
-@available(macOS 14.0, *)
 struct DisplayEntityQuery: EntityQuery {
     @MainActor
     func entities(for identifiers: [String]) async throws -> [DisplayEntity] {

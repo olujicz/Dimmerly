@@ -7,7 +7,6 @@
 
 import AppIntents
 
-@available(macOS 14.0, *)
 struct SleepDisplaysIntent: AppIntent {
     static let title: LocalizedStringResource = "Sleep Displays"
     static let description: IntentDescription = IntentDescription("Dims or sleeps all connected displays using Dimmerly.")

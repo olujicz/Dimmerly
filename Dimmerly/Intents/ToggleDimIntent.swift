@@ -8,7 +8,6 @@
 import AppIntents
 import CoreGraphics
 
-@available(macOS 14.0, *)
 struct ToggleDimIntent: AppIntent {
     static let title: LocalizedStringResource = "Toggle Display Dimming"
     static let description: IntentDescription = IntentDescription("Blanks or unblanks a specific display.")
@@ -36,7 +35,6 @@ struct ToggleDimIntent: AppIntent {
     }
 }
 
-@available(macOS 14.0, *)
 struct ApplyPresetIntent: AppIntent {
     static let title: LocalizedStringResource = "Apply Brightness Preset"
     static let description: IntentDescription = IntentDescription("Applies a saved brightness preset to connected displays.")

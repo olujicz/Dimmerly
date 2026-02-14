@@ -8,7 +8,6 @@
 import AppIntents
 import CoreGraphics
 
-@available(macOS 14.0, *)
 struct SetDisplayWarmthIntent: AppIntent {
     static let title: LocalizedStringResource = "Set Display Warmth"
     static let description: IntentDescription = IntentDescription("Sets the color warmth of a specific external display.")

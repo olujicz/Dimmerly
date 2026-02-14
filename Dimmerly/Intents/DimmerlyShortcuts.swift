@@ -7,7 +7,6 @@
 
 import AppIntents
 
-@available(macOS 14.0, *)
 struct DimmerlyShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
         AppShortcut(

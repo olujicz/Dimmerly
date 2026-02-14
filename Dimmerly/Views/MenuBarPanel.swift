@@ -100,7 +100,7 @@ struct MenuBarPanel: View {
 
     private var displayAdjustmentsDisclosure: some View {
         Button {
-            withAnimation(.easeInOut(duration: 0.2)) {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                 showAdjustments.toggle()
             }
         } label: {
@@ -118,6 +118,7 @@ struct MenuBarPanel: View {
         .buttonStyle(.borderless)
         .padding(.top, 8)
         .accessibilityLabel(Text(showAdjustments ? "Hide display adjustments" : "Show display adjustments"))
+        .help("Show warmth and contrast sliders")
     }
 
     // MARK: - Presets
@@ -145,7 +146,7 @@ struct MenuBarPanel: View {
                 Spacer()
                 Text("↩")
                     .font(.callout)
-                    .opacity(0.5)
+                    .foregroundStyle(.tertiary)
             }
             .frame(maxWidth: .infinity)
         }
@@ -166,6 +167,7 @@ struct MenuBarPanel: View {
             }
             .buttonStyle(.borderless)
             .keyboardShortcut(",", modifiers: .command)
+            .help("Open Dimmerly settings")
 
             Spacer()
 
@@ -176,6 +178,7 @@ struct MenuBarPanel: View {
             }
             .buttonStyle(.borderless)
             .keyboardShortcut("q", modifiers: .command)
+            .help("Quit Dimmerly")
         }
         .font(.callout)
         .foregroundStyle(.secondary)
@@ -227,6 +230,7 @@ private struct PresetsSectionView: View {
                 }
                 .buttonStyle(.borderless)
                 .foregroundStyle(.secondary)
+                .help("Save current display settings as a preset")
             }
         }
         .accessibilityElement(children: .contain)
@@ -252,9 +256,10 @@ private struct PresetsSectionView: View {
             .padding(.horizontal, 6)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(hoveredPresetID == preset.id ? Color.primary.opacity(0.08) : .clear)
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(hoveredPresetID == preset.id ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.clear))
             )
+            .animation(.spring(response: 0.2, dampingFraction: 0.8), value: hoveredPresetID)
             .contentShape(Rectangle())
         }
         .buttonStyle(.borderless)
@@ -262,6 +267,7 @@ private struct PresetsSectionView: View {
             hoveredPresetID = isHovered ? preset.id : nil
         }
         .accessibilityLabel(Text("Apply \(preset.name)"))
+        .help(preset.name)
         .contextMenu {
             Button("Save Current Settings") {
                 presetManager.updatePreset(id: preset.id, brightnessManager: brightnessManager)
@@ -315,10 +321,11 @@ private struct FooterLabel: View {
         .padding(.vertical, 4)
         .padding(.horizontal, 6)
         .background(
-            RoundedRectangle(cornerRadius: 6)
-                .fill(isHovered ? Color.primary.opacity(0.08) : .clear)
+            RoundedRectangle(cornerRadius: 8)
+                .fill(isHovered ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.clear))
         )
-        .contentShape(RoundedRectangle(cornerRadius: 6))
+        .contentShape(RoundedRectangle(cornerRadius: 8))
+        .animation(.spring(response: 0.2, dampingFraction: 0.8), value: isHovered)
         .onHover { isHovered = $0 }
     }
 }
@@ -444,6 +451,7 @@ struct DisplayBrightnessRow: View {
                 .opacity(isBlanked ? 0.4 : 1.0)
                 .disabled(isBlanked)
                 .transition(.opacity.combined(with: .move(edge: .top)))
+                .animation(.spring(response: 0.3, dampingFraction: 0.8), value: showAdjustments)
 
                 HStack(spacing: 6) {
                     Image(systemName: "circle.lefthalf.filled")

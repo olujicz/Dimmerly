@@ -24,11 +24,7 @@ struct AlertPresenter {
     /// AlertPresenter.showError(error)
     /// ```
     static func showError(_ error: DisplayError) {
-        if #available(macOS 14.0, *) {
-            NSApp.activate()
-        } else {
-            NSApp.activate(ignoringOtherApps: true)
-        }
+        NSApp.activate()
         let alert = NSAlert()
         alert.messageText = error.localizedDescription
         alert.informativeText = error.recoverySuggestion ?? ""
@@ -43,11 +39,7 @@ struct AlertPresenter {
     ///   - title: The alert title
     ///   - message: The detailed error message
     static func showError(title: String, message: String) {
-        if #available(macOS 14.0, *) {
-            NSApp.activate()
-        } else {
-            NSApp.activate(ignoringOtherApps: true)
-        }
+        NSApp.activate()
         let alert = NSAlert()
         alert.messageText = title
         alert.informativeText = message

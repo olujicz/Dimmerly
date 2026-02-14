@@ -53,6 +53,7 @@ struct ScheduleRow: View {
             }
         }
         .onHover { isHovered = $0 }
+        .animation(.spring(response: 0.2, dampingFraction: 0.8), value: isHovered)
 
         if presetName == nil {
             Label("The preset assigned to this schedule has been deleted.", systemImage: "exclamationmark.triangle.fill")
@@ -140,10 +141,12 @@ struct AddScheduleSheet: View {
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel") { dismiss() }
+                    .help("Discard and close")
             }
             ToolbarItem(placement: .confirmationAction) {
                 Button("Add") { addSchedule() }
                     .disabled(!isValid)
+                    .help("Create this schedule")
             }
         }
         .onAppear {

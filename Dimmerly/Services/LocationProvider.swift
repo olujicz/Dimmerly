@@ -45,11 +45,7 @@ class LocationProvider: NSObject, ObservableObject {
         guard CLLocationManager.locationServicesEnabled() else { return }
 
         // Activate the app so the authorization dialog is visible for LSUIElement apps
-        if #available(macOS 14.0, *) {
-            NSApp.activate()
-        } else {
-            NSApp.activate(ignoringOtherApps: true)
-        }
+        NSApp.activate()
 
         switch locationManager.authorizationStatus {
         case .denied, .restricted:
