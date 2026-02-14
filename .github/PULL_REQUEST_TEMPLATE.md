@@ -1,7 +1,8 @@
 ## Summary
 
 ## Testing
-- [ ] `xcodebuild test -scheme Dimmerly -destination 'platform=macOS'`
+- [ ] `just test`
+- [ ] `just lint`
 
 ## Checklist
 - [ ] Code follows the project's style guidelines

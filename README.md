@@ -2,7 +2,7 @@
 
 A lightweight macOS menu bar utility for controlling external display brightness — with presets, keyboard shortcuts, and desktop widgets.
 
-![macOS 14.0+](https://img.shields.io/badge/macOS-14.0%2B-blue)
+![macOS 15.0+](https://img.shields.io/badge/macOS-15.0%2B-blue)
 ![Swift](https://img.shields.io/badge/Swift-6-orange)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
@@ -14,9 +14,10 @@ A lightweight macOS menu bar utility for controlling external display brightness
 - **Color Temperature (Warmth)** — Per-display warmth adjustment from neutral to warm (~2700K)
 - **Contrast Control** — Per-display contrast via symmetric S-curve gamma adjustment
 - **Brightness Presets** — Save, name, and instantly apply display configurations (brightness, warmth, contrast)
+- **Smooth Preset Transitions** — Animated ~300ms interpolation when switching presets (respects Reduce Motion)
 - **Global Keyboard Shortcuts** — Dim displays or apply presets from any app
-- **Desktop Widgets** — Small and medium widgets for quick access (macOS 14+)
-- **Control Center Integration** — Quick toggle from Control Center (macOS 15+)
+- **Desktop Widgets** — Small and medium widgets for quick access
+- **Control Center Integration** — Quick toggle from Control Center (macOS 26+)
 - **Shortcuts App Support** — Automate display control with Shortcuts workflows
 - **Scheduled Presets** — Automatically apply presets at specific times, sunrise, or sunset
 - **Auto-Dim** — Automatically dim displays after a configurable idle period
@@ -31,7 +32,7 @@ A lightweight macOS menu bar utility for controlling external display brightness
 
 ## Requirements
 
-- macOS 14.0 (Sonoma) or later
+- macOS 15.0 (Sequoia) or later
 - External display with DDC/CI brightness support
 - Optional: Accessibility permissions for global keyboard shortcuts
 - Optional: Location permission for sunrise/sunset schedules
@@ -112,20 +113,25 @@ Schedules reference your existing presets, so editing a preset automatically upd
 
 ### Settings
 
-Access via the menu bar panel (Settings... or ⌘,):
+Access via the menu bar panel (Settings... or ⌘,). All settings are presented in a single grouped form:
 
-- **General** — Launch at login, ignore mouse movement, fade transition, menu bar icon style, auto-dim idle timer
-- **Schedule** — Enable scheduled presets, set location, manage schedules
-- **Shortcuts** — Global keyboard shortcut for dimming, per-preset shortcuts
-- **About** — App information
+- **General** — Launch at login, menu bar icon style
+- **Dimming** — Display sleep vs dim-only mode, fade transition, wake input options, ignore mouse movement
+- **Idle Timer** — Auto-dim after inactivity with configurable timeout (1–60 minutes)
+- **Schedule** — Enable scheduled presets, set location (automatic or manual coordinates), manage schedules
+- **Keyboard Shortcut** — Global keyboard shortcut for dimming, accessibility permission status
+- **Presets** — Rename, delete, assign per-preset shortcuts, restore defaults
+- **About** — App information, source code link
 
 ## Building from Source
 
 ### Prerequisites
 
-- Xcode 15.0 or later
-- macOS 14.0 SDK or later
+- Xcode 16.0 or later
+- macOS 15.0 SDK or later
 - Swift 6.0 or later
+- Optional: [just](https://github.com/casey/just) command runner
+- Optional: [SwiftLint](https://github.com/realm/SwiftLint) and [SwiftFormat](https://github.com/nicklockwood/SwiftFormat) for linting
 
 ### Build Configurations
 
@@ -136,7 +142,29 @@ Access via the menu bar panel (Settings... or ⌘,):
 | Debug-AppStore | Dimmerly App Store | Development build with gamma-based screen blanking |
 | Release-AppStore | Dimmerly App Store | App Store submission build |
 
+### Justfile Commands
+
+A [Justfile](Justfile) provides convenient shortcuts for common tasks:
+
+```bash
+just build          # Build debug
+just build-release  # Build release
+just test           # Run tests
+just run            # Build and run
+just lint           # Lint Swift sources (SwiftLint)
+just lint-fix       # Auto-fix linting issues
+just format         # Format Swift sources (SwiftFormat)
+just format-check   # Check formatting without changes
+just clean          # Clean build artifacts
+```
+
 ### Running Tests
+
+```bash
+just test
+```
+
+Or with xcodebuild directly:
 
 ```bash
 xcodebuild test -scheme Dimmerly -destination 'platform=macOS'
@@ -182,7 +210,7 @@ Contributions are welcome! Please feel free to submit issues, feature requests, 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature-name`
 3. Make your changes and add tests
-4. Ensure all tests pass
+4. Run `just lint` and `just test` to ensure code quality and all tests pass
 5. Submit a Pull Request
 
 Please review the [Code of Conduct](CODE_OF_CONDUCT.md) before participating. See the [Security Policy](SECURITY.md) for reporting vulnerabilities.

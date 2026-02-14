@@ -44,9 +44,11 @@ Feature suggestions are welcome! Please:
 
 ### Prerequisites
 
-- macOS 13.0 (Ventura) or later
-- Xcode 15.0 or later
-- Swift 5.9 or later
+- macOS 15.0 (Sequoia) or later
+- Xcode 16.0 or later
+- Swift 6.0 or later
+- Optional: [just](https://github.com/casey/just) command runner
+- Optional: [SwiftLint](https://github.com/realm/SwiftLint) and [SwiftFormat](https://github.com/nicklockwood/SwiftFormat)
 
 ### Building from Source
 
@@ -64,14 +66,26 @@ Feature suggestions are welcome! Please:
 3. Build and run:
    - Select the Dimmerly scheme
    - Press ⌘R to build and run
+   - Or use `just run` from the command line
 
 ### Running Tests
 
 ```bash
-# Run all tests
+just test
+
+# Or with xcodebuild directly:
 xcodebuild test -scheme Dimmerly -destination 'platform=macOS'
 
 # Or use Xcode's Test Navigator (⌘6)
+```
+
+### Linting & Formatting
+
+```bash
+just lint           # Check for lint issues
+just lint-fix       # Auto-fix lint issues
+just format         # Format code with SwiftFormat
+just format-check   # Check formatting without changes
 ```
 
 ## Coding Standards
@@ -86,10 +100,15 @@ xcodebuild test -scheme Dimmerly -destination 'platform=macOS'
 
 ### Code Organization
 
-- Place new models in `Dimmerly/Models/`
-- Place new views in `Dimmerly/Views/`
-- Place new utilities in `Dimmerly/Utilities/`
-- Add tests in `DimmerlyTests/`
+- `Dimmerly/App/` — App entry point and lifecycle
+- `Dimmerly/Models/` — Data models and settings
+- `Dimmerly/Views/` — SwiftUI views
+- `Dimmerly/Services/` — Business logic and system integrations
+- `Dimmerly/Intents/` — App Intents and Shortcuts support
+- `Dimmerly/Shared/` — Shared code between app and widget
+- `Dimmerly/Resources/` — Localizations, entitlements, Info.plist
+- `DimmerlyWidget/` — Widget extension
+- `DimmerlyTests/` — Unit tests
 
 ### Documentation
 
@@ -127,13 +146,14 @@ Fixes #123
 
 1. **Update documentation** for any changed functionality
 2. **Add tests** for new features
-3. **Run the test suite** and ensure all tests pass
+3. **Run `just lint` and `just test`** and ensure everything passes
 4. **Update CHANGELOG.md** with your changes
 5. **Request review** from maintainers
 
 ### PR Checklist
 
-- [ ] Tests pass locally
+- [ ] Tests pass locally (`just test`)
+- [ ] Linter passes (`just lint`)
 - [ ] Code follows the project's style guidelines
 - [ ] Documentation updated
 - [ ] CHANGELOG.md updated (if applicable)
