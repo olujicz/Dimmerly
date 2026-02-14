@@ -10,6 +10,12 @@ import Foundation
 
 /// When a schedule should trigger
 enum ScheduleTrigger: Codable, Equatable, Sendable {
+    /// Cached formatter for fixed-time display (avoids allocation on every render)
+    private static let timeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = DateFormatter.dateFormat(fromTemplate: "j:mm", options: 0, locale: .current)
+        return f
+    }()
     /// Triggers at a fixed time every day
     case fixedTime(hour: Int, minute: Int)
     /// Triggers at sunrise with an optional offset in minutes (negative = before)
@@ -22,12 +28,8 @@ enum ScheduleTrigger: Codable, Equatable, Sendable {
         switch self {
         case .fixedTime(let hour, let minute):
             let components = DateComponents(hour: hour, minute: minute)
-            let formatter = DateFormatter()
-            formatter.dateFormat = "none"
-            formatter.timeStyle = .short
             if let date = Calendar.current.date(from: components) {
-                formatter.dateFormat = DateFormatter.dateFormat(fromTemplate: "j:mm", options: 0, locale: .current)
-                return formatter.string(from: date)
+                return Self.timeFormatter.string(from: date)
             }
             return String(format: "%d:%02d", hour, minute)
 

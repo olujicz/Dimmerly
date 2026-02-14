@@ -92,7 +92,7 @@ class ScreenBlanker {
 
     /// Blanks all connected screens using gamma dimming and overlay windows
     func blank() {
-        guard !isBlanking else { return }
+        guard !isBlanking && !isPerDisplayFullBlanked else { return }
         isBlanking = true
         activationTime = ProcessInfo.processInfo.systemUptime
 
@@ -226,19 +226,21 @@ class ScreenBlanker {
         fadeTask = Task { @MainActor in
             let displayIDs = BrightnessManager.activeDisplayIDs()
             let steps = 30
-            let totalDuration: UInt64 = 500_000_000 // 0.5 seconds in nanoseconds
-            let stepDelay = totalDuration / UInt64(steps)
+            let stepDelay = Duration.milliseconds(500 / steps)
 
-            // Read starting brightness and warmth per display
+            // Read starting brightness, warmth, and contrast per display
             var startBrightness: [CGDirectDisplayID: Double] = [:]
             var displayWarmth: [CGDirectDisplayID: Double] = [:]
+            var displayContrast: [CGDirectDisplayID: Double] = [:]
             for displayID in displayIDs {
                 if CGDisplayIsBuiltin(displayID) != 0 {
                     startBrightness[displayID] = 1.0
                     displayWarmth[displayID] = 0.0
+                    displayContrast[displayID] = 0.5
                 } else {
                     startBrightness[displayID] = brightnessForDisplay?(displayID) ?? 1.0
                     displayWarmth[displayID] = warmthForDisplay?(displayID) ?? 0.0
+                    displayContrast[displayID] = contrastForDisplay?(displayID) ?? 0.5
                 }
             }
 
@@ -250,22 +252,31 @@ class ScreenBlanker {
                 for displayID in displayIDs {
                     let start = startBrightness[displayID] ?? 1.0
                     let warmth = displayWarmth[displayID] ?? 0.0
+                    let contrast = displayContrast[displayID] ?? 0.5
                     let current = start * (1.0 - progress)
                     let m = BrightnessManager.channelMultipliers(for: warmth)
 
-                    let rMax = Float(max(current * m.r, 0))
-                    let gMax = Float(max(current * m.g, 0))
-                    let bMax = Float(max(current * m.b, 0))
+                    // Use gamma tables (matching applyGamma) to preserve contrast S-curve
+                    var rTable = (0..<256).map { i -> CGGammaValue in
+                        let t = Double(i) / 255.0
+                        let curved = BrightnessManager.applyContrast(t, contrast: contrast)
+                        return CGGammaValue(curved * current * m.r)
+                    }
+                    var gTable = (0..<256).map { i -> CGGammaValue in
+                        let t = Double(i) / 255.0
+                        let curved = BrightnessManager.applyContrast(t, contrast: contrast)
+                        return CGGammaValue(curved * current * m.g)
+                    }
+                    var bTable = (0..<256).map { i -> CGGammaValue in
+                        let t = Double(i) / 255.0
+                        let curved = BrightnessManager.applyContrast(t, contrast: contrast)
+                        return CGGammaValue(curved * current * m.b)
+                    }
 
-                    CGSetDisplayTransferByFormula(
-                        displayID,
-                        0, rMax, 1,
-                        0, gMax, 1,
-                        0, bMax, 1
-                    )
+                    CGSetDisplayTransferByTable(displayID, 256, &rTable, &gTable, &bTable)
                 }
 
-                try? await Task.sleep(nanoseconds: stepDelay)
+                try? await Task.sleep(for: stepDelay)
             }
 
             // Ensure final zero state and show overlay windows after fade
@@ -341,8 +352,9 @@ class ScreenBlanker {
         window.contentView?.addSubview(label)
 
         // Fade the hint out after 4 seconds
-        DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
-            NSAnimationContext.runAnimationGroup { context in
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(4))
+            await NSAnimationContext.runAnimationGroup { context in
                 context.duration = 1.0
                 label.animator().alphaValue = 0
             }

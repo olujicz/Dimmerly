@@ -26,7 +26,18 @@ struct BrightnessPreset: Identifiable, Codable, Equatable, Sendable {
     /// When set, applies this contrast to all connected displays. Optional for backward compat.
     var universalContrast: Double?
 
-    init(id: UUID = UUID(), name: String, displayBrightness: [String: Double] = [:], createdAt: Date = Date(), shortcut: GlobalShortcut? = nil, universalBrightness: Double? = nil, displayWarmth: [String: Double]? = nil, universalWarmth: Double? = nil, displayContrast: [String: Double]? = nil, universalContrast: Double? = nil) {
+    init(
+        id: UUID = UUID(),
+        name: String,
+        displayBrightness: [String: Double] = [:],
+        createdAt: Date = Date(),
+        shortcut: GlobalShortcut? = nil,
+        universalBrightness: Double? = nil,
+        displayWarmth: [String: Double]? = nil,
+        universalWarmth: Double? = nil,
+        displayContrast: [String: Double]? = nil,
+        universalContrast: Double? = nil
+    ) {
         self.id = id
         self.name = name
         self.displayBrightness = displayBrightness

@@ -365,7 +365,7 @@ class BrightnessManager: ObservableObject {
     private func debouncePersist() {
         persistTask?.cancel()
         persistTask = Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5s debounce delay
+            try? await Task.sleep(for: .milliseconds(500))
             guard !Task.isCancelled else { return }
             self.persistAll()
         }
@@ -382,7 +382,7 @@ class BrightnessManager: ObservableObject {
         // Cancel any previous wake task to avoid stacking delayed reapplications
         wakeTask?.cancel()
         wakeTask = Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 1_000_000_000) // 1s stabilization delay
+            try? await Task.sleep(for: .seconds(1))
             guard !Task.isCancelled else { return }
             reapplyAll()
         }

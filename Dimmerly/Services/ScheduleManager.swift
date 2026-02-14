@@ -270,10 +270,14 @@ class ScheduleManager: ObservableObject {
         return (lat, lon)
     }
 
+    private static let dayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+
     private static func dateString(for date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter.string(from: date)
+        dayFormatter.string(from: date)
     }
 
     // MARK: - CRUD
