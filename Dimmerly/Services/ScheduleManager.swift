@@ -178,7 +178,7 @@ class ScheduleManager: ObservableObject {
 
             // Fire once if the trigger time falls within the check window (previousCheck, now]
             // This half-open interval ensures we fire exactly once when crossing the trigger time
-            if triggerDate > previousCheck && triggerDate <= now {
+            if triggerDate > previousCheck, triggerDate <= now {
                 firedToday[schedule.id] = todayString
                 onScheduleTriggered?(schedule.presetID)
             }
@@ -228,11 +228,11 @@ class ScheduleManager: ObservableObject {
         let calendar = Calendar.current
 
         switch trigger {
-        case .fixedTime(let hour, let minute):
+        case let .fixedTime(hour, minute):
             // Simple case: set hour and minute on the given day
             return calendar.date(bySettingHour: hour, minute: minute, second: 0, of: date)
 
-        case .sunrise(let offsetMinutes):
+        case let .sunrise(offsetMinutes):
             // Solar sunrise requires location permissions
             guard let location = locationCoordinates() else { return nil }
             let solar = SolarCalculator.sunriseSunset(
@@ -244,7 +244,7 @@ class ScheduleManager: ObservableObject {
             // Apply offset (negative = before sunrise, positive = after sunrise)
             return calendar.date(byAdding: .minute, value: offsetMinutes, to: sunrise)
 
-        case .sunset(let offsetMinutes):
+        case let .sunset(offsetMinutes):
             // Solar sunset requires location permissions
             guard let location = locationCoordinates() else { return nil }
             let solar = SolarCalculator.sunriseSunset(
@@ -264,7 +264,8 @@ class ScheduleManager: ObservableObject {
     ///   (permissions denied or not yet determined)
     private func locationCoordinates() -> (latitude: Double, longitude: Double)? {
         guard let lat = LocationProvider.shared.latitude,
-              let lon = LocationProvider.shared.longitude else {
+              let lon = LocationProvider.shared.longitude
+        else {
             return nil
         }
         return (lat, lon)
@@ -334,7 +335,8 @@ class ScheduleManager: ObservableObject {
 
     private func loadSchedules() {
         guard let data = UserDefaults.standard.data(forKey: Self.schedulesKey),
-              let decoded = try? JSONDecoder().decode([DimmingSchedule].self, from: data) else {
+              let decoded = try? JSONDecoder().decode([DimmingSchedule].self, from: data)
+        else {
             return
         }
         schedules = decoded
@@ -346,6 +348,7 @@ class ScheduleManager: ObservableObject {
     }
 
     // MARK: - Lifecycle
+
     // Note: deinit intentionally omitted to avoid @MainActor data race warnings in Swift 6.
     // This manager is held by @StateObject in DimmerlyApp for the app's lifetime, so deinit
     // never executes. Cleanup (timer invalidation, observer removal) is handled explicitly

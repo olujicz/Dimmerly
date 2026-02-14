@@ -86,7 +86,7 @@ class BrightnessManager: ObservableObject {
     /// Use this for unit tests that need to verify business logic without side effects.
     ///
     /// - Parameter forTesting: Pass `true` to create an isolated test instance
-    init(forTesting: Bool) {
+    init(forTesting _: Bool) {
         // Skip hardware setup — no gamma changes, no observers
     }
 
@@ -135,7 +135,10 @@ class BrightnessManager: ObservableObject {
         ScreenBlanker.shared.restoreDisplay = { [weak self] displayID in
             guard let self else { return }
             guard let display = self.displays.first(where: { $0.id == displayID }) else { return }
-            self.applyGamma(displayID: displayID, brightness: display.brightness, warmth: display.warmth, contrast: display.contrast)
+            self.applyGamma(
+                displayID: displayID, brightness: display.brightness,
+                warmth: display.warmth, contrast: display.contrast
+            )
         }
     }
 
@@ -268,7 +271,10 @@ class BrightnessManager: ObservableObject {
             // Clamp warmth and contrast to valid ranges
             let warmth = min(max(savedWarmth[String(displayID)] ?? 0.0, 0.0), 1.0)
             let contrast = min(max(savedContrast[String(displayID)] ?? 0.5, 0.0), 1.0)
-            newDisplays.append(ExternalDisplay(id: displayID, name: name, brightness: brightness, warmth: warmth, contrast: contrast))
+            newDisplays.append(ExternalDisplay(
+                id: displayID, name: name, brightness: brightness,
+                warmth: warmth, contrast: contrast
+            ))
         }
 
         displays = newDisplays
@@ -297,7 +303,10 @@ class BrightnessManager: ObservableObject {
 
         // Don't apply gamma during blanking (would cause visible flicker)
         if !ScreenBlanker.shared.isBlanking {
-            applyGamma(displayID: displayID, brightness: clamped, warmth: displays[index].warmth, contrast: displays[index].contrast)
+            applyGamma(
+                displayID: displayID, brightness: clamped,
+                warmth: displays[index].warmth, contrast: displays[index].contrast
+            )
         }
     }
 
@@ -319,7 +328,10 @@ class BrightnessManager: ObservableObject {
         debouncePersist()
 
         if !ScreenBlanker.shared.isBlanking {
-            applyGamma(displayID: displayID, brightness: displays[index].brightness, warmth: clamped, contrast: displays[index].contrast)
+            applyGamma(
+                displayID: displayID, brightness: displays[index].brightness,
+                warmth: clamped, contrast: displays[index].contrast
+            )
         }
     }
 
@@ -342,7 +354,10 @@ class BrightnessManager: ObservableObject {
         debouncePersist()
 
         if !ScreenBlanker.shared.isBlanking {
-            applyGamma(displayID: displayID, brightness: displays[index].brightness, warmth: displays[index].warmth, contrast: clamped)
+            applyGamma(
+                displayID: displayID, brightness: displays[index].brightness,
+                warmth: displays[index].warmth, contrast: clamped
+            )
         }
     }
 
@@ -354,7 +369,10 @@ class BrightnessManager: ObservableObject {
     /// - Screen blanking ends (restores pre-blanking state)
     func reapplyAll() {
         for display in displays {
-            applyGamma(displayID: display.id, brightness: display.brightness, warmth: display.warmth, contrast: display.contrast)
+            applyGamma(
+                displayID: display.id, brightness: display.brightness,
+                warmth: display.warmth, contrast: display.contrast
+            )
         }
     }
 
@@ -379,7 +397,8 @@ class BrightnessManager: ObservableObject {
         transitionTask?.cancel()
 
         guard !ScreenBlanker.shared.isBlanking,
-              !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else {
+              !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        else {
             return false
         }
 
@@ -441,7 +460,7 @@ class BrightnessManager: ObservableObject {
                 ))
             }
 
-            for step in 1...steps {
+            for step in 1 ... steps {
                 guard !Task.isCancelled else { return }
 
                 let progress = Double(step) / Double(steps)
@@ -583,7 +602,7 @@ class BrightnessManager: ObservableObject {
     /// - Returns: 256-entry array of gamma values
     private static func buildTable(brightness: Double, channelMultiplier: Double, contrast: Double) -> [CGGammaValue] {
         let scale = brightness * channelMultiplier
-        return (0..<256).map { i in
+        return (0 ..< 256).map { i in
             let t = Double(i) / 255.0
             let curved = applyContrast(t, contrast: contrast)
             return CGGammaValue(curved * scale)
@@ -630,7 +649,8 @@ class BrightnessManager: ObservableObject {
     /// Resolution strategy:
     /// 1. **NSScreen.localizedName** — Fast, localized, works for ~90% of displays
     /// 2. **Apple's display override plist** — English fallback for unsupported locales
-    /// 3. **EDID binary parsing via IOKit** — Raw monitor data (Intel: IODisplayConnect, Apple Silicon: IOPortTransportStateDisplayPort)
+    /// 3. **EDID binary parsing via IOKit** — Raw monitor data
+    ///    (Intel: IODisplayConnect, Apple Silicon: IOPortTransportStateDisplayPort)
     /// 4. **Localized "Unknown Display"** — Last resort
     ///
     /// - Parameter displayID: Core Graphics display identifier
@@ -638,7 +658,8 @@ class BrightnessManager: ObservableObject {
     private func displayName(for displayID: CGDirectDisplayID) -> String {
         // Stage 1: Try NSScreen.localizedName (works for most locales and displays)
         for screen in NSScreen.screens {
-            if let screenNumber = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID,
+            let key = NSDeviceDescriptionKey("NSScreenNumber")
+            if let screenNumber = screen.deviceDescription[key] as? CGDirectDisplayID,
                screenNumber == displayID {
                 let name = screen.localizedName
                 // Detect generic fallbacks (e.g., "Unknown Display" in various languages)
@@ -676,16 +697,16 @@ class BrightnessManager: ObservableObject {
         let lowercased = name.lowercased()
         // Check for "unknown" patterns across multiple languages
         return lowercased.contains("unknown") ||
-               lowercased.contains("unbekannt") ||       // German
-               lowercased.contains("inconnu") ||          // French
-               lowercased.contains("desconocid") ||       // Spanish
-               lowercased.contains("sconosciut") ||       // Italian
-               lowercased.contains("onbekend") ||         // Dutch
-               lowercased.contains("desconhecid") ||      // Portuguese
-               lowercased.contains("不明") ||              // Japanese
-               lowercased.contains("未知") ||              // Chinese
-               lowercased.contains("알 수 없") ||          // Korean
-               lowercased.contains("nepoznat")            // Serbian
+            lowercased.contains("unbekannt") || // German
+            lowercased.contains("inconnu") || // French
+            lowercased.contains("desconocid") || // Spanish
+            lowercased.contains("sconosciut") || // Italian
+            lowercased.contains("onbekend") || // Dutch
+            lowercased.contains("desconhecid") || // Portuguese
+            lowercased.contains("不明") || // Japanese
+            lowercased.contains("未知") || // Chinese
+            lowercased.contains("알 수 없") || // Korean
+            lowercased.contains("nepoznat") // Serbian
     }
 
     /// Reads the display product name from Apple's display override plist database.
@@ -701,7 +722,8 @@ class BrightnessManager: ObservableObject {
     private func displayNameFromOverrides(for displayID: CGDirectDisplayID) -> String? {
         let vendorHex = String(format: "%x", CGDisplayVendorNumber(displayID))
         let productHex = String(format: "%x", CGDisplayModelNumber(displayID))
-        let path = "/System/Library/Displays/Contents/Resources/Overrides/DisplayVendorID-\(vendorHex)/DisplayProductID-\(productHex)"
+        let basePath = "/System/Library/Displays/Contents/Resources/Overrides"
+        let path = "\(basePath)/DisplayVendorID-\(vendorHex)/DisplayProductID-\(productHex)"
 
         guard let dict = NSDictionary(contentsOfFile: path) as? [String: Any] else {
             return nil
@@ -757,13 +779,15 @@ class BrightnessManager: ObservableObject {
 
             var properties: Unmanaged<CFMutableDictionary>?
             guard IORegistryEntryCreateCFProperties(service, &properties, kCFAllocatorDefault, 0) == KERN_SUCCESS,
-                  let dict = properties?.takeRetainedValue() as? [String: Any] else {
+                  let dict = properties?.takeRetainedValue() as? [String: Any]
+            else {
                 continue
             }
 
             guard let vendorID = dict["DisplayVendorID"] as? Int,
                   let productID = dict["DisplayProductID"] as? Int,
-                  targetVendor == vendorID && targetModel == productID else {
+                  targetVendor == vendorID, targetModel == productID
+            else {
                 continue
             }
 
@@ -810,13 +834,15 @@ class BrightnessManager: ObservableObject {
 
             var properties: Unmanaged<CFMutableDictionary>?
             guard IORegistryEntryCreateCFProperties(service, &properties, kCFAllocatorDefault, 0) == KERN_SUCCESS,
-                  let dict = properties?.takeRetainedValue() as? [String: Any] else {
+                  let dict = properties?.takeRetainedValue() as? [String: Any]
+            else {
                 continue
             }
 
             // Match by ProductID (corresponds to CGDisplayModelNumber)
             guard let productID = dict["ProductID"] as? Int,
-                  productID == targetModel else {
+                  productID == targetModel
+            else {
                 continue
             }
 
@@ -860,19 +886,19 @@ class BrightnessManager: ObservableObject {
         guard edid.count >= 128 else { return nil }
 
         // EDID has 4 descriptor blocks of 18 bytes each, starting at byte 54
-        for i in 0..<4 {
+        for i in 0 ..< 4 {
             let offset = 54 + (i * 18)
             guard offset + 17 < edid.count else { continue }
 
             // Monitor descriptor signature: bytes 0-2 are 0x00, byte 3 is the tag
             // Tag 0xFC = Display Product Name descriptor
-            if edid[offset] == 0 && edid[offset + 1] == 0 && edid[offset + 2] == 0 && edid[offset + 3] == 0xFC {
+            if edid[offset] == 0, edid[offset + 1] == 0, edid[offset + 2] == 0, edid[offset + 3] == 0xFC {
                 // Name is in bytes 5-17 (13 chars max), padded with 0x0A (newline) or spaces
-                let nameBytes = edid[(offset + 5)...(offset + 17)]
+                let nameBytes = edid[(offset + 5) ... (offset + 17)]
                 if let name = String(bytes: nameBytes, encoding: .ascii)?
                     .trimmingCharacters(in: .whitespacesAndNewlines)
                     .trimmingCharacters(in: CharacterSet(charactersIn: "\n\r\0")),
-                   !name.isEmpty {
+                    !name.isEmpty {
                     return name
                 }
             }
@@ -936,12 +962,18 @@ private final class DisplayReconfigurationToken: @unchecked Sendable {
     /// - Parameter handler: Closure to invoke when displays are added/removed
     init(handler: @escaping @Sendable () -> Void) {
         self.handler = handler
-        CGDisplayRegisterReconfigurationCallback(displayReconfigurationCallback, Unmanaged.passUnretained(self).toOpaque())
+        let pointer = Unmanaged.passUnretained(self).toOpaque()
+        CGDisplayRegisterReconfigurationCallback(
+            displayReconfigurationCallback, pointer
+        )
     }
 
     /// Automatically unregisters the callback when the token is deallocated.
     deinit {
-        CGDisplayRemoveReconfigurationCallback(displayReconfigurationCallback, Unmanaged.passUnretained(self).toOpaque())
+        let pointer = Unmanaged.passUnretained(self).toOpaque()
+        CGDisplayRemoveReconfigurationCallback(
+            displayReconfigurationCallback, pointer
+        )
     }
 
     /// Called by the C callback function to invoke the Swift handler.
@@ -960,7 +992,7 @@ private final class DisplayReconfigurationToken: @unchecked Sendable {
 ///   - flags: Change flags (we only care about add/remove, not mode changes)
 ///   - userInfo: Unmanaged pointer to the DisplayReconfigurationToken
 private func displayReconfigurationCallback(
-    _ display: CGDirectDisplayID,
+    _: CGDirectDisplayID,
     _ flags: CGDisplayChangeSummaryFlags,
     _ userInfo: UnsafeMutableRawPointer?
 ) {

@@ -16,6 +16,7 @@ enum ScheduleTrigger: Codable, Equatable, Sendable {
         f.dateFormat = DateFormatter.dateFormat(fromTemplate: "j:mm", options: 0, locale: .current)
         return f
     }()
+
     /// Triggers at a fixed time every day
     case fixedTime(hour: Int, minute: Int)
     /// Triggers at sunrise with an optional offset in minutes (negative = before)
@@ -26,39 +27,51 @@ enum ScheduleTrigger: Codable, Equatable, Sendable {
     /// Human-readable description of the trigger
     var displayDescription: String {
         switch self {
-        case .fixedTime(let hour, let minute):
+        case let .fixedTime(hour, minute):
             let components = DateComponents(hour: hour, minute: minute)
             if let date = Calendar.current.date(from: components) {
                 return Self.timeFormatter.string(from: date)
             }
             return String(format: "%d:%02d", hour, minute)
 
-        case .sunrise(let offset):
+        case let .sunrise(offset):
             if offset == 0 {
                 return String(localized: "Sunrise", comment: "Schedule trigger: at sunrise")
             } else if offset > 0 {
                 return String(
-                    format: NSLocalizedString("%d min after sunrise", comment: "Schedule trigger: minutes after sunrise"),
+                    format: NSLocalizedString(
+                        "%d min after sunrise",
+                        comment: "Schedule trigger: minutes after sunrise"
+                    ),
                     offset
                 )
             } else {
                 return String(
-                    format: NSLocalizedString("%d min before sunrise", comment: "Schedule trigger: minutes before sunrise"),
+                    format: NSLocalizedString(
+                        "%d min before sunrise",
+                        comment: "Schedule trigger: minutes before sunrise"
+                    ),
                     abs(offset)
                 )
             }
 
-        case .sunset(let offset):
+        case let .sunset(offset):
             if offset == 0 {
                 return String(localized: "Sunset", comment: "Schedule trigger: at sunset")
             } else if offset > 0 {
                 return String(
-                    format: NSLocalizedString("%d min after sunset", comment: "Schedule trigger: minutes after sunset"),
+                    format: NSLocalizedString(
+                        "%d min after sunset",
+                        comment: "Schedule trigger: minutes after sunset"
+                    ),
                     offset
                 )
             } else {
                 return String(
-                    format: NSLocalizedString("%d min before sunset", comment: "Schedule trigger: minutes before sunset"),
+                    format: NSLocalizedString(
+                        "%d min before sunset",
+                        comment: "Schedule trigger: minutes before sunset"
+                    ),
                     abs(offset)
                 )
             }
@@ -84,7 +97,14 @@ struct DimmingSchedule: Identifiable, Codable, Equatable, Sendable {
     var isEnabled: Bool
     var createdAt: Date
 
-    init(id: UUID = UUID(), name: String, trigger: ScheduleTrigger, presetID: UUID, isEnabled: Bool = true, createdAt: Date = Date()) {
+    init(
+        id: UUID = UUID(),
+        name: String,
+        trigger: ScheduleTrigger,
+        presetID: UUID,
+        isEnabled: Bool = true,
+        createdAt: Date = Date()
+    ) {
         self.id = id
         self.name = name
         self.trigger = trigger

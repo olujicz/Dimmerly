@@ -92,7 +92,7 @@ class ScreenBlanker {
 
     /// Blanks all connected screens using gamma dimming and overlay windows
     func blank() {
-        guard !isBlanking && !isPerDisplayFullBlanked else { return }
+        guard !isBlanking, !isPerDisplayFullBlanked else { return }
         isBlanking = true
         activationTime = ProcessInfo.processInfo.systemUptime
 
@@ -244,7 +244,7 @@ class ScreenBlanker {
                 }
             }
 
-            for step in 1...steps {
+            for step in 1 ... steps {
                 guard !Task.isCancelled else { return }
 
                 let progress = Double(step) / Double(steps)
@@ -257,17 +257,17 @@ class ScreenBlanker {
                     let m = BrightnessManager.channelMultipliers(for: warmth)
 
                     // Use gamma tables (matching applyGamma) to preserve contrast S-curve
-                    var rTable = (0..<256).map { i -> CGGammaValue in
+                    var rTable = (0 ..< 256).map { i -> CGGammaValue in
                         let t = Double(i) / 255.0
                         let curved = BrightnessManager.applyContrast(t, contrast: contrast)
                         return CGGammaValue(curved * current * m.r)
                     }
-                    var gTable = (0..<256).map { i -> CGGammaValue in
+                    var gTable = (0 ..< 256).map { i -> CGGammaValue in
                         let t = Double(i) / 255.0
                         let curved = BrightnessManager.applyContrast(t, contrast: contrast)
                         return CGGammaValue(curved * current * m.g)
                     }
-                    var bTable = (0..<256).map { i -> CGGammaValue in
+                    var bTable = (0 ..< 256).map { i -> CGGammaValue in
                         let t = Double(i) / 255.0
                         let curved = BrightnessManager.applyContrast(t, contrast: contrast)
                         return CGGammaValue(curved * current * m.b)
@@ -292,9 +292,9 @@ class ScreenBlanker {
             // Setting min=0 and max=0 makes output always 0 (black) regardless of input
             CGSetDisplayTransferByFormula(
                 displayID,
-                0, 0, 1,  // red:   min, max, gamma
-                0, 0, 1,  // green: min, max, gamma
-                0, 0, 1   // blue:  min, max, gamma
+                0, 0, 1, // red:   min, max, gamma
+                0, 0, 1, // green: min, max, gamma
+                0, 0, 1 // blue:  min, max, gamma
             )
         }
     }
@@ -339,7 +339,11 @@ class ScreenBlanker {
 
     /// Adds a subtle "Press Esc to wake" hint near the bottom of the overlay window
     private func addWakeHint(to window: NSWindow, screen: NSScreen) {
-        let label = NSTextField(labelWithString: NSLocalizedString("Press Esc to wake", comment: "Hint shown on blanked single-display"))
+        let hintText = NSLocalizedString(
+            "Press Esc to wake",
+            comment: "Hint shown on blanked single-display"
+        )
+        let label = NSTextField(labelWithString: hintText)
         label.font = .systemFont(ofSize: 13, weight: .medium)
         label.textColor = .white.withAlphaComponent(0.25)
         label.alignment = .center
@@ -411,8 +415,11 @@ class ScreenBlanker {
         }
         if let localKeyMonitor { eventMonitors.append(localKeyMonitor) }
 
-        let localMouseMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .scrollWheel, .mouseMoved]) { _ in
-            return nil
+        let swallowedEvents: NSEvent.EventTypeMask = [
+            .leftMouseDown, .rightMouseDown, .scrollWheel, .mouseMoved
+        ]
+        let localMouseMonitor = NSEvent.addLocalMonitorForEvents(matching: swallowedEvents) { _ in
+            nil
         }
         if let localMouseMonitor { eventMonitors.append(localMouseMonitor) }
     }
@@ -432,7 +439,7 @@ class ScreenBlanker {
 
         let mouseClickEvents: NSEvent.EventTypeMask = [.leftMouseDown, .rightMouseDown]
         let allMouseEvents: NSEvent.EventTypeMask = [.leftMouseDown, .rightMouseDown, .scrollWheel, .mouseMoved]
-        let mouseEvents: NSEvent.EventTypeMask = self.ignoreMouseMovement ? mouseClickEvents : allMouseEvents
+        let mouseEvents: NSEvent.EventTypeMask = ignoreMouseMovement ? mouseClickEvents : allMouseEvents
 
         let mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: mouseEvents) { _ in
             Task { @MainActor in action() }
