@@ -38,19 +38,11 @@ enum DisplayAction {
     static func performSleep(settings: AppSettings) {
         #if APPSTORE
             // Sandbox prevents spawning pmset — always use gamma-based screen blanking
-            ScreenBlanker.shared.ignoreMouseMovement = settings.ignoreMouseMovement
-            let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-            ScreenBlanker.shared.useFadeTransition = settings.fadeTransition && !reduceMotion
-            ScreenBlanker.shared.requireEscapeToDismiss = settings.requireEscapeToDismiss
-            ScreenBlanker.shared.blank()
+            blankWithSettings(settings)
         #else
             if settings.preventScreenLock {
                 // User wants blanking to avoid triggering screen lock
-                ScreenBlanker.shared.ignoreMouseMovement = settings.ignoreMouseMovement
-                let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-                ScreenBlanker.shared.useFadeTransition = settings.fadeTransition && !reduceMotion
-                ScreenBlanker.shared.requireEscapeToDismiss = settings.requireEscapeToDismiss
-                ScreenBlanker.shared.blank()
+                blankWithSettings(settings)
             } else {
                 // Use real display sleep via pmset
                 Task {
@@ -61,6 +53,16 @@ enum DisplayAction {
                 }
             }
         #endif
+    }
+
+    /// Configures ScreenBlanker from app settings and triggers blanking.
+    @MainActor
+    private static func blankWithSettings(_ settings: AppSettings) {
+        ScreenBlanker.shared.ignoreMouseMovement = settings.ignoreMouseMovement
+        let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        ScreenBlanker.shared.useFadeTransition = settings.fadeTransition && !reduceMotion
+        ScreenBlanker.shared.requireEscapeToDismiss = settings.requireEscapeToDismiss
+        ScreenBlanker.shared.blank()
     }
 }
 

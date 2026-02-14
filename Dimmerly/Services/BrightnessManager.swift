@@ -600,7 +600,7 @@ class BrightnessManager: ObservableObject {
     ///   - channelMultiplier: RGB channel multiplier (from warmth calculation)
     ///   - contrast: Contrast level for S-curve transformation
     /// - Returns: 256-entry array of gamma values
-    private static func buildTable(brightness: Double, channelMultiplier: Double, contrast: Double) -> [CGGammaValue] {
+    static func buildTable(brightness: Double, channelMultiplier: Double, contrast: Double) -> [CGGammaValue] {
         let scale = brightness * channelMultiplier
         return (0 ..< 256).map { i in
             let t = Double(i) / 255.0

@@ -256,22 +256,9 @@ class ScreenBlanker {
                     let current = start * (1.0 - progress)
                     let m = BrightnessManager.channelMultipliers(for: warmth)
 
-                    // Use gamma tables (matching applyGamma) to preserve contrast S-curve
-                    var rTable = (0 ..< 256).map { i -> CGGammaValue in
-                        let t = Double(i) / 255.0
-                        let curved = BrightnessManager.applyContrast(t, contrast: contrast)
-                        return CGGammaValue(curved * current * m.r)
-                    }
-                    var gTable = (0 ..< 256).map { i -> CGGammaValue in
-                        let t = Double(i) / 255.0
-                        let curved = BrightnessManager.applyContrast(t, contrast: contrast)
-                        return CGGammaValue(curved * current * m.g)
-                    }
-                    var bTable = (0 ..< 256).map { i -> CGGammaValue in
-                        let t = Double(i) / 255.0
-                        let curved = BrightnessManager.applyContrast(t, contrast: contrast)
-                        return CGGammaValue(curved * current * m.b)
-                    }
+                    var rTable = BrightnessManager.buildTable(brightness: current, channelMultiplier: m.r, contrast: contrast)
+                    var gTable = BrightnessManager.buildTable(brightness: current, channelMultiplier: m.g, contrast: contrast)
+                    var bTable = BrightnessManager.buildTable(brightness: current, channelMultiplier: m.b, contrast: contrast)
 
                     CGSetDisplayTransferByTable(displayID, 256, &rTable, &gTable, &bTable)
                 }
