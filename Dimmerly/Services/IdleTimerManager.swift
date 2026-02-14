@@ -11,8 +11,8 @@
 //  - Reset on activity (allows firing again after next idle period)
 //
 
-import Foundation
 import CoreGraphics
+import Foundation
 
 /// Manages automatic display blanking after a period of user inactivity.
 ///
@@ -136,6 +136,7 @@ class IdleTimerManager: ObservableObject {
     }
 
     // MARK: - Lifecycle
+
     // Note: deinit intentionally omitted to avoid @MainActor data race warnings in Swift 6.
     // This manager is held by @StateObject in DimmerlyApp for the app's lifetime, so deinit
     // never executes. Cleanup is handled explicitly via stop() when idle timer is disabled.

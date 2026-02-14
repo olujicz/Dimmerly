@@ -1,0 +1,28 @@
+excluded:
+  - .build
+
+# Short variable names are idiomatic in Swift for loops (i), math (t, x, y),
+# gamma multipliers (m), and test shorthands (bm).
+identifier_name:
+  min_length: 1
+
+# RGB tuples (r, g, b) are a natural 3-member pattern.
+large_tuple:
+  warning: 3
+
+# Large service files (BrightnessManager, SettingsView) are cohesive units.
+file_length:
+  warning: 1000
+  error: 1500
+
+type_body_length:
+  warning: 500
+  error: 800
+
+function_body_length:
+  warning: 80
+  error: 150
+
+cyclomatic_complexity:
+  warning: 15
+  error: 25

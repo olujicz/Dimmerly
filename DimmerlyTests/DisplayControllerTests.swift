@@ -6,12 +6,11 @@
 //  Tests error handling and validation logic.
 //
 
-import XCTest
 @testable import Dimmerly
+import XCTest
 
 /// Tests for the DisplayController
 final class DisplayControllerTests: XCTestCase {
-
     override func tearDown() {
         DisplayController.processRunner = nil
         super.tearDown()
@@ -26,7 +25,7 @@ final class DisplayControllerTests: XCTestCase {
         switch result {
         case .success:
             break // expected
-        case .failure(let error):
+        case let .failure(error):
             XCTFail("Expected success, got \(error)")
         }
     }
@@ -50,7 +49,7 @@ final class DisplayControllerTests: XCTestCase {
 
         let result = await DisplayController.sleepDisplays()
 
-        if case .failure(.pmsetFailed(let status)) = result {
+        if case let .failure(.pmsetFailed(status)) = result {
             XCTAssertEqual(status, 42)
         } else {
             XCTFail("Expected pmsetFailed failure")
@@ -68,7 +67,10 @@ final class DisplayControllerTests: XCTestCase {
         let pmsetFailedError = DisplayError.pmsetFailed(status: 1)
         XCTAssertNotNil(pmsetFailedError.errorDescription, "pmsetFailed should have error description")
         XCTAssertNotNil(pmsetFailedError.recoverySuggestion, "pmsetFailed should have recovery suggestion")
-        XCTAssertTrue(pmsetFailedError.errorDescription?.contains("1") ?? false, "Error description should contain exit status")
+        XCTAssertTrue(
+            pmsetFailedError.errorDescription?.contains("1") ?? false,
+            "Error description should contain exit status"
+        )
 
         // Test permissionDenied error
         let permissionError = DisplayError.permissionDenied
@@ -99,7 +101,7 @@ final class DisplayControllerTests: XCTestCase {
         switch failureResult {
         case .success:
             XCTFail("Failure result should not be success")
-        case .failure(let error):
+        case let .failure(error):
             if case .pmsetNotFound = error {
                 XCTAssertTrue(true, "Failure case handled correctly")
             } else {

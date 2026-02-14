@@ -6,13 +6,12 @@
 //  Tests default values and persistence behavior.
 //
 
-import XCTest
 @testable import Dimmerly
+import XCTest
 
 /// Tests for the AppSettings model
 @MainActor
 final class AppSettingsTests: XCTestCase {
-
     var settings: AppSettings!
     let testSuiteName = "DimmerlyTestSuite"
 
@@ -26,7 +25,7 @@ final class AppSettingsTests: XCTestCase {
         "dimmerlyIdleTimerEnabled",
         "dimmerlyIdleTimerMinutes",
         "dimmerlyFadeTransition",
-        "dimmerlyRequireEscapeToDismiss",
+        "dimmerlyRequireEscapeToDismiss"
     ]
 
     override func setUp() async throws {
@@ -56,7 +55,10 @@ final class AppSettingsTests: XCTestCase {
         // The default shortcut should match GlobalShortcut.default
         let defaultShortcut = GlobalShortcut.default
         XCTAssertEqual(newSettings.keyboardShortcut.key, defaultShortcut.key, "Default key should match")
-        XCTAssertEqual(newSettings.keyboardShortcut.modifiers, defaultShortcut.modifiers, "Default modifiers should match")
+        XCTAssertEqual(
+            newSettings.keyboardShortcut.modifiers, defaultShortcut.modifiers,
+            "Default modifiers should match"
+        )
     }
 
     /// Tests that keyboard shortcut changes trigger objectWillChange
@@ -111,13 +113,16 @@ final class AppSettingsTests: XCTestCase {
 
         let defaultShortcut = GlobalShortcut.default
         XCTAssertEqual(settings.keyboardShortcut.key, defaultShortcut.key, "Shortcut key should be reset")
-        XCTAssertEqual(settings.keyboardShortcut.modifiers, defaultShortcut.modifiers, "Shortcut modifiers should be reset")
+        XCTAssertEqual(
+            settings.keyboardShortcut.modifiers, defaultShortcut.modifiers,
+            "Shortcut modifiers should be reset"
+        )
     }
 
     /// Tests that AppSettings is ObservableObject
     func testObservableObjectConformance() {
-        // Compile-time conformance check via type constraint
-        func requiresObservable<T: ObservableObject>(_ obj: T) {}
+        /// Compile-time conformance check via type constraint
+        func requiresObservable<T: ObservableObject>(_: T) {}
         requiresObservable(settings)
     }
 
@@ -190,7 +195,7 @@ final class AppSettingsTests: XCTestCase {
     func testMenuBarIconInvalidRawValueFallback() {
         settings.menuBarIconRaw = "nonexistent_style"
         XCTAssertEqual(settings.menuBarIcon, .defaultIcon,
-                      "Invalid raw value should fall back to .defaultIcon")
+                       "Invalid raw value should fall back to .defaultIcon")
     }
 
     // MARK: - Comprehensive resetToDefaults
@@ -225,10 +230,8 @@ final class AppSettingsTests: XCTestCase {
     }
 }
 
-
 @MainActor
 final class ScheduleManagerTests: XCTestCase {
-
     private var manager: ScheduleManager!
 
     override func setUp() async throws {
@@ -242,7 +245,7 @@ final class ScheduleManagerTests: XCTestCase {
         UserDefaults.standard.removeObject(forKey: "dimmerlyDimmingSchedules")
     }
 
-    func testCheckSchedulesCatchesUpAfterLongGap() {
+    func testCheckSchedulesCatchesUpAfterLongGap() throws {
         var triggerCount = 0
         manager.onScheduleTriggered = { _ in triggerCount += 1 }
 
@@ -256,17 +259,23 @@ final class ScheduleManagerTests: XCTestCase {
         manager.addSchedule(schedule)
 
         let calendar = Calendar.current
-        let beforeTrigger = calendar.date(from: DateComponents(year: 2026, month: 1, day: 1, hour: 9, minute: 58, second: 30))!
+        let beforeTrigger = try XCTUnwrap(calendar.date(from: DateComponents(
+            year: 2026, month: 1, day: 1,
+            hour: 9, minute: 58, second: 30
+        )))
         manager.checkSchedules(now: beforeTrigger)
         XCTAssertEqual(triggerCount, 0)
 
-        let afterGap = calendar.date(from: DateComponents(year: 2026, month: 1, day: 1, hour: 10, minute: 5, second: 0))!
+        let afterGap = try XCTUnwrap(calendar.date(from: DateComponents(
+            year: 2026, month: 1, day: 1,
+            hour: 10, minute: 5, second: 0
+        )))
         manager.checkSchedules(now: afterGap)
 
         XCTAssertEqual(triggerCount, 1, "Schedule should fire once if trigger was crossed while app was not checking")
     }
 
-    func testUpdateScheduleClearsSameDayFiredState() {
+    func testUpdateScheduleClearsSameDayFiredState() throws {
         var triggerCount = 0
         let firstPreset = UUID()
         let secondPreset = UUID()
@@ -288,7 +297,10 @@ final class ScheduleManagerTests: XCTestCase {
         manager.addSchedule(original)
 
         let calendar = Calendar.current
-        let firstRun = calendar.date(from: DateComponents(year: 2026, month: 1, day: 1, hour: 10, minute: 0, second: 30))!
+        let firstRun = try XCTUnwrap(calendar.date(from: DateComponents(
+            year: 2026, month: 1, day: 1,
+            hour: 10, minute: 0, second: 30
+        )))
         manager.checkSchedules(now: firstRun)
         XCTAssertEqual(triggerCount, 1)
 
@@ -301,7 +313,10 @@ final class ScheduleManagerTests: XCTestCase {
         )
         manager.updateSchedule(updated)
 
-        let secondRun = calendar.date(from: DateComponents(year: 2026, month: 1, day: 1, hour: 10, minute: 1, second: 30))!
+        let secondRun = try XCTUnwrap(calendar.date(from: DateComponents(
+            year: 2026, month: 1, day: 1,
+            hour: 10, minute: 1, second: 30
+        )))
         manager.checkSchedules(now: secondRun)
 
         XCTAssertEqual(triggerCount, 2, "Edited schedule should be allowed to fire again on the same day")

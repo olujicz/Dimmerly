@@ -5,12 +5,11 @@
 //  Unit tests for BrightnessPreset and PresetManager.
 //
 
-import XCTest
 @testable import Dimmerly
+import XCTest
 
 @MainActor
 final class BrightnessPresetTests: XCTestCase {
-
     /// Tests Codable round-trip for BrightnessPreset
     func testCodableRoundTrip() throws {
         let preset = BrightnessPreset(
@@ -77,7 +76,7 @@ final class BrightnessPresetTests: XCTestCase {
         let bm = BrightnessManager(forTesting: true)
 
         // Add up to the limit
-        for i in 0..<PresetManager.maxPresets {
+        for i in 0 ..< PresetManager.maxPresets {
             manager.saveCurrentAsPreset(name: "Preset \(i)", brightnessManager: bm)
         }
         XCTAssertEqual(manager.presets.count, PresetManager.maxPresets)
@@ -181,8 +180,14 @@ final class BrightnessPresetTests: XCTestCase {
     func testEquatableDifferingByWarmth() {
         let id = UUID()
         let date = Date()
-        let preset1 = BrightnessPreset(id: id, name: "Test", displayBrightness: ["1": 0.5], createdAt: date, universalWarmth: 0.3)
-        let preset2 = BrightnessPreset(id: id, name: "Test", displayBrightness: ["1": 0.5], createdAt: date, universalWarmth: 0.7)
+        let preset1 = BrightnessPreset(
+            id: id, name: "Test", displayBrightness: ["1": 0.5],
+            createdAt: date, universalWarmth: 0.3
+        )
+        let preset2 = BrightnessPreset(
+            id: id, name: "Test", displayBrightness: ["1": 0.5],
+            createdAt: date, universalWarmth: 0.7
+        )
 
         XCTAssertNotEqual(preset1, preset2, "Presets differing by warmth should not be equal")
     }
@@ -190,8 +195,14 @@ final class BrightnessPresetTests: XCTestCase {
     func testEquatableDifferingByContrast() {
         let id = UUID()
         let date = Date()
-        let preset1 = BrightnessPreset(id: id, name: "Test", displayBrightness: ["1": 0.5], createdAt: date, universalContrast: 0.2)
-        let preset2 = BrightnessPreset(id: id, name: "Test", displayBrightness: ["1": 0.5], createdAt: date, universalContrast: 0.9)
+        let preset1 = BrightnessPreset(
+            id: id, name: "Test", displayBrightness: ["1": 0.5],
+            createdAt: date, universalContrast: 0.2
+        )
+        let preset2 = BrightnessPreset(
+            id: id, name: "Test", displayBrightness: ["1": 0.5],
+            createdAt: date, universalContrast: 0.9
+        )
 
         XCTAssertNotEqual(preset1, preset2, "Presets differing by contrast should not be equal")
     }

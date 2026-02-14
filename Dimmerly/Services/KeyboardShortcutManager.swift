@@ -6,8 +6,8 @@
 //  Requires accessibility permissions to function.
 //
 
-import Foundation
 import AppKit
+import Foundation
 
 /// Manages global keyboard shortcuts for the application
 @MainActor
@@ -30,8 +30,8 @@ class KeyboardShortcutManager: ObservableObject {
     ///
     /// - Parameter shortcut: The keyboard shortcut to monitor
     init(shortcut: GlobalShortcut = .default) {
-        self.currentShortcut = shortcut
-        self.hasAccessibilityPermission = Self.checkAccessibilityPermission()
+        currentShortcut = shortcut
+        hasAccessibilityPermission = Self.checkAccessibilityPermission()
     }
 
     /// Checks if the app has accessibility permissions
@@ -53,7 +53,7 @@ class KeyboardShortcutManager: ObservableObject {
     ///
     /// - Parameter onTriggered: Callback to invoke when the shortcut is pressed
     func startMonitoring(onTriggered: @escaping () -> Void) {
-        self.onShortcutTriggered = onTriggered
+        onShortcutTriggered = onTriggered
         stopMonitoring()
 
         // Check for permissions (don't prompt — let the user enable via Settings)
@@ -101,11 +101,11 @@ class KeyboardShortcutManager: ObservableObject {
     ///
     /// - Parameter shortcut: The new keyboard shortcut to monitor
     func updateShortcut(_ shortcut: GlobalShortcut) {
-        self.currentShortcut = shortcut
+        currentShortcut = shortcut
 
         // Restart monitoring if it was active
-        if (globalEventMonitor != nil || localEventMonitor != nil),
-            let callback = onShortcutTriggered {
+        if globalEventMonitor != nil || localEventMonitor != nil,
+           let callback = onShortcutTriggered {
             startMonitoring(onTriggered: callback)
         }
     }
@@ -125,13 +125,15 @@ class KeyboardShortcutManager: ObservableObject {
     ///   - modifierFlags: Modifier keys (⌘⌥⌃⇧) from NSEvent
     private func handleKeyEvent(keyCode: UInt16, modifierFlags: NSEvent.ModifierFlags) {
         guard let shortcut = GlobalShortcut.from(keyCode: keyCode, modifierFlags: modifierFlags),
-              currentShortcut == shortcut else {
+              currentShortcut == shortcut
+        else {
             return
         }
         onShortcutTriggered?()
     }
 
     // MARK: - Lifecycle
+
     // Note: deinit intentionally omitted to avoid @MainActor data race warnings in Swift 6.
     // This manager is held by @StateObject in DimmerlyApp for the app's lifetime, so deinit
     // never executes. Cleanup is handled explicitly via stopMonitoring() when needed.

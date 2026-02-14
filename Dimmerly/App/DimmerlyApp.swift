@@ -6,8 +6,8 @@
 //  Provides menu bar interface and settings window.
 //
 
-import SwiftUI
 import AppKit
+import SwiftUI
 
 @main
 struct DimmerlyApp: App {
@@ -145,9 +145,13 @@ struct DimmerlyApp: App {
         ) { [presetManager, brightnessManager] _ in
             Task { @MainActor in
                 // Read preset ID from shared defaults (set by widget before posting notification)
-                guard let presetIDString = SharedConstants.sharedDefaults?.string(forKey: SharedConstants.widgetPresetCommandKey),
+                let defaults = SharedConstants.sharedDefaults
+                guard let presetIDString = defaults?.string(
+                    forKey: SharedConstants.widgetPresetCommandKey
+                ),
                       let uuid = UUID(uuidString: presetIDString),
-                      let preset = presetManager.presets.first(where: { $0.id == uuid }) else {
+                      let preset = presetManager.presets.first(where: { $0.id == uuid })
+                else {
                     return
                 }
                 presetManager.applyPreset(preset, to: brightnessManager, animated: true)

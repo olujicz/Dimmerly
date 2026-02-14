@@ -18,10 +18,11 @@ struct DimDisplaysWidgetIntent: AppIntent {
     @MainActor
     func perform() async throws -> some IntentResult {
         #if WIDGET_EXTENSION
-        DistributedNotificationCenter.default().postNotificationName(
-            SharedConstants.dimNotification, object: nil, userInfo: nil, deliverImmediately: true)
+            DistributedNotificationCenter.default().postNotificationName(
+                SharedConstants.dimNotification, object: nil, userInfo: nil, deliverImmediately: true
+            )
         #else
-        DisplayAction.performSleep(settings: AppSettings.shared)
+            DisplayAction.performSleep(settings: AppSettings.shared)
         #endif
         return .result()
     }
@@ -45,18 +46,19 @@ struct ApplyPresetWidgetIntent: AppIntent {
     @MainActor
     func perform() async throws -> some IntentResult {
         #if WIDGET_EXTENSION
-        SharedConstants.sharedDefaults?.set(presetID, forKey: SharedConstants.widgetPresetCommandKey)
-        SharedConstants.sharedDefaults?.synchronize()
-        DistributedNotificationCenter.default().postNotificationName(
-            SharedConstants.presetNotification, object: nil, userInfo: nil, deliverImmediately: true)
+            SharedConstants.sharedDefaults?.set(presetID, forKey: SharedConstants.widgetPresetCommandKey)
+            SharedConstants.sharedDefaults?.synchronize()
+            DistributedNotificationCenter.default().postNotificationName(
+                SharedConstants.presetNotification, object: nil, userInfo: nil, deliverImmediately: true
+            )
         #else
-        guard let uuid = UUID(uuidString: presetID) else { return .result() }
-        let presetManager = PresetManager.shared
-        let brightnessManager = BrightnessManager.shared
-        guard let preset = presetManager.presets.first(where: { $0.id == uuid }) else {
-            return .result()
-        }
-        presetManager.applyPreset(preset, to: brightnessManager, animated: true)
+            guard let uuid = UUID(uuidString: presetID) else { return .result() }
+            let presetManager = PresetManager.shared
+            let brightnessManager = BrightnessManager.shared
+            guard let preset = presetManager.presets.first(where: { $0.id == uuid }) else {
+                return .result()
+            }
+            presetManager.applyPreset(preset, to: brightnessManager, animated: true)
         #endif
         return .result()
     }

@@ -6,8 +6,8 @@
 //  Allows users to press a key combination to set a new shortcut.
 //
 
-import SwiftUI
 import AppKit
+import SwiftUI
 
 /// A view that allows users to record a keyboard shortcut
 struct KeyboardShortcutRecorder: View {
@@ -30,7 +30,7 @@ struct KeyboardShortcutRecorder: View {
                 Button(action: {
                     conflictMessage = nil
                     isRecording.toggle()
-                }) {
+                }, label: {
                     if isRecording {
                         Text("Press shortcut\u{2026}")
                             .frame(minWidth: 120)
@@ -42,7 +42,7 @@ struct KeyboardShortcutRecorder: View {
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
                     }
-                }
+                })
                 .buttonStyle(.bordered)
                 .tint(isRecording ? .accentColor : nil)
                 .overlay(
@@ -60,7 +60,10 @@ struct KeyboardShortcutRecorder: View {
                 )
                 .accessibilityLabel(
                     String(
-                        format: NSLocalizedString("Keyboard shortcut: %@", comment: "Accessibility label: current keyboard shortcut"),
+                        format: NSLocalizedString(
+                            "Keyboard shortcut: %@",
+                            comment: "Accessibility label: current keyboard shortcut"
+                        ),
                         shortcut.displayString
                     )
                 )
@@ -72,9 +75,9 @@ struct KeyboardShortcutRecorder: View {
                 Button(action: {
                     conflictMessage = nil
                     shortcut = .default
-                }) {
+                }, label: {
                     Image(systemName: "arrow.counterclockwise")
-                }
+                })
                 .buttonStyle(.borderless)
                 .help(Text("Reset to default shortcut"))
                 .accessibilityLabel(Text("Reset shortcut to default"))
@@ -99,7 +102,7 @@ private struct ShortcutRecorderView: NSViewRepresentable {
     let onShortcutRecorded: (GlobalShortcut) -> Void
     let onConflictDetected: (String) -> Void
 
-    func makeNSView(context: Context) -> NSView {
+    func makeNSView(context _: Context) -> NSView {
         let view = ShortcutCaptureView()
         view.onShortcutCaptured = { shortcut in
             onShortcutRecorded(shortcut)
@@ -115,7 +118,7 @@ private struct ShortcutRecorderView: NSViewRepresentable {
         return view
     }
 
-    func updateNSView(_ nsView: NSView, context: Context) {
+    func updateNSView(_ nsView: NSView, context _: Context) {
         if let captureView = nsView as? ShortcutCaptureView {
             captureView.isActive = isRecording
         }
@@ -129,7 +132,9 @@ private class ShortcutCaptureView: NSView {
     var onRecordingCancelled: (() -> Void)?
     var onConflictDetected: ((String) -> Void)?
 
-    override var acceptsFirstResponder: Bool { true }
+    override var acceptsFirstResponder: Bool {
+        true
+    }
 
     override func keyDown(with event: NSEvent) {
         guard isActive else {
@@ -150,7 +155,11 @@ private class ShortcutCaptureView: NSView {
                 if shortcut.isReservedSystemShortcut {
                     onConflictDetected?(
                         String(
-                            format: NSLocalizedString("%@ is a standard system shortcut. Try a different combination.", comment: "Shortcut conflict message"),
+                            format: NSLocalizedString(
+                                "%@ is a standard system shortcut."
+                                + " Try a different combination.",
+                                comment: "Shortcut conflict message"
+                            ),
                             shortcut.displayString
                         )
                     )

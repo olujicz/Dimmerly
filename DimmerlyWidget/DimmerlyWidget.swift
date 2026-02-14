@@ -5,8 +5,8 @@
 //  WidgetKit widget providing quick-access dim and preset buttons.
 //
 
-import WidgetKit
 import SwiftUI
+import WidgetKit
 
 struct DimmerlyWidget: Widget {
     let kind = "DimmerlyWidget"

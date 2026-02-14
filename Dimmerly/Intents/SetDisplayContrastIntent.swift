@@ -10,12 +10,18 @@ import CoreGraphics
 
 struct SetDisplayContrastIntent: AppIntent {
     static let title: LocalizedStringResource = "Set Display Contrast"
-    static let description: IntentDescription = IntentDescription("Sets the contrast of a specific external display.")
+    static let description: IntentDescription = .init("Sets the contrast of a specific external display.")
 
     @Parameter(title: "Display")
     var display: DisplayEntity
 
-    @Parameter(title: "Contrast", description: "Contrast percentage (0–100, 50 = neutral)", default: 50.0, controlStyle: .slider, inclusiveRange: (0.0, 100.0))
+    @Parameter(
+        title: "Contrast",
+        description: "Contrast percentage (0–100, 50 = neutral)",
+        default: 50.0,
+        controlStyle: .slider,
+        inclusiveRange: (0.0, 100.0)
+    )
     var contrast: Double
 
     @MainActor

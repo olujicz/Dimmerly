@@ -27,8 +27,14 @@ enum DisplayError: LocalizedError, Sendable {
         switch self {
         case .pmsetNotFound:
             return NSLocalizedString("Display Sleep Unavailable", comment: "Error title: pmset not found")
-        case .pmsetFailed(let status):
-            return String(format: NSLocalizedString("Failed to Sleep Displays (Exit %d)", comment: "Error title: pmset non-zero exit"), status)
+        case let .pmsetFailed(status):
+            return String(
+                format: NSLocalizedString(
+                    "Failed to Sleep Displays (Exit %d)",
+                    comment: "Error title: pmset non-zero exit"
+                ),
+                status
+            )
         case .permissionDenied:
             return NSLocalizedString("Permission Denied", comment: "Error title: missing permissions")
         case .unknownError:
@@ -40,13 +46,33 @@ enum DisplayError: LocalizedError, Sendable {
     var recoverySuggestion: String? {
         switch self {
         case .pmsetNotFound:
-            return NSLocalizedString("The pmset utility was not found at /usr/bin/pmset. This is unexpected — pmset is included with macOS.", comment: "Recovery: pmset not found")
-        case .pmsetFailed(let status):
-            return String(format: NSLocalizedString("The pmset command failed with exit code %d. Check System Settings > Lock Screen and ensure display sleep is not disabled by policy.", comment: "Recovery: pmset failed"), status)
+            return NSLocalizedString(
+                "The pmset utility was not found at /usr/bin/pmset. This is unexpected — pmset is included with macOS.",
+                comment: "Recovery: pmset not found"
+            )
+        case let .pmsetFailed(status):
+            return String(
+                format: NSLocalizedString(
+                    "The pmset command failed with exit code %d. "
+                    + "Check System Settings > Lock Screen and ensure display sleep is not disabled by policy.",
+                    comment: "Recovery: pmset failed"
+                ),
+                status
+            )
         case .permissionDenied:
-            return NSLocalizedString("Dimmerly does not have permission to control displays. Please check System Settings > Privacy & Security.", comment: "Recovery: permission denied")
-        case .unknownError(let message):
-            return String(format: NSLocalizedString("An unexpected error occurred: %@. Please try again or restart the app.", comment: "Recovery: unknown error"), message)
+            return NSLocalizedString(
+                "Dimmerly does not have permission to control displays. "
+                + "Please check System Settings > Privacy & Security.",
+                comment: "Recovery: permission denied"
+            )
+        case let .unknownError(message):
+            return String(
+                format: NSLocalizedString(
+                    "An unexpected error occurred: %@. Please try again or restart the app.",
+                    comment: "Recovery: unknown error"
+                ),
+                message
+            )
         }
     }
 }

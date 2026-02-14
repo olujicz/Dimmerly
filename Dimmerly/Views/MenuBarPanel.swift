@@ -137,11 +137,11 @@ struct MenuBarPanel: View {
         } label: {
             HStack {
                 #if APPSTORE
-                Image(systemName: "sun.min.fill")
-                Text("Dim Displays")
+                    Image(systemName: "sun.min.fill")
+                    Text("Dim Displays")
                 #else
-                Image(systemName: settings.preventScreenLock ? "sun.min.fill" : "moon.fill")
-                Text(settings.preventScreenLock ? "Dim Displays" : "Turn Displays Off")
+                    Image(systemName: settings.preventScreenLock ? "sun.min.fill" : "moon.fill")
+                    Text(settings.preventScreenLock ? "Dim Displays" : "Turn Displays Off")
                 #endif
                 Spacer()
                 Text("↩")
@@ -345,7 +345,15 @@ struct DisplayBrightnessRow: View {
     @State private var warmthValue: Double
     @State private var contrastValue: Double
 
-    init(display: ExternalDisplay, isBlanked: Bool, showAdjustments: Bool, onChange: @escaping (Double) -> Void, onWarmthChange: @escaping (Double) -> Void, onContrastChange: @escaping (Double) -> Void, onToggleBlank: @escaping () -> Void) {
+    init(
+        display: ExternalDisplay,
+        isBlanked: Bool,
+        showAdjustments: Bool,
+        onChange: @escaping (Double) -> Void,
+        onWarmthChange: @escaping (Double) -> Void,
+        onContrastChange: @escaping (Double) -> Void,
+        onToggleBlank: @escaping () -> Void
+    ) {
         self.display = display
         self.isBlanked = isBlanked
         self.showAdjustments = showAdjustments
@@ -353,9 +361,9 @@ struct DisplayBrightnessRow: View {
         self.onWarmthChange = onWarmthChange
         self.onContrastChange = onContrastChange
         self.onToggleBlank = onToggleBlank
-        self._sliderValue = State(initialValue: display.brightness)
-        self._warmthValue = State(initialValue: display.warmth)
-        self._contrastValue = State(initialValue: display.contrast)
+        _sliderValue = State(initialValue: display.brightness)
+        _warmthValue = State(initialValue: display.warmth)
+        _contrastValue = State(initialValue: display.contrast)
     }
 
     var body: some View {
@@ -390,16 +398,25 @@ struct DisplayBrightnessRow: View {
                     .foregroundStyle(.secondary)
                     .accessibilityHidden(true)
 
-                Slider(value: $sliderValue, in: BrightnessManager.minimumBrightness...1)
+                Slider(
+                    value: $sliderValue,
+                    in: BrightnessManager.minimumBrightness ... 1
+                )
                     .accessibilityLabel(
                         String(
-                            format: NSLocalizedString("%@ brightness", comment: "Accessibility label: display brightness slider"),
+                            format: NSLocalizedString(
+                                "%@ brightness",
+                                comment: "Accessibility label: display brightness slider"
+                            ),
                             display.name
                         )
                     )
                     .accessibilityValue(
                         String(
-                            format: NSLocalizedString("%d percent", comment: "Accessibility value: brightness percentage"),
+                            format: NSLocalizedString(
+                                "%d percent",
+                                comment: "Accessibility value: brightness percentage"
+                            ),
                             Int(sliderValue * 100)
                         )
                     )
@@ -424,17 +441,23 @@ struct DisplayBrightnessRow: View {
                         .foregroundStyle(.blue)
                         .accessibilityHidden(true)
 
-                    Slider(value: $warmthValue, in: 0...1)
+                    Slider(value: $warmthValue, in: 0 ... 1)
                         .tint(.orange)
                         .accessibilityLabel(
                             String(
-                                format: NSLocalizedString("%@ warmth", comment: "Accessibility label: display warmth slider"),
+                                format: NSLocalizedString(
+                                    "%@ warmth",
+                                    comment: "Accessibility label: display warmth slider"
+                                ),
                                 display.name
                             )
                         )
                         .accessibilityValue(
                             String(
-                                format: NSLocalizedString("%d percent", comment: "Accessibility value: warmth percentage"),
+                                format: NSLocalizedString(
+                                    "%d percent",
+                                    comment: "Accessibility value: warmth percentage"
+                                ),
                                 Int(warmthValue * 100)
                             )
                         )
@@ -460,16 +483,22 @@ struct DisplayBrightnessRow: View {
                         .foregroundStyle(.secondary)
                         .accessibilityHidden(true)
 
-                    Slider(value: $contrastValue, in: 0...1)
+                    Slider(value: $contrastValue, in: 0 ... 1)
                         .accessibilityLabel(
                             String(
-                                format: NSLocalizedString("%@ contrast", comment: "Accessibility label: display contrast slider"),
+                                format: NSLocalizedString(
+                                    "%@ contrast",
+                                    comment: "Accessibility label: display contrast slider"
+                                ),
                                 display.name
                             )
                         )
                         .accessibilityValue(
                             String(
-                                format: NSLocalizedString("%d percent", comment: "Accessibility value: contrast percentage"),
+                                format: NSLocalizedString(
+                                    "%d percent",
+                                    comment: "Accessibility value: contrast percentage"
+                                ),
                                 Int(contrastValue * 100)
                             )
                         )

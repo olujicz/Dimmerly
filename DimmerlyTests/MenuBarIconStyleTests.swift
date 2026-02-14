@@ -5,11 +5,10 @@
 //  Unit tests for MenuBarIconStyle enum.
 //
 
-import XCTest
 @testable import Dimmerly
+import XCTest
 
 final class MenuBarIconStyleTests: XCTestCase {
-
     func testAllCasesCount() {
         XCTAssertEqual(MenuBarIconStyle.allCases.count, 5)
     }
@@ -33,7 +32,7 @@ final class MenuBarIconStyleTests: XCTestCase {
 
     func testSystemImageNames() {
         XCTAssertNil(MenuBarIconStyle.defaultIcon.systemImageName,
-                    "Default icon should use custom asset (nil)")
+                     "Default icon should use custom asset (nil)")
         XCTAssertEqual(MenuBarIconStyle.monitor.systemImageName, "display")
         XCTAssertEqual(MenuBarIconStyle.moonFilled.systemImageName, "moon.fill")
         XCTAssertEqual(MenuBarIconStyle.moonOutline.systemImageName, "moon")
@@ -43,7 +42,7 @@ final class MenuBarIconStyleTests: XCTestCase {
     func testIdEqualsRawValue() {
         for style in MenuBarIconStyle.allCases {
             XCTAssertEqual(style.id, style.rawValue,
-                          "id should equal rawValue for \(style)")
+                           "id should equal rawValue for \(style)")
         }
     }
 }

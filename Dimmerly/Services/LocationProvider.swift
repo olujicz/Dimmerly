@@ -6,9 +6,9 @@
 //  Supports both CLLocationManager-based and manual coordinate entry.
 //
 
-import Foundation
-import CoreLocation
 import AppKit
+import CoreLocation
+import Foundation
 
 @MainActor
 class LocationProvider: NSObject, ObservableObject {
@@ -50,7 +50,8 @@ class LocationProvider: NSObject, ObservableObject {
         switch locationManager.authorizationStatus {
         case .denied, .restricted:
             // Already denied — open System Settings so the user can grant access
-            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices") {
+            let prefURL = "x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices"
+            if let url = URL(string: prefURL) {
                 NSWorkspace.shared.open(url)
             }
         default:
@@ -109,7 +110,7 @@ extension LocationProvider: CLLocationManagerDelegate {
         }
     }
 
-    nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+    nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError _: Error) {
         manager.stopUpdatingLocation()
     }
 

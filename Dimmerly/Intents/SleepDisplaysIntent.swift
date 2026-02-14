@@ -9,7 +9,7 @@ import AppIntents
 
 struct SleepDisplaysIntent: AppIntent {
     static let title: LocalizedStringResource = "Sleep Displays"
-    static let description: IntentDescription = IntentDescription("Dims or sleeps all connected displays using Dimmerly.")
+    static let description: IntentDescription = .init("Dims or sleeps all connected displays using Dimmerly.")
 
     @MainActor
     func perform() async throws -> some IntentResult {

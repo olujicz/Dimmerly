@@ -12,12 +12,14 @@ import SwiftUI
 /// Available menu bar icon styles
 enum MenuBarIconStyle: String, CaseIterable, Identifiable {
     case defaultIcon = "default"
-    case monitor = "monitor"
-    case moonFilled = "moonFilled"
-    case moonOutline = "moonOutline"
-    case sunMoon = "sunMoon"
+    case monitor
+    case moonFilled
+    case moonOutline
+    case sunMoon
 
-    var id: String { rawValue }
+    var id: String {
+        rawValue
+    }
 
     /// SF Symbol name, or nil for the custom asset
     var systemImageName: String? {
@@ -45,7 +47,7 @@ enum MenuBarIconStyle: String, CaseIterable, Identifiable {
 @MainActor
 class AppSettings: ObservableObject {
     static let shared = AppSettings()
-    /// Pre-encoded default shortcut data (avoids force-try at property init)
+    // Pre-encoded default shortcut data (avoids force-try at property init)
     // swiftlint:disable:next force_try
     private static let defaultShortcutData = try! JSONEncoder().encode(GlobalShortcut.default)
 

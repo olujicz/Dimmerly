@@ -6,12 +6,11 @@
 //  Uses init(forTesting: true) to avoid hardware interaction.
 //
 
-import XCTest
 @testable import Dimmerly
+import XCTest
 
 @MainActor
 final class BrightnessManagerTests: XCTestCase {
-
     var bm: BrightnessManager!
 
     override func setUp() async throws {
@@ -69,9 +68,9 @@ final class BrightnessManagerTests: XCTestCase {
         // Endpoints 0.0 and 1.0 should be preserved at any contrast
         for c in [0.0, 0.25, 0.5, 0.75, 1.0] {
             XCTAssertEqual(BrightnessManager.applyContrast(0.0, contrast: c), 0.0, accuracy: 0.0001,
-                          "t=0 should map to 0 at contrast=\(c)")
+                           "t=0 should map to 0 at contrast=\(c)")
             XCTAssertEqual(BrightnessManager.applyContrast(1.0, contrast: c), 1.0, accuracy: 0.0001,
-                          "t=1 should map to 1 at contrast=\(c)")
+                           "t=1 should map to 1 at contrast=\(c)")
         }
     }
 
@@ -79,7 +78,7 @@ final class BrightnessManagerTests: XCTestCase {
         // Midpoint t=0.5 should map to 0.5 at any contrast
         for c in [0.0, 0.25, 0.75, 1.0] {
             XCTAssertEqual(BrightnessManager.applyContrast(0.5, contrast: c), 0.5, accuracy: 0.0001,
-                          "t=0.5 should map to 0.5 at contrast=\(c)")
+                           "t=0.5 should map to 0.5 at contrast=\(c)")
         }
     }
 
@@ -107,7 +106,7 @@ final class BrightnessManagerTests: XCTestCase {
             let low = BrightnessManager.applyContrast(0.25, contrast: c)
             let high = BrightnessManager.applyContrast(0.75, contrast: c)
             XCTAssertEqual(low + high, 1.0, accuracy: 0.0001,
-                          "S-curve should be symmetric at contrast=\(c)")
+                           "S-curve should be symmetric at contrast=\(c)")
         }
     }
 
@@ -148,7 +147,7 @@ final class BrightnessManagerTests: XCTestCase {
     func testBrightnessSnapshotMultiDisplay() {
         bm.displays = [
             ExternalDisplay(id: 1, name: "A", brightness: 0.5),
-            ExternalDisplay(id: 2, name: "B", brightness: 0.8),
+            ExternalDisplay(id: 2, name: "B", brightness: 0.8)
         ]
         let snap = bm.currentBrightnessSnapshot()
         XCTAssertEqual(snap["1"], 0.5)
@@ -164,7 +163,7 @@ final class BrightnessManagerTests: XCTestCase {
     func testWarmthSnapshotMultiDisplay() {
         bm.displays = [
             ExternalDisplay(id: 1, name: "A", brightness: 1.0, warmth: 0.2),
-            ExternalDisplay(id: 2, name: "B", brightness: 1.0, warmth: 0.9),
+            ExternalDisplay(id: 2, name: "B", brightness: 1.0, warmth: 0.9)
         ]
         let snap = bm.currentWarmthSnapshot()
         XCTAssertEqual(snap["1"], 0.2)
@@ -174,7 +173,7 @@ final class BrightnessManagerTests: XCTestCase {
     func testContrastSnapshotMultiDisplay() {
         bm.displays = [
             ExternalDisplay(id: 1, name: "A", brightness: 1.0, warmth: 0.0, contrast: 0.3),
-            ExternalDisplay(id: 2, name: "B", brightness: 1.0, warmth: 0.0, contrast: 0.7),
+            ExternalDisplay(id: 2, name: "B", brightness: 1.0, warmth: 0.0, contrast: 0.7)
         ]
         let snap = bm.currentContrastSnapshot()
         XCTAssertEqual(snap["1"], 0.3)
@@ -186,7 +185,7 @@ final class BrightnessManagerTests: XCTestCase {
     func testSetAllBrightness() {
         bm.displays = [
             ExternalDisplay(id: 1, name: "A", brightness: 0.5),
-            ExternalDisplay(id: 2, name: "B", brightness: 0.8),
+            ExternalDisplay(id: 2, name: "B", brightness: 0.8)
         ]
         bm.setAllBrightness(to: 0.4)
         XCTAssertEqual(bm.displays[0].brightness, 0.4)
@@ -196,7 +195,7 @@ final class BrightnessManagerTests: XCTestCase {
     func testSetAllWarmth() {
         bm.displays = [
             ExternalDisplay(id: 1, name: "A", brightness: 1.0, warmth: 0.0),
-            ExternalDisplay(id: 2, name: "B", brightness: 1.0, warmth: 0.5),
+            ExternalDisplay(id: 2, name: "B", brightness: 1.0, warmth: 0.5)
         ]
         bm.setAllWarmth(to: 0.7)
         XCTAssertEqual(bm.displays[0].warmth, 0.7)
@@ -206,7 +205,7 @@ final class BrightnessManagerTests: XCTestCase {
     func testSetAllContrast() {
         bm.displays = [
             ExternalDisplay(id: 1, name: "A", brightness: 1.0, warmth: 0.0, contrast: 0.5),
-            ExternalDisplay(id: 2, name: "B", brightness: 1.0, warmth: 0.0, contrast: 0.5),
+            ExternalDisplay(id: 2, name: "B", brightness: 1.0, warmth: 0.0, contrast: 0.5)
         ]
         bm.setAllContrast(to: 0.9)
         XCTAssertEqual(bm.displays[0].contrast, 0.9)
@@ -219,14 +218,14 @@ final class BrightnessManagerTests: XCTestCase {
         bm.displays = [ExternalDisplay(id: 1, name: "A", brightness: 1.0)]
         bm.setBrightness(for: 1, to: 0.01)
         XCTAssertEqual(bm.displays[0].brightness, BrightnessManager.minimumBrightness,
-                      "Brightness should clamp to minimum \(BrightnessManager.minimumBrightness)")
+                       "Brightness should clamp to minimum \(BrightnessManager.minimumBrightness)")
     }
 
     func testBrightnessClampsToMaximum() {
         bm.displays = [ExternalDisplay(id: 1, name: "A", brightness: 0.5)]
         bm.setBrightness(for: 1, to: 1.5)
         XCTAssertEqual(bm.displays[0].brightness, 1.0,
-                      "Brightness should clamp to maximum 1.0")
+                       "Brightness should clamp to maximum 1.0")
     }
 
     func testWarmthClampsToRange() {
@@ -252,7 +251,7 @@ final class BrightnessManagerTests: XCTestCase {
     func testApplyBrightnessValuesMatchingDisplays() {
         bm.displays = [
             ExternalDisplay(id: 1, name: "A", brightness: 1.0),
-            ExternalDisplay(id: 2, name: "B", brightness: 1.0),
+            ExternalDisplay(id: 2, name: "B", brightness: 1.0)
         ]
         bm.applyBrightnessValues(["1": 0.3, "2": 0.6])
         XCTAssertEqual(bm.displays[0].brightness, 0.3)
@@ -268,7 +267,7 @@ final class BrightnessManagerTests: XCTestCase {
     func testApplyWarmthValuesMatchingDisplays() {
         bm.displays = [
             ExternalDisplay(id: 1, name: "A", brightness: 1.0, warmth: 0.0),
-            ExternalDisplay(id: 2, name: "B", brightness: 1.0, warmth: 0.0),
+            ExternalDisplay(id: 2, name: "B", brightness: 1.0, warmth: 0.0)
         ]
         bm.applyWarmthValues(["1": 0.4, "2": 0.8])
         XCTAssertEqual(bm.displays[0].warmth, 0.4)
@@ -278,7 +277,7 @@ final class BrightnessManagerTests: XCTestCase {
     func testApplyContrastValuesMatchingDisplays() {
         bm.displays = [
             ExternalDisplay(id: 1, name: "A", brightness: 1.0, warmth: 0.0, contrast: 0.5),
-            ExternalDisplay(id: 2, name: "B", brightness: 1.0, warmth: 0.0, contrast: 0.5),
+            ExternalDisplay(id: 2, name: "B", brightness: 1.0, warmth: 0.0, contrast: 0.5)
         ]
         bm.applyContrastValues(["1": 0.2, "2": 0.9])
         XCTAssertEqual(bm.displays[0].contrast, 0.2)

@@ -16,16 +16,28 @@ enum LaunchAtLoginError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .registrationFailed(let error):
-            return String(format: NSLocalizedString("Failed to enable launch at login: %@", comment: "Error registering login item"), error.localizedDescription)
-        case .unregistrationFailed(let error):
-            return String(format: NSLocalizedString("Failed to disable launch at login: %@", comment: "Error unregistering login item"), error.localizedDescription)
+        case let .registrationFailed(error):
+            return String(
+                format: NSLocalizedString(
+                    "Failed to enable launch at login: %@",
+                    comment: "Error registering login item"
+                ),
+                error.localizedDescription
+            )
+        case let .unregistrationFailed(error):
+            return String(
+                format: NSLocalizedString(
+                    "Failed to disable launch at login: %@",
+                    comment: "Error unregistering login item"
+                ),
+                error.localizedDescription
+            )
         }
     }
 }
 
 /// Manages the app's launch-at-login functionality
-struct LaunchAtLoginManager {
+enum LaunchAtLoginManager {
     /// Registers the app to launch at login
     ///
     /// - Returns: A Result indicating success or failure

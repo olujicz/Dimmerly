@@ -10,7 +10,7 @@ import CoreGraphics
 
 struct ToggleDimIntent: AppIntent {
     static let title: LocalizedStringResource = "Toggle Display Dimming"
-    static let description: IntentDescription = IntentDescription("Blanks or unblanks a specific display.")
+    static let description: IntentDescription = .init("Blanks or unblanks a specific display.")
 
     @Parameter(title: "Display")
     var display: DisplayEntity
@@ -37,7 +37,7 @@ struct ToggleDimIntent: AppIntent {
 
 struct ApplyPresetIntent: AppIntent {
     static let title: LocalizedStringResource = "Apply Brightness Preset"
-    static let description: IntentDescription = IntentDescription("Applies a saved brightness preset to connected displays.")
+    static let description: IntentDescription = .init("Applies a saved brightness preset to connected displays.")
 
     @Parameter(title: "Preset Name")
     var presetName: String

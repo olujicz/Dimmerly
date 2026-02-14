@@ -56,7 +56,10 @@ struct ScheduleRow: View {
         .animation(.spring(response: 0.2, dampingFraction: 0.8), value: isHovered)
 
         if presetName == nil {
-            Label("The preset assigned to this schedule has been deleted.", systemImage: "exclamationmark.triangle.fill")
+            Label(
+                "The preset assigned to this schedule has been deleted.",
+                systemImage: "exclamationmark.triangle.fill"
+            )
                 .font(.caption)
                 .foregroundStyle(.red)
                 .symbolRenderingMode(.multicolor)
@@ -72,7 +75,12 @@ struct ScheduleRow: View {
         if let name = presetName {
             parts.append("\u{2192} \(name)")
         } else {
-            parts.append("\u{2192} " + NSLocalizedString("Deleted Preset", comment: "Schedule row: referenced preset was deleted"))
+            parts.append(
+                "\u{2192} " + NSLocalizedString(
+                    "Deleted Preset",
+                    comment: "Schedule row: referenced preset was deleted"
+                )
+            )
         }
         return parts.joined(separator: " ")
     }
@@ -114,7 +122,7 @@ struct AddScheduleSheet: View {
                         displayedComponents: .hourAndMinute
                     )
                 } else {
-                    Stepper(value: $offsetMinutes, in: -120...120, step: 5) {
+                    Stepper(value: $offsetMinutes, in: -120 ... 120, step: 5) {
                         LabeledContent("Offset") {
                             Text(offsetDescription)
                         }
@@ -227,7 +235,11 @@ struct ManualLocationSheet: View {
                         .foregroundStyle(.red)
                         .symbolRenderingMode(.multicolor)
                 } else {
-                    Text("Enter your approximate coordinates for sunrise and sunset calculations. You can find these by searching for your city on a map.")
+                    Text(
+                        "Enter your approximate coordinates for sunrise and sunset"
+                        + " calculations. You can find these by searching for"
+                        + " your city on a map."
+                    )
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -256,16 +268,26 @@ struct ManualLocationSheet: View {
 
     private func saveLocation() {
         guard let lat = Double(latitudeText),
-              let lon = Double(longitudeText) else {
-            validationError = NSLocalizedString("Please enter valid numbers.", comment: "Location validation error: not a number")
+              let lon = Double(longitudeText)
+        else {
+            validationError = NSLocalizedString(
+                "Please enter valid numbers.",
+                comment: "Location validation error: not a number"
+            )
             return
         }
-        guard lat >= -90 && lat <= 90 else {
-            validationError = NSLocalizedString("Latitude must be between -90 and 90.", comment: "Location validation error: latitude out of range")
+        guard lat >= -90, lat <= 90 else {
+            validationError = NSLocalizedString(
+                "Latitude must be between -90 and 90.",
+                comment: "Location validation error: latitude out of range"
+            )
             return
         }
-        guard lon >= -180 && lon <= 180 else {
-            validationError = NSLocalizedString("Longitude must be between -180 and 180.", comment: "Location validation error: longitude out of range")
+        guard lon >= -180, lon <= 180 else {
+            validationError = NSLocalizedString(
+                "Longitude must be between -180 and 180.",
+                comment: "Location validation error: longitude out of range"
+            )
             return
         }
 

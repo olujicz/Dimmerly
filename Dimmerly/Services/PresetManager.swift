@@ -56,7 +56,12 @@ class PresetManager: ObservableObject {
         let brightnessSnapshot = brightnessManager.currentBrightnessSnapshot()
         let warmthSnapshot = brightnessManager.currentWarmthSnapshot()
         let contrastSnapshot = brightnessManager.currentContrastSnapshot()
-        let preset = BrightnessPreset(name: name, displayBrightness: brightnessSnapshot, displayWarmth: warmthSnapshot, displayContrast: contrastSnapshot)
+        let preset = BrightnessPreset(
+            name: name,
+            displayBrightness: brightnessSnapshot,
+            displayWarmth: warmthSnapshot,
+            displayContrast: contrastSnapshot
+        )
         presets.append(preset)
         persistPresets()
     }
@@ -79,7 +84,7 @@ class PresetManager: ObservableObject {
     ///   - brightnessManager: The brightness manager to apply values to
     ///   - animated: Whether to animate the transition (default: false)
     func applyPreset(_ preset: BrightnessPreset, to brightnessManager: BrightnessManager, animated: Bool = false) {
-        if animated && brightnessManager.animateToPreset(preset) {
+        if animated, brightnessManager.animateToPreset(preset) {
             return
         }
 
@@ -148,7 +153,7 @@ class PresetManager: ObservableObject {
     static let defaultPresets: [BrightnessPreset] = [
         BrightnessPreset(name: "Full", universalBrightness: 1.0, universalWarmth: 0.0, universalContrast: 0.5),
         BrightnessPreset(name: "Evening", universalBrightness: 0.7, universalWarmth: 0.4, universalContrast: 0.5),
-        BrightnessPreset(name: "Night", universalBrightness: 0.3, universalWarmth: 0.8, universalContrast: 0.5),
+        BrightnessPreset(name: "Night", universalBrightness: 0.3, universalWarmth: 0.8, universalContrast: 0.5)
     ]
 
     /// Replaces all presets with the default set
@@ -171,7 +176,8 @@ class PresetManager: ObservableObject {
 
     private func loadPresets() {
         guard let data = UserDefaults.standard.data(forKey: persistenceKey),
-              let decoded = try? JSONDecoder().decode([BrightnessPreset].self, from: data) else {
+              let decoded = try? JSONDecoder().decode([BrightnessPreset].self, from: data)
+        else {
             return
         }
         presets = decoded

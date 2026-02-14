@@ -37,107 +37,109 @@ enum DisplayAction {
     @MainActor
     static func performSleep(settings: AppSettings) {
         #if APPSTORE
-        // Sandbox prevents spawning pmset — always use gamma-based screen blanking
-        ScreenBlanker.shared.ignoreMouseMovement = settings.ignoreMouseMovement
-        ScreenBlanker.shared.useFadeTransition = settings.fadeTransition && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-        ScreenBlanker.shared.requireEscapeToDismiss = settings.requireEscapeToDismiss
-        ScreenBlanker.shared.blank()
-        #else
-        if settings.preventScreenLock {
-            // User wants blanking to avoid triggering screen lock
+            // Sandbox prevents spawning pmset — always use gamma-based screen blanking
             ScreenBlanker.shared.ignoreMouseMovement = settings.ignoreMouseMovement
-            ScreenBlanker.shared.useFadeTransition = settings.fadeTransition && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+            let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+            ScreenBlanker.shared.useFadeTransition = settings.fadeTransition && !reduceMotion
             ScreenBlanker.shared.requireEscapeToDismiss = settings.requireEscapeToDismiss
             ScreenBlanker.shared.blank()
-        } else {
-            // Use real display sleep via pmset
-            Task {
-                let result = await DisplayController.sleepDisplays()
-                if case .failure(let error) = result {
-                    AlertPresenter.showError(error)
+        #else
+            if settings.preventScreenLock {
+                // User wants blanking to avoid triggering screen lock
+                ScreenBlanker.shared.ignoreMouseMovement = settings.ignoreMouseMovement
+                let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+                ScreenBlanker.shared.useFadeTransition = settings.fadeTransition && !reduceMotion
+                ScreenBlanker.shared.requireEscapeToDismiss = settings.requireEscapeToDismiss
+                ScreenBlanker.shared.blank()
+            } else {
+                // Use real display sleep via pmset
+                Task {
+                    let result = await DisplayController.sleepDisplays()
+                    if case let .failure(error) = result {
+                        AlertPresenter.showError(error)
+                    }
                 }
             }
-        }
         #endif
     }
 }
 
 #if !APPSTORE
-/// Controller responsible for putting displays to sleep via the pmset command-line tool.
-///
-/// This controller is only compiled for direct download builds (not App Store builds),
-/// because the App Sandbox prevents spawning command-line tools like pmset.
-///
-/// Mechanism:
-/// - Executes `/usr/bin/pmset displaysleepnow` to trigger native display sleep
-/// - This is the same command macOS uses internally for display sleep timers
-/// - Unlike ScreenBlanker (gamma-based), this actually powers down displays
-///
-/// Advantages over ScreenBlanker:
-/// - Real power savings (displays physically turn off)
-/// - System integration (respects pmset config, triggers sleep sensors)
-/// - No GPU usage (gamma-based blanking keeps GPU active)
-///
-/// Disadvantages:
-/// - Triggers screen lock on macOS Sonoma+ (security policy change)
-/// - Not available in App Store builds (sandbox restriction)
-struct DisplayController {
-    /// Injectable process runner for testing.
+    /// Controller responsible for putting displays to sleep via the pmset command-line tool.
     ///
-    /// When non-nil, this closure is called instead of spawning pmset. This allows
-    /// unit tests to verify sleep logic without actually putting displays to sleep.
+    /// This controller is only compiled for direct download builds (not App Store builds),
+    /// because the App Sandbox prevents spawning command-line tools like pmset.
     ///
-    /// Safety: Marked `nonisolated(unsafe)` because:
-    /// - Only mutated during test setup (before concurrent access begins)
-    /// - Becomes effectively read-only for the test duration
-    /// - Tests run serially, preventing data races
-    nonisolated(unsafe) static var processRunner: ((@Sendable () async -> Result<Void, DisplayError>))?
+    /// Mechanism:
+    /// - Executes `/usr/bin/pmset displaysleepnow` to trigger native display sleep
+    /// - This is the same command macOS uses internally for display sleep timers
+    /// - Unlike ScreenBlanker (gamma-based), this actually powers down displays
+    ///
+    /// Advantages over ScreenBlanker:
+    /// - Real power savings (displays physically turn off)
+    /// - System integration (respects pmset config, triggers sleep sensors)
+    /// - No GPU usage (gamma-based blanking keeps GPU active)
+    ///
+    /// Disadvantages:
+    /// - Triggers screen lock on macOS Sonoma+ (security policy change)
+    /// - Not available in App Store builds (sandbox restriction)
+    enum DisplayController {
+        /// Injectable process runner for testing.
+        ///
+        /// When non-nil, this closure is called instead of spawning pmset. This allows
+        /// unit tests to verify sleep logic without actually putting displays to sleep.
+        ///
+        /// Safety: Marked `nonisolated(unsafe)` because:
+        /// - Only mutated during test setup (before concurrent access begins)
+        /// - Becomes effectively read-only for the test duration
+        /// - Tests run serially, preventing data races
+        nonisolated(unsafe) static var processRunner: (@Sendable () async -> Result<Void, DisplayError>)?
 
-    /// Puts all connected displays to sleep using `pmset displaysleepnow`.
-    ///
-    /// This method:
-    /// 1. Verifies pmset exists at /usr/bin/pmset
-    /// 2. Spawns pmset process with "displaysleepnow" argument
-    /// 3. Waits for completion on a background queue (non-blocking)
-    /// 4. Returns success/failure based on exit code
-    ///
-    /// Error cases:
-    /// - `.pmsetNotFound`: pmset binary doesn't exist or isn't executable
-    /// - `.pmsetFailed(status)`: pmset ran but returned non-zero exit code
-    /// - `.unknownError(message)`: Process spawn failed (e.g., insufficient permissions)
-    ///
-    /// - Returns: Result indicating success or specific failure type
-    static func sleepDisplays() async -> Result<Void, DisplayError> {
-        // Allow tests to intercept without actually sleeping displays
-        if let runner = processRunner {
-            return await runner()
-        }
+        /// Puts all connected displays to sleep using `pmset displaysleepnow`.
+        ///
+        /// This method:
+        /// 1. Verifies pmset exists at /usr/bin/pmset
+        /// 2. Spawns pmset process with "displaysleepnow" argument
+        /// 3. Waits for completion on a background queue (non-blocking)
+        /// 4. Returns success/failure based on exit code
+        ///
+        /// Error cases:
+        /// - `.pmsetNotFound`: pmset binary doesn't exist or isn't executable
+        /// - `.pmsetFailed(status)`: pmset ran but returned non-zero exit code
+        /// - `.unknownError(message)`: Process spawn failed (e.g., insufficient permissions)
+        ///
+        /// - Returns: Result indicating success or specific failure type
+        static func sleepDisplays() async -> Result<Void, DisplayError> {
+            // Allow tests to intercept without actually sleeping displays
+            if let runner = processRunner {
+                return await runner()
+            }
 
-        let pmsetPath = "/usr/bin/pmset"
-        guard FileManager.default.isExecutableFile(atPath: pmsetPath) else {
-            return .failure(.pmsetNotFound)
-        }
+            let pmsetPath = "/usr/bin/pmset"
+            guard FileManager.default.isExecutableFile(atPath: pmsetPath) else {
+                return .failure(.pmsetNotFound)
+            }
 
-        return await withCheckedContinuation { continuation in
-            // Execute on background queue to avoid blocking the main thread
-            DispatchQueue.global(qos: .userInitiated).async {
-                let process = Process()
-                process.executableURL = URL(fileURLWithPath: pmsetPath)
-                process.arguments = ["displaysleepnow"]
+            return await withCheckedContinuation { continuation in
+                // Execute on background queue to avoid blocking the main thread
+                DispatchQueue.global(qos: .userInitiated).async {
+                    let process = Process()
+                    process.executableURL = URL(fileURLWithPath: pmsetPath)
+                    process.arguments = ["displaysleepnow"]
 
-                do {
-                    try process.run()
-                    process.waitUntilExit()
-                    if process.terminationStatus == 0 {
-                        continuation.resume(returning: .success(()))
-                    } else {
-                        continuation.resume(returning: .failure(.pmsetFailed(status: process.terminationStatus)))
+                    do {
+                        try process.run()
+                        process.waitUntilExit()
+                        if process.terminationStatus == 0 {
+                            continuation.resume(returning: .success(()))
+                        } else {
+                            continuation.resume(returning: .failure(.pmsetFailed(status: process.terminationStatus)))
+                        }
+                    } catch {
+                        continuation.resume(returning: .failure(.unknownError(error.localizedDescription)))
                     }
-                } catch {
-                    continuation.resume(returning: .failure(.unknownError(error.localizedDescription)))
                 }
             }
         }
     }
-}
 #endif

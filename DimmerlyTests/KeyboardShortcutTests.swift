@@ -6,13 +6,12 @@
 //  Tests shortcut creation, validation, and formatting.
 //
 
-import XCTest
 import AppKit
 @testable import Dimmerly
+import XCTest
 
 /// Tests for the GlobalShortcut model
 final class GlobalShortcutTests: XCTestCase {
-
     /// Tests that the default shortcut is configured correctly
     func testDefaultShortcut() {
         // Given: The default shortcut
@@ -96,7 +95,7 @@ final class GlobalShortcutTests: XCTestCase {
         let oldFormatJSON = """
         {"key":"d","modifiers":["command","option","shift"]}
         """
-        let data = oldFormatJSON.data(using: .utf8)!
+        let data = try XCTUnwrap(oldFormatJSON.data(using: .utf8))
 
         // When: We decode it
         let shortcut = try JSONDecoder().decode(GlobalShortcut.self, from: data)

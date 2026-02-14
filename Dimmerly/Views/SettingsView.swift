@@ -112,49 +112,53 @@ struct GeneralSettingsView: View {
     private var dimmingSection: some View {
         Section("Dimming") {
             #if APPSTORE
-            Text("Dims screens without putting displays to sleep. Your session stays unlocked.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            #else
-            Picker("Turn Displays Off:", selection: Binding(
-                get: { settings.preventScreenLock ? 1 : 0 },
-                set: { settings.preventScreenLock = $0 == 1 }
-            )) {
-                Text("Sleep & Lock").tag(0)
-                Text("Dim Only").tag(1)
-            }
-            .pickerStyle(.radioGroup)
-            .help("Choose between sleeping displays or dimming them")
-
-            if !settings.preventScreenLock {
-                Text("Turns off all displays and locks your Mac, just like closing the lid. To control how quickly your password is required, adjust your Lock Screen settings.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                Button {
-                    if let url = URL(string: "x-apple.systempreferences:com.apple.Lock-Screen-Settings.extension") {
-                        NSWorkspace.shared.open(url)
-                    }
-                } label: {
-                    HStack(spacing: 2) {
-                        Text("Open Lock Screen Settings")
-                        Image(systemName: "arrow.up.forward")
-                            .imageScale(.small)
-                    }
-                }
-                .font(.caption)
-                .help("Open macOS Lock Screen settings")
-            } else {
                 Text("Dims screens without putting displays to sleep. Your session stays unlocked.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-            }
+            #else
+                Picker("Turn Displays Off:", selection: Binding(
+                    get: { settings.preventScreenLock ? 1 : 0 },
+                    set: { settings.preventScreenLock = $0 == 1 }
+                )) {
+                    Text("Sleep & Lock").tag(0)
+                    Text("Dim Only").tag(1)
+                }
+                .pickerStyle(.radioGroup)
+                .help("Choose between sleeping displays or dimming them")
+
+                if !settings.preventScreenLock {
+                    Text(
+                        "Turns off all displays and locks your Mac, just like closing the lid."
+                        + " To control how quickly your password is required,"
+                        + " adjust your Lock Screen settings."
+                    )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Button {
+                        if let url = URL(string: "x-apple.systempreferences:com.apple.Lock-Screen-Settings.extension") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    } label: {
+                        HStack(spacing: 2) {
+                            Text("Open Lock Screen Settings")
+                            Image(systemName: "arrow.up.forward")
+                                .imageScale(.small)
+                        }
+                    }
+                    .font(.caption)
+                    .help("Open macOS Lock Screen settings")
+                } else {
+                    Text("Dims screens without putting displays to sleep. Your session stays unlocked.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             #endif
 
             #if APPSTORE
-            let showDimOptions = true
+                let showDimOptions = true
             #else
-            let showDimOptions = settings.preventScreenLock
+                let showDimOptions = settings.preventScreenLock
             #endif
 
             if showDimOptions {
@@ -184,7 +188,7 @@ struct GeneralSettingsView: View {
                 .help("Automatically dim displays after a period of inactivity")
 
             if settings.idleTimerEnabled {
-                Stepper(value: $settings.idleTimerMinutes, in: 1...60) {
+                Stepper(value: $settings.idleTimerMinutes, in: 1 ... 60) {
                     Text(
                         String(
                             format: NSLocalizedString(
@@ -318,9 +322,9 @@ struct GeneralSettingsView: View {
         Section("Keyboard Shortcut") {
             HStack {
                 #if APPSTORE
-                Text("Dim Displays:")
+                    Text("Dim Displays:")
                 #else
-                Text(settings.preventScreenLock ? "Dim Displays:" : "Sleep Displays:")
+                    Text(settings.preventScreenLock ? "Dim Displays:" : "Sleep Displays:")
                 #endif
                 KeyboardShortcutRecorder(
                     shortcut: Binding(
@@ -348,7 +352,10 @@ struct GeneralSettingsView: View {
 
             if !shortcutManager.hasAccessibilityPermission {
                 VStack(alignment: .leading, spacing: 8) {
-                    Label("Accessibility permission is required for global shortcuts.", systemImage: "exclamationmark.triangle.fill")
+                    Label(
+                        "Accessibility permission is required for global shortcuts.",
+                        systemImage: "exclamationmark.triangle.fill"
+                    )
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .symbolRenderingMode(.multicolor)
@@ -452,11 +459,15 @@ struct GeneralSettingsView: View {
         let credits = NSMutableAttributedString()
 
         let description = NSAttributedString(
-            string: NSLocalizedString("A macOS menu bar utility for putting your displays to sleep \u{2014} with a single keyboard shortcut.\n", comment: "About panel description"),
+            string: NSLocalizedString(
+                "A macOS menu bar utility for putting your displays to sleep"
+                + " \u{2014} with a single keyboard shortcut.\n",
+                comment: "About panel description"
+            ),
             attributes: [
                 .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
                 .foregroundColor: NSColor.secondaryLabelColor,
-                .paragraphStyle: centeredStyle,
+                .paragraphStyle: centeredStyle
             ]
         )
         credits.append(description)
@@ -466,13 +477,13 @@ struct GeneralSettingsView: View {
             attributes: [
                 .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
                 .link: URL(string: "https://github.com/olujicz/Dimmerly") as Any,
-                .paragraphStyle: centeredStyle,
+                .paragraphStyle: centeredStyle
             ]
         )
         credits.append(linkText)
 
         NSApp.orderFrontStandardAboutPanel(options: [
-            .credits: credits,
+            .credits: credits
         ])
     }
 }
@@ -539,15 +550,24 @@ private struct PresetManagementRow: View {
                     if let sc = newShortcut {
                         if sc == mainShortcut {
                             conflictMessage = String(
-                                format: NSLocalizedString("This shortcut conflicts with %@", comment: "Shortcut conflict message"),
-                                NSLocalizedString("Sleep Displays", comment: "Main shortcut name")
+                                format: NSLocalizedString(
+                                    "This shortcut conflicts with %@",
+                                    comment: "Shortcut conflict message"
+                                ),
+                                NSLocalizedString(
+                                    "Sleep Displays",
+                                    comment: "Main shortcut name"
+                                )
                             )
                             return
                         }
                         for other in allPresets where other.id != preset.id {
                             if other.shortcut == sc {
                                 conflictMessage = String(
-                                    format: NSLocalizedString("This shortcut conflicts with %@", comment: "Shortcut conflict message"),
+                                    format: NSLocalizedString(
+                                        "This shortcut conflicts with %@",
+                                        comment: "Shortcut conflict message"
+                                    ),
                                     other.name
                                 )
                                 return
@@ -609,7 +629,10 @@ private struct PresetShortcutRecorderButton: View {
                     .font(.caption)
                     .frame(minWidth: 60)
             } else {
-                Text(shortcut?.displayString ?? NSLocalizedString("Set\u{2026}", comment: "Preset shortcut button placeholder"))
+                Text(
+                    shortcut?.displayString
+                    ?? NSLocalizedString("Set\u{2026}", comment: "Preset shortcut button placeholder")
+                )
                     .font(.caption)
                     .foregroundStyle(shortcut != nil ? .primary : .secondary)
                     .frame(minWidth: 60)
@@ -651,14 +674,14 @@ private struct PresetShortcutCaptureView: NSViewRepresentable {
     let onCapture: (GlobalShortcut) -> Void
     let onCancel: () -> Void
 
-    func makeNSView(context: Context) -> PresetShortcutNSView {
+    func makeNSView(context _: Context) -> PresetShortcutNSView {
         let view = PresetShortcutNSView()
         view.onCapture = onCapture
         view.onCancel = onCancel
         return view
     }
 
-    func updateNSView(_ nsView: PresetShortcutNSView, context: Context) {
+    func updateNSView(_ nsView: PresetShortcutNSView, context _: Context) {
         nsView.isActive = isActive
         if isActive {
             nsView.window?.makeFirstResponder(nsView)
@@ -671,7 +694,9 @@ private class PresetShortcutNSView: NSView {
     var onCancel: (() -> Void)?
     var isActive = false
 
-    override var acceptsFirstResponder: Bool { isActive }
+    override var acceptsFirstResponder: Bool {
+        isActive
+    }
 
     override func keyDown(with event: NSEvent) {
         guard isActive else {
@@ -684,8 +709,10 @@ private class PresetShortcutNSView: NSView {
             return
         }
 
-        if let shortcut = GlobalShortcut.from(keyCode: event.keyCode, modifierFlags: event.modifierFlags),
-           shortcut.isValid {
+        if let shortcut = GlobalShortcut.from(
+            keyCode: event.keyCode,
+            modifierFlags: event.modifierFlags
+        ), shortcut.isValid {
             onCapture?(shortcut)
         }
     }

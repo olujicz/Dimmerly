@@ -5,9 +5,9 @@
 //  SwiftUI views for systemSmall and systemMedium widget families.
 //
 
+import AppIntents
 import SwiftUI
 import WidgetKit
-import AppIntents
 
 struct DimmerlyWidgetEntryView: View {
     @Environment(\.widgetFamily) var family

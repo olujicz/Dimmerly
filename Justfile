@@ -36,7 +36,7 @@ format:
 
 # Check formatting without making changes
 format-check:
-    swiftformat --lint Dimmerly DimmerlyTests DimmerlyWidget
+    swiftformat Dimmerly DimmerlyTests DimmerlyWidget --lint
 
 # Clean build artifacts
 clean:

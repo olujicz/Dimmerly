@@ -14,8 +14,8 @@
 //  the first matching preset in the array will be triggered.
 //
 
-import Foundation
 import AppKit
+import Foundation
 
 /// Manages keyboard shortcuts for individual brightness presets.
 ///
@@ -128,15 +128,14 @@ class PresetShortcutManager: ObservableObject {
 
     private func handleKeyEvent(keyCode: UInt16, modifierFlags: NSEvent.ModifierFlags) {
         guard let pressed = GlobalShortcut.from(keyCode: keyCode, modifierFlags: modifierFlags) else { return }
-        for (id, shortcut) in presetShortcuts {
-            if shortcut == pressed {
-                onPresetTriggered?(id)
-                return
-            }
+        for (id, shortcut) in presetShortcuts where shortcut == pressed {
+            onPresetTriggered?(id)
+            return
         }
     }
 
     // MARK: - Lifecycle
+
     // Note: deinit intentionally omitted to avoid @MainActor data race warnings in Swift 6.
     // This manager is held by @StateObject in DimmerlyApp for the app's lifetime, so deinit
     // never executes. Cleanup is handled explicitly via stopMonitoring() when presets are empty.

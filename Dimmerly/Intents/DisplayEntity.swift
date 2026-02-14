@@ -21,11 +21,6 @@ struct DisplayEntity: AppEntity {
     var displayRepresentation: DisplayRepresentation {
         DisplayRepresentation(title: "\(name)")
     }
-
-    init(id: String, name: String) {
-        self.id = id
-        self.name = name
-    }
 }
 
 struct DisplayEntityQuery: EntityQuery {

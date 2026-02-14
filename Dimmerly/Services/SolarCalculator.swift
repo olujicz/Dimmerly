@@ -59,7 +59,7 @@ enum SolarCalculator {
         let julianDay = Double(jdn) - 0.5
 
         // Julian century from J2000.0
-        let julianCentury = (julianDay - 2451545.0) / 36525.0
+        let julianCentury = (julianDay - 2_451_545.0) / 36525.0
 
         // Solar coordinates
         let geomMeanLongSun = fmod(280.46646 + julianCentury * (36000.76983 + 0.0003032 * julianCentury), 360.0)
@@ -75,7 +75,8 @@ enum SolarCalculator {
         let sunAppLong = sunTrueLong - 0.00569 - 0.00478 * sin((125.04 - 1934.136 * julianCentury) * .pi / 180.0)
 
         // Obliquity of the ecliptic
-        let meanObliqEcliptic = 23.0 + (26.0 + (21.448 - julianCentury * (46.815 + julianCentury * (0.00059 - julianCentury * 0.001813))) / 60.0) / 60.0
+        let innerObliq = 21.448 - julianCentury * (46.815 + julianCentury * (0.00059 - julianCentury * 0.001813))
+        let meanObliqEcliptic = 23.0 + (26.0 + innerObliq / 60.0) / 60.0
         let obliqCorr = meanObliqEcliptic + 0.00256 * cos((125.04 - 1934.136 * julianCentury) * .pi / 180.0)
 
         // Solar declination
@@ -106,7 +107,7 @@ enum SolarCalculator {
         // Check for polar day/night: if cosHourAngle is outside [-1, 1], acos is undefined
         // This occurs in polar regions where the sun doesn't rise (polar night) or doesn't
         // set (polar day) on this date.
-        guard cosHourAngle >= -1.0 && cosHourAngle <= 1.0 else {
+        guard cosHourAngle >= -1.0, cosHourAngle <= 1.0 else {
             return (sunrise: nil, sunset: nil)
         }
 
