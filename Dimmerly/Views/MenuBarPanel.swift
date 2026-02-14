@@ -11,6 +11,7 @@ struct MenuBarPanel: View {
     @EnvironmentObject var brightnessManager: BrightnessManager
     @EnvironmentObject var settings: AppSettings
     @EnvironmentObject var presetManager: PresetManager
+    @EnvironmentObject var colorTempManager: ColorTemperatureManager
     @Environment(\.openSettings) private var openSettings
     @AppStorage("showDisplayAdjustments") private var showAdjustments = false
 
@@ -78,6 +79,7 @@ struct MenuBarPanel: View {
                     display: display,
                     isBlanked: ScreenBlanker.shared.isDisplayBlanked(display.id),
                     showAdjustments: showAdjustments,
+                    isAutoColorTemp: colorTempManager.isActive,
                     onChange: { newValue in
                         brightnessManager.setBrightness(for: display.id, to: newValue)
                     },
@@ -94,6 +96,11 @@ struct MenuBarPanel: View {
             }
 
             displayAdjustmentsDisclosure
+
+            if showAdjustments {
+                autoWarmthToggle
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
         }
         .padding(20)
     }
@@ -119,6 +126,48 @@ struct MenuBarPanel: View {
         .padding(.top, 8)
         .accessibilityLabel(Text(showAdjustments ? "Hide display adjustments" : "Show display adjustments"))
         .help("Show warmth and contrast sliders")
+    }
+
+    // MARK: - Auto Warmth Toggle
+
+    private var autoWarmthToggle: some View {
+        VStack(spacing: 2) {
+            HStack {
+                Image(systemName: "sun.horizon")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .frame(width: 14)
+                Text("Auto Warmth")
+                    .font(.callout)
+                Spacer()
+                Toggle("", isOn: $settings.autoColorTempEnabled)
+                    .toggleStyle(.switch)
+                    .controlSize(.mini)
+                    .labelsHidden()
+            }
+
+            if settings.autoColorTempEnabled {
+                HStack {
+                    autoWarmthStatusText
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+                .padding(.leading, 20)
+            }
+        }
+        .padding(.top, 6)
+    }
+
+    @ViewBuilder
+    private var autoWarmthStatusText: some View {
+        if !LocationProvider.shared.hasLocation {
+            Text("Set location in Settings")
+        } else if let desc = colorTempManager.nextTransitionDescription() {
+            Text("\(Int(colorTempManager.currentKelvin))K · \(desc)")
+        } else {
+            Text("\(Int(colorTempManager.currentKelvin))K")
+        }
     }
 
     // MARK: - Presets
@@ -336,6 +385,7 @@ struct DisplayBrightnessRow: View {
     let display: ExternalDisplay
     let isBlanked: Bool
     let showAdjustments: Bool
+    let isAutoColorTemp: Bool
     let onChange: (Double) -> Void
     let onWarmthChange: (Double) -> Void
     let onContrastChange: (Double) -> Void
@@ -349,6 +399,7 @@ struct DisplayBrightnessRow: View {
         display: ExternalDisplay,
         isBlanked: Bool,
         showAdjustments: Bool,
+        isAutoColorTemp: Bool = false,
         onChange: @escaping (Double) -> Void,
         onWarmthChange: @escaping (Double) -> Void,
         onContrastChange: @escaping (Double) -> Void,
@@ -357,6 +408,7 @@ struct DisplayBrightnessRow: View {
         self.display = display
         self.isBlanked = isBlanked
         self.showAdjustments = showAdjustments
+        self.isAutoColorTemp = isAutoColorTemp
         self.onChange = onChange
         self.onWarmthChange = onWarmthChange
         self.onContrastChange = onContrastChange
@@ -434,42 +486,63 @@ struct DisplayBrightnessRow: View {
             .disabled(isBlanked)
 
             if showAdjustments {
-                HStack(spacing: 6) {
-                    Image(systemName: "thermometer.snowflake")
-                        .font(.caption2)
-                        .frame(width: 12)
-                        .foregroundStyle(.blue)
-                        .accessibilityHidden(true)
+                VStack(spacing: 2) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "thermometer.snowflake")
+                            .font(.caption2)
+                            .frame(width: 12)
+                            .foregroundStyle(.blue)
+                            .accessibilityHidden(true)
 
-                    Slider(value: $warmthValue, in: 0 ... 1)
-                        .tint(.orange)
-                        .accessibilityLabel(
-                            String(
-                                format: NSLocalizedString(
-                                    "%@ warmth",
-                                    comment: "Accessibility label: display warmth slider"
-                                ),
-                                display.name
+                        Slider(value: $warmthValue, in: 0 ... 1)
+                            .tint(.orange)
+                            .accessibilityLabel(
+                                String(
+                                    format: NSLocalizedString(
+                                        "%@ warmth",
+                                        comment: "Accessibility label: display warmth slider"
+                                    ),
+                                    display.name
+                                )
                             )
-                        )
-                        .accessibilityValue(
-                            String(
-                                format: NSLocalizedString(
-                                    "%d percent",
-                                    comment: "Accessibility value: warmth percentage"
-                                ),
-                                Int(warmthValue * 100)
+                            .accessibilityValue(
+                                String(
+                                    format: NSLocalizedString(
+                                        "%dK",
+                                        comment: "Accessibility value: warmth in Kelvin"
+                                    ),
+                                    Int(BrightnessManager.kelvinForWarmth(warmthValue))
+                                )
                             )
-                        )
-                        .onChange(of: warmthValue) {
-                            onWarmthChange(warmthValue)
+                            .onChange(of: warmthValue) {
+                                onWarmthChange(warmthValue)
+                            }
+
+                        Image(systemName: "thermometer.sun")
+                            .font(.caption2)
+                            .frame(width: 12)
+                            .foregroundStyle(.orange)
+                            .accessibilityHidden(true)
+                    }
+
+                    HStack {
+                        Text("\(Int(BrightnessManager.kelvinForWarmth(warmthValue)))K")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+
+                        if isAutoColorTemp {
+                            Text("Auto")
+                                .font(.caption2)
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 1)
+                                .background(Capsule().fill(.orange.opacity(0.7)))
                         }
 
-                    Image(systemName: "thermometer.sun")
-                        .font(.caption2)
-                        .frame(width: 12)
-                        .foregroundStyle(.orange)
-                        .accessibilityHidden(true)
+                        Spacer()
+                    }
+                    .padding(.leading, 18)
                 }
                 .opacity(isBlanked ? 0.4 : 1.0)
                 .disabled(isBlanked)

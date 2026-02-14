@@ -31,17 +31,19 @@ final class BrightnessManagerTests: XCTestCase {
     }
 
     func testChannelMultipliersMaxWarmth() {
+        // warmth=1.0 → 1900K (Helland blackbody)
         let m = BrightnessManager.channelMultipliers(for: 1.0)
         XCTAssertEqual(m.r, 1.0, accuracy: 0.001)
-        XCTAssertEqual(m.g, 0.82, accuracy: 0.001)
-        XCTAssertEqual(m.b, 0.56, accuracy: 0.001)
+        XCTAssertEqual(m.g, 0.519, accuracy: 0.001)
+        XCTAssertEqual(m.b, 0.0, accuracy: 0.001)
     }
 
     func testChannelMultipliersMidpoint() {
+        // warmth=0.5 → 4200K (Helland blackbody)
         let m = BrightnessManager.channelMultipliers(for: 0.5)
         XCTAssertEqual(m.r, 1.0, accuracy: 0.001)
-        XCTAssertEqual(m.g, 0.91, accuracy: 0.001)
-        XCTAssertEqual(m.b, 0.78, accuracy: 0.001)
+        XCTAssertEqual(m.g, 0.829, accuracy: 0.001)
+        XCTAssertEqual(m.b, 0.700, accuracy: 0.001)
     }
 
     func testChannelMultipliersMonotonicity() {
@@ -52,6 +54,60 @@ final class BrightnessManagerTests: XCTestCase {
             let m2 = BrightnessManager.channelMultipliers(for: w + 0.1)
             XCTAssertGreaterThanOrEqual(m1.g, m2.g, "Green should decrease with warmth")
             XCTAssertGreaterThanOrEqual(m1.b, m2.b, "Blue should decrease with warmth")
+        }
+    }
+
+    // MARK: - rgbFromKelvin
+
+    func testRgbFromKelvin6500() {
+        let rgb = BrightnessManager.rgbFromKelvin(6500)
+        XCTAssertEqual(rgb.r, 1.0, accuracy: 0.001)
+        XCTAssertEqual(rgb.g, 0.997, accuracy: 0.001)
+        XCTAssertEqual(rgb.b, 0.981, accuracy: 0.001)
+    }
+
+    func testRgbFromKelvin1900() {
+        let rgb = BrightnessManager.rgbFromKelvin(1900)
+        XCTAssertEqual(rgb.r, 1.0, accuracy: 0.001)
+        XCTAssertEqual(rgb.g, 0.517, accuracy: 0.001)
+        XCTAssertEqual(rgb.b, 0.0, accuracy: 0.001)
+    }
+
+    func testRgbFromKelvinHighTemp() {
+        // At 10000K, all channels should be positive but blue should be high
+        let rgb = BrightnessManager.rgbFromKelvin(10000)
+        XCTAssertGreaterThan(rgb.r, 0)
+        XCTAssertGreaterThan(rgb.g, 0)
+        XCTAssertEqual(rgb.b, 1.0, "Blue should be 1.0 at temp >= 6600K")
+    }
+
+    func testRgbFromKelvinClampsLow() {
+        // Should clamp to 1000K, not crash on extreme values
+        let rgb = BrightnessManager.rgbFromKelvin(0)
+        XCTAssertGreaterThan(rgb.r, 0)
+    }
+
+    // MARK: - kelvinForWarmth / warmthForKelvin
+
+    func testKelvinForWarmthEndpoints() {
+        XCTAssertEqual(BrightnessManager.kelvinForWarmth(0.0), 6500.0)
+        XCTAssertEqual(BrightnessManager.kelvinForWarmth(1.0), 1900.0)
+    }
+
+    func testKelvinForWarmthMidpoint() {
+        XCTAssertEqual(BrightnessManager.kelvinForWarmth(0.5), 4200.0)
+    }
+
+    func testWarmthForKelvinEndpoints() {
+        XCTAssertEqual(BrightnessManager.warmthForKelvin(6500), 0.0)
+        XCTAssertEqual(BrightnessManager.warmthForKelvin(1900), 1.0)
+    }
+
+    func testKelvinWarmthRoundTrip() {
+        for warmth in stride(from: 0.0, through: 1.0, by: 0.1) {
+            let kelvin = BrightnessManager.kelvinForWarmth(warmth)
+            let roundTrip = BrightnessManager.warmthForKelvin(kelvin)
+            XCTAssertEqual(roundTrip, warmth, accuracy: 0.0001, "Round-trip failed at warmth=\(warmth)")
         }
     }
 

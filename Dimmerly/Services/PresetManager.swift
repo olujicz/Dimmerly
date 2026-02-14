@@ -84,6 +84,11 @@ class PresetManager: ObservableObject {
     ///   - brightnessManager: The brightness manager to apply values to
     ///   - animated: Whether to animate the transition (default: false)
     func applyPreset(_ preset: BrightnessPreset, to brightnessManager: BrightnessManager, animated: Bool = false) {
+        // Notify color temp manager before animation starts (animated path returns early)
+        if preset.universalWarmth != nil || preset.displayWarmth != nil {
+            ColorTemperatureManager.shared.notifyPresetApplied()
+        }
+
         if animated, brightnessManager.animateToPreset(preset) {
             return
         }

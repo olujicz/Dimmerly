@@ -35,6 +35,9 @@ struct DimmerlyApp: App {
     /// Manager for time-based dimming schedules
     @StateObject private var scheduleManager = ScheduleManager()
 
+    /// Manager for automatic color temperature adjustment
+    @StateObject private var colorTempManager = ColorTemperatureManager.shared
+
     /// Guard against duplicate observer registration if onAppear fires more than once
     @State private var isConfigured = false
 
@@ -45,6 +48,7 @@ struct DimmerlyApp: App {
                 .environmentObject(settings)
                 .environmentObject(brightnessManager)
                 .environmentObject(presetManager)
+                .environmentObject(colorTempManager)
         } label: {
             menuBarLabel
                 .onAppear {
@@ -56,6 +60,7 @@ struct DimmerlyApp: App {
                     configureIdleTimer()
                     configurePresetShortcuts()
                     configureScheduleManager()
+                    configureColorTemperature()
                     observeWidgetNotifications()
                 }
         }
@@ -70,6 +75,7 @@ struct DimmerlyApp: App {
                 .environmentObject(brightnessManager)
                 .environmentObject(scheduleManager)
                 .environmentObject(locationProvider)
+                .environmentObject(colorTempManager)
         }
     }
 
@@ -173,6 +179,15 @@ struct DimmerlyApp: App {
         }
         scheduleManager.observeSettings(
             readEnabled: { UserDefaults.standard.bool(forKey: "dimmerlyScheduleEnabled") }
+        )
+    }
+
+    /// Configures the color temperature manager to automatically adjust warmth at sunrise/sunset.
+    ///
+    /// Sets up settings observation to start/stop polling based on user preference.
+    private func configureColorTemperature() {
+        colorTempManager.observeSettings(
+            readEnabled: { UserDefaults.standard.bool(forKey: "dimmerlyAutoColorTempEnabled") }
         )
     }
 

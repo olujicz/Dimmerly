@@ -91,6 +91,22 @@ class AppSettings: ObservableObject {
     @AppStorage("dimmerlyScheduleEnabled")
     var scheduleEnabled: Bool = false
 
+    /// Whether automatic color temperature adjustment is enabled
+    @AppStorage("dimmerlyAutoColorTempEnabled")
+    var autoColorTempEnabled: Bool = false
+
+    /// Daytime color temperature in Kelvin (used when sun is up)
+    @AppStorage("dimmerlyDayTemperature")
+    var dayTemperature: Int = 6500
+
+    /// Nighttime color temperature in Kelvin (used after sunset)
+    @AppStorage("dimmerlyNightTemperature")
+    var nightTemperature: Int = 2700
+
+    /// Duration in minutes for sunrise/sunset color temperature transitions
+    @AppStorage("dimmerlyColorTempTransitionMinutes")
+    var colorTempTransitionMinutes: Int = 40
+
     /// Computed property for the selected menu bar icon style
     var menuBarIcon: MenuBarIconStyle {
         get { MenuBarIconStyle(rawValue: menuBarIconRaw) ?? .defaultIcon }
@@ -129,5 +145,9 @@ class AppSettings: ObservableObject {
         fadeTransition = true
         requireEscapeToDismiss = false
         scheduleEnabled = false
+        autoColorTempEnabled = false
+        dayTemperature = 6500
+        nightTemperature = 2700
+        colorTempTransitionMinutes = 40
     }
 }

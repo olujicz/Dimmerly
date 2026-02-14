@@ -21,7 +21,7 @@ struct ExternalDisplay: Identifiable, Sendable {
     let name: String
     /// Current brightness level (0.0 = dimmest allowed, 1.0 = full brightness)
     var brightness: Double
-    /// Color temperature shift (0.0 = neutral/6500K, 1.0 = warmest/~2700K)
+    /// Color temperature shift (0.0 = neutral/6500K, 1.0 = warmest/1900K)
     var warmth: Double = 0.0
     /// Contrast curve steepness (0.0 = flat, 0.5 = neutral/linear, 1.0 = steep S-curve)
     var contrast: Double = 0.5
@@ -314,7 +314,7 @@ class BrightnessManager: ObservableObject {
     ///
     /// Warmth shifts the color temperature by adjusting RGB channel multipliers:
     /// - 0.0 = neutral (6500K, no shift)
-    /// - 1.0 = warmest (~2700K, reduces blue/green channels)
+    /// - 1.0 = warmest (1900K, reduces blue/green channels)
     ///
     /// - Parameters:
     ///   - displayID: Core Graphics display identifier
@@ -323,7 +323,14 @@ class BrightnessManager: ObservableObject {
         let clamped = min(max(value, 0.0), 1.0)
 
         guard let index = displays.firstIndex(where: { $0.id == displayID }) else { return }
+        // Skip if value hasn't changed — prevents SwiftUI onChange bounce-back from
+        // falsely triggering a manual override when auto color temp updates warmth.
+        guard displays[index].warmth != clamped else { return }
         displays[index].warmth = clamped
+
+        if !isAutoColorTempUpdate {
+            ColorTemperatureManager.shared.notifyManualWarmthChange()
+        }
 
         debouncePersist()
 
@@ -491,6 +498,137 @@ class BrightnessManager: ObservableObject {
         return true
     }
 
+    /// Smoothly transitions all displays' warmth to a uniform target value.
+    ///
+    /// Animates over ~300ms (20 steps at ~15ms each), same timing as preset transitions.
+    /// Brightness and contrast are left unchanged. Cancels any in-progress preset transition.
+    ///
+    /// Skips animation (returns `false`) when:
+    /// - Screen blanking is active
+    /// - Reduce Motion accessibility preference is enabled
+    ///
+    /// - Parameter targetWarmth: The warmth value to transition to (0.0–1.0)
+    /// - Returns: `true` if animation was started, `false` if the caller should apply instantly
+    @discardableResult
+    func animateAllWarmth(to targetWarmth: Double) -> Bool {
+        transitionTask?.cancel()
+
+        guard !ScreenBlanker.shared.isBlanking,
+              !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        else {
+            return false
+        }
+
+        let endWarmth = min(max(targetWarmth, 0), 1)
+
+        transitionTask = Task { @MainActor in
+            let steps = 20
+            let stepDelay = Duration.milliseconds(15)
+
+            struct WarmthTarget {
+                let displayID: CGDirectDisplayID
+                let start: Double
+                let end: Double
+            }
+
+            let targets = displays.map { display in
+                WarmthTarget(displayID: display.id, start: display.warmth, end: endWarmth)
+            }
+
+            for step in 1 ... steps {
+                guard !Task.isCancelled else { return }
+
+                let progress = Double(step) / Double(steps)
+
+                for target in targets {
+                    guard let index = displays.firstIndex(where: { $0.id == target.displayID }) else { continue }
+
+                    let warmth = target.start + (target.end - target.start) * progress
+                    displays[index].warmth = warmth
+
+                    applyGamma(
+                        displayID: target.displayID,
+                        brightness: displays[index].brightness,
+                        warmth: warmth,
+                        contrast: displays[index].contrast
+                    )
+                }
+
+                if step < steps {
+                    try? await Task.sleep(for: stepDelay)
+                }
+            }
+
+            guard !Task.isCancelled else { return }
+            persistAll()
+        }
+
+        return true
+    }
+
+    /// Smoothly transitions each display's warmth to per-display target values.
+    ///
+    /// Same animation as `animateAllWarmth(to:)` but with individual targets per display.
+    ///
+    /// - Parameter targetValues: Warmth values keyed by display ID string
+    /// - Returns: `true` if animation was started, `false` if the caller should apply instantly
+    @discardableResult
+    func animateWarmthValues(_ targetValues: [String: Double]) -> Bool {
+        transitionTask?.cancel()
+
+        guard !ScreenBlanker.shared.isBlanking,
+              !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        else {
+            return false
+        }
+
+        transitionTask = Task { @MainActor in
+            let steps = 20
+            let stepDelay = Duration.milliseconds(15)
+
+            struct WarmthTarget {
+                let displayID: CGDirectDisplayID
+                let start: Double
+                let end: Double
+            }
+
+            let targets = displays.compactMap { display -> WarmthTarget? in
+                let idString = String(display.id)
+                guard let endWarmth = targetValues[idString] else { return nil }
+                return WarmthTarget(displayID: display.id, start: display.warmth, end: min(max(endWarmth, 0), 1))
+            }
+
+            for step in 1 ... steps {
+                guard !Task.isCancelled else { return }
+
+                let progress = Double(step) / Double(steps)
+
+                for target in targets {
+                    guard let index = displays.firstIndex(where: { $0.id == target.displayID }) else { continue }
+
+                    let warmth = target.start + (target.end - target.start) * progress
+                    displays[index].warmth = warmth
+
+                    applyGamma(
+                        displayID: target.displayID,
+                        brightness: displays[index].brightness,
+                        warmth: warmth,
+                        contrast: displays[index].contrast
+                    )
+                }
+
+                if step < steps {
+                    try? await Task.sleep(for: stepDelay)
+                }
+            }
+
+            guard !Task.isCancelled else { return }
+            persistAll()
+        }
+
+        return true
+    }
+
     /// Debounces persistence to UserDefaults to prevent excessive writes during rapid changes.
     ///
     /// Typical use case: User dragging a brightness slider. Without debouncing, each slider
@@ -540,19 +678,96 @@ class BrightnessManager: ObservableObject {
 
     // MARK: - Gamma
 
-    /// Calculates RGB channel multipliers for a given warmth level.
+    /// Whether the current warmth change originated from the auto color temperature system.
+    /// Used to prevent manual-override notifications when ColorTemperatureManager is applying warmth.
+    var isAutoColorTempUpdate = false
+
+    /// Calculates RGB values for a color temperature using Tanner Helland's blackbody approximation.
     ///
-    /// Warmth shifts color temperature by reducing blue and green channels:
-    /// - At warmth=0.0: (r=1.0, g=1.0, b=1.0) — neutral white, ~6500K
-    /// - At warmth=1.0: (r=1.0, g=0.82, b=0.56) — warm white, ~2700K
+    /// Algorithm source: http://www.tannerhelland.com/4435/convert-temperature-rgb-algorithm-code/
+    /// Based on blackbody radiation curves, approximated with piecewise polynomials.
     ///
-    /// The multipliers are applied to gamma table values to create a color temperature shift
-    /// without requiring separate color temperature APIs (which aren't available for external displays).
+    /// - Parameter kelvin: Color temperature in Kelvin (1000–40000, clamped internally)
+    /// - Returns: RGB values normalized to 0.0–1.0
+    static func rgbFromKelvin(_ kelvin: Double) -> (r: Double, g: Double, b: Double) {
+        let temp = min(max(kelvin, 1000), 40000) / 100.0
+
+        // Red
+        let r: Double
+        if temp <= 66 {
+            r = 1.0
+        } else {
+            let x = temp - 60
+            r = min(max(329.698727446 * pow(x, -0.1332047592) / 255.0, 0), 1)
+        }
+
+        // Green
+        let g: Double
+        if temp <= 66 {
+            let x = temp
+            g = min(max((99.4708025861 * log(x) - 161.1195681661) / 255.0, 0), 1)
+        } else {
+            let x = temp - 60
+            g = min(max(288.1221695283 * pow(x, -0.0755148492) / 255.0, 0), 1)
+        }
+
+        // Blue
+        let b: Double
+        if temp >= 66 {
+            b = 1.0
+        } else if temp <= 19 {
+            b = 0.0
+        } else {
+            let x = temp - 10
+            b = min(max((138.5177312231 * log(x) - 305.0447927307) / 255.0, 0), 1)
+        }
+
+        return (r: r, g: g, b: b)
+    }
+
+    /// Maps a warmth value (0.0–1.0) to a color temperature in Kelvin.
+    ///
+    /// - 0.0 → 6500K (neutral daylight)
+    /// - 1.0 → 1900K (very warm candlelight)
+    ///
+    /// - Parameter warmth: Warmth level (0.0 = neutral, 1.0 = warmest)
+    /// - Returns: Color temperature in Kelvin
+    static func kelvinForWarmth(_ warmth: Double) -> Double {
+        6500.0 - warmth * (6500.0 - 1900.0)
+    }
+
+    /// Maps a color temperature in Kelvin to a warmth value (0.0–1.0).
+    ///
+    /// Inverse of `kelvinForWarmth(_:)`.
+    ///
+    /// - Parameter kelvin: Color temperature in Kelvin
+    /// - Returns: Warmth level (0.0 = neutral/6500K, 1.0 = warmest/1900K)
+    static func warmthForKelvin(_ kelvin: Double) -> Double {
+        (6500.0 - kelvin) / (6500.0 - 1900.0)
+    }
+
+    /// Calculates RGB channel multipliers for a given warmth level using blackbody radiation.
+    ///
+    /// Uses the Helland algorithm to produce physically-based color temperature shifts,
+    /// normalized against the 6500K reference point so that warmth=0 produces (1, 1, 1).
+    ///
+    /// - At warmth=0.0: (r=1.0, g=1.0, b=1.0) — neutral white, 6500K
+    /// - At warmth=1.0: ~1900K warm candlelight
     ///
     /// - Parameter warmth: Warmth level (0.0 = neutral, 1.0 = warmest)
     /// - Returns: RGB channel multipliers as a tuple
     static func channelMultipliers(for warmth: Double) -> (r: Double, g: Double, b: Double) {
-        (r: 1.0, g: 1.0 - warmth * 0.18, b: 1.0 - warmth * 0.44)
+        guard warmth > 0 else { return (r: 1.0, g: 1.0, b: 1.0) }
+
+        let kelvin = kelvinForWarmth(warmth)
+        let target = rgbFromKelvin(kelvin)
+        let reference = rgbFromKelvin(6500)
+
+        return (
+            r: min(target.r / reference.r, 1.0),
+            g: min(target.g / reference.g, 1.0),
+            b: min(target.b / reference.b, 1.0)
+        )
     }
 
     /// Applies an S-curve contrast adjustment using a split power function.

@@ -31,6 +31,7 @@ struct GeneralSettingsView: View {
     @EnvironmentObject var brightnessManager: BrightnessManager
     @EnvironmentObject var scheduleManager: ScheduleManager
     @EnvironmentObject var locationProvider: LocationProvider
+    @EnvironmentObject var colorTempManager: ColorTemperatureManager
     @State private var mainShortcutConflictMessage: String?
 
     var body: some View {
@@ -57,6 +58,8 @@ struct GeneralSettingsView: View {
             idleTimerSection
 
             scheduleSection
+
+            colorTemperatureSection
 
             keyboardShortcutSection
 
@@ -288,7 +291,7 @@ struct GeneralSettingsView: View {
                     Label("Location", systemImage: "location.slash")
                 }
 
-                Text("A location is needed for sunrise and sunset schedules.")
+                Text("A location is needed for sunrise and sunset features.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -314,6 +317,67 @@ struct GeneralSettingsView: View {
         formatter.timeStyle = .short
         formatter.dateStyle = .none
         return formatter.string(from: date)
+    }
+
+    // MARK: - Color Temperature
+
+    private var colorTemperatureSection: some View {
+        Section("Color Temperature") {
+            Toggle("Automatic color temperature", isOn: $settings.autoColorTempEnabled)
+                .help("Adjust warmth automatically based on sunrise and sunset")
+
+            if settings.autoColorTempEnabled {
+                locationRow
+
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("Day:")
+                        Slider(
+                            value: Binding(
+                                get: { Double(settings.dayTemperature) },
+                                set: { settings.dayTemperature = Int($0) }
+                            ),
+                            in: 2700 ... 6500,
+                            step: 100
+                        )
+                        Text("\(settings.dayTemperature)K")
+                            .monospacedDigit()
+                            .frame(width: 50, alignment: .trailing)
+                    }
+
+                    HStack {
+                        Text("Night:")
+                        Slider(
+                            value: Binding(
+                                get: { Double(settings.nightTemperature) },
+                                set: { settings.nightTemperature = Int($0) }
+                            ),
+                            in: 1900 ... 4500,
+                            step: 100
+                        )
+                        Text("\(settings.nightTemperature)K")
+                            .monospacedDigit()
+                            .frame(width: 50, alignment: .trailing)
+                    }
+                }
+
+                Stepper(value: $settings.colorTempTransitionMinutes, in: 10 ... 120, step: 10) {
+                    Text(
+                        String(
+                            format: NSLocalizedString(
+                                "Transition: %d minutes",
+                                comment: "Color temperature transition duration stepper label"
+                            ),
+                            settings.colorTempTransitionMinutes
+                        )
+                    )
+                }
+
+                Text("Adjusts gradually during sunrise and sunset.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
     }
 
     // MARK: - Keyboard Shortcut
@@ -733,4 +797,5 @@ private class PresetShortcutNSView: NSView {
         .environmentObject(BrightnessManager())
         .environmentObject(ScheduleManager())
         .environmentObject(LocationProvider.shared)
+        .environmentObject(ColorTemperatureManager.shared)
 }
