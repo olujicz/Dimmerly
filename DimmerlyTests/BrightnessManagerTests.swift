@@ -289,4 +289,51 @@ final class BrightnessManagerTests: XCTestCase {
         bm.setBrightness(for: 999, to: 0.3)
         XCTAssertEqual(bm.displays[0].brightness, 0.5, "Should not change any display")
     }
+
+    // MARK: - buildTable
+
+    func testBuildTableSize() {
+        let table = BrightnessManager.buildTable(brightness: 1.0, channelMultiplier: 1.0, contrast: 0.5)
+        XCTAssertEqual(table.count, 256, "Gamma table should have exactly 256 entries")
+    }
+
+    func testBuildTableEndpoints() {
+        // Full brightness, no warmth, neutral contrast: entry 0 = 0.0, entry 255 = 1.0
+        let table = BrightnessManager.buildTable(brightness: 1.0, channelMultiplier: 1.0, contrast: 0.5)
+        XCTAssertEqual(table[0], 0.0, accuracy: 0.001, "First entry should be 0.0")
+        XCTAssertEqual(table[255], 1.0, accuracy: 0.001, "Last entry should be 1.0")
+    }
+
+    func testBuildTableMonotonicity() {
+        // At neutral contrast, table should be monotonically increasing
+        let table = BrightnessManager.buildTable(brightness: 1.0, channelMultiplier: 1.0, contrast: 0.5)
+        for i in 1 ..< table.count {
+            XCTAssertGreaterThanOrEqual(table[i], table[i - 1],
+                                        "Table should be monotonically increasing at neutral contrast (index \(i))")
+        }
+    }
+
+    func testBuildTableHalfBrightness() {
+        // At 50% brightness, the last entry should be ~0.5
+        let table = BrightnessManager.buildTable(brightness: 0.5, channelMultiplier: 1.0, contrast: 0.5)
+        XCTAssertEqual(table[255], 0.5, accuracy: 0.01, "Last entry at 50% brightness should be ~0.5")
+    }
+
+    func testBuildTableWarmthScaling() {
+        // With blue channel multiplier of 0.56 at full brightness, last entry should be ~0.56
+        let table = BrightnessManager.buildTable(brightness: 1.0, channelMultiplier: 0.56, contrast: 0.5)
+        XCTAssertEqual(table[255], 0.56, accuracy: 0.01, "Last entry with 0.56 multiplier should be ~0.56")
+        XCTAssertEqual(table[0], 0.0, accuracy: 0.001, "First entry should still be 0.0")
+    }
+
+    func testBuildTableHighContrastShape() {
+        // High contrast should push low values lower and high values higher
+        let neutral = BrightnessManager.buildTable(brightness: 1.0, channelMultiplier: 1.0, contrast: 0.5)
+        let high = BrightnessManager.buildTable(brightness: 1.0, channelMultiplier: 1.0, contrast: 0.9)
+
+        // Entry at 25% (index 64) should be lower with high contrast
+        XCTAssertLessThan(high[64], neutral[64], "High contrast should push low values lower")
+        // Entry at 75% (index 192) should be higher with high contrast
+        XCTAssertGreaterThan(high[192], neutral[192], "High contrast should push high values higher")
+    }
 }
