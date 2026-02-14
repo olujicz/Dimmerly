@@ -22,6 +22,22 @@ test:
 run: build
     @open "{{build_dir}}/Build/Products/Debug/Dimmerly.app"
 
+# Lint Swift sources
+lint:
+    swiftlint lint --quiet
+
+# Lint and auto-fix Swift sources
+lint-fix:
+    swiftlint lint --fix --quiet
+
+# Format Swift sources
+format:
+    swiftformat Dimmerly DimmerlyTests DimmerlyWidget
+
+# Check formatting without making changes
+format-check:
+    swiftformat --lint Dimmerly DimmerlyTests DimmerlyWidget
+
 # Clean build artifacts
 clean:
     rm -rf {{build_dir}}
