@@ -875,7 +875,8 @@ class BrightnessManager: ObservableObject {
         for screen in NSScreen.screens {
             let key = NSDeviceDescriptionKey("NSScreenNumber")
             if let screenNumber = screen.deviceDescription[key] as? CGDirectDisplayID,
-               screenNumber == displayID {
+               screenNumber == displayID
+            {
                 let name = screen.localizedName
                 // Detect generic fallbacks (e.g., "Unknown Display" in various languages)
                 // If we get a generic name, continue to stages 2-3 for a better result
@@ -949,7 +950,8 @@ class BrightnessManager: ObservableObject {
             return name
         }
         if let names = dict["DisplayProductName"] as? [String: String],
-           let name = names.values.first, !name.isEmpty {
+           let name = names.values.first, !name.isEmpty
+        {
             return name
         }
         return nil
@@ -1008,12 +1010,14 @@ class BrightnessManager: ObservableObject {
 
             if let info = IODisplayCreateInfoDictionary(service, 0)?.takeRetainedValue() as? [String: Any],
                let names = info["DisplayProductName"] as? [String: String],
-               let name = names.values.first, !name.isEmpty {
+               let name = names.values.first, !name.isEmpty
+            {
                 return name
             }
 
             if let edidData = dict["IODisplayEDID"] as? Data,
-               let name = parseEDIDName(edidData) {
+               let name = parseEDIDName(edidData)
+            {
                 return name
             }
         }
@@ -1068,12 +1072,14 @@ class BrightnessManager: ObservableObject {
 
             // Fall back to EDID binary from the service or its Metadata
             if let edidData = dict["EDID"] as? Data,
-               let name = parseEDIDName(edidData) {
+               let name = parseEDIDName(edidData)
+            {
                 return name
             }
             if let metadata = dict["Metadata"] as? [String: Any],
                let edidData = metadata["EDID"] as? Data,
-               let name = parseEDIDName(edidData) {
+               let name = parseEDIDName(edidData)
+            {
                 return name
             }
         }
@@ -1113,7 +1119,8 @@ class BrightnessManager: ObservableObject {
                 if let name = String(bytes: nameBytes, encoding: .ascii)?
                     .trimmingCharacters(in: .whitespacesAndNewlines)
                     .trimmingCharacters(in: CharacterSet(charactersIn: "\n\r\0")),
-                    !name.isEmpty {
+                    !name.isEmpty
+                {
                     return name
                 }
             }

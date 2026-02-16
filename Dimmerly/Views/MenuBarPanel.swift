@@ -454,27 +454,27 @@ struct DisplayBrightnessRow: View {
                     value: $sliderValue,
                     in: BrightnessManager.minimumBrightness ... 1
                 )
-                    .accessibilityLabel(
-                        String(
-                            format: NSLocalizedString(
-                                "%@ brightness",
-                                comment: "Accessibility label: display brightness slider"
-                            ),
-                            display.name
-                        )
+                .accessibilityLabel(
+                    String(
+                        format: NSLocalizedString(
+                            "%@ brightness",
+                            comment: "Accessibility label: display brightness slider"
+                        ),
+                        display.name
                     )
-                    .accessibilityValue(
-                        String(
-                            format: NSLocalizedString(
-                                "%d percent",
-                                comment: "Accessibility value: brightness percentage"
-                            ),
-                            Int(sliderValue * 100)
-                        )
+                )
+                .accessibilityValue(
+                    String(
+                        format: NSLocalizedString(
+                            "%d percent",
+                            comment: "Accessibility value: brightness percentage"
+                        ),
+                        Int(sliderValue * 100)
                     )
-                    .onChange(of: sliderValue) {
-                        onChange(sliderValue)
-                    }
+                )
+                .onChange(of: sliderValue) {
+                    onChange(sliderValue)
+                }
 
                 Image(systemName: "sun.max")
                     .font(.caption2)

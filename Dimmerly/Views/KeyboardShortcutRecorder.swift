@@ -157,7 +157,7 @@ private class ShortcutCaptureView: NSView {
                         String(
                             format: NSLocalizedString(
                                 "%@ is a standard system shortcut."
-                                + " Try a different combination.",
+                                    + " Try a different combination.",
                                 comment: "Shortcut conflict message"
                             ),
                             shortcut.displayString

@@ -1,6 +1,11 @@
 excluded:
   - .build
 
+# Disabled rules that conflict with SwiftFormat defaults
+disabled_rules:
+  - trailing_comma # SwiftFormat adds trailing commas
+  - opening_brace # SwiftFormat wrapMultilineStatementBraces moves braces
+
 # Short variable names are idiomatic in Swift for loops (i), math (t, x, y),
 # gamma multipliers (m), and test shorthands (bm).
 identifier_name:

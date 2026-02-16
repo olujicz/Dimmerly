@@ -40,7 +40,7 @@ final class PresetManagerTests: XCTestCase {
     func testApplyPresetUniversalBrightness() {
         bm.displays = [
             ExternalDisplay(id: 1, name: "A", brightness: 1.0),
-            ExternalDisplay(id: 2, name: "B", brightness: 1.0)
+            ExternalDisplay(id: 2, name: "B", brightness: 1.0),
         ]
         let preset = BrightnessPreset(name: "Test", universalBrightness: 0.5)
         manager.applyPreset(preset, to: bm)
@@ -51,7 +51,7 @@ final class PresetManagerTests: XCTestCase {
     func testApplyPresetPerDisplayBrightness() {
         bm.displays = [
             ExternalDisplay(id: 1, name: "A", brightness: 1.0),
-            ExternalDisplay(id: 2, name: "B", brightness: 1.0)
+            ExternalDisplay(id: 2, name: "B", brightness: 1.0),
         ]
         let preset = BrightnessPreset(name: "Test", displayBrightness: ["1": 0.3, "2": 0.7])
         manager.applyPreset(preset, to: bm)
@@ -62,7 +62,7 @@ final class PresetManagerTests: XCTestCase {
     func testApplyPresetUniversalWarmth() {
         bm.displays = [
             ExternalDisplay(id: 1, name: "A", brightness: 1.0, warmth: 0.0),
-            ExternalDisplay(id: 2, name: "B", brightness: 1.0, warmth: 0.0)
+            ExternalDisplay(id: 2, name: "B", brightness: 1.0, warmth: 0.0),
         ]
         let preset = BrightnessPreset(name: "Test", universalBrightness: 1.0, universalWarmth: 0.6)
         manager.applyPreset(preset, to: bm)
@@ -73,7 +73,7 @@ final class PresetManagerTests: XCTestCase {
     func testApplyPresetPerDisplayWarmth() {
         bm.displays = [
             ExternalDisplay(id: 1, name: "A", brightness: 1.0, warmth: 0.0),
-            ExternalDisplay(id: 2, name: "B", brightness: 1.0, warmth: 0.0)
+            ExternalDisplay(id: 2, name: "B", brightness: 1.0, warmth: 0.0),
         ]
         let preset = BrightnessPreset(name: "Test", universalBrightness: 1.0, displayWarmth: ["1": 0.3, "2": 0.8])
         manager.applyPreset(preset, to: bm)
@@ -84,7 +84,7 @@ final class PresetManagerTests: XCTestCase {
     func testApplyPresetUniversalContrast() {
         bm.displays = [
             ExternalDisplay(id: 1, name: "A", brightness: 1.0, warmth: 0.0, contrast: 0.5),
-            ExternalDisplay(id: 2, name: "B", brightness: 1.0, warmth: 0.0, contrast: 0.5)
+            ExternalDisplay(id: 2, name: "B", brightness: 1.0, warmth: 0.0, contrast: 0.5),
         ]
         let preset = BrightnessPreset(name: "Test", universalBrightness: 1.0, universalContrast: 0.8)
         manager.applyPreset(preset, to: bm)
@@ -95,7 +95,7 @@ final class PresetManagerTests: XCTestCase {
     func testApplyPresetPerDisplayContrast() {
         bm.displays = [
             ExternalDisplay(id: 1, name: "A", brightness: 1.0, warmth: 0.0, contrast: 0.5),
-            ExternalDisplay(id: 2, name: "B", brightness: 1.0, warmth: 0.0, contrast: 0.5)
+            ExternalDisplay(id: 2, name: "B", brightness: 1.0, warmth: 0.0, contrast: 0.5),
         ]
         let preset = BrightnessPreset(name: "Test", universalBrightness: 1.0, displayContrast: ["1": 0.2, "2": 0.9])
         manager.applyPreset(preset, to: bm)
@@ -123,7 +123,7 @@ final class PresetManagerTests: XCTestCase {
 
     func testUpdatePresetCapturesCurrentValues() {
         bm.displays = [
-            ExternalDisplay(id: 1, name: "A", brightness: 0.6, warmth: 0.3, contrast: 0.7)
+            ExternalDisplay(id: 1, name: "A", brightness: 0.6, warmth: 0.3, contrast: 0.7),
         ]
         manager.saveCurrentAsPreset(name: "Update Me", brightnessManager: bm)
         guard let preset = manager.presets.last else {

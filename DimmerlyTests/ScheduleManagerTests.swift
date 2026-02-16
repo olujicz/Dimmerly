@@ -271,12 +271,12 @@ final class ScheduleManagerTests: XCTestCase {
 
     // MARK: - resolveTriggerDate
 
-    func testResolveTriggerDateFixedTime() {
+    func testResolveTriggerDateFixedTime() throws {
         let date = makeDate(hour: 12, minute: 0)
         let resolved = manager.resolveTriggerDate(.fixedTime(hour: 22, minute: 30), on: date)
 
-        let resolved_ = try! XCTUnwrap(resolved)
-        let components = Calendar.current.dateComponents([.hour, .minute], from: resolved_)
+        let unwrapped = try XCTUnwrap(resolved)
+        let components = Calendar.current.dateComponents([.hour, .minute], from: unwrapped)
         XCTAssertEqual(components.hour, 22)
         XCTAssertEqual(components.minute, 30)
     }

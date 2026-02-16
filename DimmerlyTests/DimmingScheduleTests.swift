@@ -10,7 +10,6 @@
 import XCTest
 
 final class DimmingScheduleTests: XCTestCase {
-
     // MARK: - ScheduleTrigger Codable
 
     func testFixedTimeCodableRoundTrip() throws {
@@ -65,7 +64,7 @@ final class DimmingScheduleTests: XCTestCase {
     func testSunriseNoOffsetDescription() {
         let trigger = ScheduleTrigger.sunrise(offsetMinutes: 0)
         XCTAssertTrue(trigger.displayDescription.lowercased().contains("sunrise"),
-                       "Should contain 'sunrise', got: \(trigger.displayDescription)")
+                      "Should contain 'sunrise', got: \(trigger.displayDescription)")
     }
 
     func testSunrisePositiveOffsetDescription() {
@@ -73,7 +72,7 @@ final class DimmingScheduleTests: XCTestCase {
         let desc = trigger.displayDescription
         XCTAssertTrue(desc.contains("30"), "Should contain offset value, got: \(desc)")
         XCTAssertTrue(desc.lowercased().contains("after") || desc.lowercased().contains("sunrise"),
-                       "Should indicate after sunrise, got: \(desc)")
+                      "Should indicate after sunrise, got: \(desc)")
     }
 
     func testSunriseNegativeOffsetDescription() {
@@ -81,13 +80,13 @@ final class DimmingScheduleTests: XCTestCase {
         let desc = trigger.displayDescription
         XCTAssertTrue(desc.contains("15"), "Should contain absolute offset value, got: \(desc)")
         XCTAssertTrue(desc.lowercased().contains("before") || desc.lowercased().contains("sunrise"),
-                       "Should indicate before sunrise, got: \(desc)")
+                      "Should indicate before sunrise, got: \(desc)")
     }
 
     func testSunsetNoOffsetDescription() {
         let trigger = ScheduleTrigger.sunset(offsetMinutes: 0)
         XCTAssertTrue(trigger.displayDescription.lowercased().contains("sunset"),
-                       "Should contain 'sunset', got: \(trigger.displayDescription)")
+                      "Should contain 'sunset', got: \(trigger.displayDescription)")
     }
 
     func testSunsetPositiveOffsetDescription() {

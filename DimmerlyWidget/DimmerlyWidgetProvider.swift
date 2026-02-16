@@ -16,7 +16,7 @@ struct DimmerlyWidgetProvider: TimelineProvider {
     private static let samplePresets = [
         WidgetPresetInfo(id: UUID().uuidString, name: "Movie Night"),
         WidgetPresetInfo(id: UUID().uuidString, name: "Work"),
-        WidgetPresetInfo(id: UUID().uuidString, name: "Bright")
+        WidgetPresetInfo(id: UUID().uuidString, name: "Bright"),
     ]
 
     func placeholder(in _: Context) -> PresetEntry {

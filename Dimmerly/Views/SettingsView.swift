@@ -132,11 +132,11 @@ struct GeneralSettingsView: View {
                 if !settings.preventScreenLock {
                     Text(
                         "Turns off all displays and locks your Mac, just like closing the lid."
-                        + " To control how quickly your password is required,"
-                        + " adjust your Lock Screen settings."
+                            + " To control how quickly your password is required,"
+                            + " adjust your Lock Screen settings."
                     )
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
                     Button {
                         if let url = URL(string: "x-apple.systempreferences:com.apple.Lock-Screen-Settings.extension") {
@@ -420,9 +420,9 @@ struct GeneralSettingsView: View {
                         "Accessibility permission is required for global shortcuts.",
                         systemImage: "exclamationmark.triangle.fill"
                     )
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .symbolRenderingMode(.multicolor)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .symbolRenderingMode(.multicolor)
 
                     Button {
                         KeyboardShortcutManager.requestAccessibilityPermission()
@@ -525,13 +525,13 @@ struct GeneralSettingsView: View {
         let description = NSAttributedString(
             string: NSLocalizedString(
                 "A macOS menu bar utility for putting your displays to sleep"
-                + " \u{2014} with a single keyboard shortcut.\n",
+                    + " \u{2014} with a single keyboard shortcut.\n",
                 comment: "About panel description"
             ),
             attributes: [
                 .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
                 .foregroundColor: NSColor.secondaryLabelColor,
-                .paragraphStyle: centeredStyle
+                .paragraphStyle: centeredStyle,
             ]
         )
         credits.append(description)
@@ -541,13 +541,13 @@ struct GeneralSettingsView: View {
             attributes: [
                 .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
                 .link: URL(string: "https://github.com/olujicz/Dimmerly") as Any,
-                .paragraphStyle: centeredStyle
+                .paragraphStyle: centeredStyle,
             ]
         )
         credits.append(linkText)
 
         NSApp.orderFrontStandardAboutPanel(options: [
-            .credits: credits
+            .credits: credits,
         ])
     }
 }
@@ -695,11 +695,11 @@ private struct PresetShortcutRecorderButton: View {
             } else {
                 Text(
                     shortcut?.displayString
-                    ?? NSLocalizedString("Set\u{2026}", comment: "Preset shortcut button placeholder")
+                        ?? NSLocalizedString("Set\u{2026}", comment: "Preset shortcut button placeholder")
                 )
-                    .font(.caption)
-                    .foregroundStyle(shortcut != nil ? .primary : .secondary)
-                    .frame(minWidth: 60)
+                .font(.caption)
+                .foregroundStyle(shortcut != nil ? .primary : .secondary)
+                .frame(minWidth: 60)
             }
         }
         .buttonStyle(.bordered)

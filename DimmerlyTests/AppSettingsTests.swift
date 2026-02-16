@@ -30,7 +30,7 @@ final class AppSettingsTests: XCTestCase {
         AppSettings.autoColorTempEnabledKey,
         "dimmerlyDayTemperature",
         "dimmerlyNightTemperature",
-        "dimmerlyColorTempTransitionMinutes"
+        "dimmerlyColorTempTransitionMinutes",
     ]
 
     override func setUp() async throws {

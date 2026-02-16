@@ -105,7 +105,8 @@ class KeyboardShortcutManager: ObservableObject {
 
         // Restart monitoring if it was active
         if globalEventMonitor != nil || localEventMonitor != nil,
-           let callback = onShortcutTriggered {
+           let callback = onShortcutTriggered
+        {
             startMonitoring(onTriggered: callback)
         }
     }

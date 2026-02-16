@@ -14,7 +14,7 @@ struct DimmerlyShortcuts: AppShortcutsProvider {
             phrases: [
                 "Sleep displays with \(.applicationName)",
                 "Dim displays with \(.applicationName)",
-                "Turn off displays with \(.applicationName)"
+                "Turn off displays with \(.applicationName)",
             ],
             shortTitle: "Sleep Displays",
             systemImageName: "moon.fill"
@@ -23,7 +23,7 @@ struct DimmerlyShortcuts: AppShortcutsProvider {
             intent: SetDisplayBrightnessIntent(),
             phrases: [
                 "Set display brightness with \(.applicationName)",
-                "Change brightness with \(.applicationName)"
+                "Change brightness with \(.applicationName)",
             ],
             shortTitle: "Set Brightness",
             systemImageName: "sun.max"
@@ -31,7 +31,7 @@ struct DimmerlyShortcuts: AppShortcutsProvider {
         AppShortcut(
             intent: ToggleDimIntent(),
             phrases: [
-                "Toggle display dimming with \(.applicationName)"
+                "Toggle display dimming with \(.applicationName)",
             ],
             shortTitle: "Toggle Dimming",
             systemImageName: "moon.haze"
@@ -40,7 +40,7 @@ struct DimmerlyShortcuts: AppShortcutsProvider {
             intent: SetDisplayWarmthIntent(),
             phrases: [
                 "Set display warmth with \(.applicationName)",
-                "Change warmth with \(.applicationName)"
+                "Change warmth with \(.applicationName)",
             ],
             shortTitle: "Set Warmth",
             systemImageName: "flame"
@@ -49,7 +49,7 @@ struct DimmerlyShortcuts: AppShortcutsProvider {
             intent: SetDisplayContrastIntent(),
             phrases: [
                 "Set display contrast with \(.applicationName)",
-                "Change contrast with \(.applicationName)"
+                "Change contrast with \(.applicationName)",
             ],
             shortTitle: "Set Contrast",
             systemImageName: "circle.lefthalf.filled"
@@ -57,7 +57,7 @@ struct DimmerlyShortcuts: AppShortcutsProvider {
         AppShortcut(
             intent: ApplyPresetIntent(),
             phrases: [
-                "Apply brightness preset with \(.applicationName)"
+                "Apply brightness preset with \(.applicationName)",
             ],
             shortTitle: "Apply Preset",
             systemImageName: "slider.horizontal.3"

@@ -11,7 +11,6 @@ import XCTest
 
 @MainActor
 final class ColorTemperatureManagerTests: XCTestCase {
-
     // MARK: - Helpers
 
     private func makeDate(

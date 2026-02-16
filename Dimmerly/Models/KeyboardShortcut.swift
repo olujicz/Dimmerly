@@ -72,7 +72,7 @@ struct GlobalShortcut: Codable, Equatable, Sendable {
             kVK_Return: "return", kVK_Space: "space", kVK_Escape: "escape",
             kVK_F1: "f1", kVK_F2: "f2", kVK_F3: "f3", kVK_F4: "f4",
             kVK_F5: "f5", kVK_F6: "f6", kVK_F7: "f7", kVK_F8: "f8",
-            kVK_F9: "f9", kVK_F10: "f10", kVK_F11: "f11", kVK_F12: "f12"
+            kVK_F9: "f9", kVK_F10: "f10", kVK_F11: "f11", kVK_F12: "f12",
         ]
     #endif
 
@@ -173,7 +173,7 @@ struct GlobalShortcut: Codable, Equatable, Sendable {
             // Find
             ("f", [.command]), ("g", [.command]),
             // System-wide
-            ("tab", [.command]), ("space", [.command])
+            ("tab", [.command]), ("space", [.command]),
         ]
 
         return reserved.contains { $0.key == self.key && $0.modifiers == self.modifiers }

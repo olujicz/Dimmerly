@@ -155,8 +155,8 @@ struct DimmerlyApp: App {
                 guard let presetIDString = defaults?.string(
                     forKey: SharedConstants.widgetPresetCommandKey
                 ),
-                      let uuid = UUID(uuidString: presetIDString),
-                      let preset = presetManager.presets.first(where: { $0.id == uuid })
+                    let uuid = UUID(uuidString: presetIDString),
+                    let preset = presetManager.presets.first(where: { $0.id == uuid })
                 else {
                     return
                 }

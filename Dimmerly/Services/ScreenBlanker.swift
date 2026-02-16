@@ -266,9 +266,15 @@ class ScreenBlanker {
                     let current = start * (1.0 - progress)
                     let m = BrightnessManager.channelMultipliers(for: warmth)
 
-                    var rTable = BrightnessManager.buildTable(brightness: current, channelMultiplier: m.r, contrast: contrast)
-                    var gTable = BrightnessManager.buildTable(brightness: current, channelMultiplier: m.g, contrast: contrast)
-                    var bTable = BrightnessManager.buildTable(brightness: current, channelMultiplier: m.b, contrast: contrast)
+                    var rTable = BrightnessManager.buildTable(
+                        brightness: current, channelMultiplier: m.r, contrast: contrast
+                    )
+                    var gTable = BrightnessManager.buildTable(
+                        brightness: current, channelMultiplier: m.g, contrast: contrast
+                    )
+                    var bTable = BrightnessManager.buildTable(
+                        brightness: current, channelMultiplier: m.b, contrast: contrast
+                    )
 
                     CGSetDisplayTransferByTable(displayID, 256, &rTable, &gTable, &bTable)
                 }
@@ -413,7 +419,7 @@ class ScreenBlanker {
         if let localKeyMonitor { eventMonitors.append(localKeyMonitor) }
 
         let swallowedEvents: NSEvent.EventTypeMask = [
-            .leftMouseDown, .rightMouseDown, .scrollWheel, .mouseMoved
+            .leftMouseDown, .rightMouseDown, .scrollWheel, .mouseMoved,
         ]
         let localMouseMonitor = NSEvent.addLocalMonitorForEvents(matching: swallowedEvents) { _ in
             nil

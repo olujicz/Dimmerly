@@ -60,9 +60,9 @@ struct ScheduleRow: View {
                 "The preset assigned to this schedule has been deleted.",
                 systemImage: "exclamationmark.triangle.fill"
             )
-                .font(.caption)
-                .foregroundStyle(.red)
-                .symbolRenderingMode(.multicolor)
+            .font(.caption)
+            .foregroundStyle(.red)
+            .symbolRenderingMode(.multicolor)
         }
     }
 
@@ -237,11 +237,11 @@ struct ManualLocationSheet: View {
                 } else {
                     Text(
                         "Enter your approximate coordinates for sunrise and sunset"
-                        + " calculations. You can find these by searching for"
-                        + " your city on a map."
+                            + " calculations. You can find these by searching for"
+                            + " your city on a map."
                     )
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 }
             }
         }

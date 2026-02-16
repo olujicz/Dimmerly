@@ -158,7 +158,7 @@ class PresetManager: ObservableObject {
     static let defaultPresets: [BrightnessPreset] = [
         BrightnessPreset(name: "Full", universalBrightness: 1.0, universalWarmth: 0.0, universalContrast: 0.5),
         BrightnessPreset(name: "Evening", universalBrightness: 0.7, universalWarmth: 0.4, universalContrast: 0.5),
-        BrightnessPreset(name: "Night", universalBrightness: 0.3, universalWarmth: 0.8, universalContrast: 0.5)
+        BrightnessPreset(name: "Night", universalBrightness: 0.3, universalWarmth: 0.8, universalContrast: 0.5),
     ]
 
     /// Replaces all presets with the default set
