@@ -11,7 +11,8 @@ A lightweight macOS menu bar utility for controlling external display brightness
 ## Features
 
 - **Per-Display Brightness Control** — Individual sliders for each connected external display
-- **Color Temperature (Warmth)** — Per-display warmth adjustment from neutral to warm (~2700K)
+- **Color Temperature (Warmth)** — Per-display warmth adjustment from neutral to warm (~1900K)
+- **Auto Color Temperature** — Automatic warmth adjustment based on time of day using sunrise/sunset data
 - **Contrast Control** — Per-display contrast via symmetric S-curve gamma adjustment
 - **Brightness Presets** — Save, name, and instantly apply display configurations (brightness, warmth, contrast)
 - **Smooth Preset Transitions** — Animated ~300ms interpolation when switching presets (respects Reduce Motion)
@@ -68,7 +69,8 @@ Dimmerly is available on the [Mac App Store](https://apps.apple.com/app/dimmerly
 Click the Dimmerly icon in your menu bar to open the panel:
 
 - Adjust brightness per display with sliders
-- Expand "Display Adjustments" for warmth and contrast sliders
+- Expand "Display Adjustments" for warmth, contrast, and auto color temperature
+- Toggle Auto Warmth to automatically adjust color temperature throughout the day
 - Dim individual displays with the moon toggle
 - Apply saved presets with a click, or right-click to save current settings to a preset
 - Save current display settings as a new preset
@@ -116,6 +118,7 @@ Schedules reference your existing presets, so editing a preset automatically upd
 Access via the menu bar panel (Settings... or ⌘,). All settings are presented in a single grouped form:
 
 - **General** — Launch at login, menu bar icon style
+- **Color Temperature** — Day and night temperature targets, transition duration
 - **Dimming** — Display sleep vs dim-only mode, fade transition, wake input options, ignore mouse movement
 - **Idle Timer** — Auto-dim after inactivity with configurable timeout (1–60 minutes)
 - **Schedule** — Enable scheduled presets, set location (automatic or manual coordinates), manage schedules

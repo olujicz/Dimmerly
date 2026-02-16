@@ -9,6 +9,7 @@ Semantic Versioning.
 
 ### Added
 - Per-display brightness, warmth (color temperature), and contrast control
+- Automatic color temperature adjustment based on time of day (Helland blackbody algorithm, ~1900K–6500K)
 - Brightness presets with save, rename, and keyboard shortcut assignment (up to 10)
 - Smooth animated transitions (~300ms) when switching presets
 - Global keyboard shortcuts for dimming and per-preset activation
