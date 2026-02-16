@@ -47,6 +47,14 @@ enum MenuBarIconStyle: String, CaseIterable, Identifiable {
 @MainActor
 class AppSettings: ObservableObject {
     static let shared = AppSettings()
+
+    // MARK: - UserDefaults Keys
+
+    /// Key constants for settings that are observed by external managers.
+    /// These match the @AppStorage keys below and must be kept in sync.
+    nonisolated static let scheduleEnabledKey = "dimmerlyScheduleEnabled"
+    nonisolated static let autoColorTempEnabledKey = "dimmerlyAutoColorTempEnabled"
+
     // Pre-encoded default shortcut data (avoids force-try at property init)
     // swiftlint:disable:next force_try
     private static let defaultShortcutData = try! JSONEncoder().encode(GlobalShortcut.default)
@@ -88,11 +96,11 @@ class AppSettings: ObservableObject {
     var requireEscapeToDismiss: Bool = false
 
     /// Whether schedule-based auto-dimming is enabled
-    @AppStorage("dimmerlyScheduleEnabled")
+    @AppStorage(AppSettings.scheduleEnabledKey)
     var scheduleEnabled: Bool = false
 
     /// Whether automatic color temperature adjustment is enabled
-    @AppStorage("dimmerlyAutoColorTempEnabled")
+    @AppStorage(AppSettings.autoColorTempEnabledKey)
     var autoColorTempEnabled: Bool = false
 
     /// Daytime color temperature in Kelvin (used when sun is up)

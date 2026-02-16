@@ -26,7 +26,11 @@ final class AppSettingsTests: XCTestCase {
         "dimmerlyIdleTimerMinutes",
         "dimmerlyFadeTransition",
         "dimmerlyRequireEscapeToDismiss",
-        "dimmerlyScheduleEnabled"
+        AppSettings.scheduleEnabledKey,
+        AppSettings.autoColorTempEnabledKey,
+        "dimmerlyDayTemperature",
+        "dimmerlyNightTemperature",
+        "dimmerlyColorTempTransitionMinutes"
     ]
 
     override func setUp() async throws {

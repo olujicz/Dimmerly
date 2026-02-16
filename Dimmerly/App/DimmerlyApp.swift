@@ -178,7 +178,7 @@ struct DimmerlyApp: App {
             presetManager.applyPreset(preset, to: brightnessManager, animated: true)
         }
         scheduleManager.observeSettings(
-            readEnabled: { UserDefaults.standard.bool(forKey: "dimmerlyScheduleEnabled") }
+            readEnabled: { UserDefaults.standard.bool(forKey: AppSettings.scheduleEnabledKey) }
         )
     }
 
@@ -187,7 +187,7 @@ struct DimmerlyApp: App {
     /// Sets up settings observation to start/stop polling based on user preference.
     private func configureColorTemperature() {
         colorTempManager.observeSettings(
-            readEnabled: { UserDefaults.standard.bool(forKey: "dimmerlyAutoColorTempEnabled") }
+            readEnabled: { UserDefaults.standard.bool(forKey: AppSettings.autoColorTempEnabledKey) }
         )
     }
 

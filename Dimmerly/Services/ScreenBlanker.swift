@@ -121,8 +121,18 @@ class ScreenBlanker {
 
         stopDismissMonitoring()
 
-        // Restore gamma to ColorSync profile defaults
-        CGDisplayRestoreColorSyncSettings()
+        // Restore per-display gamma tables directly to avoid a brightness flash.
+        // CGDisplayRestoreColorSyncSettings() resets all displays to native brightness,
+        // causing a visible flash before BrightnessManager reapplies the user's gamma.
+        // Instead, restore each display's gamma table individually via the callback.
+        if let restoreDisplay {
+            for displayID in BrightnessManager.activeDisplayIDs() {
+                restoreDisplay(displayID)
+            }
+        } else {
+            // Fallback if callback not set (shouldn't happen in normal operation)
+            CGDisplayRestoreColorSyncSettings()
+        }
 
         for window in windows {
             window.orderOut(nil)

@@ -362,7 +362,7 @@ class ColorTemperatureManager: ObservableObject {
         let nightK = settings.nightTemperature
 
         let formatter = DateFormatter()
-        formatter.dateFormat = "h:mm a"
+        formatter.dateFormat = DateFormatter.dateFormat(fromTemplate: "j:mm", options: 0, locale: .current)
 
         if now < sunrise {
             return "Sunrise \(formatter.string(from: sunrise)) · \(dayK)K"
