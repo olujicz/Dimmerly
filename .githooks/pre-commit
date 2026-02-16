@@ -1,0 +1,121 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ── Colours ──────────────────────────────────────────────────────────
+red='\033[0;31m'
+green='\033[0;32m'
+yellow='\033[0;33m'
+bold='\033[1m'
+reset='\033[0m'
+
+pass=0
+fail=0
+
+check_passed() { ((pass++)); printf "${green}✓${reset} %s\n" "$1"; }
+check_failed() { ((fail++)); printf "${red}✗${reset} %b\n" "$1"; }
+
+# ── Collect staged Swift files ───────────────────────────────────────
+staged_swift=$(git diff --cached --name-only --diff-filter=ACM -- '*.swift' || true)
+
+# ── 1. SwiftFormat ───────────────────────────────────────────────────
+if [ -n "$staged_swift" ] && command -v swiftformat &>/dev/null; then
+    printf "${bold}Checking format…${reset}\n"
+    format_failed=0
+    while IFS= read -r file; do
+        if ! swiftformat --lint --quiet "$file" 2>/dev/null; then
+            format_failed=1
+        fi
+    done <<< "$staged_swift"
+
+    if [ "$format_failed" -eq 0 ]; then
+        check_passed "SwiftFormat"
+    else
+        check_failed "SwiftFormat — run ${yellow}just format${reset} then re-stage"
+    fi
+elif [ -z "$staged_swift" ]; then
+    : # no Swift files, skip silently
+else
+    printf "${yellow}!${reset} swiftformat not installed, skipping format check\n"
+fi
+
+# ── 2. SwiftLint ─────────────────────────────────────────────────────
+if [ -n "$staged_swift" ] && command -v swiftlint &>/dev/null; then
+    printf "${bold}Checking lint…${reset}\n"
+    lint_output=""
+    lint_failed=0
+    while IFS= read -r file; do
+        result=$(swiftlint lint --quiet --strict "$file" 2>/dev/null || true)
+        if [ -n "$result" ]; then
+            lint_output+="$result"$'\n'
+            lint_failed=1
+        fi
+    done <<< "$staged_swift"
+
+    if [ "$lint_failed" -eq 0 ]; then
+        check_passed "SwiftLint"
+    else
+        check_failed "SwiftLint"
+        printf "%s" "$lint_output"
+    fi
+elif [ -z "$staged_swift" ]; then
+    :
+else
+    printf "${yellow}!${reset} swiftlint not installed, skipping lint check\n"
+fi
+
+# ── 3. Sensitive data ────────────────────────────────────────────────
+staged_all=$(git diff --cached --name-only --diff-filter=ACM || true)
+
+if [ -n "$staged_all" ]; then
+    printf "${bold}Checking for sensitive data…${reset}\n"
+    secrets_found=0
+    diff_content=$(git diff --cached -U0)
+
+    # Patterns checked against added lines in the diff (ERE syntax)
+    patterns=(
+        'BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY'
+        'AKIA[0-9A-Z]{16}'                                              # AWS access key
+        '([Aa][Pp][Ii][_-]?[Kk][Ee][Yy]|[Ss][Ee][Cc][Rr][Ee][Tt][_-]?[Kk][Ee][Yy]|[Aa][Uu][Tt][Hh][_-]?[Tt][Oo][Kk][Ee][Nn]|[Aa][Cc][Cc][Ee][Ss][Ss][_-]?[Tt][Oo][Kk][Ee][Nn]|[Cc][Ll][Ii][Ee][Nn][Tt][_-]?[Ss][Ee][Cc][Rr][Ee][Tt])[[:space:]]*[:=][[:space:]]*["\x27]?[A-Za-z0-9/+=_-]{16,}'
+        '[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd][[:space:]]*[:=][[:space:]]*"[^"]{8,}'
+        'ghp_[A-Za-z0-9_]{36}'                                          # GitHub PAT
+        'gho_[A-Za-z0-9_]{36}'                                          # GitHub OAuth
+        'sk-[A-Za-z0-9]{20,}'                                           # OpenAI / Stripe
+        'xox[bpas]-[A-Za-z0-9-]+'                                       # Slack token
+    )
+
+    joined=$(IFS='|'; echo "${patterns[*]}")
+
+    # Search only added lines (+) in the cached diff
+    matches=$(echo "$diff_content" | grep -E '^\+' | grep -En "$joined" 2>/dev/null || true)
+
+    if [ -n "$matches" ]; then
+        secrets_found=1
+        check_failed "Possible secrets detected in staged changes:"
+        echo "$matches" | head -10
+        if [ "$(echo "$matches" | wc -l)" -gt 10 ]; then
+            printf "  … and more\n"
+        fi
+    fi
+
+    # Also flag known sensitive filenames
+    sensitive_files=$(echo "$staged_all" | grep -iE '\.(pem|p12|key|keystore|jks|pfx|env|env\..*)$|id_rsa|id_ed25519|credentials\.json|service.account\.json' || true)
+    if [ -n "$sensitive_files" ]; then
+        secrets_found=1
+        check_failed "Sensitive file(s) staged for commit:"
+        echo "$sensitive_files" | sed 's/^/  /'
+    fi
+
+    if [ "$secrets_found" -eq 0 ]; then
+        check_passed "No secrets detected"
+    fi
+fi
+
+# ── Summary ──────────────────────────────────────────────────────────
+echo ""
+if [ "$fail" -gt 0 ]; then
+    printf "${red}${bold}Pre-commit failed${reset} — fix the issues above and try again.\n"
+    printf "To bypass (not recommended): ${yellow}git commit --no-verify${reset}\n"
+    exit 1
+else
+    printf "${green}${bold}All checks passed${reset}\n"
+fi

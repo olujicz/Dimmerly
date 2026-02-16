@@ -38,6 +38,11 @@ format:
 format-check:
     swiftformat Dimmerly DimmerlyTests DimmerlyWidget --lint
 
+# Install git hooks (run once after clone)
+setup:
+    git config core.hooksPath .githooks
+    @echo "Git hooks installed from .githooks/"
+
 # Clean build artifacts
 clean:
     rm -rf {{build_dir}}
