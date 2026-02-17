@@ -65,6 +65,8 @@
 		HW00000000000000000011 /* DDCController.swift in Sources */ = {isa = PBXBuildFile; fileRef = HW00000000000000000001 /* DDCController.swift */; };
 		HW00000000000000000012 /* HardwareDisplayCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = HW00000000000000000002 /* HardwareDisplayCapability.swift */; };
 		HW00000000000000000013 /* HardwareBrightnessManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = HW00000000000000000003 /* HardwareBrightnessManager.swift */; };
+		EX00000000000000000011 /* PresetManagementRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = EX00000000000000000001 /* PresetManagementRow.swift */; };
+		EX00000000000000000012 /* LocationPickerRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = EX00000000000000000002 /* LocationPickerRow.swift */; };
 		HW00000000000000000014 /* DDCControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = HW00000000000000000004 /* DDCControllerTests.swift */; };
 		HW00000000000000000015 /* HardwareBrightnessManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = HW00000000000000000005 /* HardwareBrightnessManagerTests.swift */; };
 /* End PBXBuildFile section */
@@ -162,6 +164,8 @@
 		HW00000000000000000003 /* HardwareBrightnessManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareBrightnessManager.swift; sourceTree = "<group>"; };
 		HW00000000000000000004 /* DDCControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DDCControllerTests.swift; sourceTree = "<group>"; };
 		HW00000000000000000005 /* HardwareBrightnessManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareBrightnessManagerTests.swift; sourceTree = "<group>"; };
+		EX00000000000000000001 /* PresetManagementRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetManagementRow.swift; sourceTree = "<group>"; };
+		EX00000000000000000002 /* LocationPickerRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPickerRow.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -209,7 +213,9 @@
 			isa = PBXGroup;
 			children = (
 				C50F163FD03D0874576E9962 /* KeyboardShortcutRecorder.swift */,
+				EX00000000000000000002 /* LocationPickerRow.swift */,
 				BA0000000000000000000004 /* MenuBarPanel.swift */,
+				EX00000000000000000001 /* PresetManagementRow.swift */,
 				SC00000000000000000005 /* ScheduleViews.swift */,
 				76B136A03B60312AFD4F720E /* SettingsView.swift */,
 			);
@@ -555,6 +561,8 @@
 				HW00000000000000000011 /* DDCController.swift in Sources */,
 				HW00000000000000000012 /* HardwareDisplayCapability.swift in Sources */,
 				HW00000000000000000013 /* HardwareBrightnessManager.swift in Sources */,
+				EX00000000000000000011 /* PresetManagementRow.swift in Sources */,
+				EX00000000000000000012 /* LocationPickerRow.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

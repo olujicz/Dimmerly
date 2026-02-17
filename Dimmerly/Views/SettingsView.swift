@@ -30,7 +30,6 @@ struct GeneralSettingsView: View {
     @EnvironmentObject var presetManager: PresetManager
     @EnvironmentObject var brightnessManager: BrightnessManager
     @EnvironmentObject var scheduleManager: ScheduleManager
-    @EnvironmentObject var locationProvider: LocationProvider
     @EnvironmentObject var colorTempManager: ColorTemperatureManager
     #if !APPSTORE
         @EnvironmentObject var hardwareManager: HardwareBrightnessManager
@@ -228,7 +227,6 @@ struct GeneralSettingsView: View {
     // MARK: - Schedule
 
     @State private var showAddSchedule = false
-    @State private var showManualLocation = false
 
     private var scheduleSection: some View {
         Section("Schedule") {
@@ -236,7 +234,7 @@ struct GeneralSettingsView: View {
                 .help("Automatically apply brightness presets at scheduled times")
 
             if settings.scheduleEnabled {
-                locationRow
+                LocationPickerRow()
 
                 ForEach(scheduleManager.schedules) { schedule in
                     let presetName = presetManager.presets.first(where: { $0.id == schedule.presetID })?.name
@@ -262,59 +260,6 @@ struct GeneralSettingsView: View {
         }
     }
 
-    private var locationRow: some View {
-        Group {
-            if locationProvider.hasLocation {
-                LabeledContent {
-                    Menu {
-                        Button("Use Current Location") {
-                            locationProvider.requestLocation()
-                        }
-                        Button("Enter Manually\u{2026}") {
-                            showManualLocation = true
-                        }
-                        Divider()
-                        Button("Clear Location", role: .destructive) {
-                            locationProvider.clearLocation()
-                        }
-                    } label: {
-                        Text(locationSummary)
-                            .foregroundStyle(.secondary)
-                    }
-                } label: {
-                    Label("Location", systemImage: "location.fill")
-                }
-            } else {
-                LabeledContent {
-                    HStack(spacing: 8) {
-                        Button("Use Current") {
-                            locationProvider.requestLocation()
-                        }
-                        Button("Enter Manually\u{2026}") {
-                            showManualLocation = true
-                        }
-                    }
-                } label: {
-                    Label("Location", systemImage: "location.slash")
-                }
-
-                Text("A location is needed for sunrise and sunset features.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .sheet(isPresented: $showManualLocation) {
-            ManualLocationSheet()
-                .environmentObject(locationProvider)
-        }
-    }
-
-    private var locationSummary: String {
-        let lat = locationProvider.latitude ?? 0
-        let lon = locationProvider.longitude ?? 0
-        return String(format: "%.2f, %.2f", lat, lon)
-    }
-
     private func triggerTimeDescription(for schedule: DimmingSchedule) -> String? {
         guard schedule.trigger.requiresLocation else { return nil }
         guard let date = scheduleManager.resolveTriggerDate(schedule.trigger, on: Date()) else {
@@ -334,7 +279,7 @@ struct GeneralSettingsView: View {
                 .help("Adjust warmth automatically based on sunrise and sunset")
 
             if settings.autoColorTempEnabled {
-                locationRow
+                LocationPickerRow()
 
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
@@ -688,243 +633,6 @@ struct GeneralSettingsView: View {
         NSApp.orderFrontStandardAboutPanel(options: [
             .credits: credits,
         ])
-    }
-}
-
-// MARK: - Preset Management Row
-
-private struct PresetManagementRow: View {
-    let preset: BrightnessPreset
-    let mainShortcut: GlobalShortcut
-    let allPresets: [BrightnessPreset]
-    let onRename: (String) -> Void
-    let onDelete: () -> Void
-    let onShortcutChanged: (GlobalShortcut?) -> Void
-
-    @State private var isEditing = false
-    @State private var editedName: String = ""
-    @State private var isRecordingShortcut = false
-    @State private var conflictMessage: String?
-    @State private var showDeleteConfirmation = false
-    @State private var isHovered = false
-
-    var body: some View {
-        HStack {
-            if isEditing {
-                TextField("Name", text: $editedName, onCommit: {
-                    let trimmed = editedName.trimmingCharacters(in: .whitespaces)
-                    if !trimmed.isEmpty {
-                        onRename(trimmed)
-                    }
-                    isEditing = false
-                })
-                .textFieldStyle(.roundedBorder)
-            } else {
-                Text(preset.name)
-                    .contextMenu {
-                        Button("Rename") {
-                            editedName = preset.name
-                            isEditing = true
-                        }
-                    }
-
-                if isHovered {
-                    Button {
-                        editedName = preset.name
-                        isEditing = true
-                    } label: {
-                        Image(systemName: "pencil")
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.borderless)
-                    .accessibilityLabel(Text("Rename \(preset.name)"))
-                    .help(Text("Rename Preset"))
-                }
-            }
-
-            Spacer()
-
-            // Shortcut recorder
-            PresetShortcutRecorderButton(
-                shortcut: preset.shortcut,
-                onRecord: { newShortcut in
-                    // Check for conflicts
-                    if let sc = newShortcut {
-                        if sc == mainShortcut {
-                            conflictMessage = String(
-                                format: NSLocalizedString(
-                                    "This shortcut conflicts with %@",
-                                    comment: "Shortcut conflict message"
-                                ),
-                                NSLocalizedString(
-                                    "Sleep Displays",
-                                    comment: "Main shortcut name"
-                                )
-                            )
-                            return
-                        }
-                        for other in allPresets where other.id != preset.id {
-                            if other.shortcut == sc {
-                                conflictMessage = String(
-                                    format: NSLocalizedString(
-                                        "This shortcut conflicts with %@",
-                                        comment: "Shortcut conflict message"
-                                    ),
-                                    other.name
-                                )
-                                return
-                            }
-                        }
-                    }
-                    conflictMessage = nil
-                    onShortcutChanged(newShortcut)
-                },
-                onRecordingChanged: { _ in
-                    conflictMessage = nil
-                }
-            )
-
-            Button {
-                showDeleteConfirmation = true
-            } label: {
-                Image(systemName: "trash")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
-            .buttonStyle(.borderless)
-            .accessibilityLabel(Text("Delete \(preset.name)"))
-            .help(Text("Delete Preset"))
-            .alert("Delete Preset?", isPresented: $showDeleteConfirmation) {
-                Button("Cancel", role: .cancel) {}
-                Button("Delete", role: .destructive) { onDelete() }
-            } message: {
-                Text("\"\(preset.name)\" will be permanently deleted.")
-            }
-        }
-        .onHover { isHovered = $0 }
-        .animation(.spring(response: 0.2, dampingFraction: 0.8), value: isHovered)
-
-        if let conflictMessage {
-            Label(conflictMessage, systemImage: "exclamationmark.triangle.fill")
-                .font(.caption)
-                .foregroundStyle(.red)
-                .symbolRenderingMode(.multicolor)
-        }
-    }
-}
-
-// MARK: - Preset Shortcut Recorder Button
-
-private struct PresetShortcutRecorderButton: View {
-    let shortcut: GlobalShortcut?
-    let onRecord: (GlobalShortcut?) -> Void
-    var onRecordingChanged: ((Bool) -> Void)?
-
-    @State private var isRecording = false
-
-    var body: some View {
-        Button {
-            isRecording.toggle()
-        } label: {
-            if isRecording {
-                Text("Press shortcut\u{2026}")
-                    .font(.caption)
-                    .frame(minWidth: 60)
-            } else {
-                Text(
-                    shortcut?.displayString
-                        ?? NSLocalizedString("Set\u{2026}", comment: "Preset shortcut button placeholder")
-                )
-                .font(.caption)
-                .foregroundStyle(shortcut != nil ? .primary : .secondary)
-                .frame(minWidth: 60)
-            }
-        }
-        .buttonStyle(.bordered)
-        .tint(isRecording ? .accentColor : nil)
-        .overlay(
-            PresetShortcutCaptureView(
-                isActive: isRecording,
-                onCapture: { captured in
-                    isRecording = false
-                    onRecord(captured)
-                },
-                onCancel: {
-                    isRecording = false
-                }
-            )
-            .allowsHitTesting(isRecording)
-            .opacity(0)
-        )
-        .onChange(of: isRecording) { _, newValue in
-            onRecordingChanged?(newValue)
-        }
-        .contextMenu {
-            if shortcut != nil {
-                Button("Clear Shortcut") {
-                    onRecord(nil)
-                }
-            }
-        }
-    }
-}
-
-// MARK: - Preset Shortcut Capture View
-
-private struct PresetShortcutCaptureView: NSViewRepresentable {
-    let isActive: Bool
-    let onCapture: (GlobalShortcut) -> Void
-    let onCancel: () -> Void
-
-    func makeNSView(context _: Context) -> PresetShortcutNSView {
-        let view = PresetShortcutNSView()
-        view.onCapture = onCapture
-        view.onCancel = onCancel
-        return view
-    }
-
-    func updateNSView(_ nsView: PresetShortcutNSView, context _: Context) {
-        nsView.isActive = isActive
-        if isActive {
-            nsView.window?.makeFirstResponder(nsView)
-        }
-    }
-}
-
-private class PresetShortcutNSView: NSView {
-    var onCapture: ((GlobalShortcut) -> Void)?
-    var onCancel: (() -> Void)?
-    var isActive = false
-
-    override var acceptsFirstResponder: Bool {
-        isActive
-    }
-
-    override func keyDown(with event: NSEvent) {
-        guard isActive else {
-            super.keyDown(with: event)
-            return
-        }
-
-        if event.keyCode == 53 { // Escape
-            onCancel?()
-            return
-        }
-
-        if let shortcut = GlobalShortcut.from(
-            keyCode: event.keyCode,
-            modifierFlags: event.modifierFlags
-        ), shortcut.isValid {
-            onCapture?(shortcut)
-        }
-    }
-
-    override func mouseDown(with event: NSEvent) {
-        if isActive {
-            onCancel?()
-        }
-        super.mouseDown(with: event)
     }
 }
 
