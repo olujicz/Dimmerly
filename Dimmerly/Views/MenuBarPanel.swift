@@ -448,7 +448,7 @@ struct DisplayBrightnessRow: View {
         _warmthValue = State(initialValue: display.warmth)
         _contrastValue = State(initialValue: display.contrast)
         #if !APPSTORE
-            _volumeValue = State(initialValue: 0.5)
+            _volumeValue = State(initialValue: hardwareVolume ?? 0.5)
         #endif
     }
 

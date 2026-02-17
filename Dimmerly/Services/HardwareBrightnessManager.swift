@@ -28,6 +28,39 @@
     import CoreGraphics
     import Foundation
 
+    // MARK: - DDC Interface Protocol
+
+    /// Abstraction over DDC I/O for testability.
+    ///
+    /// Production code uses `DefaultDDCInterface` which delegates to `DDCController`.
+    /// Tests inject a mock conformance to avoid real hardware interaction.
+    ///
+    /// All methods are `nonisolated` and synchronous — callers must dispatch to a
+    /// background queue to avoid blocking the main thread.
+    protocol DDCInterface: Sendable {
+        /// Reads a VCP code from a display.
+        func read(vcp: VCPCode, for displayID: CGDirectDisplayID) -> DDCReadResult?
+        /// Writes a VCP code value to a display.
+        func write(vcp: VCPCode, value: UInt16, for displayID: CGDirectDisplayID) -> Bool
+        /// Probes a display for DDC capabilities.
+        func probeCapabilities(for displayID: CGDirectDisplayID) -> HardwareDisplayCapability
+    }
+
+    /// Default DDC interface that delegates to the real DDCController.
+    struct DefaultDDCInterface: DDCInterface {
+        func read(vcp: VCPCode, for displayID: CGDirectDisplayID) -> DDCReadResult? {
+            DDCController.read(vcp: vcp, for: displayID)
+        }
+
+        func write(vcp: VCPCode, value: UInt16, for displayID: CGDirectDisplayID) -> Bool {
+            DDCController.write(vcp: vcp, value: value, for: displayID)
+        }
+
+        func probeCapabilities(for displayID: CGDirectDisplayID) -> HardwareDisplayCapability {
+            HardwareDisplayCapability.probe(displayID: displayID)
+        }
+    }
+
     /// Manages hardware (DDC/CI) display control for external monitors.
     ///
     /// Responsibilities:
@@ -45,8 +78,6 @@
 
         // MARK: - Published State
 
-        /// Cached DDC capabilities per display (keyed by CGDirectDisplayID).
-        /// Updated when displays connect/disconnect.
         /// Cached DDC capabilities per display (keyed by CGDirectDisplayID).
         /// Internal setter for @testable test access; set via probeAllDisplays() at runtime.
         @Published var capabilities: [CGDirectDisplayID: HardwareDisplayCapability] = [:]
@@ -83,10 +114,19 @@
         private var lastWriteTime: [CGDirectDisplayID: Date] = [:]
 
         /// Minimum interval between DDC writes to the same display.
-        private let minimumWriteInterval: TimeInterval = 0.05 // 50ms
+        /// Updated from AppSettings.ddcWriteDelay via SettingsView's `.onChange`.
+        var minimumWriteInterval: TimeInterval = 0.05 // 50ms
 
-        /// Pending write tasks per display (for debouncing rapid slider changes).
-        private var pendingWrites: [CGDirectDisplayID: Task<Void, Never>] = [:]
+        /// Composite key for debouncing DDC writes per display+VCP code pair.
+        /// Without the VCP code in the key, rapid changes to different controls
+        /// (e.g., brightness then volume) on the same display would cancel each other.
+        private struct WriteKey: Hashable {
+            let displayID: CGDirectDisplayID
+            let vcp: VCPCode
+        }
+
+        /// Pending write tasks per display+VCP code (for debouncing rapid slider changes).
+        private var pendingWrites: [WriteKey: Task<Void, Never>] = [:]
 
         /// Background polling task for reading hardware values.
         private var pollingTask: Task<Void, Never>?
@@ -97,26 +137,22 @@
         /// Write debounce delay (seconds).
         private let writeDebounceDelay: TimeInterval = 0.1
 
-        // MARK: - Test Support
+        // MARK: - DDC Interface
 
-        /// Injectable DDC read function for testing.
-        /// When non-nil, called instead of DDCController.read.
-        nonisolated(unsafe) static var ddcReader: ((VCPCode, CGDirectDisplayID) -> DDCReadResult?)?
-
-        /// Injectable DDC write function for testing.
-        /// When non-nil, called instead of DDCController.write.
-        nonisolated(unsafe) static var ddcWriter: ((VCPCode, UInt16, CGDirectDisplayID) -> Bool)?
-
-        /// Injectable capability prober for testing.
-        /// When non-nil, called instead of HardwareDisplayCapability.probe.
-        nonisolated(unsafe) static var capabilityProber: ((CGDirectDisplayID) -> HardwareDisplayCapability)?
+        /// The DDC I/O interface used for all hardware communication.
+        /// Injected at init for testability; defaults to `DefaultDDCInterface`.
+        let ddcInterface: DDCInterface
 
         // MARK: - Initialization
 
-        init() {}
+        init(ddcInterface: DDCInterface = DefaultDDCInterface()) {
+            self.ddcInterface = ddcInterface
+        }
 
-        /// Test-only initializer that skips hardware interaction.
-        init(forTesting _: Bool) {}
+        /// Test-only initializer that accepts a mock DDC interface.
+        init(forTesting _: Bool, ddcInterface: DDCInterface = DefaultDDCInterface()) {
+            self.ddcInterface = ddcInterface
+        }
 
         // MARK: - Public API
 
@@ -140,17 +176,13 @@
         /// Probing is done on a background queue to avoid blocking the UI (~360ms per display).
         func probeAllDisplays() {
             let displayIDs = BrightnessManager.activeDisplayIDs().filter { CGDisplayIsBuiltin($0) == 0 }
+            let ddcIO = ddcInterface
 
-            Task.detached { [weak self] in
+            Task.detached {
                 var results: [CGDirectDisplayID: HardwareDisplayCapability] = [:]
 
                 for displayID in displayIDs {
-                    let capability: HardwareDisplayCapability
-                    if let prober = HardwareBrightnessManager.capabilityProber {
-                        capability = prober(displayID)
-                    } else {
-                        capability = HardwareDisplayCapability.probe(displayID: displayID)
-                    }
+                    let capability = ddcIO.probeCapabilities(for: displayID)
                     results[displayID] = capability
                 }
 
@@ -243,16 +275,16 @@
 
         /// Returns the available input sources for a display.
         ///
-        /// If the display supports input source switching, returns all standard sources.
-        /// In practice, monitors only respond to sources they physically have, silently
-        /// ignoring invalid ones.
+        /// Filters to common modern inputs (DisplayPort, HDMI, USB-C) that users are likely
+        /// to encounter. Legacy sources (VGA, DVI, S-Video, composite, component, tuner) are
+        /// excluded to keep the menu manageable. Monitors silently ignore sources they don't have.
         func availableInputSources(for displayID: CGDirectDisplayID) -> [InputSource] {
             guard supportsDDC(for: displayID),
                   capabilities[displayID]?.supportsInputSource == true
             else {
                 return []
             }
-            return InputSource.allCases
+            return [.displayPort1, .displayPort2, .hdmi1, .hdmi2, .usbC]
         }
 
         /// Starts background polling for hardware values.
@@ -284,8 +316,11 @@
             hardwareVolume.removeValue(forKey: displayID)
             hardwareMute.removeValue(forKey: displayID)
             activeInputSource.removeValue(forKey: displayID)
-            pendingWrites[displayID]?.cancel()
-            pendingWrites.removeValue(forKey: displayID)
+            // Cancel and remove all pending writes for this display (any VCP code)
+            for key in pendingWrites.keys where key.displayID == displayID {
+                pendingWrites[key]?.cancel()
+                pendingWrites.removeValue(forKey: key)
+            }
             lastWriteTime.removeValue(forKey: displayID)
         }
 
@@ -294,10 +329,15 @@
         // swiftlint:disable cyclomatic_complexity
 
         /// Reads all supported VCP values for a display.
+        ///
+        /// Captures the DDC interface locally before the detached task to avoid
+        /// accessing `self` from a non-isolated context for I/O operations.
+        /// The detached task only hops back to MainActor for publishing results.
         private func readAllValues(for displayID: CGDirectDisplayID) {
             guard let cap = capabilities[displayID], cap.supportsDDC else { return }
 
-            Task.detached { [weak self] in
+            let ddcIO = ddcInterface
+            Task.detached {
                 var brightness: Double?
                 var contrast: Double?
                 var volume: Double?
@@ -305,31 +345,31 @@
                 var inputSource: InputSource?
 
                 if cap.supportsBrightness {
-                    if let result = self?.performRead(vcp: .brightness, for: displayID) {
+                    if let result = ddcIO.read(vcp: .brightness, for: displayID) {
                         brightness = Double(result.currentValue) / Double(result.maxValue)
                     }
                 }
 
                 if cap.supportsContrast {
-                    if let result = self?.performRead(vcp: .contrast, for: displayID) {
+                    if let result = ddcIO.read(vcp: .contrast, for: displayID) {
                         contrast = Double(result.currentValue) / Double(result.maxValue)
                     }
                 }
 
                 if cap.supportsVolume {
-                    if let result = self?.performRead(vcp: .volume, for: displayID) {
+                    if let result = ddcIO.read(vcp: .volume, for: displayID) {
                         volume = Double(result.currentValue) / Double(result.maxValue)
                     }
                 }
 
                 if cap.supportsAudioMute {
-                    if let result = self?.performRead(vcp: .audioMute, for: displayID) {
+                    if let result = ddcIO.read(vcp: .audioMute, for: displayID) {
                         muted = result.currentValue == 1
                     }
                 }
 
                 if cap.supportsInputSource {
-                    if let result = self?.performRead(vcp: .inputSource, for: displayID) {
+                    if let result = ddcIO.read(vcp: .inputSource, for: displayID) {
                         inputSource = InputSource(rawValue: result.currentValue)
                     }
                 }
@@ -348,14 +388,6 @@
 
         // swiftlint:enable cyclomatic_complexity
 
-        /// Performs a single DDC read, using the test mock if available.
-        private nonisolated func performRead(vcp: VCPCode, for displayID: CGDirectDisplayID) -> DDCReadResult? {
-            if let reader = HardwareBrightnessManager.ddcReader {
-                return reader(vcp, displayID)
-            }
-            return DDCController.read(vcp: vcp, for: displayID)
-        }
-
         /// Polls all DDC-capable displays for updated values.
         private func pollAllDisplays() {
             for (displayID, cap) in capabilities where cap.supportsDDC {
@@ -371,8 +403,8 @@
         /// DDC write after the debounce delay. A per-display pending task ensures
         /// the last value wins.
         private func debouncedWrite(vcp: VCPCode, value: UInt16, for displayID: CGDirectDisplayID) {
-            // Cancel any pending write for this display
-            let writeKey = displayID
+            // Cancel any pending write for this display+VCP pair
+            let writeKey = WriteKey(displayID: displayID, vcp: vcp)
             pendingWrites[writeKey]?.cancel()
 
             pendingWrites[writeKey] = Task { [weak self] in
@@ -396,16 +428,13 @@
             }
         }
 
-        /// Performs a single DDC write on the background queue.
+        /// Performs a single DDC write using the injected DDC interface.
         private func performWrite(vcp: VCPCode, value: UInt16, for displayID: CGDirectDisplayID) {
             lastWriteTime[displayID] = Date()
 
+            let ddcIO = ddcInterface
             Task.detached {
-                if let writer = HardwareBrightnessManager.ddcWriter {
-                    _ = writer(vcp, value, displayID)
-                } else {
-                    DDCController.write(vcp: vcp, value: value, for: displayID)
-                }
+                ddcIO.write(vcp: vcp, value: value, for: displayID)
             }
         }
     }

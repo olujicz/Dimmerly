@@ -433,6 +433,13 @@ struct GeneralSettingsView: View {
                         )
                     }
                     .help("How often to read hardware values from the monitor")
+                    .onChange(of: settings.ddcPollingInterval) {
+                        hardwareManager.pollingInterval = TimeInterval(settings.ddcPollingInterval)
+                        // Restart polling so the new interval takes effect immediately
+                        if settings.ddcEnabled {
+                            hardwareManager.startPolling()
+                        }
+                    }
 
                     Stepper(value: $settings.ddcWriteDelay, in: 20 ... 200, step: 10) {
                         Text(
@@ -446,6 +453,9 @@ struct GeneralSettingsView: View {
                         )
                     }
                     .help("Minimum delay between DDC writes (increase if monitor is unresponsive)")
+                    .onChange(of: settings.ddcWriteDelay) {
+                        hardwareManager.minimumWriteInterval = TimeInterval(settings.ddcWriteDelay) / 1000.0
+                    }
 
                     // Per-display DDC status
                     if !hardwareManager.capabilities.isEmpty {

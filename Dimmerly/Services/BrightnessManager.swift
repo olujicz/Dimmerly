@@ -262,6 +262,16 @@ class BrightnessManager: ObservableObject {
     func refreshDisplays() {
         let displayIDs = Self.activeDisplayIDs()
 
+        #if !APPSTORE
+            // Clean up HardwareBrightnessManager state for displays that disappeared
+            let externalDisplayIDs = Set(displayIDs.filter { CGDisplayIsBuiltin($0) == 0 })
+            for cachedID in HardwareBrightnessManager.shared.capabilities.keys
+                where !externalDisplayIDs.contains(cachedID)
+            {
+                HardwareBrightnessManager.shared.removeDisplay(cachedID)
+            }
+        #endif
+
         let savedBrightness = loadPersistedBrightness()
         let savedWarmth = loadPersistedWarmth()
         let savedContrast = loadPersistedContrast()
@@ -314,6 +324,21 @@ class BrightnessManager: ObservableObject {
         displays[index].brightness = clamped
 
         debouncePersist()
+
+        #if !APPSTORE
+            // Dispatch to hardware or software based on the active control mode
+            let mode = HardwareBrightnessManager.shared.controlMode
+            let hasDDC = HardwareBrightnessManager.shared.supportsDDC(for: displayID)
+
+            if hasDDC, mode == .hardwareOnly || mode == .combined {
+                HardwareBrightnessManager.shared.setHardwareBrightness(for: displayID, to: clamped)
+            }
+
+            if mode == .hardwareOnly, hasDDC {
+                // Hardware-only mode: skip gamma table adjustment
+                return
+            }
+        #endif
 
         // Don't apply gamma during blanking (would cause visible flicker)
         if !ScreenBlanker.shared.isBlanking {

@@ -12,24 +12,46 @@ import XCTest
 
 #if !APPSTORE
 
+    // MARK: - Mock DDC Interface
+
+    /// Mock DDC interface for testing without real hardware.
+    ///
+    /// All callbacks default to no-ops. Tests configure only the callbacks
+    /// they need, keeping setup minimal and intent clear.
+    struct MockDDCInterface: DDCInterface {
+        var readHandler: (VCPCode, CGDirectDisplayID) -> DDCReadResult? = { _, _ in nil }
+        var writeHandler: (VCPCode, UInt16, CGDirectDisplayID) -> Bool = { _, _, _ in true }
+        var probeHandler: (CGDirectDisplayID) -> HardwareDisplayCapability = { displayID in
+            .notSupported(displayID: displayID)
+        }
+
+        func read(vcp: VCPCode, for displayID: CGDirectDisplayID) -> DDCReadResult? {
+            readHandler(vcp, displayID)
+        }
+
+        func write(vcp: VCPCode, value: UInt16, for displayID: CGDirectDisplayID) -> Bool {
+            writeHandler(vcp, value, displayID)
+        }
+
+        func probeCapabilities(for displayID: CGDirectDisplayID) -> HardwareDisplayCapability {
+            probeHandler(displayID)
+        }
+    }
+
     @MainActor
     final class HardwareBrightnessManagerTests: XCTestCase {
         private var manager: HardwareBrightnessManager!
+        private var mockDDC: MockDDCInterface!
 
         override func setUp() {
             super.setUp()
-            manager = HardwareBrightnessManager(forTesting: true)
-            // Reset all test hooks
-            HardwareBrightnessManager.ddcReader = nil
-            HardwareBrightnessManager.ddcWriter = nil
-            HardwareBrightnessManager.capabilityProber = nil
+            mockDDC = MockDDCInterface()
+            manager = HardwareBrightnessManager(forTesting: true, ddcInterface: mockDDC)
         }
 
         override func tearDown() {
-            HardwareBrightnessManager.ddcReader = nil
-            HardwareBrightnessManager.ddcWriter = nil
-            HardwareBrightnessManager.capabilityProber = nil
             manager = nil
+            mockDDC = nil
             super.tearDown()
         }
 
@@ -97,9 +119,6 @@ import XCTest
             )
             manager.capabilities[displayID] = cap
 
-            // Use a no-op writer to prevent actual DDC writes
-            HardwareBrightnessManager.ddcWriter = { _, _, _ in true }
-
             manager.setHardwareBrightness(for: displayID, to: 0.75)
             XCTAssertEqual(manager.hardwareBrightness[displayID] ?? -1, 0.75, accuracy: 0.001)
         }
@@ -116,7 +135,6 @@ import XCTest
                 maxVolume: 100
             )
             manager.capabilities[displayID] = cap
-            HardwareBrightnessManager.ddcWriter = { _, _, _ in true }
 
             manager.setHardwareBrightness(for: displayID, to: 1.5)
             XCTAssertEqual(manager.hardwareBrightness[displayID] ?? -1, 1.0, accuracy: 0.001)
@@ -127,12 +145,16 @@ import XCTest
 
         /// Tests setHardwareBrightness does nothing without capability
         func testSetHardwareBrightnessNoCapability() {
-            HardwareBrightnessManager.ddcWriter = { _, _, _ in
+            // Mock writer that fails the test if called — the manager should bail
+            // before reaching the write path when no capability is cached.
+            var mockWithFailWriter = MockDDCInterface()
+            mockWithFailWriter.writeHandler = { _, _, _ in
                 XCTFail("Writer should not be called without capability")
                 return false
             }
-            manager.setHardwareBrightness(for: 999, to: 0.5)
-            XCTAssertNil(manager.hardwareBrightness[999])
+            let mgr = HardwareBrightnessManager(forTesting: true, ddcInterface: mockWithFailWriter)
+            mgr.setHardwareBrightness(for: 999, to: 0.5)
+            XCTAssertNil(mgr.hardwareBrightness[999])
         }
 
         // MARK: - Hardware Contrast
@@ -149,7 +171,6 @@ import XCTest
                 maxVolume: 100
             )
             manager.capabilities[displayID] = cap
-            HardwareBrightnessManager.ddcWriter = { _, _, _ in true }
 
             manager.setHardwareContrast(for: displayID, to: 0.6)
             XCTAssertEqual(manager.hardwareContrast[displayID] ?? -1, 0.6, accuracy: 0.001)
@@ -169,7 +190,6 @@ import XCTest
                 maxVolume: 100
             )
             manager.capabilities[displayID] = cap
-            HardwareBrightnessManager.ddcWriter = { _, _, _ in true }
 
             manager.setHardwareVolume(for: displayID, to: 0.3)
             XCTAssertEqual(manager.hardwareVolume[displayID] ?? -1, 0.3, accuracy: 0.001)
@@ -189,7 +209,6 @@ import XCTest
                 maxVolume: 100
             )
             manager.capabilities[displayID] = cap
-            HardwareBrightnessManager.ddcWriter = { _, _, _ in true }
 
             // Initially not muted
             XCTAssertFalse(manager.hardwareMute[displayID] ?? false)
@@ -216,12 +235,6 @@ import XCTest
             )
             manager.capabilities[displayID] = cap
 
-            var writtenValues: [(VCPCode, UInt16)] = []
-            HardwareBrightnessManager.ddcWriter = { vcp, value, _ in
-                writtenValues.append((vcp, value))
-                return true
-            }
-
             // First toggle: should mute (value 1)
             manager.toggleMute(for: displayID)
             // Second toggle: should unmute (value 2)
@@ -245,13 +258,12 @@ import XCTest
                 maxVolume: 100
             )
             manager.capabilities[displayID] = cap
-            HardwareBrightnessManager.ddcWriter = { _, _, _ in true }
 
             manager.setInputSource(for: displayID, to: .hdmi1)
             XCTAssertEqual(manager.activeInputSource[displayID], .hdmi1)
         }
 
-        /// Tests availableInputSources returns all sources for DDC display
+        /// Tests availableInputSources returns common modern sources for DDC display
         func testAvailableInputSourcesForDDCDisplay() {
             let displayID: CGDirectDisplayID = 1
             let cap = HardwareDisplayCapability(
@@ -265,7 +277,7 @@ import XCTest
             manager.capabilities[displayID] = cap
 
             let sources = manager.availableInputSources(for: displayID)
-            XCTAssertEqual(sources.count, InputSource.allCases.count)
+            XCTAssertEqual(sources, [.displayPort1, .displayPort2, .hdmi1, .hdmi2, .usbC])
         }
 
         /// Tests availableInputSources returns empty for non-DDC display

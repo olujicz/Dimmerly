@@ -362,7 +362,7 @@
                     return displays.filter { CGDisplayIsBuiltin($0) == 0 }
                 }()
                 if services.count == 1 && externalDisplays.count == 1 && externalDisplays.first == displayID {
-                    return services[0] // Caller must release
+                    return services[0] // Caller must release (same ownership as the primary return path)
                 }
 
                 // Clean up unreturned services
@@ -460,7 +460,9 @@
                 var result = IOAVServiceWriteI2C(service, ddcI2CAddress, 0, &writeData, UInt32(writeData.count))
                 guard result == KERN_SUCCESS else { return nil }
 
-                // Wait for monitor to prepare response
+                // Wait for monitor to prepare response.
+                // Blocks the calling thread (~40ms). Acceptable because all DDC I/O is
+                // dispatched to a detached task, never on the main thread or cooperative pool.
                 usleep(transactionDelayMs * 1000)
 
                 // Read response (12 bytes: DDC/CI reply packet)
@@ -584,35 +586,38 @@
                 let checksum = UInt8(ddcI2CAddress << 1) ^ hostAddress ^ length ^ getVCPOpcode ^ vcp.rawValue
                 var writeData: [UInt8] = [hostAddress, length, getVCPOpcode, vcp.rawValue, checksum]
 
-                // Prepare write request
-                var writeRequest = IOI2CRequest()
-                writeRequest.sendAddress = ddcI2CAddress << 1
-                writeRequest.sendTransactionType = IOOptionBits(kIOI2CSimpleTransactionType)
-                writeRequest.sendBuffer = vm_address_t(bitPattern: UnsafeMutablePointer(&writeData))
-                writeRequest.sendBytes = UInt32(writeData.count)
+                // Send write request. Use withUnsafeMutableBufferPointer to guarantee pointer
+                // lifetime — the buffer must remain valid through the IOI2CSendRequest call.
+                let writeSuccess: Bool = writeData.withUnsafeMutableBufferPointer { writeBuffer in
+                    var writeRequest = IOI2CRequest()
+                    writeRequest.sendAddress = ddcI2CAddress << 1
+                    writeRequest.sendTransactionType = IOOptionBits(kIOI2CSimpleTransactionType)
+                    writeRequest.sendBuffer = vm_address_t(bitPattern: writeBuffer.baseAddress)
+                    writeRequest.sendBytes = UInt32(writeBuffer.count)
 
-                guard IOI2CSendRequest(connect, 0, &writeRequest) == KERN_SUCCESS,
-                      writeRequest.result == KERN_SUCCESS
-                else {
-                    return nil
+                    return IOI2CSendRequest(connect, 0, &writeRequest) == KERN_SUCCESS
+                        && writeRequest.result == KERN_SUCCESS
                 }
+                guard writeSuccess else { return nil }
 
-                // Wait for monitor
+                // Wait for monitor to prepare response.
+                // Blocks the calling thread (~40ms). Acceptable because all DDC I/O is
+                // dispatched to a detached task, never on the main thread or cooperative pool.
                 usleep(transactionDelayMs * 1000)
 
-                // Prepare read request
+                // Read response. Same pointer-lifetime guarantee via withUnsafeMutableBufferPointer.
                 var readData = [UInt8](repeating: 0, count: 12)
-                var readRequest = IOI2CRequest()
-                readRequest.replyAddress = (ddcI2CAddress << 1) | 0x01
-                readRequest.replyTransactionType = IOOptionBits(kIOI2CSimpleTransactionType)
-                readRequest.replyBuffer = vm_address_t(bitPattern: UnsafeMutablePointer(&readData))
-                readRequest.replyBytes = UInt32(readData.count)
+                let readSuccess: Bool = readData.withUnsafeMutableBufferPointer { readBuffer in
+                    var readRequest = IOI2CRequest()
+                    readRequest.replyAddress = (ddcI2CAddress << 1) | 0x01
+                    readRequest.replyTransactionType = IOOptionBits(kIOI2CSimpleTransactionType)
+                    readRequest.replyBuffer = vm_address_t(bitPattern: readBuffer.baseAddress)
+                    readRequest.replyBytes = UInt32(readBuffer.count)
 
-                guard IOI2CSendRequest(connect, 0, &readRequest) == KERN_SUCCESS,
-                      readRequest.result == KERN_SUCCESS
-                else {
-                    return nil
+                    return IOI2CSendRequest(connect, 0, &readRequest) == KERN_SUCCESS
+                        && readRequest.result == KERN_SUCCESS
                 }
+                guard readSuccess else { return nil }
 
                 return parseDDCResponse(readData, expectedVCP: vcp)
             }
@@ -649,14 +654,18 @@
                     hostAddress, length, setVCPOpcode, vcp.rawValue, valueHi, valueLo, checksum,
                 ]
 
-                var request = IOI2CRequest()
-                request.sendAddress = ddcI2CAddress << 1
-                request.sendTransactionType = IOOptionBits(kIOI2CSimpleTransactionType)
-                request.sendBuffer = vm_address_t(bitPattern: UnsafeMutablePointer(&writeData))
-                request.sendBytes = UInt32(writeData.count)
+                // Use withUnsafeMutableBufferPointer to guarantee pointer lifetime —
+                // the buffer must remain valid through the IOI2CSendRequest call.
+                return writeData.withUnsafeMutableBufferPointer { writeBuffer in
+                    var request = IOI2CRequest()
+                    request.sendAddress = ddcI2CAddress << 1
+                    request.sendTransactionType = IOOptionBits(kIOI2CSimpleTransactionType)
+                    request.sendBuffer = vm_address_t(bitPattern: writeBuffer.baseAddress)
+                    request.sendBytes = UInt32(writeBuffer.count)
 
-                return IOI2CSendRequest(connect, 0, &request) == KERN_SUCCESS
-                    && request.result == KERN_SUCCESS
+                    return IOI2CSendRequest(connect, 0, &request) == KERN_SUCCESS
+                        && request.result == KERN_SUCCESS
+                }
             }
 
         #endif
@@ -713,12 +722,18 @@
 
     // MARK: - IOAVService Bridging (Apple Silicon)
 
-    // These functions are private IOKit symbols that are available on Apple Silicon Macs.
-    // They are used by MonitorControl, m1ddc, and other DDC tools. Apple has not formally
-    // documented them, but they have remained stable since macOS 11 (Big Sur).
-//
-    // The symbols are resolved at link time from IOKit.framework — no dlsym needed.
-    // If Apple ever removes these symbols, the app will fail to link, not crash at runtime.
+    // These free functions bridge to private IOKit symbols for DDC/CI I2C access on
+    // Apple Silicon Macs. They are declared with `@_silgen_name` so the linker resolves
+    // them directly from IOKit.framework — no `dlsym` or runtime lookup is needed.
+    //
+    // The symbols (`IOAVServiceWriteI2C`, `IOAVServiceReadI2C`) are undocumented but
+    // have been stable since macOS 11 (Big Sur) and are used by MonitorControl, m1ddc,
+    // and other DDC tools. If Apple ever removes these symbols, the app will fail to
+    // **link** (a build-time error), not crash at runtime.
+    //
+    // Because these are free functions (not methods on a type), they cannot be declared
+    // inside `DDCController`. Swift's `@_silgen_name` requires a top-level or
+    // file-scope function declaration to emit the correct symbol reference.
 
     #if arch(arm64)
 
