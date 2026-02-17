@@ -56,7 +56,7 @@ struct MenuBarPanel: View {
     private var emptyState: some View {
         VStack(spacing: 6) {
             Image(systemName: "display")
-                .font(.system(size: 28))
+                .font(.title)
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
             Text("No External Displays")
@@ -585,6 +585,7 @@ struct DisplayBrightnessRow: View {
                                 .padding(.horizontal, 4)
                                 .padding(.vertical, 1)
                                 .background(Capsule().fill(.orange.opacity(0.7)))
+                                .accessibilityHidden(true)
                         }
 
                         Spacer()
@@ -735,7 +736,7 @@ struct DisplayBrightnessRow: View {
                                     display.name
                                 )
                             )
-                            .accessibilityValue(activeInputSource?.displayName ?? "Unknown")
+                            .accessibilityValue(activeInputSource?.displayName ?? "No input source detected")
                         }
                         .opacity(isBlanked ? 0.4 : 1.0)
                         .disabled(isBlanked)

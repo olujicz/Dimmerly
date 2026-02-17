@@ -292,9 +292,12 @@ struct GeneralSettingsView: View {
                             in: 2700 ... 6500,
                             step: 100
                         )
+                        .accessibilityLabel("Day color temperature")
+                        .accessibilityValue("\(settings.dayTemperature) Kelvin")
                         Text("\(settings.dayTemperature)K")
                             .monospacedDigit()
                             .frame(width: 50, alignment: .trailing)
+                            .accessibilityHidden(true)
                     }
 
                     HStack {
@@ -307,9 +310,12 @@ struct GeneralSettingsView: View {
                             in: 1900 ... 4500,
                             step: 100
                         )
+                        .accessibilityLabel("Night color temperature")
+                        .accessibilityValue("\(settings.nightTemperature) Kelvin")
                         Text("\(settings.nightTemperature)K")
                             .monospacedDigit()
                             .frame(width: 50, alignment: .trailing)
+                            .accessibilityHidden(true)
                     }
                 }
 
@@ -377,6 +383,8 @@ struct GeneralSettingsView: View {
                             )
                         )
                     }
+                    .accessibilityLabel("DDC polling interval")
+                    .accessibilityValue("\(settings.ddcPollingInterval) seconds")
                     .help("How often to read hardware values from the monitor")
                     .onChange(of: settings.ddcPollingInterval) {
                         hardwareManager.pollingInterval = TimeInterval(settings.ddcPollingInterval)
@@ -397,6 +405,8 @@ struct GeneralSettingsView: View {
                             )
                         )
                     }
+                    .accessibilityLabel("DDC write delay")
+                    .accessibilityValue("\(settings.ddcWriteDelay) milliseconds")
                     .help("Minimum delay between DDC writes (increase if monitor is unresponsive)")
                     .onChange(of: settings.ddcWriteDelay) {
                         hardwareManager.minimumWriteInterval = TimeInterval(settings.ddcWriteDelay) / 1000.0
@@ -432,26 +442,32 @@ struct GeneralSettingsView: View {
             displayID: CGDirectDisplayID,
             capability: HardwareDisplayCapability
         ) -> some View {
-            HStack(spacing: 6) {
+            let displayName = brightnessManager.displays.first(where: { $0.id == displayID })?.name
+                ?? "Display \(displayID)"
+            let ddcStatus = capability.supportsDDC ? "supported" : "not supported"
+            let features = capability.supportsDDC ? ddcFeatureLabels(for: capability) : ""
+
+            return HStack(spacing: 6) {
                 Image(systemName: capability.supportsDDC ? "checkmark.circle.fill" : "xmark.circle")
                     .foregroundStyle(capability.supportsDDC ? .green : .secondary)
                     .font(.caption)
 
-                // Try to find the display name from BrightnessManager
-                let displayName = brightnessManager.displays.first(where: { $0.id == displayID })?.name
-                    ?? "Display \(displayID)"
                 Text(displayName)
                     .font(.caption)
 
                 Spacer()
 
                 if capability.supportsDDC {
-                    let features = ddcFeatureLabels(for: capability)
                     Text(features)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(
+                "\(displayName), DDC \(ddcStatus)"
+                    + (features.isEmpty ? "" : ", \(features)")
+            )
         }
 
         private func ddcFeatureLabels(for cap: HardwareDisplayCapability) -> String {
