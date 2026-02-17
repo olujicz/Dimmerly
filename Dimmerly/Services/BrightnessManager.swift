@@ -407,6 +407,19 @@ class BrightnessManager: ObservableObject {
         }
     }
 
+    /// Re-applies the current brightness via gamma for a specific display.
+    ///
+    /// Called by HardwareBrightnessManager when DDC writes fail repeatedly and the display
+    /// is downgraded to software-only control. This ensures the user doesn't lose brightness
+    /// control when DDC becomes unreliable at runtime.
+    func applyCurrentBrightness(for displayID: CGDirectDisplayID) {
+        guard let display = displays.first(where: { $0.id == displayID }) else { return }
+        applyGamma(
+            displayID: displayID, brightness: display.brightness,
+            warmth: display.warmth, contrast: display.contrast
+        )
+    }
+
     /// Reapplies gamma tables to all connected displays using their current settings.
     ///
     /// Called when:

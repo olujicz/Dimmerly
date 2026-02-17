@@ -429,8 +429,9 @@ struct GeneralSettingsView: View {
 
                     Text(
                         "DDC/CI controls the monitor's hardware directly over the display cable. "
-                            + "Not all monitors support DDC — built-in HDMI on M1/M2 Macs, DisplayLink adapters, "
-                            + "and most TVs do not work. USB-C and DisplayPort connections are most reliable."
+                            + "Not all monitors support DDC — built-in HDMI on Apple Silicon Macs, "
+                            + "DisplayLink adapters, and most TVs do not work. "
+                            + "Unsupported displays use software brightness automatically."
                     )
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -444,13 +445,18 @@ struct GeneralSettingsView: View {
         ) -> some View {
             let displayName = brightnessManager.displays.first(where: { $0.id == displayID })?.name
                 ?? "Display \(displayID)"
-            let ddcStatus = capability.supportsDDC ? "supported" : "not supported"
             let features = capability.supportsDDC ? ddcFeatureLabels(for: capability) : ""
 
             return HStack(spacing: 6) {
-                Image(systemName: capability.supportsDDC ? "checkmark.circle.fill" : "xmark.circle")
-                    .foregroundStyle(capability.supportsDDC ? .green : .secondary)
-                    .font(.caption)
+                if capability.supportsDDC {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                        .font(.caption)
+                } else {
+                    Image(systemName: "tv.and.mediabox")
+                        .foregroundStyle(.secondary)
+                        .font(.caption)
+                }
 
                 Text(displayName)
                     .font(.caption)
@@ -461,12 +467,17 @@ struct GeneralSettingsView: View {
                     Text(features)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
+                } else {
+                    Text("Software brightness")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
             }
             .accessibilityElement(children: .combine)
             .accessibilityLabel(
-                "\(displayName), DDC \(ddcStatus)"
-                    + (features.isEmpty ? "" : ", \(features)")
+                capability.supportsDDC
+                    ? "\(displayName), DDC supported, \(features)"
+                    : "\(displayName), using software brightness"
             )
         }
 

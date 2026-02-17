@@ -159,10 +159,10 @@
                     + "Works with all displays but does not change the actual backlight."
             case .hardwareOnly:
                 return "Controls the monitor's backlight directly via DDC/CI. "
-                    + "Real brightness change with power savings."
+                    + "Falls back to software brightness if DDC is not available."
             case .combined:
                 return "Uses DDC for brightness and gamma tables for warmth and contrast. "
-                    + "Best of both worlds."
+                    + "Automatically uses software brightness if DDC is not available."
             }
         }
     }

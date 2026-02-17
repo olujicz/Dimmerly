@@ -113,6 +113,14 @@
         /// Timestamps of the last write per display (for rate limiting).
         private var lastWriteTime: [CGDirectDisplayID: Date] = [:]
 
+        /// Consecutive DDC write failure count per display.
+        /// When this exceeds `maxWriteFailuresBeforeFallback`, the display is downgraded
+        /// to software-only brightness (gamma tables) to avoid silent control loss.
+        private var consecutiveWriteFailures: [CGDirectDisplayID: Int] = [:]
+
+        /// Number of consecutive DDC write failures before auto-downgrading to software brightness.
+        private let maxWriteFailuresBeforeFallback = 3
+
         /// Minimum interval between DDC writes to the same display.
         /// Updated from AppSettings.ddcWriteDelay via SettingsView's `.onChange`.
         var minimumWriteInterval: TimeInterval = 0.05 // 50ms
@@ -322,6 +330,7 @@
                 pendingWrites.removeValue(forKey: key)
             }
             lastWriteTime.removeValue(forKey: displayID)
+            consecutiveWriteFailures.removeValue(forKey: displayID)
         }
 
         // MARK: - Private: DDC Read
@@ -429,12 +438,34 @@
         }
 
         /// Performs a single DDC write using the injected DDC interface.
+        ///
+        /// Tracks consecutive write failures per display. After `maxWriteFailuresBeforeFallback`
+        /// consecutive failures, the display is downgraded to `.notSupported` and gamma-based
+        /// software brightness is applied immediately so the user doesn't lose control.
         private func performWrite(vcp: VCPCode, value: UInt16, for displayID: CGDirectDisplayID) {
             lastWriteTime[displayID] = Date()
 
             let ddcIO = ddcInterface
+            let threshold = maxWriteFailuresBeforeFallback
             Task.detached {
-                ddcIO.write(vcp: vcp, value: value, for: displayID)
+                let success = ddcIO.write(vcp: vcp, value: value, for: displayID)
+
+                await MainActor.run { [weak self] in
+                    guard let self else { return }
+
+                    if success {
+                        self.consecutiveWriteFailures[displayID] = 0
+                    } else {
+                        let count = (self.consecutiveWriteFailures[displayID] ?? 0) + 1
+                        self.consecutiveWriteFailures[displayID] = count
+
+                        if count >= threshold {
+                            // Downgrade to software brightness
+                            self.capabilities[displayID] = .notSupported(displayID: displayID)
+                            BrightnessManager.shared.applyCurrentBrightness(for: displayID)
+                        }
+                    }
+                }
             }
         }
     }

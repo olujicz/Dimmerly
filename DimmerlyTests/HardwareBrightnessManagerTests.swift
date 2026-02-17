@@ -19,9 +19,9 @@ import XCTest
     /// All callbacks default to no-ops. Tests configure only the callbacks
     /// they need, keeping setup minimal and intent clear.
     struct MockDDCInterface: DDCInterface {
-        var readHandler: (VCPCode, CGDirectDisplayID) -> DDCReadResult? = { _, _ in nil }
-        var writeHandler: (VCPCode, UInt16, CGDirectDisplayID) -> Bool = { _, _, _ in true }
-        var probeHandler: (CGDirectDisplayID) -> HardwareDisplayCapability = { displayID in
+        var readHandler: @Sendable (VCPCode, CGDirectDisplayID) -> DDCReadResult? = { _, _ in nil }
+        var writeHandler: @Sendable (VCPCode, UInt16, CGDirectDisplayID) -> Bool = { _, _, _ in true }
+        var probeHandler: @Sendable (CGDirectDisplayID) -> HardwareDisplayCapability = { displayID in
             .notSupported(displayID: displayID)
         }
 
