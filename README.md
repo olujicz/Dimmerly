@@ -34,7 +34,7 @@ A lightweight macOS menu bar utility for controlling external display brightness
 ## Requirements
 
 - macOS 15.0 (Sequoia) or later
-- External display with DDC/CI brightness support
+- External display with DDC/CI brightness support (USB-C/DisplayPort recommended; HDMI via multi-transport fallback)
 - Optional: Accessibility permissions for global keyboard shortcuts
 - Optional: Location permission for sunrise/sunset schedules
 
@@ -237,6 +237,8 @@ Please review the [Code of Conduct](CODE_OF_CONDUCT.md) before participating. Se
 1. Verify your external display supports DDC/CI brightness control
 2. Some USB-C/DisplayPort hubs may not pass through DDC commands
 3. Try connecting the display directly to your Mac
+4. On Apple Silicon, Dimmerly tries three I2C transport paths automatically — if one fails, the next is attempted
+5. Built-in HDMI on M1/entry M2 Macs does not support DDC; use USB-C or DisplayPort instead
 
 ## License
 

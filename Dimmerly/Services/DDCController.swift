@@ -21,7 +21,7 @@
 //  - Most TVs do not implement DDC/CI (they use CEC instead)
 //  - Not available in App Store builds (IOKit access requires entitlements
 //    incompatible with the App Sandbox)
-//  - DDC transactions are slow (~40ms per read/write) — callers must
+//  - DDC transactions are slow (~50ms per read/write) — callers must
 //    debounce and rate-limit to avoid blocking the monitor's MCU
 //  - Some monitors only implement a subset of MCCS commands; always
 //    check capabilities before assuming a VCP code is supported
@@ -172,7 +172,15 @@
     /// - On Apple Silicon, it uses `IOAVService` (private class) via `IOAVServiceReadI2C`/`IOAVServiceWriteI2C`
     /// - On Intel Macs, it uses `IOI2CRequest` via `IOFBGetI2CInterfaceCount`/`IOFBCopyI2CInterfaceForBus`
     ///
-    /// All operations are synchronous and take ~40ms per transaction due to I2C bus speed.
+    /// On Apple Silicon, multiple I2C transport paths are tried in order:
+    /// 1. IOAVService (standard path, works for USB-C/DP on all Apple Silicon)
+    /// 2. IOAVDevice (alternative DCP firmware path, may help for HDMI)
+    /// 3. Direct IOConnectCallMethod (last resort, tries raw IOConnect selectors)
+    ///
+    /// Each transport uses retry logic (multiple write cycles and retry attempts) to
+    /// improve reliability on noisy I2C buses, matching MonitorControl and m1ddc behavior.
+    ///
+    /// All operations are synchronous and take ~50ms per transaction due to I2C bus speed.
     /// Callers should dispatch DDC operations off the main thread and rate-limit writes
     /// to prevent overwhelming the monitor's embedded microcontroller.
     ///
@@ -197,7 +205,8 @@
         /// All DDC/CI monitors respond on this address per VESA E-DDC standard.
         private static let ddcI2CAddress: UInt32 = 0x37
 
-        /// Source address identifying the host (0x51). Used in DDC/CI packet checksums.
+        /// Source address identifying the host (0x51). Used in DDC/CI packet checksums
+        /// and as the I2C register/sub-address byte for Apple Silicon DDC transactions.
         private static let hostAddress: UInt8 = 0x51
 
         /// DDC/CI "Get VCP Feature" command opcode.
@@ -211,8 +220,22 @@
 
         /// Delay between write and read in a DDC transaction (milliseconds).
         /// Monitors need time to process the command and prepare the response.
-        /// 40ms is conservative; some fast monitors work with 10ms.
-        private static let transactionDelayMs: UInt32 = 40
+        /// 50ms works reliably across monitors; some fast monitors work with 10ms.
+        private static let transactionDelayMs: UInt32 = 50
+
+        /// Number of times to send each DDC write command per attempt.
+        /// Sending the command twice improves reliability on noisy I2C buses,
+        /// matching the behavior of MonitorControl and m1ddc.
+        private static let writeCyclesPerAttempt = 2
+
+        /// Delay between write cycles within a single attempt (milliseconds).
+        private static let writeCycleDelayMs: UInt32 = 10
+
+        /// Maximum number of retry attempts for a DDC transaction.
+        private static let maxRetryAttempts = 3
+
+        /// Delay between retry attempts (milliseconds).
+        private static let retryDelayMs: UInt32 = 20
 
         // MARK: - Public API
 
@@ -221,7 +244,7 @@
         /// Performs a DDC/CI "Get VCP Feature" transaction:
         /// 1. Finds the IOKit service for the given display
         /// 2. Sends a "Get VCP" command packet
-        /// 3. Waits for the monitor to prepare its response (~40ms)
+        /// 3. Waits for the monitor to prepare its response (~50ms)
         /// 4. Reads and parses the response packet
         ///
         /// - Parameters:
@@ -265,7 +288,7 @@
         /// Probes a display to determine which VCP codes it supports.
         ///
         /// Attempts to read each VCP code and collects the ones that return valid responses.
-        /// This is an expensive operation (~40ms * number of codes) and should be called
+        /// This is an expensive operation (~50ms * number of codes) and should be called
         /// once per display connection, with results cached.
         ///
         /// - Parameter displayID: CoreGraphics display identifier
@@ -302,6 +325,46 @@
             /// the only class present. On M1–M3, IOAVService is present and DCPAVServiceProxy
             /// is absent, so the first iteration is a no-op.
             private static let avServiceClassNames = ["DCPAVServiceProxy", "IOAVService"]
+
+            // Dynamically loaded IOAVDevice I2C functions for the alternative HDMI path.
+            //
+            // DCPAVDeviceProxy is a separate IOKit class from DCPAVServiceProxy that may
+            // route I2C differently through the DCP firmware for HDMI connections. These
+            // symbols may not exist on all macOS versions; using dlsym ensures the app
+            // links and runs even if they are absent.
+
+            /// dlsym handle for searching all loaded images (RTLD_DEFAULT = -2).
+            /// The C macro `RTLD_DEFAULT` isn't importable in Swift.
+            private nonisolated(unsafe) static let dlDefault = UnsafeMutableRawPointer(bitPattern: -2)
+
+            private static let avDeviceCreate: (
+                @convention(c) (CFAllocator?, io_service_t) -> Unmanaged<CFTypeRef>?
+            )? = {
+                guard let handle = dlDefault,
+                      let sym = dlsym(handle, "IOAVDeviceCreateWithService") else { return nil }
+                return unsafeBitCast(
+                    sym,
+                    to: (@convention(c) (CFAllocator?, io_service_t) -> Unmanaged<CFTypeRef>?).self
+                )
+            }()
+
+            private typealias AVDeviceI2CFn = @convention(c) (
+                CFTypeRef, UInt32, UInt32, UnsafeMutablePointer<UInt8>, UInt32
+            ) -> IOReturn
+
+            private static let avDeviceWrite: AVDeviceI2CFn? = {
+                guard let handle = dlDefault,
+                      let sym = dlsym(handle, "IOAVDeviceWriteI2C") else { return nil }
+                return unsafeBitCast(sym, to: AVDeviceI2CFn.self)
+            }()
+
+            private static let avDeviceRead: AVDeviceI2CFn? = {
+                guard let handle = dlDefault,
+                      let sym = dlsym(handle, "IOAVDeviceReadI2C") else { return nil }
+                return unsafeBitCast(sym, to: AVDeviceI2CFn.self)
+            }()
+
+            // MARK: Service Discovery
 
             /// Finds and creates an IOAVService for a given display on Apple Silicon.
             ///
@@ -395,6 +458,86 @@
                 return nil
             }
 
+            /// Finds and creates an IOAVDevice for a given display (HDMI fallback path).
+            ///
+            /// DCPAVDeviceProxy is an alternative IOKit class that routes I2C through
+            /// a different path in the DCP firmware. This may enable DDC on HDMI ports
+            /// where the standard DCPAVServiceProxy path fails.
+            ///
+            /// - Parameter displayID: CoreGraphics display identifier
+            /// - Returns: IOAVDevice object for I2C operations, or `nil` if not available
+            private static func findIOAVDevice(for displayID: CGDirectDisplayID) -> CFTypeRef? {
+                guard let createFn = avDeviceCreate else { return nil }
+
+                let vendorID = CGDisplayVendorNumber(displayID)
+                let modelID = CGDisplayModelNumber(displayID)
+                let serialNumber = CGDisplaySerialNumber(displayID)
+
+                var iterator: io_iterator_t = 0
+                guard IOServiceGetMatchingServices(
+                    kIOMainPortDefault,
+                    IOServiceMatching("DCPAVDeviceProxy"),
+                    &iterator
+                ) == KERN_SUCCESS else {
+                    return nil
+                }
+                defer { IOObjectRelease(iterator) }
+
+                var service = IOIteratorNext(iterator)
+                while service != IO_OBJECT_NULL {
+                    if matchesDisplay(
+                        service: service, vendorID: vendorID,
+                        modelID: modelID, serialNumber: serialNumber
+                    ) {
+                        let device = createFn(nil, service)
+                        IOObjectRelease(service)
+                        return device?.takeRetainedValue()
+                    }
+                    IOObjectRelease(service)
+                    service = IOIteratorNext(iterator)
+                }
+
+                return nil
+            }
+
+            /// Finds the raw IOKit service entry for direct IOConnectCallMethod access.
+            ///
+            /// Returns an un-wrapped io_service_t (not converted to IOAVService/IOAVDevice)
+            /// for use with IOServiceOpen + IOConnectCallMethod. Caller must release via
+            /// IOObjectRelease.
+            private static func findRawService(for displayID: CGDirectDisplayID) -> io_service_t? {
+                let vendorID = CGDisplayVendorNumber(displayID)
+                let modelID = CGDisplayModelNumber(displayID)
+                let serialNumber = CGDisplaySerialNumber(displayID)
+
+                let allClassNames = avServiceClassNames + ["DCPAVDeviceProxy"]
+                for className in allClassNames {
+                    var iterator: io_iterator_t = 0
+                    guard IOServiceGetMatchingServices(
+                        kIOMainPortDefault,
+                        IOServiceMatching(className),
+                        &iterator
+                    ) == KERN_SUCCESS else {
+                        continue
+                    }
+                    defer { IOObjectRelease(iterator) }
+
+                    var service = IOIteratorNext(iterator)
+                    while service != IO_OBJECT_NULL {
+                        if matchesDisplay(
+                            service: service, vendorID: vendorID,
+                            modelID: modelID, serialNumber: serialNumber
+                        ) {
+                            return service
+                        }
+                        IOObjectRelease(service)
+                        service = IOIteratorNext(iterator)
+                    }
+                }
+
+                return nil
+            }
+
             /// Checks if an IOAVService corresponds to a specific display by examining
             /// the IOKit registry hierarchy for matching EDID properties.
             private static func matchesDisplay(
@@ -461,60 +604,312 @@
                 return false
             }
 
-            /// Reads a VCP code via IOAVService on Apple Silicon.
+            // MARK: Apple Silicon Read/Write (Multi-Transport)
+
+            /// Reads a VCP code on Apple Silicon, trying multiple I2C transport paths.
             ///
-            /// DDC/CI read protocol:
-            /// 1. Write: [slave_addr, length|0x80, get_vcp_opcode, vcp_code, checksum]
-            /// 2. Wait ~40ms for monitor to process
-            /// 3. Read: [result_code, get_vcp_reply_opcode, vcp_code, type, max_hi, max_lo, cur_hi, cur_lo, checksum]
+            /// Transport priority:
+            /// 1. IOAVService — standard path, works for USB-C/DP on all Apple Silicon
+            /// 2. IOAVDevice — alternative DCP firmware path, may help for HDMI
+            /// 3. Direct IOConnectCallMethod — last resort with raw IOConnect selectors
+            ///
+            /// Each transport uses retry logic with multiple write cycles per attempt.
             private static func readAppleSilicon(vcp: VCPCode, for displayID: CGDirectDisplayID) -> DDCReadResult? {
-                guard let avService = findIOAVService(for: displayID) else { return nil }
+                if let avService = findIOAVService(for: displayID) {
+                    if let result = readViaService(avService: avService, vcp: vcp) {
+                        return result
+                    }
+                }
 
-                // Build the "Get VCP Feature" command packet
-                // DDC/CI packet format: [length|0x80, source_addr, opcode, vcp_code]
-                // Checksum: XOR of all bytes including the destination address (0x6E)
-                let length: UInt8 = 0x82 // 2 bytes payload | 0x80 flag
-                let checksum = UInt8(ddcI2CAddress << 1) ^ hostAddress ^ length ^ getVCPOpcode ^ vcp.rawValue
-                var writeData: [UInt8] = [hostAddress, length, getVCPOpcode, vcp.rawValue, checksum]
+                if let avDevice = findIOAVDevice(for: displayID) {
+                    if let result = readViaDevice(avDevice: avDevice, vcp: vcp) {
+                        return result
+                    }
+                }
 
-                // Send the get command
-                var result = IOAVServiceWriteI2C(avService, ddcI2CAddress, 0, &writeData, UInt32(writeData.count))
-                guard result == KERN_SUCCESS else { return nil }
+                if let service = findRawService(for: displayID) {
+                    defer { IOObjectRelease(service) }
+                    if let result = readViaDirect(service: service, vcp: vcp) {
+                        return result
+                    }
+                }
 
-                // Wait for monitor to prepare response.
-                // Blocks the calling thread (~40ms). Acceptable because all DDC I/O is
-                // dispatched to a detached task, never on the main thread or cooperative pool.
-                usleep(transactionDelayMs * 1000)
-
-                // Read response (12 bytes: DDC/CI reply packet)
-                var readData = [UInt8](repeating: 0, count: 12)
-                result = IOAVServiceReadI2C(avService, ddcI2CAddress, 0, &readData, UInt32(readData.count))
-                guard result == KERN_SUCCESS else { return nil }
-
-                // Parse the response
-                return parseDDCResponse(readData, expectedVCP: vcp)
+                return nil
             }
 
-            /// Writes a VCP code via IOAVService on Apple Silicon.
+            /// Writes a VCP code on Apple Silicon, trying multiple I2C transport paths.
             ///
-            /// DDC/CI write protocol:
-            /// Write: [slave_addr, length|0x80, set_vcp_opcode, vcp_code, value_hi, value_lo, checksum]
+            /// Transport priority matches `readAppleSilicon`.
             private static func writeAppleSilicon(
                 vcp: VCPCode, value: UInt16, for displayID: CGDirectDisplayID
             ) -> Bool {
-                guard let avService = findIOAVService(for: displayID) else { return false }
+                if let avService = findIOAVService(for: displayID) {
+                    if writeViaService(avService: avService, vcp: vcp, value: value) {
+                        return true
+                    }
+                }
+
+                if let avDevice = findIOAVDevice(for: displayID) {
+                    if writeViaDevice(avDevice: avDevice, vcp: vcp, value: value) {
+                        return true
+                    }
+                }
+
+                if let service = findRawService(for: displayID) {
+                    defer { IOObjectRelease(service) }
+                    if writeViaDirect(service: service, vcp: vcp, value: value) {
+                        return true
+                    }
+                }
+
+                return false
+            }
+
+            // MARK: IOAVService Transport (Standard Path)
+
+            /// Reads a VCP code via IOAVService with retry logic.
+            ///
+            /// The `hostAddress` (0x51) is passed as the I2C register/sub-address parameter,
+            /// matching the behavior of MonitorControl, m1ddc, and AppleSiliconDDC. The
+            /// checksum includes 0x51 even though it is not in the packet body, because the
+            /// I2C hardware transmits it as part of the frame.
+            private static func readViaService(avService: CFTypeRef, vcp: VCPCode) -> DDCReadResult? {
+                let length: UInt8 = 0x82
+                let checksum = UInt8(ddcI2CAddress << 1) ^ hostAddress ^ length ^ getVCPOpcode ^ vcp.rawValue
+
+                for attempt in 0 ..< maxRetryAttempts {
+                    if attempt > 0 { usleep(retryDelayMs * 1000) }
+
+                    var writeData: [UInt8] = [length, getVCPOpcode, vcp.rawValue, checksum]
+                    var writeOK = false
+                    for cycle in 0 ..< writeCyclesPerAttempt {
+                        if cycle > 0 { usleep(writeCycleDelayMs * 1000) }
+                        let r = IOAVServiceWriteI2C(
+                            avService, ddcI2CAddress, UInt32(hostAddress),
+                            &writeData, UInt32(writeData.count)
+                        )
+                        if r == KERN_SUCCESS { writeOK = true }
+                    }
+                    guard writeOK else { continue }
+
+                    usleep(transactionDelayMs * 1000)
+
+                    var readData = [UInt8](repeating: 0, count: 12)
+                    let r = IOAVServiceReadI2C(
+                        avService, ddcI2CAddress, UInt32(hostAddress),
+                        &readData, UInt32(readData.count)
+                    )
+                    guard r == KERN_SUCCESS else { continue }
+
+                    if let result = parseDDCResponse(readData, expectedVCP: vcp) {
+                        return result
+                    }
+                }
+                return nil
+            }
+
+            /// Writes a VCP code via IOAVService with retry logic.
+            private static func writeViaService(avService: CFTypeRef, vcp: VCPCode, value: UInt16) -> Bool {
+                let valueHi = UInt8((value >> 8) & 0xFF)
+                let valueLo = UInt8(value & 0xFF)
+                let length: UInt8 = 0x84
+                let checksum = UInt8(ddcI2CAddress << 1) ^ hostAddress ^ length
+                    ^ setVCPOpcode ^ vcp.rawValue ^ valueHi ^ valueLo
+
+                for attempt in 0 ..< maxRetryAttempts {
+                    if attempt > 0 { usleep(retryDelayMs * 1000) }
+
+                    var writeData: [UInt8] = [length, setVCPOpcode, vcp.rawValue, valueHi, valueLo, checksum]
+                    var writeOK = false
+                    for cycle in 0 ..< writeCyclesPerAttempt {
+                        if cycle > 0 { usleep(writeCycleDelayMs * 1000) }
+                        let r = IOAVServiceWriteI2C(
+                            avService, ddcI2CAddress, UInt32(hostAddress),
+                            &writeData, UInt32(writeData.count)
+                        )
+                        if r == KERN_SUCCESS { writeOK = true }
+                    }
+                    if writeOK { return true }
+                }
+                return false
+            }
+
+            // MARK: IOAVDevice Transport (HDMI Fallback)
+
+            /// Reads a VCP code via IOAVDevice (alternative I2C path for HDMI).
+            private static func readViaDevice(avDevice: CFTypeRef, vcp: VCPCode) -> DDCReadResult? {
+                guard let writeFn = avDeviceWrite, let readFn = avDeviceRead else {
+                    return nil
+                }
+
+                let length: UInt8 = 0x82
+                let checksum = UInt8(ddcI2CAddress << 1) ^ hostAddress ^ length ^ getVCPOpcode ^ vcp.rawValue
+
+                for attempt in 0 ..< maxRetryAttempts {
+                    if attempt > 0 { usleep(retryDelayMs * 1000) }
+
+                    var writeData: [UInt8] = [length, getVCPOpcode, vcp.rawValue, checksum]
+                    var writeOK = false
+                    for cycle in 0 ..< writeCyclesPerAttempt {
+                        if cycle > 0 { usleep(writeCycleDelayMs * 1000) }
+                        let r = writeFn(
+                            avDevice, ddcI2CAddress, UInt32(hostAddress),
+                            &writeData, UInt32(writeData.count)
+                        )
+                        if r == KERN_SUCCESS { writeOK = true }
+                    }
+                    guard writeOK else { continue }
+
+                    usleep(transactionDelayMs * 1000)
+
+                    var readData = [UInt8](repeating: 0, count: 12)
+                    let r = readFn(
+                        avDevice, ddcI2CAddress, UInt32(hostAddress),
+                        &readData, UInt32(readData.count)
+                    )
+                    guard r == KERN_SUCCESS else { continue }
+
+                    if let result = parseDDCResponse(readData, expectedVCP: vcp) {
+                        return result
+                    }
+                }
+                return nil
+            }
+
+            /// Writes a VCP code via IOAVDevice (alternative I2C path for HDMI).
+            private static func writeViaDevice(avDevice: CFTypeRef, vcp: VCPCode, value: UInt16) -> Bool {
+                guard let writeFn = avDeviceWrite else { return false }
 
                 let valueHi = UInt8((value >> 8) & 0xFF)
                 let valueLo = UInt8(value & 0xFF)
-                let length: UInt8 = 0x84 // 4 bytes payload | 0x80 flag
+                let length: UInt8 = 0x84
                 let checksum = UInt8(ddcI2CAddress << 1) ^ hostAddress ^ length
                     ^ setVCPOpcode ^ vcp.rawValue ^ valueHi ^ valueLo
-                var writeData: [UInt8] = [
-                    hostAddress, length, setVCPOpcode, vcp.rawValue, valueHi, valueLo, checksum,
-                ]
 
-                let result = IOAVServiceWriteI2C(avService, ddcI2CAddress, 0, &writeData, UInt32(writeData.count))
-                return result == KERN_SUCCESS
+                for attempt in 0 ..< maxRetryAttempts {
+                    if attempt > 0 { usleep(retryDelayMs * 1000) }
+
+                    var writeData: [UInt8] = [length, setVCPOpcode, vcp.rawValue, valueHi, valueLo, checksum]
+                    var writeOK = false
+                    for cycle in 0 ..< writeCyclesPerAttempt {
+                        if cycle > 0 { usleep(writeCycleDelayMs * 1000) }
+                        let r = writeFn(
+                            avDevice, ddcI2CAddress, UInt32(hostAddress),
+                            &writeData, UInt32(writeData.count)
+                        )
+                        if r == KERN_SUCCESS { writeOK = true }
+                    }
+                    if writeOK { return true }
+                }
+                return false
+            }
+
+            // MARK: Direct IOConnect Transport (Last Resort)
+
+            /// Reads a VCP code via direct IOConnectCallMethod (last-resort fallback).
+            ///
+            /// Opens a user client connection to the raw IOKit service and calls
+            /// IOConnectCallMethod with known I2C selectors. This bypasses the
+            /// IOAVService/IOAVDevice wrapper functions and may work when the
+            /// higher-level paths fail.
+            ///
+            /// Tries selector pairs: 24/25 (IOAVService I2C) and 6/7 (IOAVDevice I2C).
+            private static func readViaDirect(service: io_service_t, vcp: VCPCode) -> DDCReadResult? {
+                var connect: io_connect_t = 0
+                guard IOServiceOpen(service, mach_task_self_, 0, &connect) == KERN_SUCCESS else {
+                    return nil
+                }
+                defer { IOServiceClose(connect) }
+
+                let length: UInt8 = 0x82
+                let checksum = UInt8(ddcI2CAddress << 1) ^ hostAddress ^ length ^ getVCPOpcode ^ vcp.rawValue
+
+                let selectorPairs: [(write: UInt32, read: UInt32)] = [(24, 25), (6, 7)]
+
+                for (writeSel, readSel) in selectorPairs {
+                    for attempt in 0 ..< maxRetryAttempts {
+                        if attempt > 0 { usleep(retryDelayMs * 1000) }
+
+                        var writeData: [UInt8] = [length, getVCPOpcode, vcp.rawValue, checksum]
+                        var scalarIn: [UInt64] = [UInt64(ddcI2CAddress), UInt64(hostAddress)]
+
+                        let wr = writeData.withUnsafeMutableBufferPointer { wBuf in
+                            scalarIn.withUnsafeMutableBufferPointer { sBuf in
+                                IOConnectCallMethod(
+                                    connect, writeSel,
+                                    sBuf.baseAddress, UInt32(sBuf.count),
+                                    wBuf.baseAddress, wBuf.count,
+                                    nil, nil, nil, nil
+                                )
+                            }
+                        }
+                        guard wr == KERN_SUCCESS else { continue }
+
+                        usleep(transactionDelayMs * 1000)
+
+                        var readData = [UInt8](repeating: 0, count: 12)
+                        var outSize = readData.count
+
+                        let rr = readData.withUnsafeMutableBufferPointer { rBuf in
+                            scalarIn.withUnsafeMutableBufferPointer { sBuf in
+                                IOConnectCallMethod(
+                                    connect, readSel,
+                                    sBuf.baseAddress, UInt32(sBuf.count),
+                                    nil, 0,
+                                    nil, nil,
+                                    rBuf.baseAddress, &outSize
+                                )
+                            }
+                        }
+                        guard rr == KERN_SUCCESS else { continue }
+
+                        if let result = parseDDCResponse(readData, expectedVCP: vcp) {
+                            return result
+                        }
+                    }
+                }
+                return nil
+            }
+
+            /// Writes a VCP code via direct IOConnectCallMethod (last-resort fallback).
+            private static func writeViaDirect(service: io_service_t, vcp: VCPCode, value: UInt16) -> Bool {
+                var connect: io_connect_t = 0
+                guard IOServiceOpen(service, mach_task_self_, 0, &connect) == KERN_SUCCESS else {
+                    return false
+                }
+                defer { IOServiceClose(connect) }
+
+                let valueHi = UInt8((value >> 8) & 0xFF)
+                let valueLo = UInt8(value & 0xFF)
+                let length: UInt8 = 0x84
+                let checksum = UInt8(ddcI2CAddress << 1) ^ hostAddress ^ length
+                    ^ setVCPOpcode ^ vcp.rawValue ^ valueHi ^ valueLo
+
+                let selectorPairs: [(write: UInt32, read: UInt32)] = [(24, 25), (6, 7)]
+
+                for (writeSel, _) in selectorPairs {
+                    for attempt in 0 ..< maxRetryAttempts {
+                        if attempt > 0 { usleep(retryDelayMs * 1000) }
+
+                        var writeData: [UInt8] = [
+                            length, setVCPOpcode, vcp.rawValue, valueHi, valueLo, checksum,
+                        ]
+                        var scalarIn: [UInt64] = [UInt64(ddcI2CAddress), UInt64(hostAddress)]
+
+                        let r = writeData.withUnsafeMutableBufferPointer { wBuf in
+                            scalarIn.withUnsafeMutableBufferPointer { sBuf in
+                                IOConnectCallMethod(
+                                    connect, writeSel,
+                                    sBuf.baseAddress, UInt32(sBuf.count),
+                                    wBuf.baseAddress, wBuf.count,
+                                    nil, nil, nil, nil
+                                )
+                            }
+                        }
+                        if r == KERN_SUCCESS { return true }
+                    }
+                }
+                return false
             }
 
         #endif
@@ -620,7 +1015,7 @@
                 guard writeSuccess else { return nil }
 
                 // Wait for monitor to prepare response.
-                // Blocks the calling thread (~40ms). Acceptable because all DDC I/O is
+                // Blocks the calling thread (~50ms). Acceptable because all DDC I/O is
                 // dispatched to a detached task, never on the main thread or cooperative pool.
                 usleep(transactionDelayMs * 1000)
 
@@ -759,6 +1154,10 @@
     // Because these are free functions (not methods on a type), they cannot be declared
     // inside `DDCController`. Swift's `@_silgen_name` requires a top-level or
     // file-scope function declaration to emit the correct symbol reference.
+    //
+    // IOAVDevice symbols (IOAVDeviceCreateWithService, IOAVDeviceWriteI2C,
+    // IOAVDeviceReadI2C) are loaded dynamically via dlsym in DDCController
+    // because they may not exist on all macOS versions.
 
     #if arch(arm64)
 
@@ -784,7 +1183,7 @@
         /// - Parameters:
         ///   - service: IOAVService object from `IOAVServiceCreateWithService`
         ///   - address: I2C slave address (7-bit, not shifted)
-        ///   - register: I2C register (typically 0 for DDC)
+        ///   - register: I2C sub-address byte (0x51 for DDC/CI host address)
         ///   - data: Buffer of bytes to write
         ///   - length: Number of bytes to write
         /// - Returns: IOKit result code (KERN_SUCCESS on success)
@@ -802,7 +1201,7 @@
         /// - Parameters:
         ///   - service: IOAVService object from `IOAVServiceCreateWithService`
         ///   - address: I2C slave address (7-bit, not shifted)
-        ///   - register: I2C register (typically 0 for DDC)
+        ///   - register: I2C sub-address byte (0x51 for DDC/CI host address)
         ///   - data: Buffer to receive read bytes
         ///   - length: Number of bytes to read
         /// - Returns: IOKit result code (KERN_SUCCESS on success)

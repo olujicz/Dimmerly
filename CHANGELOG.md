@@ -35,8 +35,13 @@ Semantic Versioning.
   - Audio mute toggle for monitors with built-in speakers
   - Input source switching (HDMI, DisplayPort, USB-C, etc.)
   - Input source picker in menu bar panel (compact dropdown in Display Adjustments section)
-  - Apple Silicon support via IOAVService (ARM64)
+  - Apple Silicon support via IOAVService (ARM64) with multi-transport fallback
   - Intel Mac support via IOI2CRequest/IOFramebuffer (x86_64)
+  - Three I2C transport paths on Apple Silicon, tried in priority order:
+    1. IOAVService (standard path, works for USB-C/DP on all Apple Silicon)
+    2. IOAVDevice (alternative DCP firmware path, may help for HDMI)
+    3. Direct IOConnectCallMethod (last resort, tries raw IOConnect selectors)
+  - Retry logic with multiple write cycles per attempt for reliable I2C communication
   - Three control modes: Software Only, Hardware Only, Combined
   - Background polling to detect OSD-initiated changes
   - Debounced writes (100ms) and rate limiting (50ms min interval) to protect monitor MCU
@@ -52,7 +57,7 @@ Semantic Versioning.
   - DisplayLink USB display adapters do not support DDC on macOS
   - Some EIZO monitors use a proprietary USB protocol instead of DDC/CI
   - Most TVs do not implement DDC/CI (they use HDMI-CEC instead)
-  - DDC transactions are slow (~40ms per read/write) — requires debouncing and rate-limiting
+  - DDC transactions are slow (~50ms per read/write) — requires debouncing and rate-limiting
   - Some monitors only implement a subset of MCCS commands; unsupported codes are silently ignored
   - Monitors may silently clamp or ignore out-of-range VCP values
   - DDC/CI has no authentication — any process on the system can control the display
