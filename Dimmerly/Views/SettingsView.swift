@@ -32,6 +32,9 @@ struct GeneralSettingsView: View {
     @EnvironmentObject var scheduleManager: ScheduleManager
     @EnvironmentObject var locationProvider: LocationProvider
     @EnvironmentObject var colorTempManager: ColorTemperatureManager
+    #if !APPSTORE
+        @EnvironmentObject var hardwareManager: HardwareBrightnessManager
+    #endif
     @State private var mainShortcutConflictMessage: String?
 
     var body: some View {
@@ -60,6 +63,10 @@ struct GeneralSettingsView: View {
             scheduleSection
 
             colorTemperatureSection
+
+            #if !APPSTORE
+                hardwareControlSection
+            #endif
 
             keyboardShortcutSection
 
@@ -379,6 +386,128 @@ struct GeneralSettingsView: View {
             }
         }
     }
+
+    // MARK: - Hardware Control (DDC/CI)
+
+    #if !APPSTORE
+        private var hardwareControlSection: some View {
+            Section("Hardware Control") {
+                Toggle("Enable DDC/CI hardware control", isOn: Binding(
+                    get: { settings.ddcEnabled },
+                    set: { newValue in
+                        settings.ddcEnabled = newValue
+                        if newValue {
+                            hardwareManager.isEnabled = true
+                            hardwareManager.probeAllDisplays()
+                            hardwareManager.startPolling()
+                        } else {
+                            hardwareManager.isEnabled = false
+                            hardwareManager.stopPolling()
+                        }
+                    }
+                ))
+                .help("Control monitor brightness, volume, and input via DDC/CI protocol")
+
+                if settings.ddcEnabled {
+                    Picker("Control Mode:", selection: $settings.ddcControlMode) {
+                        ForEach(DDCControlMode.allCases) { mode in
+                            Text(mode.displayName).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.radioGroup)
+                    .help("Choose how Dimmerly controls display output")
+
+                    Text(settings.ddcControlMode.description)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Stepper(value: $settings.ddcPollingInterval, in: 1 ... 30) {
+                        Text(
+                            String(
+                                format: NSLocalizedString(
+                                    "Poll every %d seconds",
+                                    comment: "DDC polling interval stepper label"
+                                ),
+                                settings.ddcPollingInterval
+                            )
+                        )
+                    }
+                    .help("How often to read hardware values from the monitor")
+
+                    Stepper(value: $settings.ddcWriteDelay, in: 20 ... 200, step: 10) {
+                        Text(
+                            String(
+                                format: NSLocalizedString(
+                                    "Write delay: %d ms",
+                                    comment: "DDC write delay stepper label"
+                                ),
+                                settings.ddcWriteDelay
+                            )
+                        )
+                    }
+                    .help("Minimum delay between DDC writes (increase if monitor is unresponsive)")
+
+                    // Per-display DDC status
+                    if !hardwareManager.capabilities.isEmpty {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Connected Displays:")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+
+                            ForEach(Array(hardwareManager.capabilities.keys.sorted()), id: \.self) { displayID in
+                                if let cap = hardwareManager.capabilities[displayID] {
+                                    ddcDisplayStatusRow(displayID: displayID, capability: cap)
+                                }
+                            }
+                        }
+                    }
+
+                    Text(
+                        "DDC/CI controls the monitor's hardware directly over the display cable. "
+                            + "Not all monitors support DDC — built-in HDMI on M1/M2 Macs, DisplayLink adapters, "
+                            + "and most TVs do not work. USB-C and DisplayPort connections are most reliable."
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+            }
+        }
+
+        private func ddcDisplayStatusRow(
+            displayID: CGDirectDisplayID,
+            capability: HardwareDisplayCapability
+        ) -> some View {
+            HStack(spacing: 6) {
+                Image(systemName: capability.supportsDDC ? "checkmark.circle.fill" : "xmark.circle")
+                    .foregroundStyle(capability.supportsDDC ? .green : .secondary)
+                    .font(.caption)
+
+                // Try to find the display name from BrightnessManager
+                let displayName = brightnessManager.displays.first(where: { $0.id == displayID })?.name
+                    ?? "Display \(displayID)"
+                Text(displayName)
+                    .font(.caption)
+
+                Spacer()
+
+                if capability.supportsDDC {
+                    let features = ddcFeatureLabels(for: capability)
+                    Text(features)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+
+        private func ddcFeatureLabels(for cap: HardwareDisplayCapability) -> String {
+            var labels: [String] = []
+            if cap.supportsBrightness { labels.append("Brightness") }
+            if cap.supportsContrast { labels.append("Contrast") }
+            if cap.supportsVolume { labels.append("Volume") }
+            if cap.supportsInputSource { labels.append("Input") }
+            return labels.joined(separator: ", ")
+        }
+    #endif
 
     // MARK: - Keyboard Shortcut
 
@@ -798,4 +927,7 @@ private class PresetShortcutNSView: NSView {
         .environmentObject(ScheduleManager())
         .environmentObject(LocationProvider.shared)
         .environmentObject(ColorTemperatureManager.shared)
+    #if !APPSTORE
+        .environmentObject(HardwareBrightnessManager(forTesting: true))
+    #endif
 }

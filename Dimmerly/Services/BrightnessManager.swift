@@ -25,6 +25,12 @@ struct ExternalDisplay: Identifiable, Sendable {
     var warmth: Double = 0.0
     /// Contrast curve steepness (0.0 = flat, 0.5 = neutral/linear, 1.0 = steep S-curve)
     var contrast: Double = 0.5
+
+    #if !APPSTORE
+        /// Whether this display supports DDC/CI hardware control.
+        /// Set during display enumeration by probing via HardwareBrightnessManager.
+        var supportsDDC: Bool = false
+    #endif
 }
 
 /// Manages software-based brightness, warmth, and contrast control for external displays.
@@ -271,10 +277,18 @@ class BrightnessManager: ObservableObject {
             // Clamp warmth and contrast to valid ranges
             let warmth = min(max(savedWarmth[String(displayID)] ?? 0.0, 0.0), 1.0)
             let contrast = min(max(savedContrast[String(displayID)] ?? 0.5, 0.0), 1.0)
-            newDisplays.append(ExternalDisplay(
+
+            var display = ExternalDisplay(
                 id: displayID, name: name, brightness: brightness,
                 warmth: warmth, contrast: contrast
-            ))
+            )
+
+            #if !APPSTORE
+                // Check DDC capability from HardwareBrightnessManager's cached probes
+                display.supportsDDC = HardwareBrightnessManager.shared.supportsDDC(for: displayID)
+            #endif
+
+            newDisplays.append(display)
         }
 
         displays = newDisplays

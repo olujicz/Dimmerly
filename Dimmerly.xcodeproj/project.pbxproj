@@ -62,6 +62,11 @@
 		NT00000000000000000003 /* ScheduleManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = NT00000000000000000030 /* ScheduleManagerTests.swift */; };
 		CT00000000000000000011 /* ColorTemperatureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CT00000000000000000001 /* ColorTemperatureManager.swift */; };
 		CT00000000000000000012 /* ColorTemperatureManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CT00000000000000000002 /* ColorTemperatureManagerTests.swift */; };
+		HW00000000000000000011 /* DDCController.swift in Sources */ = {isa = PBXBuildFile; fileRef = HW00000000000000000001 /* DDCController.swift */; };
+		HW00000000000000000012 /* HardwareDisplayCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = HW00000000000000000002 /* HardwareDisplayCapability.swift */; };
+		HW00000000000000000013 /* HardwareBrightnessManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = HW00000000000000000003 /* HardwareBrightnessManager.swift */; };
+		HW00000000000000000014 /* DDCControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = HW00000000000000000004 /* DDCControllerTests.swift */; };
+		HW00000000000000000015 /* HardwareBrightnessManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = HW00000000000000000005 /* HardwareBrightnessManagerTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -152,6 +157,11 @@
 		NT00000000000000000030 /* ScheduleManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleManagerTests.swift; sourceTree = "<group>"; };
 		CT00000000000000000001 /* ColorTemperatureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorTemperatureManager.swift; sourceTree = "<group>"; };
 		CT00000000000000000002 /* ColorTemperatureManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorTemperatureManagerTests.swift; sourceTree = "<group>"; };
+		HW00000000000000000001 /* DDCController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DDCController.swift; sourceTree = "<group>"; };
+		HW00000000000000000002 /* HardwareDisplayCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareDisplayCapability.swift; sourceTree = "<group>"; };
+		HW00000000000000000003 /* HardwareBrightnessManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareBrightnessManager.swift; sourceTree = "<group>"; };
+		HW00000000000000000004 /* DDCControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DDCControllerTests.swift; sourceTree = "<group>"; };
+		HW00000000000000000005 /* HardwareBrightnessManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareBrightnessManagerTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -287,6 +297,7 @@
 				NF00000000000000000001 /* BrightnessPreset.swift */,
 				SC00000000000000000001 /* DimmingSchedule.swift */,
 				E37863164B2170781448D5DC /* DisplayError.swift */,
+				HW00000000000000000002 /* HardwareDisplayCapability.swift */,
 				D1B045C3D2AA639266BC0483 /* KeyboardShortcut.swift */,
 				FE7B95B7556B68B59FE0DC7B /* AppSettings.swift */,
 			);
@@ -300,6 +311,8 @@
 				473CD46DB2D77DD4EB8463DA /* AlertPresenter.swift */,
 				BA0000000000000000000002 /* BrightnessManager.swift */,
 				CT00000000000000000001 /* ColorTemperatureManager.swift */,
+				HW00000000000000000001 /* DDCController.swift */,
+				HW00000000000000000003 /* HardwareBrightnessManager.swift */,
 				NF00000000000000000003 /* IdleTimerManager.swift */,
 				15EF8DD088138249EA3B9ED2 /* LaunchAtLoginManager.swift */,
 				SC00000000000000000003 /* LocationProvider.swift */,
@@ -335,8 +348,10 @@
 				UT00000000000000000010 /* BrightnessManagerTests.swift */,
 				NF0000000000000000000A /* BrightnessPresetTests.swift */,
 				CT00000000000000000002 /* ColorTemperatureManagerTests.swift */,
+				HW00000000000000000004 /* DDCControllerTests.swift */,
 				NT00000000000000000020 /* DimmingScheduleTests.swift */,
 				T1B2C3D4E5F6A7B8C9D0E300 /* DisplayControllerTests.swift */,
+				HW00000000000000000005 /* HardwareBrightnessManagerTests.swift */,
 				T1B2C3D4E5F6A7B8C9D0E320 /* KeyboardShortcutTests.swift */,
 				UT00000000000000000030 /* MenuBarIconStyleTests.swift */,
 				UT00000000000000000020 /* PresetManagerTests.swift */,
@@ -537,6 +552,9 @@
 				SC00000000000000000014 /* ScheduleManager.swift in Sources */,
 				SC00000000000000000015 /* ScheduleViews.swift in Sources */,
 				CT00000000000000000011 /* ColorTemperatureManager.swift in Sources */,
+				HW00000000000000000011 /* DDCController.swift in Sources */,
+				HW00000000000000000012 /* HardwareDisplayCapability.swift in Sources */,
+				HW00000000000000000013 /* HardwareBrightnessManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -555,6 +573,8 @@
 				NT00000000000000000002 /* DimmingScheduleTests.swift in Sources */,
 				NT00000000000000000003 /* ScheduleManagerTests.swift in Sources */,
 				CT00000000000000000012 /* ColorTemperatureManagerTests.swift in Sources */,
+				HW00000000000000000014 /* DDCControllerTests.swift in Sources */,
+				HW00000000000000000015 /* HardwareBrightnessManagerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

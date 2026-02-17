@@ -17,11 +17,11 @@ large_tuple:
 
 # Large service files (BrightnessManager, SettingsView) are cohesive units.
 file_length:
-  warning: 1000
+  warning: 1300
   error: 1500
 
 type_body_length:
-  warning: 500
+  warning: 700
   error: 800
 
 function_body_length:
