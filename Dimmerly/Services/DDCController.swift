@@ -10,11 +10,12 @@
 //  auxiliary channel. This file implements the I/O layer for macOS.
 //
 //  Architecture support:
-//  - Apple Silicon: Uses IOAVService (private IOKit class) for DDC transactions
+//  - Apple Silicon M1–M3: Uses IOAVService (private IOKit class) for DDC transactions
+//  - Apple Silicon M4+: Uses DCPAVServiceProxy → IOAVServiceCreateWithService → IOAVService
 //  - Intel Macs: Uses IOI2CRequest via IOFramebufferI2CInterface
 //
 //  Known limitations:
-//  - Built-in HDMI on M1/entry M2 Macs does not support DDC (USB-C/DP works)
+//  - Built-in HDMI on M1/entry M2/M4 Macs may not support DDC (USB-C/DP works)
 //  - DisplayLink USB adapters do not support DDC on macOS
 //  - Some EIZO monitors use a proprietary USB protocol instead of DDC/CI
 //  - Most TVs do not implement DDC/CI (they use CEC instead)
@@ -292,84 +293,106 @@
 
         #if arch(arm64)
 
-            /// Finds the IOAVService for a given display on Apple Silicon.
+            /// IOKit class names that expose DDC I2C services on Apple Silicon.
             ///
-            /// On Apple Silicon, external displays are exposed via IOAVService objects in the
-            /// IOKit registry. This method maps a `CGDirectDisplayID` to its corresponding
-            /// IOAVService by matching the `Location` property against the display's serial number
-            /// or by iterating all services and matching based on DisplayPort transport info.
+            /// - `DCPAVServiceProxy`: M4+ Macs (new DCP display pipeline architecture)
+            /// - `IOAVService`: M1/M2/M3 Macs (original Apple Silicon display pipeline)
             ///
-            /// The approach used here (iterating IOAVService instances) is derived from the
-            /// open-source m1ddc and MonitorControl projects (both MIT licensed).
+            /// Order matters: DCPAVServiceProxy is checked first because on M4 Macs it is
+            /// the only class present. On M1–M3, IOAVService is present and DCPAVServiceProxy
+            /// is absent, so the first iteration is a no-op.
+            private static let avServiceClassNames = ["DCPAVServiceProxy", "IOAVService"]
+
+            /// Finds and creates an IOAVService for a given display on Apple Silicon.
+            ///
+            /// On Apple Silicon, external displays are exposed via IOAVService or
+            /// DCPAVServiceProxy objects in the IOKit registry. This method:
+            /// 1. Searches both class names (M4+ uses DCPAVServiceProxy, M1–M3 uses IOAVService)
+            /// 2. Matches the registry entry to the display via EDID vendor/model/serial
+            /// 3. Creates an IOAVService CFTypeRef via `IOAVServiceCreateWithService`
+            ///
+            /// The approach is derived from the open-source m1ddc, MonitorControl, and
+            /// i2c_on_macOS projects (all MIT licensed).
             ///
             /// - Parameter displayID: CoreGraphics display identifier
-            /// - Returns: IOKit service handle, or `IO_OBJECT_NULL` if not found.
-            ///           Caller must release with `IOObjectRelease`.
-            private static func findIOAVService(for displayID: CGDirectDisplayID) -> io_service_t {
-                // Get vendor and model from CoreGraphics to match against IOKit
+            /// - Returns: IOAVService object for I2C operations, or `nil` if not found.
+            ///           The returned CFTypeRef is retained and managed by ARC.
+            private static func findIOAVService(for displayID: CGDirectDisplayID) -> CFTypeRef? {
                 let vendorID = CGDisplayVendorNumber(displayID)
                 let modelID = CGDisplayModelNumber(displayID)
                 let serialNumber = CGDisplaySerialNumber(displayID)
 
-                var iterator: io_iterator_t = 0
-                guard IOServiceGetMatchingServices(
-                    kIOMainPortDefault,
-                    IOServiceMatching("IOAVService"),
-                    &iterator
-                ) == KERN_SUCCESS else {
-                    return IO_OBJECT_NULL
-                }
-                defer { IOObjectRelease(iterator) }
-
-                var service = IOIteratorNext(iterator)
-                while service != IO_OBJECT_NULL {
-                    // Check if this service matches our display by walking up to the
-                    // display transport parent and comparing EDID-derived IDs
-                    if matchesDisplay(
-                        service: service, vendorID: vendorID,
-                        modelID: modelID, serialNumber: serialNumber
-                    ) {
-                        return service // Caller must release
+                // Strategy 1: Match by EDID vendor/model/serial via parent walk
+                for className in avServiceClassNames {
+                    var iterator: io_iterator_t = 0
+                    guard IOServiceGetMatchingServices(
+                        kIOMainPortDefault,
+                        IOServiceMatching(className),
+                        &iterator
+                    ) == KERN_SUCCESS else {
+                        continue
                     }
-                    IOObjectRelease(service)
-                    service = IOIteratorNext(iterator)
+                    defer { IOObjectRelease(iterator) }
+
+                    var service = IOIteratorNext(iterator)
+                    while service != IO_OBJECT_NULL {
+                        if matchesDisplay(
+                            service: service, vendorID: vendorID,
+                            modelID: modelID, serialNumber: serialNumber
+                        ) {
+                            let avService = IOAVServiceCreateWithService(nil, service)
+                            IOObjectRelease(service)
+                            return avService?.takeRetainedValue()
+                        }
+                        IOObjectRelease(service)
+                        service = IOIteratorNext(iterator)
+                    }
                 }
 
-                // Fallback: if only one external display and one IOAVService, assume match.
+                // Strategy 2: If only one external display and one service, assume match.
                 // This handles monitors where EDID vendor/model don't match CG-reported values.
-                var fallbackIterator: io_iterator_t = 0
-                guard IOServiceGetMatchingServices(
-                    kIOMainPortDefault,
-                    IOServiceMatching("IOAVService"),
-                    &fallbackIterator
-                ) == KERN_SUCCESS else {
-                    return IO_OBJECT_NULL
-                }
-                defer { IOObjectRelease(fallbackIterator) }
+                for className in avServiceClassNames {
+                    var iterator: io_iterator_t = 0
+                    guard IOServiceGetMatchingServices(
+                        kIOMainPortDefault,
+                        IOServiceMatching(className),
+                        &iterator
+                    ) == KERN_SUCCESS else {
+                        continue
+                    }
+                    defer { IOObjectRelease(iterator) }
 
-                var services: [io_service_t] = []
-                var s = IOIteratorNext(fallbackIterator)
-                while s != IO_OBJECT_NULL {
-                    services.append(s)
-                    s = IOIteratorNext(fallbackIterator)
+                    var services: [io_service_t] = []
+                    var s = IOIteratorNext(iterator)
+                    while s != IO_OBJECT_NULL {
+                        services.append(s)
+                        s = IOIteratorNext(iterator)
+                    }
+
+                    let externalDisplays: [CGDirectDisplayID] = {
+                        var displayCount: UInt32 = 0
+                        CGGetActiveDisplayList(0, nil, &displayCount)
+                        var displays = [CGDirectDisplayID](repeating: 0, count: Int(displayCount))
+                        CGGetActiveDisplayList(displayCount, &displays, &displayCount)
+                        return displays.filter { CGDisplayIsBuiltin($0) == 0 }
+                    }()
+
+                    if services.count == 1 && externalDisplays.count == 1
+                        && externalDisplays.first == displayID
+                    {
+                        let avService = IOAVServiceCreateWithService(nil, services[0])
+                        for svc in services {
+                            IOObjectRelease(svc)
+                        }
+                        return avService?.takeRetainedValue()
+                    }
+
+                    for svc in services {
+                        IOObjectRelease(svc)
+                    }
                 }
 
-                let externalDisplays: [CGDirectDisplayID] = {
-                    var displayCount: UInt32 = 0
-                    CGGetActiveDisplayList(0, nil, &displayCount)
-                    var displays = [CGDirectDisplayID](repeating: 0, count: Int(displayCount))
-                    CGGetActiveDisplayList(displayCount, &displays, &displayCount)
-                    return displays.filter { CGDisplayIsBuiltin($0) == 0 }
-                }()
-                if services.count == 1 && externalDisplays.count == 1 && externalDisplays.first == displayID {
-                    return services[0] // Caller must release (same ownership as the primary return path)
-                }
-
-                // Clean up unreturned services
-                for svc in services {
-                    IOObjectRelease(svc)
-                }
-                return IO_OBJECT_NULL
+                return nil
             }
 
             /// Checks if an IOAVService corresponds to a specific display by examining
@@ -445,9 +468,7 @@
             /// 2. Wait ~40ms for monitor to process
             /// 3. Read: [result_code, get_vcp_reply_opcode, vcp_code, type, max_hi, max_lo, cur_hi, cur_lo, checksum]
             private static func readAppleSilicon(vcp: VCPCode, for displayID: CGDirectDisplayID) -> DDCReadResult? {
-                let service = findIOAVService(for: displayID)
-                guard service != IO_OBJECT_NULL else { return nil }
-                defer { IOObjectRelease(service) }
+                guard let avService = findIOAVService(for: displayID) else { return nil }
 
                 // Build the "Get VCP Feature" command packet
                 // DDC/CI packet format: [length|0x80, source_addr, opcode, vcp_code]
@@ -457,7 +478,7 @@
                 var writeData: [UInt8] = [hostAddress, length, getVCPOpcode, vcp.rawValue, checksum]
 
                 // Send the get command
-                var result = IOAVServiceWriteI2C(service, ddcI2CAddress, 0, &writeData, UInt32(writeData.count))
+                var result = IOAVServiceWriteI2C(avService, ddcI2CAddress, 0, &writeData, UInt32(writeData.count))
                 guard result == KERN_SUCCESS else { return nil }
 
                 // Wait for monitor to prepare response.
@@ -467,7 +488,7 @@
 
                 // Read response (12 bytes: DDC/CI reply packet)
                 var readData = [UInt8](repeating: 0, count: 12)
-                result = IOAVServiceReadI2C(service, ddcI2CAddress, 0, &readData, UInt32(readData.count))
+                result = IOAVServiceReadI2C(avService, ddcI2CAddress, 0, &readData, UInt32(readData.count))
                 guard result == KERN_SUCCESS else { return nil }
 
                 // Parse the response
@@ -481,9 +502,7 @@
             private static func writeAppleSilicon(
                 vcp: VCPCode, value: UInt16, for displayID: CGDirectDisplayID
             ) -> Bool {
-                let service = findIOAVService(for: displayID)
-                guard service != IO_OBJECT_NULL else { return false }
-                defer { IOObjectRelease(service) }
+                guard let avService = findIOAVService(for: displayID) else { return false }
 
                 let valueHi = UInt8((value >> 8) & 0xFF)
                 let valueLo = UInt8(value & 0xFF)
@@ -494,7 +513,7 @@
                     hostAddress, length, setVCPOpcode, vcp.rawValue, valueHi, valueLo, checksum,
                 ]
 
-                let result = IOAVServiceWriteI2C(service, ddcI2CAddress, 0, &writeData, UInt32(writeData.count))
+                let result = IOAVServiceWriteI2C(avService, ddcI2CAddress, 0, &writeData, UInt32(writeData.count))
                 return result == KERN_SUCCESS
             }
 
@@ -726,10 +745,16 @@
     // Apple Silicon Macs. They are declared with `@_silgen_name` so the linker resolves
     // them directly from IOKit.framework — no `dlsym` or runtime lookup is needed.
     //
-    // The symbols (`IOAVServiceWriteI2C`, `IOAVServiceReadI2C`) are undocumented but
-    // have been stable since macOS 11 (Big Sur) and are used by MonitorControl, m1ddc,
-    // and other DDC tools. If Apple ever removes these symbols, the app will fail to
-    // **link** (a build-time error), not crash at runtime.
+    // The symbols are undocumented but have been stable since macOS 11 (Big Sur) and
+    // are used by MonitorControl, m1ddc, and other DDC tools. If Apple ever removes
+    // these symbols, the app will fail to **link** (a build-time error), not crash
+    // at runtime.
+    //
+    // On M1–M3, the IOKit registry contains `IOAVService` instances directly.
+    // On M4+, the registry contains `DCPAVServiceProxy` instead, which must be
+    // converted to an IOAVService via `IOAVServiceCreateWithService` before the
+    // I2C functions can be used. The I2C functions accept the resulting CFTypeRef
+    // (an IOAVService object), not the raw `io_service_t` registry handle.
     //
     // Because these are free functions (not methods on a type), they cannot be declared
     // inside `DDCController`. Swift's `@_silgen_name` requires a top-level or
@@ -737,10 +762,27 @@
 
     #if arch(arm64)
 
+        /// Creates an IOAVService object from an IOKit registry entry.
+        ///
+        /// On M4+ Macs, the IOKit class is `DCPAVServiceProxy` rather than `IOAVService`.
+        /// This function bridges any compatible registry entry into an IOAVService that
+        /// the I2C read/write functions accept. On M1–M3, it works with `IOAVService`
+        /// entries as well (effectively a no-op wrapper).
+        ///
+        /// - Parameters:
+        ///   - allocator: CF allocator, pass `nil` for the default allocator
+        ///   - service: IOKit registry entry (IOAVService or DCPAVServiceProxy)
+        /// - Returns: Retained IOAVService reference, or `nil` if creation failed
+        @_silgen_name("IOAVServiceCreateWithService")
+        private func IOAVServiceCreateWithService(
+            _ allocator: CFAllocator?,
+            _ service: io_service_t
+        ) -> Unmanaged<CFTypeRef>?
+
         /// Writes data to an I2C device via IOAVService.
         ///
         /// - Parameters:
-        ///   - service: IOAVService handle from IOKit
+        ///   - service: IOAVService object from `IOAVServiceCreateWithService`
         ///   - address: I2C slave address (7-bit, not shifted)
         ///   - register: I2C register (typically 0 for DDC)
         ///   - data: Buffer of bytes to write
@@ -748,7 +790,7 @@
         /// - Returns: IOKit result code (KERN_SUCCESS on success)
         @_silgen_name("IOAVServiceWriteI2C")
         private func IOAVServiceWriteI2C(
-            _ service: io_service_t,
+            _ service: CFTypeRef,
             _ address: UInt32,
             _ register: UInt32,
             _ data: UnsafeMutablePointer<UInt8>,
@@ -758,7 +800,7 @@
         /// Reads data from an I2C device via IOAVService.
         ///
         /// - Parameters:
-        ///   - service: IOAVService handle from IOKit
+        ///   - service: IOAVService object from `IOAVServiceCreateWithService`
         ///   - address: I2C slave address (7-bit, not shifted)
         ///   - register: I2C register (typically 0 for DDC)
         ///   - data: Buffer to receive read bytes
@@ -766,7 +808,7 @@
         /// - Returns: IOKit result code (KERN_SUCCESS on success)
         @_silgen_name("IOAVServiceReadI2C")
         private func IOAVServiceReadI2C(
-            _ service: io_service_t,
+            _ service: CFTypeRef,
             _ address: UInt32,
             _ register: UInt32,
             _ data: UnsafeMutablePointer<UInt8>,
