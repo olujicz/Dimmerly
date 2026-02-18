@@ -25,6 +25,12 @@ struct ExternalDisplay: Identifiable, Sendable {
     var warmth: Double = 0.0
     /// Contrast curve steepness (0.0 = flat, 0.5 = neutral/linear, 1.0 = steep S-curve)
     var contrast: Double = 0.5
+
+    #if !APPSTORE
+        /// Whether this display supports DDC/CI hardware control.
+        /// Set during display enumeration by probing via HardwareBrightnessManager.
+        var supportsDDC: Bool = false
+    #endif
 }
 
 /// Manages software-based brightness, warmth, and contrast control for external displays.
@@ -256,6 +262,16 @@ class BrightnessManager: ObservableObject {
     func refreshDisplays() {
         let displayIDs = Self.activeDisplayIDs()
 
+        #if !APPSTORE
+            // Clean up HardwareBrightnessManager state for displays that disappeared
+            let externalDisplayIDs = Set(displayIDs.filter { CGDisplayIsBuiltin($0) == 0 })
+            for cachedID in HardwareBrightnessManager.shared.capabilities.keys
+                where !externalDisplayIDs.contains(cachedID)
+            {
+                HardwareBrightnessManager.shared.removeDisplay(cachedID)
+            }
+        #endif
+
         let savedBrightness = loadPersistedBrightness()
         let savedWarmth = loadPersistedWarmth()
         let savedContrast = loadPersistedContrast()
@@ -271,10 +287,18 @@ class BrightnessManager: ObservableObject {
             // Clamp warmth and contrast to valid ranges
             let warmth = min(max(savedWarmth[String(displayID)] ?? 0.0, 0.0), 1.0)
             let contrast = min(max(savedContrast[String(displayID)] ?? 0.5, 0.0), 1.0)
-            newDisplays.append(ExternalDisplay(
+
+            var display = ExternalDisplay(
                 id: displayID, name: name, brightness: brightness,
                 warmth: warmth, contrast: contrast
-            ))
+            )
+
+            #if !APPSTORE
+                // Check DDC capability from HardwareBrightnessManager's cached probes
+                display.supportsDDC = HardwareBrightnessManager.shared.supportsDDC(for: displayID)
+            #endif
+
+            newDisplays.append(display)
         }
 
         displays = newDisplays
@@ -300,6 +324,21 @@ class BrightnessManager: ObservableObject {
         displays[index].brightness = clamped
 
         debouncePersist()
+
+        #if !APPSTORE
+            // Dispatch to hardware or software based on the active control mode
+            let mode = HardwareBrightnessManager.shared.controlMode
+            let hasDDC = HardwareBrightnessManager.shared.supportsDDC(for: displayID)
+
+            if hasDDC, mode == .hardwareOnly || mode == .combined {
+                HardwareBrightnessManager.shared.setHardwareBrightness(for: displayID, to: clamped)
+            }
+
+            if mode == .hardwareOnly, hasDDC {
+                // Hardware-only mode: skip gamma table adjustment
+                return
+            }
+        #endif
 
         // Don't apply gamma during blanking (would cause visible flicker)
         if !ScreenBlanker.shared.isBlanking {
@@ -366,6 +405,19 @@ class BrightnessManager: ObservableObject {
                 warmth: displays[index].warmth, contrast: clamped
             )
         }
+    }
+
+    /// Re-applies the current brightness via gamma for a specific display.
+    ///
+    /// Called by HardwareBrightnessManager when DDC writes fail repeatedly and the display
+    /// is downgraded to software-only control. This ensures the user doesn't lose brightness
+    /// control when DDC becomes unreliable at runtime.
+    func applyCurrentBrightness(for displayID: CGDirectDisplayID) {
+        guard let display = displays.first(where: { $0.id == displayID }) else { return }
+        applyGamma(
+            displayID: displayID, brightness: display.brightness,
+            warmth: display.warmth, contrast: display.contrast
+        )
     }
 
     /// Reapplies gamma tables to all connected displays using their current settings.

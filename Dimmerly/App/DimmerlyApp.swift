@@ -38,6 +38,11 @@ struct DimmerlyApp: App {
     /// Manager for automatic color temperature adjustment
     @StateObject private var colorTempManager = ColorTemperatureManager.shared
 
+    #if !APPSTORE
+        /// Manager for DDC/CI hardware display control (direct distribution only)
+        @StateObject private var hardwareManager = HardwareBrightnessManager.shared
+    #endif
+
     /// Guard against duplicate observer registration if onAppear fires more than once
     @State private var isConfigured = false
 
@@ -49,6 +54,9 @@ struct DimmerlyApp: App {
                 .environmentObject(brightnessManager)
                 .environmentObject(presetManager)
                 .environmentObject(colorTempManager)
+            #if !APPSTORE
+                .environmentObject(hardwareManager)
+            #endif
         } label: {
             menuBarLabel
                 .onAppear {
@@ -62,6 +70,9 @@ struct DimmerlyApp: App {
                     configureScheduleManager()
                     configureColorTemperature()
                     observeWidgetNotifications()
+                    #if !APPSTORE
+                        configureHardwareControl()
+                    #endif
                 }
         }
         .menuBarExtraStyle(.window)
@@ -76,6 +87,9 @@ struct DimmerlyApp: App {
                 .environmentObject(scheduleManager)
                 .environmentObject(locationProvider)
                 .environmentObject(colorTempManager)
+            #if !APPSTORE
+                .environmentObject(hardwareManager)
+            #endif
         }
     }
 
@@ -208,4 +222,26 @@ struct DimmerlyApp: App {
             readPresets: { PresetManager.shared.presets }
         )
     }
+
+    // MARK: - Hardware Control (DDC/CI)
+
+    #if !APPSTORE
+        /// Configures DDC/CI hardware display control for the direct distribution build.
+        ///
+        /// Sets up:
+        /// 1. Initial DDC probe if hardware control was previously enabled
+        /// 2. Syncs control mode and polling interval from settings
+        /// 3. Starts background polling for OSD-initiated hardware changes
+        ///
+        /// DDC requires IOKit access incompatible with the App Sandbox, so this
+        /// method is only compiled in direct distribution builds.
+        private func configureHardwareControl() {
+            guard settings.ddcEnabled else { return }
+            hardwareManager.isEnabled = true
+            hardwareManager.controlMode = settings.ddcControlMode
+            hardwareManager.pollingInterval = TimeInterval(settings.ddcPollingInterval)
+            hardwareManager.probeAllDisplays()
+            hardwareManager.startPolling()
+        }
+    #endif
 }

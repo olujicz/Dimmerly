@@ -12,6 +12,9 @@ struct MenuBarPanel: View {
     @EnvironmentObject var settings: AppSettings
     @EnvironmentObject var presetManager: PresetManager
     @EnvironmentObject var colorTempManager: ColorTemperatureManager
+    #if !APPSTORE
+        @EnvironmentObject var hardwareManager: HardwareBrightnessManager
+    #endif
     @Environment(\.openSettings) private var openSettings
     @AppStorage("showDisplayAdjustments") private var showAdjustments = false
 
@@ -53,7 +56,7 @@ struct MenuBarPanel: View {
     private var emptyState: some View {
         VStack(spacing: 6) {
             Image(systemName: "display")
-                .font(.system(size: 28))
+                .font(.title)
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
             Text("No External Displays")
@@ -93,6 +96,12 @@ struct MenuBarPanel: View {
                         brightnessManager.toggleBlank(for: display.id)
                     }
                 )
+                #if !APPSTORE
+                .ddcControls(
+                        hardwareManager: hardwareManager,
+                        displayID: display.id
+                    )
+                #endif
             }
 
             displayAdjustmentsDisclosure
@@ -391,9 +400,31 @@ struct DisplayBrightnessRow: View {
     let onContrastChange: (Double) -> Void
     let onToggleBlank: () -> Void
 
+    #if !APPSTORE
+        /// Hardware volume change callback (nil if DDC not supported)
+        var onVolumeChange: ((Double) -> Void)?
+        /// Hardware mute toggle callback (nil if DDC not supported)
+        var onMuteToggle: (() -> Void)?
+        /// Input source change callback (nil if display doesn't support input switching)
+        var onInputSourceChange: ((InputSource) -> Void)?
+        /// Current hardware volume (0.0–1.0)
+        var hardwareVolume: Double?
+        /// Current mute state
+        var isMuted: Bool = false
+        /// Currently active input source (nil if unknown or unsupported)
+        var activeInputSource: InputSource?
+        /// Available input sources for this display (empty if unsupported)
+        var availableInputSources: [InputSource] = []
+        /// Whether this display supports DDC
+        var hasDDC: Bool = false
+    #endif
+
     @State private var sliderValue: Double
     @State private var warmthValue: Double
     @State private var contrastValue: Double
+    #if !APPSTORE
+        @State private var volumeValue: Double
+    #endif
 
     init(
         display: ExternalDisplay,
@@ -416,6 +447,9 @@ struct DisplayBrightnessRow: View {
         _sliderValue = State(initialValue: display.brightness)
         _warmthValue = State(initialValue: display.warmth)
         _contrastValue = State(initialValue: display.contrast)
+        #if !APPSTORE
+            _volumeValue = State(initialValue: hardwareVolume ?? 0.5)
+        #endif
     }
 
     var body: some View {
@@ -424,6 +458,19 @@ struct DisplayBrightnessRow: View {
                 Text(display.name)
                     .font(.callout)
                     .lineLimit(1)
+
+                #if !APPSTORE
+                    if hasDDC {
+                        Text("DDC")
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 1)
+                            .background(Capsule().fill(.blue.opacity(0.7)))
+                            .help("Hardware control via DDC/CI")
+                    }
+                #endif
+
                 Spacer()
                 Text("\(Int(sliderValue * 100))%")
                     .font(.callout)
@@ -538,6 +585,7 @@ struct DisplayBrightnessRow: View {
                                 .padding(.horizontal, 4)
                                 .padding(.vertical, 1)
                                 .background(Capsule().fill(.orange.opacity(0.7)))
+                                .accessibilityHidden(true)
                         }
 
                         Spacer()
@@ -588,6 +636,123 @@ struct DisplayBrightnessRow: View {
                 .opacity(isBlanked ? 0.4 : 1.0)
                 .disabled(isBlanked)
                 .transition(.opacity.combined(with: .move(edge: .top)))
+
+                #if !APPSTORE
+
+                    // MARK: Volume Slider + Mute (DDC only)
+
+                    if hasDDC, onVolumeChange != nil {
+                        HStack(spacing: 6) {
+                            Button {
+                                onMuteToggle?()
+                            } label: {
+                                Image(systemName: isMuted ? "speaker.slash.fill" : "speaker.wave.2")
+                                    .font(.caption2)
+                                    .frame(width: 12)
+                                    .foregroundStyle(isMuted ? .red : .secondary)
+                            }
+                            .buttonStyle(.borderless)
+                            .help(isMuted ? "Unmute" : "Mute")
+                            .accessibilityLabel(isMuted ? Text("Unmute") : Text("Mute"))
+
+                            Slider(value: $volumeValue, in: 0 ... 1)
+                                .accessibilityLabel(
+                                    String(
+                                        format: NSLocalizedString(
+                                            "%@ volume",
+                                            comment: "Accessibility label: display volume slider"
+                                        ),
+                                        display.name
+                                    )
+                                )
+                                .accessibilityValue(
+                                    String(
+                                        format: NSLocalizedString(
+                                            "%d percent",
+                                            comment: "Accessibility value: volume percentage"
+                                        ),
+                                        Int(volumeValue * 100)
+                                    )
+                                )
+                                .onChange(of: volumeValue) {
+                                    onVolumeChange?(volumeValue)
+                                }
+
+                            Image(systemName: "speaker.wave.3")
+                                .font(.caption2)
+                                .frame(width: 12)
+                                .foregroundStyle(.secondary)
+                                .accessibilityHidden(true)
+                        }
+                        .opacity(isBlanked ? 0.4 : 1.0)
+                        .disabled(isBlanked)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+
+                    // MARK: Input Source Picker (DDC only)
+
+                    if hasDDC, !availableInputSources.isEmpty, onInputSourceChange != nil {
+                        HStack(spacing: 6) {
+                            Image(systemName: "rectangle.on.rectangle.angled")
+                                .font(.caption2)
+                                .frame(width: 12)
+                                .foregroundStyle(.secondary)
+                                .accessibilityHidden(true)
+
+                            // Use a Menu-based picker for compact presentation.
+                            // Picker with .menu style provides a native dropdown
+                            // without taking up extra vertical space.
+                            Menu {
+                                // Group common modern inputs first for quick access
+                                ForEach(availableInputSources, id: \.self) { source in
+                                    Button {
+                                        onInputSourceChange?(source)
+                                    } label: {
+                                        if source == activeInputSource {
+                                            Label(source.displayName, systemImage: "checkmark")
+                                        } else {
+                                            Text(source.displayName)
+                                        }
+                                    }
+                                }
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Text(activeInputSource?.displayName ?? "Unknown")
+                                        .font(.callout)
+                                        .lineLimit(1)
+                                    Image(systemName: "chevron.up.chevron.down")
+                                        .font(.system(size: 8))
+                                        .foregroundStyle(.tertiary)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .menuStyle(.borderlessButton)
+                            .accessibilityLabel(
+                                String(
+                                    format: NSLocalizedString(
+                                        "%@ input source",
+                                        comment: "Accessibility label: display input source picker"
+                                    ),
+                                    display.name
+                                )
+                            )
+                            .accessibilityValue(activeInputSource?.displayName ?? "No input source detected")
+                        }
+                        .opacity(isBlanked ? 0.4 : 1.0)
+                        .disabled(isBlanked)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                        // Warn that switching away from the current input may lose the display.
+                        // This is inherent to DDC input switching — the monitor will switch
+                        // to the new source, and if the Mac isn't connected on that port,
+                        // the display will show "No Signal" until switched back (either via
+                        // the monitor's OSD or by reconnecting to this app on the active input).
+                        .help(
+                            "Switch monitor input source. Switching away from the Mac's "
+                                + "input will cause this display to show \"No Signal\" "
+                                + "until switched back."
+                        )
+                    }
+                #endif
             }
         }
         .onChange(of: display.brightness) {
@@ -599,19 +764,73 @@ struct DisplayBrightnessRow: View {
         .onChange(of: display.contrast) {
             contrastValue = display.contrast
         }
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel(display.name)
-        .contextMenu {
-            Button(isBlanked ? "Restore Display" : "Dim Display") {
-                onToggleBlank()
+        #if !APPSTORE
+        .onChange(of: hardwareVolume) {
+                if let vol = hardwareVolume {
+                    volumeValue = vol
+                }
             }
-            Divider()
-            Button("Set to 100%") { onChange(1.0) }
-            Button("Set to 50%") { onChange(0.5) }
-            Button("Set to 25%") { onChange(0.25) }
-            Divider()
-            Button("Reset Warmth") { onWarmthChange(0.0) }
-            Button("Reset Contrast") { onContrastChange(0.5) }
-        }
+        #endif
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel(display.name)
+            .contextMenu {
+                Button(isBlanked ? "Restore Display" : "Dim Display") {
+                    onToggleBlank()
+                }
+                Divider()
+                Button("Set to 100%") { onChange(1.0) }
+                Button("Set to 50%") { onChange(0.5) }
+                Button("Set to 25%") { onChange(0.25) }
+                Divider()
+                Button("Reset Warmth") { onWarmthChange(0.0) }
+                Button("Reset Contrast") { onContrastChange(0.5) }
+            }
     }
 }
+
+// MARK: - DDC Controls Modifier
+
+#if !APPSTORE
+    extension DisplayBrightnessRow {
+        /// Convenience modifier to wire DDC hardware controls from HardwareBrightnessManager.
+        ///
+        /// Sets all DDC-related properties (volume, mute, hasDDC, callbacks) in one call,
+        /// keeping the call site clean in `displaySliders`.
+        func ddcControls(
+            hardwareManager: HardwareBrightnessManager,
+            displayID: CGDirectDisplayID
+        ) -> DisplayBrightnessRow {
+            var copy = self
+            let hasDDC = hardwareManager.supportsDDC(for: displayID)
+            copy.hasDDC = hasDDC
+
+            if hasDDC {
+                let cap = hardwareManager.capability(for: displayID)
+
+                if cap?.supportsVolume == true {
+                    copy.hardwareVolume = hardwareManager.hardwareVolume[displayID] ?? 0.5
+                    copy.onVolumeChange = { newValue in
+                        hardwareManager.setHardwareVolume(for: displayID, to: newValue)
+                    }
+                }
+
+                if cap?.supportsAudioMute == true {
+                    copy.isMuted = hardwareManager.hardwareMute[displayID] ?? false
+                    copy.onMuteToggle = {
+                        hardwareManager.toggleMute(for: displayID)
+                    }
+                }
+
+                if cap?.supportsInputSource == true {
+                    copy.activeInputSource = hardwareManager.activeInputSource[displayID]
+                    copy.availableInputSources = hardwareManager.availableInputSources(for: displayID)
+                    copy.onInputSourceChange = { source in
+                        hardwareManager.setInputSource(for: displayID, to: source)
+                    }
+                }
+            }
+
+            return copy
+        }
+    }
+#endif

@@ -115,6 +115,37 @@ class AppSettings: ObservableObject {
     @AppStorage("dimmerlyColorTempTransitionMinutes")
     var colorTempTransitionMinutes: Int = 40
 
+    #if !APPSTORE
+        /// Whether DDC/CI hardware display control is enabled.
+        /// When disabled, all displays use software-only gamma control.
+        @AppStorage("dimmerlyDDCEnabled")
+        var ddcEnabled: Bool = false
+
+        /// The active DDC control mode (software, hardware, or combined).
+        /// Only meaningful when ddcEnabled is true.
+        @AppStorage("dimmerlyDDCControlMode")
+        var ddcControlModeRaw: String = DDCControlMode.combined.rawValue
+
+        /// How often to poll displays for hardware value changes (seconds).
+        /// Longer intervals reduce I2C traffic but delay detecting OSD changes.
+        @AppStorage("dimmerlyDDCPollingInterval")
+        var ddcPollingInterval: Int = 5
+
+        /// Minimum delay between DDC write operations (milliseconds).
+        /// Higher values are safer for monitors with slow MCUs.
+        @AppStorage("dimmerlyDDCWriteDelay")
+        var ddcWriteDelay: Int = 50
+
+        /// Computed property for the DDC control mode
+        var ddcControlMode: DDCControlMode {
+            get { DDCControlMode(rawValue: ddcControlModeRaw) ?? .combined }
+            set {
+                ddcControlModeRaw = newValue.rawValue
+                objectWillChange.send()
+            }
+        }
+    #endif
+
     /// Computed property for the selected menu bar icon style
     var menuBarIcon: MenuBarIconStyle {
         get { MenuBarIconStyle(rawValue: menuBarIconRaw) ?? .defaultIcon }
@@ -157,5 +188,11 @@ class AppSettings: ObservableObject {
         dayTemperature = 6500
         nightTemperature = 2700
         colorTempTransitionMinutes = 40
+        #if !APPSTORE
+            ddcEnabled = false
+            ddcControlModeRaw = DDCControlMode.combined.rawValue
+            ddcPollingInterval = 5
+            ddcWriteDelay = 50
+        #endif
     }
 }
