@@ -12,35 +12,35 @@ import SwiftUI
 @main
 struct DimmerlyApp: App {
     /// Application settings shared across all views
-    @StateObject private var settings = AppSettings.shared
+    @State private var settings = AppSettings.shared
 
     /// Manager for global keyboard shortcuts
-    @StateObject private var shortcutManager = KeyboardShortcutManager()
+    @State private var shortcutManager = KeyboardShortcutManager()
 
     /// Manager for external display brightness
-    @StateObject private var brightnessManager = BrightnessManager.shared
+    @State private var brightnessManager = BrightnessManager.shared
 
     /// Manager for brightness presets
-    @StateObject private var presetManager = PresetManager.shared
+    @State private var presetManager = PresetManager.shared
 
-    /// Manager for idle timer auto-dim
-    @StateObject private var idleTimerManager = IdleTimerManager()
+    /// Manager for idle timer auto-dim (not @Observable — held for lifecycle only)
+    @State private var idleTimerManager = IdleTimerManager()
 
-    /// Manager for preset keyboard shortcuts
-    @StateObject private var presetShortcutManager = PresetShortcutManager()
+    /// Manager for preset keyboard shortcuts (not @Observable — held for lifecycle only)
+    @State private var presetShortcutManager = PresetShortcutManager()
 
     /// Provider for location data (solar calculations)
-    @StateObject private var locationProvider = LocationProvider.shared
+    @State private var locationProvider = LocationProvider.shared
 
     /// Manager for time-based dimming schedules
-    @StateObject private var scheduleManager = ScheduleManager()
+    @State private var scheduleManager = ScheduleManager()
 
     /// Manager for automatic color temperature adjustment
-    @StateObject private var colorTempManager = ColorTemperatureManager.shared
+    @State private var colorTempManager = ColorTemperatureManager.shared
 
     #if !APPSTORE
         /// Manager for DDC/CI hardware display control (direct distribution only)
-        @StateObject private var hardwareManager = HardwareBrightnessManager.shared
+        @State private var hardwareManager = HardwareBrightnessManager.shared
     #endif
 
     /// Guard against duplicate observer registration if onAppear fires more than once
@@ -50,12 +50,12 @@ struct DimmerlyApp: App {
         // Menu bar extra (the main interface) — window style for slider support
         MenuBarExtra {
             MenuBarPanel()
-                .environmentObject(settings)
-                .environmentObject(brightnessManager)
-                .environmentObject(presetManager)
-                .environmentObject(colorTempManager)
+                .environment(settings)
+                .environment(brightnessManager)
+                .environment(presetManager)
+                .environment(colorTempManager)
             #if !APPSTORE
-                .environmentObject(hardwareManager)
+                .environment(hardwareManager)
             #endif
         } label: {
             menuBarLabel
@@ -80,15 +80,15 @@ struct DimmerlyApp: App {
         // Settings window
         Settings {
             SettingsView()
-                .environmentObject(settings)
-                .environmentObject(shortcutManager)
-                .environmentObject(presetManager)
-                .environmentObject(brightnessManager)
-                .environmentObject(scheduleManager)
-                .environmentObject(locationProvider)
-                .environmentObject(colorTempManager)
+                .environment(settings)
+                .environment(shortcutManager)
+                .environment(presetManager)
+                .environment(brightnessManager)
+                .environment(scheduleManager)
+                .environment(locationProvider)
+                .environment(colorTempManager)
             #if !APPSTORE
-                .environmentObject(hardwareManager)
+                .environment(hardwareManager)
             #endif
         }
     }

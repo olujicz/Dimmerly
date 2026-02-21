@@ -7,45 +7,50 @@
 
 import SwiftUI
 
-/// Main settings view for the application
+/// Main settings view for the application.
+/// Uses a TabView to organize settings into logical groups following macOS HIG.
 struct SettingsView: View {
-    /// Changes on each window appearance to reset scroll position to top
-    @State private var formIdentity = UUID()
-
     var body: some View {
-        GeneralSettingsView()
-            .id(formIdentity)
-            .frame(minWidth: 400, maxWidth: 550, minHeight: 500)
-            .onAppear {
-                formIdentity = UUID()
-                NSApp.activate()
-            }
+        TabView {
+            GeneralSettingsTab()
+                .tabItem { Label("General", systemImage: "gear") }
+
+            DisplaySettingsTab()
+                .tabItem { Label("Displays", systemImage: "display") }
+
+            ScheduleSettingsTab()
+                .tabItem { Label("Schedule", systemImage: "calendar.badge.clock") }
+
+            ShortcutsSettingsTab()
+                .tabItem { Label("Shortcuts", systemImage: "keyboard") }
+
+            AboutSettingsTab()
+                .tabItem { Label("About", systemImage: "info.circle") }
+        }
+        .frame(minWidth: 480, maxWidth: 580, minHeight: 400)
+        .onAppear {
+            NSApp.activate()
+        }
     }
 }
 
-/// General settings tab — all preferences in one place
-struct GeneralSettingsView: View {
-    @EnvironmentObject var settings: AppSettings
-    @EnvironmentObject var shortcutManager: KeyboardShortcutManager
-    @EnvironmentObject var presetManager: PresetManager
-    @EnvironmentObject var brightnessManager: BrightnessManager
-    @EnvironmentObject var scheduleManager: ScheduleManager
-    @EnvironmentObject var colorTempManager: ColorTemperatureManager
-    #if !APPSTORE
-        @EnvironmentObject var hardwareManager: HardwareBrightnessManager
-    #endif
-    @State private var mainShortcutConflictMessage: String?
+// MARK: - General Tab
+
+/// General settings: launch at login, menu bar icon
+struct GeneralSettingsTab: View {
+    @Environment(AppSettings.self) var settings
+    @Environment(KeyboardShortcutManager.self) var shortcutManager
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         Form {
-            Section("General") {
+            Section {
                 Toggle("Launch at Login", isOn: Binding(
                     get: { settings.launchAtLogin },
                     set: { newValue in
                         settings.launchAtLogin = newValue
                         let result = LaunchAtLoginManager.setEnabled(newValue)
                         if case .failure = result {
-                            // Revert toggle on failure
                             settings.launchAtLogin = !newValue
                         }
                     }
@@ -53,36 +58,20 @@ struct GeneralSettingsView: View {
                 .help(Text("Automatically start Dimmerly when you log in"))
 
                 menuBarIconPicker
+            } header: {
+                Label("General", systemImage: "gear")
             }
-
-            dimmingSection
-
-            idleTimerSection
-
-            scheduleSection
-
-            colorTemperatureSection
-
-            #if !APPSTORE
-                hardwareControlSection
-            #endif
-
-            keyboardShortcutSection
-
-            presetsManagementSection
-
-            aboutSection
         }
         .formStyle(.grouped)
         .onAppear {
-            // Sync launch-at-login state with system (Issue 4)
+            // Sync launch-at-login state with system
             settings.launchAtLogin = LaunchAtLoginManager.isEnabled
-            // Re-check accessibility permission (Issue 4)
+            // Re-check accessibility permission
             shortcutManager.hasAccessibilityPermission = KeyboardShortcutManager.checkAccessibilityPermission()
         }
     }
 
-    // MARK: - Menu Bar Icon
+    // MARK: - Menu Bar Icon Picker (Fix #10)
 
     private var menuBarIconPicker: some View {
         LabeledContent("Menu Bar Icon:") {
@@ -112,14 +101,51 @@ struct GeneralSettingsView: View {
                     .accessibilityAddTraits(isSelected ? .isSelected : [])
                 }
             }
-            .animation(.spring(response: 0.2, dampingFraction: 0.8), value: settings.menuBarIconRaw)
+            .animation(
+                reduceMotion ? nil : .spring(response: 0.2, dampingFraction: 0.8),
+                value: settings.menuBarIconRaw
+            )
         }
+    }
+}
+
+// MARK: - Displays Tab
+
+/// Display-related settings: dimming mode, idle timer, color temperature, hardware control
+struct DisplaySettingsTab: View {
+    @Environment(AppSettings.self) var settings
+    @Environment(BrightnessManager.self) var brightnessManager
+    @Environment(ColorTemperatureManager.self) var colorTempManager
+    #if !APPSTORE
+        @Environment(HardwareBrightnessManager.self) var hardwareManager
+    #endif
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    /// Whether any feature that requires location is currently enabled
+    private var needsLocation: Bool {
+        settings.autoColorTempEnabled
+    }
+
+    var body: some View {
+        Form {
+            dimmingSection
+
+            idleTimerSection
+
+            colorTemperatureSection
+
+            #if !APPSTORE
+                hardwareControlSection
+            #endif
+        }
+        .formStyle(.grouped)
     }
 
     // MARK: - Dimming
 
     private var dimmingSection: some View {
-        Section("Dimming") {
+        @Bindable var settings = settings
+        return Section {
             #if APPSTORE
                 Text("Dims screens without putting displays to sleep. Your session stays unlocked.")
                     .font(.caption)
@@ -186,104 +212,74 @@ struct GeneralSettingsView: View {
                         .help(Text("Only wake the screen on keyboard input or mouse click, not mouse movement"))
                 }
             }
+        } header: {
+            Label("Dimming", systemImage: "moon.fill")
         }
     }
 
     // MARK: - Idle Timer
 
     private var idleTimerSection: some View {
-        Section("Idle Timer") {
+        @Bindable var settings = settings
+        return Section {
             Toggle("Auto-dim after inactivity", isOn: $settings.idleTimerEnabled)
                 .help("Automatically dim displays after a period of inactivity")
 
             if settings.idleTimerEnabled {
+                // Fix #6: Proper pluralization
                 Stepper(value: $settings.idleTimerMinutes, in: 1 ... 60) {
                     Text(
-                        String(
-                            format: NSLocalizedString(
-                                "%d minutes",
-                                comment: "Idle timer stepper label: number of minutes"
-                            ),
-                            settings.idleTimerMinutes
-                        )
+                        settings.idleTimerMinutes == 1
+                            ? String(
+                                localized: "1 minute",
+                                comment: "Idle timer stepper label: singular"
+                            )
+                            : String(
+                                format: NSLocalizedString(
+                                    "%d minutes",
+                                    comment: "Idle timer stepper label: number of minutes"
+                                ),
+                                settings.idleTimerMinutes
+                            )
                     )
                 }
 
                 Text(
-                    String(
-                        format: NSLocalizedString(
-                            "Displays will dim automatically after %d minutes of inactivity.",
-                            comment: "Idle timer description"
-                        ),
-                        settings.idleTimerMinutes
-                    )
+                    settings.idleTimerMinutes == 1
+                        ? String(
+                            localized: "Displays will dim automatically after 1 minute of inactivity.",
+                            comment: "Idle timer description: singular"
+                        )
+                        : String(
+                            format: NSLocalizedString(
+                                "Displays will dim automatically after %d minutes of inactivity.",
+                                comment: "Idle timer description"
+                            ),
+                            settings.idleTimerMinutes
+                        )
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)
             }
+        } header: {
+            Label("Idle Timer", systemImage: "timer")
         }
-    }
-
-    // MARK: - Schedule
-
-    @State private var showAddSchedule = false
-
-    private var scheduleSection: some View {
-        Section("Schedule") {
-            Toggle("Apply presets on a schedule", isOn: $settings.scheduleEnabled)
-                .help("Automatically apply brightness presets at scheduled times")
-
-            if settings.scheduleEnabled {
-                LocationPickerRow()
-
-                ForEach(scheduleManager.schedules) { schedule in
-                    let presetName = presetManager.presets.first(where: { $0.id == schedule.presetID })?.name
-                    let triggerTime = triggerTimeDescription(for: schedule)
-                    ScheduleRow(
-                        schedule: schedule,
-                        presetName: presetName,
-                        triggerTimeDescription: triggerTime,
-                        onToggle: { scheduleManager.toggleSchedule(id: schedule.id) },
-                        onDelete: { scheduleManager.deleteSchedule(id: schedule.id) }
-                    )
-                }
-
-                Button("Add Schedule\u{2026}") {
-                    showAddSchedule = true
-                }
-                .help("Create a new scheduled preset")
-                .sheet(isPresented: $showAddSchedule) {
-                    AddScheduleSheet(presets: presetManager.presets)
-                        .environmentObject(scheduleManager)
-                }
-            }
-        }
-    }
-
-    private func triggerTimeDescription(for schedule: DimmingSchedule) -> String? {
-        guard schedule.trigger.requiresLocation else { return nil }
-        guard let date = scheduleManager.resolveTriggerDate(schedule.trigger, on: Date()) else {
-            return nil
-        }
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        formatter.dateStyle = .none
-        return formatter.string(from: date)
     }
 
     // MARK: - Color Temperature
 
     private var colorTemperatureSection: some View {
-        Section("Color Temperature") {
+        @Bindable var settings = settings
+        return Section {
             Toggle("Automatic color temperature", isOn: $settings.autoColorTempEnabled)
                 .help("Adjust warmth automatically based on sunrise and sunset")
 
             if settings.autoColorTempEnabled {
                 LocationPickerRow()
 
-                VStack(alignment: .leading, spacing: 4) {
+                // Fix #1: Use LabeledContent for Day/Night sliders
+                LabeledContent("Day:") {
                     HStack {
-                        Text("Day:")
                         Slider(
                             value: Binding(
                                 get: { Double(settings.dayTemperature) },
@@ -299,9 +295,10 @@ struct GeneralSettingsView: View {
                             .frame(width: 50, alignment: .trailing)
                             .accessibilityHidden(true)
                     }
+                }
 
+                LabeledContent("Night:") {
                     HStack {
-                        Text("Night:")
                         Slider(
                             value: Binding(
                                 get: { Double(settings.nightTemperature) },
@@ -335,6 +332,8 @@ struct GeneralSettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+        } header: {
+            Label("Color Temperature", systemImage: "thermometer.sun")
         }
     }
 
@@ -342,7 +341,8 @@ struct GeneralSettingsView: View {
 
     #if !APPSTORE
         private var hardwareControlSection: some View {
-            Section("Hardware Control") {
+            @Bindable var settings = settings
+            return Section {
                 Toggle("Enable DDC/CI hardware control", isOn: Binding(
                     get: { settings.ddcEnabled },
                     set: { newValue in
@@ -388,7 +388,6 @@ struct GeneralSettingsView: View {
                     .help("How often to read hardware values from the monitor")
                     .onChange(of: settings.ddcPollingInterval) {
                         hardwareManager.pollingInterval = TimeInterval(settings.ddcPollingInterval)
-                        // Restart polling so the new interval takes effect immediately
                         if settings.ddcEnabled {
                             hardwareManager.startPolling()
                         }
@@ -436,6 +435,8 @@ struct GeneralSettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 }
+            } header: {
+                Label("Hardware Control", systemImage: "cable.connector.horizontal")
             }
         }
 
@@ -490,11 +491,93 @@ struct GeneralSettingsView: View {
             return labels.joined(separator: ", ")
         }
     #endif
+}
+
+// MARK: - Schedule Tab
+
+/// Schedule settings: preset schedules with sunrise/sunset triggers.
+/// Fix #5: LocationPickerRow appears only once here, not duplicated.
+struct ScheduleSettingsTab: View {
+    @Environment(AppSettings.self) var settings
+    @Environment(ScheduleManager.self) var scheduleManager
+    @Environment(PresetManager.self) var presetManager
+
+    @State private var showAddSchedule = false
+
+    var body: some View {
+        @Bindable var settings = settings
+        Form {
+            Section {
+                Toggle("Apply presets on a schedule", isOn: $settings.scheduleEnabled)
+                    .help("Automatically apply brightness presets at scheduled times")
+
+                if settings.scheduleEnabled {
+                    LocationPickerRow()
+
+                    ForEach(scheduleManager.schedules) { schedule in
+                        let presetName = presetManager.presets.first(where: { $0.id == schedule.presetID })?.name
+                        let triggerTime = triggerTimeDescription(for: schedule)
+                        ScheduleRow(
+                            schedule: schedule,
+                            presetName: presetName,
+                            triggerTimeDescription: triggerTime,
+                            onToggle: { scheduleManager.toggleSchedule(id: schedule.id) },
+                            onDelete: { scheduleManager.deleteSchedule(id: schedule.id) }
+                        )
+                    }
+
+                    Button("Add Schedule\u{2026}") {
+                        showAddSchedule = true
+                    }
+                    .help("Create a new scheduled preset")
+                    .sheet(isPresented: $showAddSchedule) {
+                        AddScheduleSheet(presets: presetManager.presets)
+                            .environment(scheduleManager)
+                    }
+                }
+            } header: {
+                Label("Schedule", systemImage: "calendar.badge.clock")
+            }
+        }
+        .formStyle(.grouped)
+    }
+
+    private func triggerTimeDescription(for schedule: DimmingSchedule) -> String? {
+        guard schedule.trigger.requiresLocation else { return nil }
+        guard let date = scheduleManager.resolveTriggerDate(schedule.trigger, on: Date()) else {
+            return nil
+        }
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        formatter.dateStyle = .none
+        return formatter.string(from: date)
+    }
+}
+
+// MARK: - Shortcuts Tab
+
+/// Keyboard shortcut and preset management
+struct ShortcutsSettingsTab: View {
+    @Environment(AppSettings.self) var settings
+    @Environment(KeyboardShortcutManager.self) var shortcutManager
+    @Environment(PresetManager.self) var presetManager
+
+    @State private var mainShortcutConflictMessage: String?
+    @State private var showRestoreDefaults = false
+
+    var body: some View {
+        Form {
+            keyboardShortcutSection
+
+            presetsManagementSection
+        }
+        .formStyle(.grouped)
+    }
 
     // MARK: - Keyboard Shortcut
 
     private var keyboardShortcutSection: some View {
-        Section("Keyboard Shortcut") {
+        Section {
             HStack {
                 #if APPSTORE
                     Text("Dim Displays:")
@@ -550,6 +633,8 @@ struct GeneralSettingsView: View {
                 .accessibilityElement(children: .combine)
                 .padding(.top, 4)
             }
+        } header: {
+            Label("Keyboard Shortcut", systemImage: "keyboard")
         }
     }
 
@@ -569,10 +654,8 @@ struct GeneralSettingsView: View {
 
     // MARK: - Presets Management
 
-    @State private var showRestoreDefaults = false
-
     private var presetsManagementSection: some View {
-        Section("Presets") {
+        Section {
             ForEach(presetManager.presets) { preset in
                 PresetManagementRow(
                     preset: preset,
@@ -600,79 +683,65 @@ struct GeneralSettingsView: View {
             } message: {
                 Text("This will replace all your presets with the defaults. Custom presets and shortcuts will be lost.")
             }
+        } header: {
+            Label("Presets", systemImage: "slider.horizontal.3")
         }
-    }
-
-    // MARK: - About
-
-    private var aboutSection: some View {
-        Section("About") {
-            Button("About Dimmerly") {
-                showAboutPanel()
-            }
-            .help("Show app version and credits")
-
-            Button {
-                if let url = URL(string: "https://github.com/olujicz/Dimmerly") {
-                    NSWorkspace.shared.open(url)
-                }
-            } label: {
-                HStack(spacing: 2) {
-                    Text("Source Code on GitHub")
-                    Image(systemName: "arrow.up.forward")
-                        .imageScale(.small)
-                }
-            }
-            .help("Open the Dimmerly GitHub repository")
-        }
-    }
-
-    private func showAboutPanel() {
-        let centeredStyle = NSMutableParagraphStyle()
-        centeredStyle.alignment = .center
-
-        let credits = NSMutableAttributedString()
-
-        let description = NSAttributedString(
-            string: NSLocalizedString(
-                "A macOS menu bar utility for putting your displays to sleep"
-                    + " \u{2014} with a single keyboard shortcut.\n",
-                comment: "About panel description"
-            ),
-            attributes: [
-                .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
-                .foregroundColor: NSColor.secondaryLabelColor,
-                .paragraphStyle: centeredStyle,
-            ]
-        )
-        credits.append(description)
-
-        let linkText = NSAttributedString(
-            string: NSLocalizedString("Source Code on GitHub", comment: "About panel link label"),
-            attributes: [
-                .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
-                .link: URL(string: "https://github.com/olujicz/Dimmerly") as Any,
-                .paragraphStyle: centeredStyle,
-            ]
-        )
-        credits.append(linkText)
-
-        NSApp.orderFrontStandardAboutPanel(options: [
-            .credits: credits,
-        ])
     }
 }
 
+// MARK: - About Tab
+
+/// Fix #9: Inline version info instead of button that duplicates the app menu item
+struct AboutSettingsTab: View {
+    /// App version from the main bundle
+    private var appVersion: String {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
+        return "\(version) (\(build))"
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                LabeledContent("Version", value: appVersion)
+
+                LabeledContent("Description") {
+                    Text("A macOS menu bar utility for controlling external display brightness.")
+                        .foregroundStyle(.secondary)
+                }
+
+                Button {
+                    if let url = URL(string: "https://github.com/olujicz/Dimmerly") {
+                        NSWorkspace.shared.open(url)
+                    }
+                } label: {
+                    HStack(spacing: 2) {
+                        Text("Source Code on GitHub")
+                        Image(systemName: "arrow.up.forward")
+                            .imageScale(.small)
+                    }
+                }
+                .help("Open the Dimmerly GitHub repository")
+            } header: {
+                Label("About Dimmerly", systemImage: "info.circle")
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
+
+// MARK: - Preview
+
 #Preview {
     SettingsView()
-        .environmentObject(AppSettings())
-        .environmentObject(KeyboardShortcutManager())
-        .environmentObject(PresetManager())
-        .environmentObject(BrightnessManager())
-        .environmentObject(ScheduleManager())
-        .environmentObject(LocationProvider.shared)
-        .environmentObject(ColorTemperatureManager.shared)
+        .environment(AppSettings())
+        .environment(KeyboardShortcutManager())
+        .environment(PresetManager())
+        .environment(BrightnessManager())
+        .environment(ScheduleManager())
+        .environment(LocationProvider.shared)
+        .environment(ColorTemperatureManager.shared)
     #if !APPSTORE
-        .environmentObject(HardwareBrightnessManager(forTesting: true))
+        .environment(HardwareBrightnessManager(forTesting: true))
     #endif
 }

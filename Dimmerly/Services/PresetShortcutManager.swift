@@ -30,7 +30,7 @@ import Foundation
 ///
 /// Thread safety: All methods must be called from the main actor.
 @MainActor
-class PresetShortcutManager: ObservableObject {
+class PresetShortcutManager {
     /// Callback invoked when a preset shortcut is pressed (passes preset ID)
     var onPresetTriggered: ((UUID) -> Void)?
 

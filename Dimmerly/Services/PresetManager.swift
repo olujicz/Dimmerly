@@ -14,6 +14,7 @@
 //
 
 import Foundation
+import Observation
 import WidgetKit
 
 /// Manages saved brightness presets and coordinates with widgets.
@@ -26,7 +27,8 @@ import WidgetKit
 ///
 /// Thread safety: All methods must be called from the main actor.
 @MainActor
-class PresetManager: ObservableObject {
+@Observable
+class PresetManager {
     static let shared = PresetManager()
 
     /// Maximum number of presets allowed. Enforced in UI and saveCurrentAsPreset().
@@ -35,7 +37,7 @@ class PresetManager: ObservableObject {
 
     /// Currently loaded presets, published for SwiftUI binding.
     /// Order is preserved for display and reordering operations.
-    @Published var presets: [BrightnessPreset] = []
+    var presets: [BrightnessPreset] = []
 
     /// UserDefaults key for preset persistence (JSON array)
     private let persistenceKey = "dimmerlyBrightnessPresets"

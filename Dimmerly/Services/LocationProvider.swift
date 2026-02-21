@@ -9,14 +9,16 @@
 import AppKit
 import CoreLocation
 import Foundation
+import Observation
 
 @MainActor
-class LocationProvider: NSObject, ObservableObject {
+@Observable
+class LocationProvider: NSObject {
     static let shared = LocationProvider()
 
-    @Published var latitude: Double?
-    @Published var longitude: Double?
-    @Published var authorizationStatus: CLAuthorizationStatus = .notDetermined
+    var latitude: Double?
+    var longitude: Double?
+    var authorizationStatus: CLAuthorizationStatus = .notDetermined
 
     private let locationManager = CLLocationManager()
 

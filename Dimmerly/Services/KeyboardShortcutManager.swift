@@ -8,15 +8,17 @@
 
 import AppKit
 import Foundation
+import Observation
 
 /// Manages global keyboard shortcuts for the application
 @MainActor
-class KeyboardShortcutManager: ObservableObject {
+@Observable
+class KeyboardShortcutManager {
     /// The currently registered keyboard shortcut
-    @Published var currentShortcut: GlobalShortcut
+    var currentShortcut: GlobalShortcut
 
     /// Whether accessibility permissions have been granted
-    @Published var hasAccessibilityPermission: Bool = false
+    var hasAccessibilityPermission: Bool = false
 
     /// The global event monitor for keyboard events (active when app is not frontmost)
     private var globalEventMonitor: Any?

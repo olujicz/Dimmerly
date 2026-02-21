@@ -11,7 +11,7 @@ import SwiftUI
 /// A self-contained row for picking or entering a location,
 /// used wherever sunrise/sunset data is needed.
 struct LocationPickerRow: View {
-    @EnvironmentObject var locationProvider: LocationProvider
+    @Environment(LocationProvider.self) var locationProvider
 
     @State private var showManualLocation = false
 
@@ -58,7 +58,7 @@ struct LocationPickerRow: View {
         }
         .sheet(isPresented: $showManualLocation) {
             ManualLocationSheet()
-                .environmentObject(locationProvider)
+                .environment(locationProvider)
         }
     }
 

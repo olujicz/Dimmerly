@@ -12,6 +12,7 @@
 //
 
 import Foundation
+import Observation
 
 /// Manages automatic preset application based on time-of-day schedules.
 ///
@@ -28,10 +29,11 @@ import Foundation
 ///
 /// Thread safety: All methods must be called from the main actor.
 @MainActor
-class ScheduleManager: ObservableObject {
+@Observable
+class ScheduleManager {
     /// The list of configured schedules, persisted to UserDefaults as JSON.
     /// Changes to this array automatically trigger SwiftUI view updates.
-    @Published var schedules: [DimmingSchedule] = []
+    var schedules: [DimmingSchedule] = []
 
     /// Callback invoked when a schedule's trigger time is reached.
     /// Called with the preset ID that should be applied.

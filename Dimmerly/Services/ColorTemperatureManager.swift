@@ -13,6 +13,7 @@
 
 import AppKit
 import Foundation
+import Observation
 
 /// Time-of-day state for color temperature determination.
 enum ColorTempState: Equatable {
@@ -39,15 +40,16 @@ enum ColorTempState: Equatable {
 ///
 /// Thread safety: All methods must be called from the main actor.
 @MainActor
-class ColorTemperatureManager: ObservableObject {
+@Observable
+class ColorTemperatureManager {
     static let shared = ColorTemperatureManager()
 
     /// Whether auto color temperature is currently actively controlling warmth.
     /// False when disabled in settings or during manual override.
-    @Published var isActive = false
+    var isActive = false
 
     /// The current target Kelvin value being applied (for UI display).
-    @Published var currentKelvin: Double = 6500
+    var currentKelvin: Double = 6500
 
     /// Timer for periodic color temperature checks (fires every 60 seconds).
     private var timer: Timer?

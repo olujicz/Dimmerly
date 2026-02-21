@@ -5,8 +5,13 @@
 //  Application settings persisted to UserDefaults.
 //  Observable for SwiftUI integration.
 //
+//  Migration note: @AppStorage is incompatible with @Observable (it relies on
+//  ObservableObject's objectWillChange). All properties are now plain stored
+//  properties with didSet handlers that persist to UserDefaults.
+//
 
 import Foundation
+import Observation
 import SwiftUI
 
 /// Available menu bar icon styles
@@ -45,114 +50,131 @@ enum MenuBarIconStyle: String, CaseIterable, Identifiable {
 
 /// Application settings stored in UserDefaults
 @MainActor
-class AppSettings: ObservableObject {
+@Observable
+class AppSettings {
     static let shared = AppSettings()
 
     // MARK: - UserDefaults Keys
 
     /// Key constants for settings that are observed by external managers.
-    /// These match the @AppStorage keys below and must be kept in sync.
     nonisolated static let scheduleEnabledKey = "dimmerlyScheduleEnabled"
     nonisolated static let autoColorTempEnabledKey = "dimmerlyAutoColorTempEnabled"
 
-    // Pre-encoded default shortcut data (avoids force-try at property init)
     // swiftlint:disable:next force_try
     private static let defaultShortcutData = try! JSONEncoder().encode(GlobalShortcut.default)
 
-    /// The configured keyboard shortcut for sleeping displays
-    @AppStorage("dimmerlyKeyboardShortcut")
-    private var shortcutData: Data = AppSettings.defaultShortcutData
+    private let defaults = UserDefaults.standard
+
+    // MARK: - Settings Properties
+
+    /// The configured keyboard shortcut data for sleeping displays
+    private var shortcutData: Data {
+        didSet { defaults.set(shortcutData, forKey: "dimmerlyKeyboardShortcut") }
+    }
 
     /// Whether the app should launch automatically at login
-    @AppStorage("dimmerlyLaunchAtLogin")
-    var launchAtLogin: Bool = false
+    var launchAtLogin: Bool {
+        didSet { defaults.set(launchAtLogin, forKey: "dimmerlyLaunchAtLogin") }
+    }
 
     /// Whether to blank screens instead of sleeping displays (prevents session lock)
-    @AppStorage("dimmerlyPreventScreenLock")
-    var preventScreenLock: Bool = false
+    var preventScreenLock: Bool {
+        didSet { defaults.set(preventScreenLock, forKey: "dimmerlyPreventScreenLock") }
+    }
 
     /// Whether to ignore mouse movement when screens are dimmed (only wake on click or keyboard)
-    @AppStorage("dimmerlyIgnoreMouseMovement")
-    var ignoreMouseMovement: Bool = false
+    var ignoreMouseMovement: Bool {
+        didSet { defaults.set(ignoreMouseMovement, forKey: "dimmerlyIgnoreMouseMovement") }
+    }
 
-    /// Selected menu bar icon style
-    @AppStorage("dimmerlyMenuBarIcon")
-    var menuBarIconRaw: String = MenuBarIconStyle.defaultIcon.rawValue
+    /// Selected menu bar icon style (raw string)
+    var menuBarIconRaw: String {
+        didSet { defaults.set(menuBarIconRaw, forKey: "dimmerlyMenuBarIcon") }
+    }
 
     /// Whether auto-dim after inactivity is enabled
-    @AppStorage("dimmerlyIdleTimerEnabled")
-    var idleTimerEnabled: Bool = false
+    var idleTimerEnabled: Bool {
+        didSet { defaults.set(idleTimerEnabled, forKey: "dimmerlyIdleTimerEnabled") }
+    }
 
     /// Minutes of inactivity before auto-dim triggers
-    @AppStorage("dimmerlyIdleTimerMinutes")
-    var idleTimerMinutes: Int = 5
+    var idleTimerMinutes: Int {
+        didSet { defaults.set(idleTimerMinutes, forKey: "dimmerlyIdleTimerMinutes") }
+    }
 
     /// Whether to use a fade transition when dimming displays
-    @AppStorage("dimmerlyFadeTransition")
-    var fadeTransition: Bool = true
+    var fadeTransition: Bool {
+        didSet { defaults.set(fadeTransition, forKey: "dimmerlyFadeTransition") }
+    }
 
     /// Whether to require Escape key to dismiss blanking (instead of any input)
-    @AppStorage("dimmerlyRequireEscapeToDismiss")
-    var requireEscapeToDismiss: Bool = false
+    var requireEscapeToDismiss: Bool {
+        didSet { defaults.set(requireEscapeToDismiss, forKey: "dimmerlyRequireEscapeToDismiss") }
+    }
 
     /// Whether schedule-based auto-dimming is enabled
-    @AppStorage(AppSettings.scheduleEnabledKey)
-    var scheduleEnabled: Bool = false
+    var scheduleEnabled: Bool {
+        didSet { defaults.set(scheduleEnabled, forKey: Self.scheduleEnabledKey) }
+    }
 
     /// Whether automatic color temperature adjustment is enabled
-    @AppStorage(AppSettings.autoColorTempEnabledKey)
-    var autoColorTempEnabled: Bool = false
+    var autoColorTempEnabled: Bool {
+        didSet { defaults.set(autoColorTempEnabled, forKey: Self.autoColorTempEnabledKey) }
+    }
 
     /// Daytime color temperature in Kelvin (used when sun is up)
-    @AppStorage("dimmerlyDayTemperature")
-    var dayTemperature: Int = 6500
+    var dayTemperature: Int {
+        didSet { defaults.set(dayTemperature, forKey: "dimmerlyDayTemperature") }
+    }
 
     /// Nighttime color temperature in Kelvin (used after sunset)
-    @AppStorage("dimmerlyNightTemperature")
-    var nightTemperature: Int = 2700
+    var nightTemperature: Int {
+        didSet { defaults.set(nightTemperature, forKey: "dimmerlyNightTemperature") }
+    }
 
     /// Duration in minutes for sunrise/sunset color temperature transitions
-    @AppStorage("dimmerlyColorTempTransitionMinutes")
-    var colorTempTransitionMinutes: Int = 40
+    var colorTempTransitionMinutes: Int {
+        didSet { defaults.set(colorTempTransitionMinutes, forKey: "dimmerlyColorTempTransitionMinutes") }
+    }
 
     #if !APPSTORE
         /// Whether DDC/CI hardware display control is enabled.
         /// When disabled, all displays use software-only gamma control.
-        @AppStorage("dimmerlyDDCEnabled")
-        var ddcEnabled: Bool = false
+        var ddcEnabled: Bool {
+            didSet { defaults.set(ddcEnabled, forKey: "dimmerlyDDCEnabled") }
+        }
 
-        /// The active DDC control mode (software, hardware, or combined).
+        /// The active DDC control mode raw value (software, hardware, or combined).
         /// Only meaningful when ddcEnabled is true.
-        @AppStorage("dimmerlyDDCControlMode")
-        var ddcControlModeRaw: String = DDCControlMode.combined.rawValue
+        var ddcControlModeRaw: String {
+            didSet { defaults.set(ddcControlModeRaw, forKey: "dimmerlyDDCControlMode") }
+        }
 
         /// How often to poll displays for hardware value changes (seconds).
         /// Longer intervals reduce I2C traffic but delay detecting OSD changes.
-        @AppStorage("dimmerlyDDCPollingInterval")
-        var ddcPollingInterval: Int = 5
+        var ddcPollingInterval: Int {
+            didSet { defaults.set(ddcPollingInterval, forKey: "dimmerlyDDCPollingInterval") }
+        }
 
         /// Minimum delay between DDC write operations (milliseconds).
         /// Higher values are safer for monitors with slow MCUs.
-        @AppStorage("dimmerlyDDCWriteDelay")
-        var ddcWriteDelay: Int = 50
+        var ddcWriteDelay: Int {
+            didSet { defaults.set(ddcWriteDelay, forKey: "dimmerlyDDCWriteDelay") }
+        }
 
         /// Computed property for the DDC control mode
         var ddcControlMode: DDCControlMode {
             get { DDCControlMode(rawValue: ddcControlModeRaw) ?? .combined }
-            set {
-                ddcControlModeRaw = newValue.rawValue
-                objectWillChange.send()
-            }
+            set { ddcControlModeRaw = newValue.rawValue }
         }
     #endif
+
+    // MARK: - Computed Properties
 
     /// Computed property for the selected menu bar icon style
     var menuBarIcon: MenuBarIconStyle {
         get { MenuBarIconStyle(rawValue: menuBarIconRaw) ?? .defaultIcon }
-        set {
-            menuBarIconRaw = newValue.rawValue
-            objectWillChange.send()
-        }
+        set { menuBarIconRaw = newValue.rawValue }
     }
 
     /// The current keyboard shortcut
@@ -168,8 +190,49 @@ class AppSettings: ObservableObject {
                 return
             }
             shortcutData = data
-            objectWillChange.send()
         }
+    }
+
+    // MARK: - Initialization
+
+    init() {
+        let d = UserDefaults.standard
+
+        // Load shortcut data (Data type needs special handling)
+        shortcutData = d.data(forKey: "dimmerlyKeyboardShortcut") ?? Self.defaultShortcutData
+
+        // Bool properties (UserDefaults.bool returns false for missing keys, matching @AppStorage defaults)
+        launchAtLogin = d.bool(forKey: "dimmerlyLaunchAtLogin")
+        preventScreenLock = d.bool(forKey: "dimmerlyPreventScreenLock")
+        ignoreMouseMovement = d.bool(forKey: "dimmerlyIgnoreMouseMovement")
+        idleTimerEnabled = d.bool(forKey: "dimmerlyIdleTimerEnabled")
+        fadeTransition = d.object(forKey: "dimmerlyFadeTransition") != nil
+            ? d.bool(forKey: "dimmerlyFadeTransition") : true
+        requireEscapeToDismiss = d.bool(forKey: "dimmerlyRequireEscapeToDismiss")
+        scheduleEnabled = d.bool(forKey: Self.scheduleEnabledKey)
+        autoColorTempEnabled = d.bool(forKey: Self.autoColorTempEnabledKey)
+
+        // String properties
+        menuBarIconRaw = d.string(forKey: "dimmerlyMenuBarIcon") ?? MenuBarIconStyle.defaultIcon.rawValue
+
+        // Int properties (need default value handling since UserDefaults.integer returns 0 for missing)
+        idleTimerMinutes = d.object(forKey: "dimmerlyIdleTimerMinutes") != nil
+            ? d.integer(forKey: "dimmerlyIdleTimerMinutes") : 5
+        dayTemperature = d.object(forKey: "dimmerlyDayTemperature") != nil
+            ? d.integer(forKey: "dimmerlyDayTemperature") : 6500
+        nightTemperature = d.object(forKey: "dimmerlyNightTemperature") != nil
+            ? d.integer(forKey: "dimmerlyNightTemperature") : 2700
+        colorTempTransitionMinutes = d.object(forKey: "dimmerlyColorTempTransitionMinutes") != nil
+            ? d.integer(forKey: "dimmerlyColorTempTransitionMinutes") : 40
+
+        #if !APPSTORE
+            ddcEnabled = d.bool(forKey: "dimmerlyDDCEnabled")
+            ddcControlModeRaw = d.string(forKey: "dimmerlyDDCControlMode") ?? DDCControlMode.combined.rawValue
+            ddcPollingInterval = d.object(forKey: "dimmerlyDDCPollingInterval") != nil
+                ? d.integer(forKey: "dimmerlyDDCPollingInterval") : 5
+            ddcWriteDelay = d.object(forKey: "dimmerlyDDCWriteDelay") != nil
+                ? d.integer(forKey: "dimmerlyDDCWriteDelay") : 50
+        #endif
     }
 
     /// Resets all settings to their default values

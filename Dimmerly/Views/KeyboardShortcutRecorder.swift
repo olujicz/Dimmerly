@@ -133,7 +133,7 @@ private class ShortcutCaptureView: NSView {
     var onConflictDetected: ((String) -> Void)?
 
     override var acceptsFirstResponder: Bool {
-        true
+        isActive
     }
 
     override func keyDown(with event: NSEvent) {

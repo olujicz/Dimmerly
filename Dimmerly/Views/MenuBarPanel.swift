@@ -8,12 +8,12 @@
 import SwiftUI
 
 struct MenuBarPanel: View {
-    @EnvironmentObject var brightnessManager: BrightnessManager
-    @EnvironmentObject var settings: AppSettings
-    @EnvironmentObject var presetManager: PresetManager
-    @EnvironmentObject var colorTempManager: ColorTemperatureManager
+    @Environment(BrightnessManager.self) var brightnessManager
+    @Environment(AppSettings.self) var settings
+    @Environment(PresetManager.self) var presetManager
+    @Environment(ColorTemperatureManager.self) var colorTempManager
     #if !APPSTORE
-        @EnvironmentObject var hardwareManager: HardwareBrightnessManager
+        @Environment(HardwareBrightnessManager.self) var hardwareManager
     #endif
     @Environment(\.openSettings) private var openSettings
     @AppStorage("showDisplayAdjustments") private var showAdjustments = false
@@ -140,7 +140,8 @@ struct MenuBarPanel: View {
     // MARK: - Auto Warmth Toggle
 
     private var autoWarmthToggle: some View {
-        VStack(spacing: 2) {
+        @Bindable var settings = settings
+        return VStack(spacing: 2) {
             HStack {
                 Image(systemName: "sun.horizon")
                     .font(.caption)
@@ -183,8 +184,8 @@ struct MenuBarPanel: View {
 
     private var presetsSection: some View {
         PresetsSectionView()
-            .environmentObject(presetManager)
-            .environmentObject(brightnessManager)
+            .environment(presetManager)
+            .environment(brightnessManager)
     }
 
     // MARK: - Turn Off Button
@@ -246,8 +247,8 @@ struct MenuBarPanel: View {
 // MARK: - Presets Section
 
 private struct PresetsSectionView: View {
-    @EnvironmentObject var presetManager: PresetManager
-    @EnvironmentObject var brightnessManager: BrightnessManager
+    @Environment(PresetManager.self) var presetManager
+    @Environment(BrightnessManager.self) var brightnessManager
     @State private var isAddingPreset = false
     @State private var newPresetName = ""
     @State private var hoveredPresetID: UUID?

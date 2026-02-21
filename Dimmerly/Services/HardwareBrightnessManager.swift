@@ -73,37 +73,38 @@
     /// Thread safety: Published properties are updated on @MainActor.
     /// DDC I/O is dispatched to a serial background queue.
     @MainActor
-    class HardwareBrightnessManager: ObservableObject {
+    @Observable
+    class HardwareBrightnessManager {
         static let shared = HardwareBrightnessManager()
 
         // MARK: - Published State
 
         /// Cached DDC capabilities per display (keyed by CGDirectDisplayID).
         /// Internal setter for @testable test access; set via probeAllDisplays() at runtime.
-        @Published var capabilities: [CGDirectDisplayID: HardwareDisplayCapability] = [:]
+        var capabilities: [CGDirectDisplayID: HardwareDisplayCapability] = [:]
 
         /// Current hardware brightness values (0.0–1.0) per display.
         /// Updated from DDC reads and user writes.
-        @Published var hardwareBrightness: [CGDirectDisplayID: Double] = [:]
+        var hardwareBrightness: [CGDirectDisplayID: Double] = [:]
 
         /// Current hardware contrast values (0.0–1.0) per display.
-        @Published var hardwareContrast: [CGDirectDisplayID: Double] = [:]
+        var hardwareContrast: [CGDirectDisplayID: Double] = [:]
 
         /// Current hardware volume values (0.0–1.0) per display.
-        @Published var hardwareVolume: [CGDirectDisplayID: Double] = [:]
+        var hardwareVolume: [CGDirectDisplayID: Double] = [:]
 
         /// Current audio mute state per display (true = muted).
-        @Published var hardwareMute: [CGDirectDisplayID: Bool] = [:]
+        var hardwareMute: [CGDirectDisplayID: Bool] = [:]
 
         /// Current input source per display.
-        @Published var activeInputSource: [CGDirectDisplayID: InputSource] = [:]
+        var activeInputSource: [CGDirectDisplayID: InputSource] = [:]
 
         /// Whether DDC hardware control is globally enabled.
         /// Controlled by AppSettings.ddcEnabled.
-        @Published var isEnabled: Bool = false
+        var isEnabled: Bool = false
 
         /// The active control mode (software, hardware, or combined).
-        @Published var controlMode: DDCControlMode = .combined
+        var controlMode: DDCControlMode = .combined
 
         // MARK: - Private State
 

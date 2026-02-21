@@ -24,6 +24,7 @@ struct PresetManagementRow: View {
     @State private var conflictMessage: String?
     @State private var showDeleteConfirmation = false
     @State private var isHovered = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         HStack {
@@ -120,7 +121,7 @@ struct PresetManagementRow: View {
             }
         }
         .onHover { isHovered = $0 }
-        .animation(.spring(response: 0.2, dampingFraction: 0.8), value: isHovered)
+        .animation(reduceMotion ? nil : .spring(response: 0.2, dampingFraction: 0.8), value: isHovered)
 
         if let conflictMessage {
             Label(conflictMessage, systemImage: "exclamationmark.triangle.fill")

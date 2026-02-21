@@ -7,6 +7,7 @@
 //
 
 @testable import Dimmerly
+import Observation
 import XCTest
 
 /// Tests for the AppSettings model
@@ -15,7 +16,7 @@ final class AppSettingsTests: XCTestCase {
     var settings: AppSettings!
     let testSuiteName = "DimmerlyTestSuite"
 
-    /// UserDefaults keys used by AppSettings via @AppStorage
+    /// UserDefaults keys used by AppSettings
     private let appStorageKeys = [
         "dimmerlyKeyboardShortcut",
         "dimmerlyLaunchAtLogin",
@@ -34,7 +35,7 @@ final class AppSettingsTests: XCTestCase {
     ]
 
     override func setUp() async throws {
-        // Remove all AppSettings keys so @AppStorage sees its declared defaults
+        // Remove all AppSettings keys so UserDefaults sees its declared defaults
         for key in appStorageKeys {
             UserDefaults.standard.removeObject(forKey: key)
         }
@@ -66,26 +67,23 @@ final class AppSettingsTests: XCTestCase {
         )
     }
 
-    /// Tests that keyboard shortcut changes trigger objectWillChange
+    /// Tests that keyboard shortcut changes are tracked by Observation
     func testKeyboardShortcutChangeNotification() {
         // Given: An AppSettings instance
-        let expectation = XCTestExpectation(description: "Object will change notification")
-        var notificationReceived = false
+        nonisolated(unsafe) var changeDetected = false
 
-        let cancellable = settings.objectWillChange.sink {
-            notificationReceived = true
-            expectation.fulfill()
+        withObservationTracking {
+            _ = settings.keyboardShortcut
+        } onChange: {
+            changeDetected = true
         }
 
         // When: We change the keyboard shortcut
         let newShortcut = GlobalShortcut(key: "s", modifiers: [.command, .shift])
         settings.keyboardShortcut = newShortcut
 
-        // Then: The notification should be received
-        wait(for: [expectation], timeout: 1.0)
-        XCTAssertTrue(notificationReceived, "objectWillChange should fire when keyboard shortcut changes")
-
-        cancellable.cancel()
+        // Then: The change should be detected
+        XCTAssertTrue(changeDetected, "Observation should detect when keyboard shortcut changes")
     }
 
     /// Tests that launch at login can be toggled
@@ -124,10 +122,10 @@ final class AppSettingsTests: XCTestCase {
         )
     }
 
-    /// Tests that AppSettings is ObservableObject
-    func testObservableObjectConformance() {
+    /// Tests that AppSettings is Observable
+    func testObservableConformance() {
         /// Compile-time conformance check via type constraint
-        func requiresObservable<T: ObservableObject>(_: T) {}
+        func requiresObservable<T: Observable>(_: T) {}
         requiresObservable(settings)
     }
 

@@ -20,6 +20,7 @@ struct ScheduleRow: View {
 
     @State private var showDeleteConfirmation = false
     @State private var isHovered = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         HStack {
@@ -53,7 +54,7 @@ struct ScheduleRow: View {
             }
         }
         .onHover { isHovered = $0 }
-        .animation(.spring(response: 0.2, dampingFraction: 0.8), value: isHovered)
+        .animation(reduceMotion ? nil : .spring(response: 0.2, dampingFraction: 0.8), value: isHovered)
 
         if presetName == nil {
             Label(
@@ -90,7 +91,7 @@ struct ScheduleRow: View {
 
 /// Modal sheet for creating a new schedule
 struct AddScheduleSheet: View {
-    @EnvironmentObject var scheduleManager: ScheduleManager
+    @Environment(ScheduleManager.self) var scheduleManager
     let presets: [BrightnessPreset]
     @Environment(\.dismiss) private var dismiss
 
@@ -214,7 +215,7 @@ struct AddScheduleSheet: View {
 
 /// Modal sheet for entering latitude/longitude manually
 struct ManualLocationSheet: View {
-    @EnvironmentObject var locationProvider: LocationProvider
+    @Environment(LocationProvider.self) var locationProvider
     @Environment(\.dismiss) private var dismiss
 
     @State private var latitudeText = ""

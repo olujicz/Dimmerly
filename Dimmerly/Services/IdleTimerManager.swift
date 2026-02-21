@@ -28,7 +28,7 @@ import Foundation
 ///
 /// Thread safety: All methods must be called from the main actor.
 @MainActor
-class IdleTimerManager: ObservableObject {
+class IdleTimerManager {
     /// Callback invoked once when the idle threshold is reached
     var onIdleThresholdReached: (() -> Void)?
 

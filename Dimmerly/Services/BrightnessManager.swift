@@ -48,7 +48,8 @@ struct ExternalDisplay: Identifiable, Sendable {
 ///
 /// Thread safety: All methods must be called from the main actor.
 @MainActor
-class BrightnessManager: ObservableObject {
+@Observable
+class BrightnessManager {
     static let shared = BrightnessManager()
 
     /// Minimum allowed brightness to ensure displays remain visible.
@@ -57,7 +58,7 @@ class BrightnessManager: ObservableObject {
 
     /// Currently connected external displays with their visual properties.
     /// Updated automatically when displays are connected/disconnected.
-    @Published var displays: [ExternalDisplay] = []
+    var displays: [ExternalDisplay] = []
 
     /// UserDefaults keys for persisting display settings
     private let persistenceKey = "dimmerlyDisplayBrightness"
@@ -170,7 +171,9 @@ class BrightnessManager: ObservableObject {
         } else {
             ScreenBlanker.shared.blankDisplay(displayID)
         }
-        objectWillChange.send()
+        // Trigger observation update by re-assigning displays array
+        // (replaces objectWillChange.send() from ObservableObject pattern)
+        displays = displays
     }
 
     /// Returns a snapshot of current brightness values keyed by display ID string
