@@ -22,26 +22,31 @@ Semantic Versioning.
 - Ignore mouse movement option (wake only on keyboard or click)
 - Desktop widgets (small and medium) for quick access
 - Control Center integration (macOS 26+)
-- Shortcuts app support (set brightness, warmth, contrast, sleep displays, toggle dim)
+- Shortcuts app support with 6 actions (set brightness, warmth, contrast, sleep displays, toggle dim, apply preset)
 - Five menu bar icon styles
 - Launch at login
 - Light and dark mode support
-- Localized in 11 languages
+- Localized in 11 languages (English, German, Spanish, French, Italian, Japanese, Korean, Dutch, Portuguese (BR), Serbian, Chinese (Simplified))
+- Comprehensive accessibility: VoiceOver labels, Reduce Motion support, semantic grouping on all controls
 - SwiftLint and SwiftFormat configuration
-- Justfile with build, test, lint, and format commands
-- Comprehensive unit tests
+- Pre-commit hooks for format, lint, and secrets detection (`just setup`)
+- GitHub Actions CI with lint and test jobs
+- Justfile with build, test, lint, format, and setup commands
+- Comprehensive unit tests with injectable mocks
 - **DDC/CI hardware display control** (direct distribution only):
   - Real hardware brightness, contrast, and volume control via DDC/CI protocol
   - Audio mute toggle for monitors with built-in speakers
   - Input source switching (HDMI, DisplayPort, USB-C, etc.)
   - Input source picker in menu bar panel (compact dropdown in Display Adjustments section)
   - Apple Silicon support via IOAVService (ARM64) with multi-transport fallback
+  - M4 Apple Silicon support via DCPAVServiceProxy for DCP display pipeline
   - Intel Mac support via IOI2CRequest/IOFramebuffer (x86_64)
   - Three I2C transport paths on Apple Silicon, tried in priority order:
     1. IOAVService (standard path, works for USB-C/DP on all Apple Silicon)
     2. IOAVDevice (alternative DCP firmware path, may help for HDMI)
     3. Direct IOConnectCallMethod (last resort, tries raw IOConnect selectors)
   - Retry logic with multiple write cycles per attempt for reliable I2C communication
+  - Auto-downgrade to software-only control after 3 consecutive DDC write failures
   - Three control modes: Software Only, Hardware Only, Combined
   - Background polling to detect OSD-initiated changes
   - Debounced writes (100ms) and rate limiting (50ms min interval) to protect monitor MCU
@@ -64,4 +69,8 @@ Semantic Versioning.
   - Monitor OSD changes may take up to one polling interval to reflect in Dimmerly
   - Switching input source away from the Mac's active input will cause "No Signal" until switched back via the monitor's OSD or physical buttons
   - Most monitors only respond to input sources they physically have; unavailable sources are silently ignored
+
+### Changed
+- Migrated from ObservableObject/Combine to Swift Observation framework (`@Observable`)
+- Adopted macOS Tahoe design patterns across all views
 

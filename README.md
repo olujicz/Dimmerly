@@ -14,21 +14,25 @@ A lightweight macOS menu bar utility for controlling external display brightness
 - **Color Temperature (Warmth)** — Per-display warmth adjustment from neutral to warm (~1900K)
 - **Auto Color Temperature** — Automatic warmth adjustment based on time of day using sunrise/sunset data
 - **Contrast Control** — Per-display contrast via symmetric S-curve gamma adjustment
+- **DDC/CI Hardware Control** — Direct hardware brightness, contrast, and volume control via DDC/CI protocol (direct distribution only)
+- **Input Source Switching** — Switch monitor inputs (HDMI, DisplayPort, USB-C) from the menu bar
+- **Audio Mute Toggle** — Mute/unmute monitors with built-in speakers via DDC
 - **Brightness Presets** — Save, name, and instantly apply display configurations (brightness, warmth, contrast)
 - **Smooth Preset Transitions** — Animated ~300ms interpolation when switching presets (respects Reduce Motion)
 - **Global Keyboard Shortcuts** — Dim displays or apply presets from any app
 - **Desktop Widgets** — Small and medium widgets for quick access
 - **Control Center Integration** — Quick toggle from Control Center (macOS 26+)
-- **Shortcuts App Support** — Automate display control with Shortcuts workflows
+- **Shortcuts App Support** — Automate display control with Shortcuts workflows (6 actions: brightness, warmth, contrast, sleep, toggle dim, apply preset)
 - **Scheduled Presets** — Automatically apply presets at specific times, sunrise, or sunset
 - **Auto-Dim** — Automatically dim displays after a configurable idle period
 - **Fade Transition** — Smooth fade-to-black animation option
 - **Ignore Mouse Movement** — Only wake screens on keyboard or click
 - **Display Blanking** — Dim individual displays independently
+- **Accessibility** — Full VoiceOver support, respects Reduce Motion, semantic accessibility labels on all controls
 - **Menu Bar Icon Styles** — Choose from 5 icon styles
 - **Launch at Login** — Start automatically when you log in
 - **Light & Dark Mode** — Full support for both appearances
-- **Localized** — Available in 11 languages
+- **Localized** — Available in 11 languages (English, German, Spanish, French, Italian, Japanese, Korean, Dutch, Portuguese (BR), Serbian, Chinese (Simplified))
 - **Privacy-Focused** — No data collection, no network access, no tracking
 
 ## Requirements
@@ -133,7 +137,7 @@ Access via the menu bar panel (Settings... or ⌘,). All settings are presented 
 - Xcode 16.0 or later
 - macOS 15.0 SDK or later
 - Swift 6.0 or later
-- Optional: [just](https://github.com/casey/just) command runner
+- Optional: [just](https://github.com/casey/just) command runner (run `just setup` to configure pre-commit hooks)
 - Optional: [SwiftLint](https://github.com/realm/SwiftLint) and [SwiftFormat](https://github.com/nicklockwood/SwiftFormat) for linting
 
 ### Build Configurations
@@ -150,6 +154,7 @@ Access via the menu bar panel (Settings... or ⌘,). All settings are presented 
 A [Justfile](Justfile) provides convenient shortcuts for common tasks:
 
 ```bash
+just setup          # Configure pre-commit hooks (SwiftFormat, SwiftLint, secrets detection)
 just build          # Build debug
 just build-release  # Build release
 just test           # Run tests
@@ -160,6 +165,13 @@ just format         # Format Swift sources (SwiftFormat)
 just format-check   # Check formatting without changes
 just clean          # Clean build artifacts
 ```
+
+### Continuous Integration
+
+GitHub Actions runs on every push and pull request to `main`:
+
+- **Lint** — SwiftLint with `--strict` mode
+- **Test** — Full test suite on macOS 15 with Xcode 16.4
 
 ### Running Tests
 
@@ -176,6 +188,10 @@ xcodebuild test -scheme Dimmerly -destination 'platform=macOS'
 Or use Xcode's Test Navigator (⌘6).
 
 ## Technical Details
+
+### Architecture
+
+Built with Swift 6 and the Observation framework (`@Observable`). All state is managed through observable managers injected via SwiftUI's environment. No third-party dependencies — pure Apple frameworks only.
 
 ### Standard Build (Direct Distribution)
 
@@ -212,9 +228,10 @@ Contributions are welcome! Please feel free to submit issues, feature requests, 
 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature-name`
-3. Make your changes and add tests
-4. Run `just lint` and `just test` to ensure code quality and all tests pass
-5. Submit a Pull Request
+3. Run `just setup` to configure pre-commit hooks
+4. Make your changes and add tests
+5. Run `just lint` and `just test` to ensure code quality and all tests pass
+6. Submit a Pull Request
 
 Please review the [Code of Conduct](CODE_OF_CONDUCT.md) before participating. See the [Security Policy](SECURITY.md) for reporting vulnerabilities.
 
@@ -237,7 +254,7 @@ Please review the [Code of Conduct](CODE_OF_CONDUCT.md) before participating. Se
 1. Verify your external display supports DDC/CI brightness control
 2. Some USB-C/DisplayPort hubs may not pass through DDC commands
 3. Try connecting the display directly to your Mac
-4. On Apple Silicon, Dimmerly tries three I2C transport paths automatically — if one fails, the next is attempted
+4. On Apple Silicon (M1–M4), Dimmerly tries three I2C transport paths automatically — if one fails, the next is attempted
 5. Built-in HDMI on M1/entry M2 Macs does not support DDC; use USB-C or DisplayPort instead
 
 ## License
