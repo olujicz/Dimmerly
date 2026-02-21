@@ -367,9 +367,13 @@ class ColorTemperatureManager {
         formatter.dateFormat = DateFormatter.dateFormat(fromTemplate: "j:mm", options: 0, locale: .current)
 
         if now < sunrise {
-            return "Sunrise \(formatter.string(from: sunrise)) · \(dayK)K"
+            let time = formatter.string(from: sunrise)
+            return String(localized: "Sunrise \(time) · \(dayK)K",
+                          comment: "Next color temperature transition — sunrise time and target Kelvin")
         } else if now < sunset {
-            return "Sunset \(formatter.string(from: sunset)) · \(nightK)K"
+            let time = formatter.string(from: sunset)
+            return String(localized: "Sunset \(time) · \(nightK)K",
+                          comment: "Next color temperature transition — sunset time and target Kelvin")
         } else {
             // After sunset — next transition is tomorrow's sunrise
             if let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: now) {
@@ -379,7 +383,9 @@ class ColorTemperatureManager {
                     date: tomorrow
                 )
                 if let tomorrowSunrise = tomorrowSolar.sunrise {
-                    return "Sunrise \(formatter.string(from: tomorrowSunrise)) · \(dayK)K"
+                    let time = formatter.string(from: tomorrowSunrise)
+                    return String(localized: "Sunrise \(time) · \(dayK)K",
+                                  comment: "Next color temperature transition — sunrise time and target Kelvin")
                 }
             }
             return nil

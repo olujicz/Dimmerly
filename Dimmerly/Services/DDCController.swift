@@ -92,15 +92,15 @@
         /// Human-readable name for UI display
         var displayName: String {
             switch self {
-            case .brightness: return "Brightness"
-            case .contrast: return "Contrast"
-            case .redGain: return "Red Gain"
-            case .greenGain: return "Green Gain"
-            case .blueGain: return "Blue Gain"
-            case .volume: return "Volume"
-            case .audioMute: return "Audio Mute"
-            case .inputSource: return "Input Source"
-            case .powerMode: return "Power Mode"
+            case .brightness: return String(localized: "Brightness", comment: "DDC VCP code name")
+            case .contrast: return String(localized: "Contrast", comment: "DDC VCP code name")
+            case .redGain: return String(localized: "Red Gain", comment: "DDC VCP code name")
+            case .greenGain: return String(localized: "Green Gain", comment: "DDC VCP code name")
+            case .blueGain: return String(localized: "Blue Gain", comment: "DDC VCP code name")
+            case .volume: return String(localized: "Volume", comment: "DDC VCP code name")
+            case .audioMute: return String(localized: "Audio Mute", comment: "DDC VCP code name")
+            case .inputSource: return String(localized: "Input Source", comment: "DDC VCP code name")
+            case .powerMode: return String(localized: "Power Mode", comment: "DDC VCP code name")
             }
         }
     }
@@ -130,23 +130,23 @@
 
         var displayName: String {
             switch self {
-            case .vga1: return "VGA 1"
-            case .vga2: return "VGA 2"
-            case .dvi1: return "DVI 1"
-            case .dvi2: return "DVI 2"
-            case .composite1: return "Composite 1"
-            case .composite2: return "Composite 2"
-            case .sVideo1: return "S-Video 1"
-            case .sVideo2: return "S-Video 2"
-            case .tuner1: return "Tuner 1"
-            case .component1: return "Component 1"
-            case .component2: return "Component 2"
-            case .component3: return "Component 3"
-            case .displayPort1: return "DisplayPort 1"
-            case .displayPort2: return "DisplayPort 2"
-            case .hdmi1: return "HDMI 1"
-            case .hdmi2: return "HDMI 2"
-            case .usbC: return "USB-C"
+            case .vga1: return String(localized: "VGA 1", comment: "Monitor input source name")
+            case .vga2: return String(localized: "VGA 2", comment: "Monitor input source name")
+            case .dvi1: return String(localized: "DVI 1", comment: "Monitor input source name")
+            case .dvi2: return String(localized: "DVI 2", comment: "Monitor input source name")
+            case .composite1: return String(localized: "Composite 1", comment: "Monitor input source name")
+            case .composite2: return String(localized: "Composite 2", comment: "Monitor input source name")
+            case .sVideo1: return String(localized: "S-Video 1", comment: "Monitor input source name")
+            case .sVideo2: return String(localized: "S-Video 2", comment: "Monitor input source name")
+            case .tuner1: return String(localized: "Tuner 1", comment: "Monitor input source name")
+            case .component1: return String(localized: "Component 1", comment: "Monitor input source name")
+            case .component2: return String(localized: "Component 2", comment: "Monitor input source name")
+            case .component3: return String(localized: "Component 3", comment: "Monitor input source name")
+            case .displayPort1: return String(localized: "DisplayPort 1", comment: "Monitor input source name")
+            case .displayPort2: return String(localized: "DisplayPort 2", comment: "Monitor input source name")
+            case .hdmi1: return String(localized: "HDMI 1", comment: "Monitor input source name")
+            case .hdmi2: return String(localized: "HDMI 2", comment: "Monitor input source name")
+            case .usbC: return String(localized: "USB-C", comment: "Monitor input source name")
             }
         }
     }

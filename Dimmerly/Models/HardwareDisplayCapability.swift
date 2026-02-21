@@ -146,25 +146,33 @@
 
         var displayName: String {
             switch self {
-            case .softwareOnly: return "Software Only"
-            case .hardwareOnly: return "Hardware Only"
-            case .combined: return "Combined"
+            case .softwareOnly: return String(localized: "Software Only", comment: "DDC control mode name")
+            case .hardwareOnly: return String(localized: "Hardware Only", comment: "DDC control mode name")
+            case .combined: return String(localized: "Combined", comment: "DDC control mode name")
             }
         }
 
+        // swiftlint:disable line_length
         var description: String {
             switch self {
             case .softwareOnly:
-                return "Uses gamma tables to adjust display output. "
-                    + "Works with all displays but does not change the actual backlight."
+                return String(
+                    localized: "Uses gamma tables to adjust display output. Works with all displays but does not change the actual backlight.",
+                    comment: "Description of software-only DDC control mode"
+                )
             case .hardwareOnly:
-                return "Controls the monitor's backlight directly via DDC/CI. "
-                    + "Falls back to software brightness if DDC is not available."
+                return String(
+                    localized: "Controls the monitor's backlight directly via DDC/CI. Falls back to software brightness if DDC is not available.",
+                    comment: "Description of hardware-only DDC control mode"
+                )
             case .combined:
-                return "Uses DDC for brightness and gamma tables for warmth and contrast. "
-                    + "Automatically uses software brightness if DDC is not available."
+                return String(
+                    localized: "Uses DDC for brightness and gamma tables for warmth and contrast. Automatically uses software brightness if DDC is not available.",
+                    comment: "Description of combined DDC control mode"
+                )
             }
         }
+        // swiftlint:enable line_length
     }
 
 #endif // !APPSTORE
