@@ -20,6 +20,7 @@ struct ScheduleRow: View {
 
     @State private var showDeleteConfirmation = false
     @State private var isHovered = false
+    @FocusState private var deleteButtonFocused: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -43,7 +44,8 @@ struct ScheduleRow: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
-            .opacity(isHovered ? 1 : 0)
+            .opacity(isHovered || deleteButtonFocused ? 1 : 0)
+            .focused($deleteButtonFocused)
             .accessibilityLabel(Text("Delete \(schedule.name)"))
             .help(Text("Delete Schedule"))
             .alert("Delete Schedule?", isPresented: $showDeleteConfirmation) {
@@ -115,6 +117,7 @@ struct AddScheduleSheet: View {
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
+                .accessibilityLabel("Trigger type")
 
                 if triggerType == 0 {
                     DatePicker(

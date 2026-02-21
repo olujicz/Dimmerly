@@ -34,6 +34,7 @@ struct LocationPickerRow: View {
                         Text(locationSummary)
                             .foregroundStyle(.secondary)
                     }
+                    .accessibilityLabel(locationAccessibilityLabel)
                 } label: {
                     Label("Location", systemImage: "location.fill")
                 }
@@ -66,5 +67,11 @@ struct LocationPickerRow: View {
         let lat = locationProvider.latitude ?? 0
         let lon = locationProvider.longitude ?? 0
         return String(format: "%.2f, %.2f", lat, lon)
+    }
+
+    private var locationAccessibilityLabel: String {
+        let lat = String(format: "%.2f", locationProvider.latitude ?? 0)
+        let lon = String(format: "%.2f", locationProvider.longitude ?? 0)
+        return "Location: Latitude \(lat), Longitude \(lon)"
     }
 }

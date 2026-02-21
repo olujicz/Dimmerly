@@ -24,6 +24,8 @@ struct PresetManagementRow: View {
     @State private var conflictMessage: String?
     @State private var showDeleteConfirmation = false
     @State private var isHovered = false
+    @FocusState private var renameButtonFocused: Bool
+    @FocusState private var deleteButtonFocused: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -46,7 +48,7 @@ struct PresetManagementRow: View {
                         }
                     }
 
-                if isHovered {
+                if isHovered || renameButtonFocused {
                     Button {
                         editedName = preset.name
                         isEditing = true
@@ -56,6 +58,7 @@ struct PresetManagementRow: View {
                             .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.borderless)
+                    .focused($renameButtonFocused)
                     .accessibilityLabel(Text("Rename \(preset.name)"))
                     .help(Text("Rename Preset"))
                 }
@@ -111,6 +114,7 @@ struct PresetManagementRow: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
+            .focused($deleteButtonFocused)
             .accessibilityLabel(Text("Delete \(preset.name)"))
             .help(Text("Delete Preset"))
             .alert("Delete Preset?", isPresented: $showDeleteConfirmation) {
