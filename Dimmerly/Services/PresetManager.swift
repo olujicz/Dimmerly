@@ -129,10 +129,23 @@ class PresetManager {
         persistPresets()
     }
 
-    /// Deletes a preset by ID
-    func deletePreset(id: UUID) {
-        presets.removeAll { $0.id == id }
+    /// Deletes a preset by ID, optionally registering an undo action
+    func deletePreset(id: UUID, undoManager: UndoManager? = nil) {
+        guard let index = presets.firstIndex(where: { $0.id == id }) else { return }
+        let deleted = presets[index]
+        presets.remove(at: index)
         persistPresets()
+
+        undoManager?.registerUndo(withTarget: self) { manager in
+            manager.presets.insert(deleted, at: min(index, manager.presets.count))
+            manager.persistPresets()
+        }
+        undoManager?.setActionName(
+            String(
+                format: NSLocalizedString("Delete %@", comment: "Undo action: delete preset"),
+                deleted.name
+            )
+        )
     }
 
     /// Renames a preset by ID
@@ -172,10 +185,19 @@ class PresetManager {
         ),
     ]
 
-    /// Replaces all presets with the default set
-    func restoreDefaultPresets() {
+    /// Replaces all presets with the default set, optionally registering an undo action
+    func restoreDefaultPresets(undoManager: UndoManager? = nil) {
+        let previousPresets = presets
         presets = Self.defaultPresets
         persistPresets()
+
+        undoManager?.registerUndo(withTarget: self) { manager in
+            manager.presets = previousPresets
+            manager.persistPresets()
+        }
+        undoManager?.setActionName(
+            NSLocalizedString("Restore Defaults", comment: "Undo action: restore default presets")
+        )
     }
 
     private func seedDefaultPresetsIfNeeded() {

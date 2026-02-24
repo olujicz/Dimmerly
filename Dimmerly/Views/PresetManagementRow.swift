@@ -48,20 +48,19 @@ struct PresetManagementRow: View {
                         }
                     }
 
-                if isHovered || renameButtonFocused {
-                    Button {
-                        editedName = preset.name
-                        isEditing = true
-                    } label: {
-                        Image(systemName: "pencil")
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.borderless)
-                    .focused($renameButtonFocused)
-                    .accessibilityLabel(Text("Rename \(preset.name)"))
-                    .help(Text("Rename Preset"))
+                Button {
+                    editedName = preset.name
+                    isEditing = true
+                } label: {
+                    Image(systemName: "pencil")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
                 }
+                .buttonStyle(.borderless)
+                .opacity(isHovered || renameButtonFocused ? 1 : 0.3)
+                .focused($renameButtonFocused)
+                .accessibilityLabel(Text("Rename \(preset.name)"))
+                .help(Text("Rename Preset"))
             }
 
             Spacer()

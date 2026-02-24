@@ -27,7 +27,7 @@ struct SettingsView: View {
             AboutSettingsTab()
                 .tabItem { Label("About", systemImage: "info.circle") }
         }
-        .frame(minWidth: 480, maxWidth: 580, minHeight: 400)
+        .frame(minWidth: 480, maxWidth: 580, minHeight: 480, idealHeight: 520)
         .onAppear {
             NSApp.activate()
         }
@@ -285,7 +285,12 @@ struct DisplaySettingsTab: View {
 
                 // Fix #1: Use LabeledContent for Day/Night sliders
                 LabeledContent("Day:") {
-                    HStack {
+                    HStack(spacing: 4) {
+                        Text("Warm")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .frame(width: 34, alignment: .trailing)
+                            .accessibilityHidden(true)
                         Slider(
                             value: Binding(
                                 get: { Double(settings.dayTemperature) },
@@ -296,6 +301,10 @@ struct DisplaySettingsTab: View {
                         )
                         .accessibilityLabel("Day color temperature")
                         .accessibilityValue("\(settings.dayTemperature) Kelvin")
+                        Text("Cool")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .accessibilityHidden(true)
                         Text("\(settings.dayTemperature)K")
                             .monospacedDigit()
                             .frame(width: 50, alignment: .trailing)
@@ -304,7 +313,12 @@ struct DisplaySettingsTab: View {
                 }
 
                 LabeledContent("Night:") {
-                    HStack {
+                    HStack(spacing: 4) {
+                        Text("Warm")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .frame(width: 34, alignment: .trailing)
+                            .accessibilityHidden(true)
                         Slider(
                             value: Binding(
                                 get: { Double(settings.nightTemperature) },
@@ -315,6 +329,10 @@ struct DisplaySettingsTab: View {
                         )
                         .accessibilityLabel("Night color temperature")
                         .accessibilityValue("\(settings.nightTemperature) Kelvin")
+                        Text("Cool")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .accessibilityHidden(true)
                         Text("\(settings.nightTemperature)K")
                             .monospacedDigit()
                             .frame(width: 50, alignment: .trailing)
@@ -507,6 +525,7 @@ struct ScheduleSettingsTab: View {
     @Environment(AppSettings.self) var settings
     @Environment(ScheduleManager.self) var scheduleManager
     @Environment(PresetManager.self) var presetManager
+    @Environment(\.undoManager) var undoManager
 
     @State private var showAddSchedule = false
 
@@ -528,7 +547,7 @@ struct ScheduleSettingsTab: View {
                             presetName: presetName,
                             triggerTimeDescription: triggerTime,
                             onToggle: { scheduleManager.toggleSchedule(id: schedule.id) },
-                            onDelete: { scheduleManager.deleteSchedule(id: schedule.id) }
+                            onDelete: { scheduleManager.deleteSchedule(id: schedule.id, undoManager: undoManager) }
                         )
                     }
 
@@ -567,6 +586,7 @@ struct ShortcutsSettingsTab: View {
     @Environment(AppSettings.self) var settings
     @Environment(KeyboardShortcutManager.self) var shortcutManager
     @Environment(PresetManager.self) var presetManager
+    @Environment(\.undoManager) var undoManager
 
     @State private var mainShortcutConflictMessage: String?
     @State private var showRestoreDefaults = false
@@ -671,7 +691,7 @@ struct ShortcutsSettingsTab: View {
                         presetManager.renamePreset(id: preset.id, to: newName)
                     },
                     onDelete: {
-                        presetManager.deletePreset(id: preset.id)
+                        presetManager.deletePreset(id: preset.id, undoManager: undoManager)
                     },
                     onShortcutChanged: { shortcut in
                         presetManager.updateShortcut(for: preset.id, shortcut: shortcut)
@@ -685,7 +705,7 @@ struct ShortcutsSettingsTab: View {
             .help("Replace all presets with the defaults")
             .alert("Restore Default Presets?", isPresented: $showRestoreDefaults) {
                 Button("Cancel", role: .cancel) {}
-                Button("Restore", role: .destructive) { presetManager.restoreDefaultPresets() }
+                Button("Restore", role: .destructive) { presetManager.restoreDefaultPresets(undoManager: undoManager) }
             } message: {
                 Text("This will replace all your presets with the defaults. Custom presets and shortcuts will be lost.")
             }
@@ -709,6 +729,15 @@ struct AboutSettingsTab: View {
     var body: some View {
         Form {
             Section {
+                HStack {
+                    Spacer()
+                    Image(nsImage: NSApp.applicationIconImage)
+                        .resizable()
+                        .frame(width: 64, height: 64)
+                        .accessibilityHidden(true)
+                    Spacer()
+                }
+
                 LabeledContent("Version", value: appVersion)
 
                 LabeledContent("Description") {

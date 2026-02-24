@@ -308,13 +308,28 @@ class ScheduleManager {
         saveSchedules()
     }
 
-    /// Deletes a schedule by ID and clears its tracking state.
+    /// Deletes a schedule by ID and clears its tracking state, optionally registering an undo action.
     ///
-    /// - Parameter id: The schedule ID to delete
-    func deleteSchedule(id: UUID) {
-        schedules.removeAll { $0.id == id }
+    /// - Parameters:
+    ///   - id: The schedule ID to delete
+    ///   - undoManager: Optional undo manager for registering undo
+    func deleteSchedule(id: UUID, undoManager: UndoManager? = nil) {
+        guard let index = schedules.firstIndex(where: { $0.id == id }) else { return }
+        let deleted = schedules[index]
+        schedules.remove(at: index)
         firedToday.removeValue(forKey: id)
         saveSchedules()
+
+        undoManager?.registerUndo(withTarget: self) { manager in
+            manager.schedules.insert(deleted, at: min(index, manager.schedules.count))
+            manager.saveSchedules()
+        }
+        undoManager?.setActionName(
+            String(
+                format: NSLocalizedString("Delete %@", comment: "Undo action: delete schedule"),
+                deleted.name
+            )
+        )
     }
 
     /// Toggles a schedule's enabled state.

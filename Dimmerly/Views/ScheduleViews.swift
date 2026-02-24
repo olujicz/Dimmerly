@@ -44,7 +44,7 @@ struct ScheduleRow: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
-            .opacity(isHovered || deleteButtonFocused ? 1 : 0)
+            .opacity(isHovered || deleteButtonFocused ? 1 : 0.3)
             .focused($deleteButtonFocused)
             .accessibilityLabel(Text("Delete \(schedule.name)"))
             .help(Text("Delete Schedule"))

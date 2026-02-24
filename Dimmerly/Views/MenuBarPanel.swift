@@ -260,8 +260,8 @@ private struct PresetsSectionView: View {
                 .foregroundStyle(.secondary)
                 .padding(.bottom, 2)
 
-            ForEach(presetManager.presets) { preset in
-                presetRow(preset)
+            ForEach(Array(presetManager.presets.enumerated()), id: \.element.id) { index, preset in
+                presetRow(preset, index: index)
             }
 
             if isAddingPreset {
@@ -271,6 +271,15 @@ private struct PresetsSectionView: View {
                         .font(.callout)
                         .onSubmit { savePreset() }
                         .onExitCommand { cancelAddPreset() }
+                    Button {
+                        cancelAddPreset()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.borderless)
+                    .accessibilityLabel(Text("Cancel"))
+                    .help("Cancel adding preset")
                 }
                 .padding(.top, 2)
             } else if presetManager.presets.count < PresetManager.maxPresets {
@@ -296,7 +305,7 @@ private struct PresetsSectionView: View {
         .accessibilityLabel(Text("Presets"))
     }
 
-    private func presetRow(_ preset: BrightnessPreset) -> some View {
+    private func presetRow(_ preset: BrightnessPreset, index: Int) -> some View {
         Button {
             presetManager.applyPreset(preset, to: brightnessManager, animated: true)
         } label: {
@@ -309,6 +318,10 @@ private struct PresetsSectionView: View {
                     Text(shortcut.displayString)
                         .font(.caption)
                         .foregroundStyle(.tertiary)
+                } else {
+                    Text("\u{2318}\((index + 1) % 10)")
+                        .font(.caption)
+                        .foregroundStyle(.quaternary)
                 }
             }
             .padding(.vertical, 3)
@@ -322,6 +335,7 @@ private struct PresetsSectionView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.borderless)
+        .keyboardShortcut(KeyEquivalent(Character("\((index + 1) % 10)")), modifiers: .command)
         .onHover { isHovered in
             hoveredPresetID = isHovered ? preset.id : nil
         }
@@ -464,7 +478,7 @@ struct DisplayBrightnessRow: View {
                     if hasDDC {
                         Text("DDC")
                             .font(.system(size: 8, weight: .bold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(.background)
                             .padding(.horizontal, 4)
                             .padding(.vertical, 1)
                             .background(Capsule().fill(.blue.opacity(0.7)))
@@ -582,7 +596,7 @@ struct DisplayBrightnessRow: View {
                         if isAutoColorTemp {
                             Text("Auto")
                                 .font(.caption2)
-                                .foregroundStyle(.white)
+                                .foregroundStyle(.background)
                                 .padding(.horizontal, 4)
                                 .padding(.vertical, 1)
                                 .background(Capsule().fill(.orange.opacity(0.7)))
