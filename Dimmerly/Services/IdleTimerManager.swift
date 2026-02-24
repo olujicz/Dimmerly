@@ -50,6 +50,10 @@ class IdleTimerManager {
     /// Notification observer for UserDefaults changes
     private var settingsObserver: NSObjectProtocol?
 
+    /// Read closures stored to avoid capturing non-Sendable closures in observer callbacks.
+    private var readEnabledSetting: (() -> Bool)?
+    private var readMinutesSetting: (() -> Int)?
+
     /// Starts monitoring idle time
     func start(thresholdMinutes: Int) {
         stop()
@@ -77,6 +81,9 @@ class IdleTimerManager {
     ///   - readEnabled: Closure that returns the current idle-timer-enabled setting
     ///   - readMinutes: Closure that returns the current idle-timer minutes setting
     func observeSettings(readEnabled: @escaping () -> Bool, readMinutes: @escaping () -> Int) {
+        readEnabledSetting = readEnabled
+        readMinutesSetting = readMinutes
+
         let enabled = readEnabled()
         let minutes = readMinutes()
         lastEnabled = enabled
@@ -92,9 +99,14 @@ class IdleTimerManager {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor in
-                self?.handleSettingsChange(readEnabled: readEnabled, readMinutes: readMinutes)
+                self?.handleObservedSettingsChange()
             }
         }
+    }
+
+    private func handleObservedSettingsChange() {
+        guard let readEnabledSetting, let readMinutesSetting else { return }
+        handleSettingsChange(readEnabled: readEnabledSetting, readMinutes: readMinutesSetting)
     }
 
     private func handleSettingsChange(readEnabled: () -> Bool, readMinutes: () -> Int) {

@@ -73,4 +73,9 @@ Semantic Versioning.
 ### Changed
 - Migrated from ObservableObject/Combine to Swift Observation framework (`@Observable`)
 - Adopted macOS Tahoe design patterns across all views
+- Improved VoiceOver accessibility across the Settings window
+- Improved HIG compliance across Settings and menu bar panel
 
+### Fixed
+- Fixed locale-locked time formatting and duplicate localization keys
+- Reduced blank-dismiss flash artifacts in dimming/blanking flow

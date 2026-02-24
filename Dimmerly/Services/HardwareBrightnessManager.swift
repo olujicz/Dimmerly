@@ -306,7 +306,7 @@
                 while !Task.isCancelled {
                     try? await Task.sleep(for: .seconds(self?.pollingInterval ?? 5.0))
                     guard !Task.isCancelled else { return }
-                    await self?.pollAllDisplays()
+                    self?.pollAllDisplays()
                 }
             }
         }
@@ -423,7 +423,7 @@
                 guard !Task.isCancelled else { return }
 
                 // Rate limit: ensure minimum interval since last write
-                if let lastWrite = await self?.lastWriteTime[displayID] {
+                if let lastWrite = self?.lastWriteTime[displayID] {
                     let elapsed = Date().timeIntervalSince(lastWrite)
                     let minInterval = self?.minimumWriteInterval ?? 0.05
                     if elapsed < minInterval {
@@ -434,7 +434,7 @@
                 }
 
                 // Perform the write
-                await self?.performWrite(vcp: vcp, value: value, for: displayID)
+                self?.performWrite(vcp: vcp, value: value, for: displayID)
             }
         }
 

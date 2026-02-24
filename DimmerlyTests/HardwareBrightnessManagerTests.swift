@@ -40,13 +40,20 @@ import XCTest
 
     @MainActor
     final class HardwareBrightnessManagerTests: XCTestCase {
-        private var manager: HardwareBrightnessManager!
-        private var mockDDC: MockDDCInterface!
+        // XCTest lifecycle overrides are nonisolated in Xcode 26.2, so test fixtures
+        // opt out of actor checking here while test methods remain @MainActor.
+        private nonisolated(unsafe) var manager: HardwareBrightnessManager!
+        private nonisolated(unsafe) var mockDDC: MockDDCInterface!
 
         override func setUp() {
             super.setUp()
-            mockDDC = MockDDCInterface()
-            manager = HardwareBrightnessManager(forTesting: true, ddcInterface: mockDDC)
+            let (mockDDC, manager) = MainActor.assumeIsolated {
+                let mockDDC = MockDDCInterface()
+                let manager = HardwareBrightnessManager(forTesting: true, ddcInterface: mockDDC)
+                return (mockDDC, manager)
+            }
+            self.mockDDC = mockDDC
+            self.manager = manager
         }
 
         override func tearDown() {

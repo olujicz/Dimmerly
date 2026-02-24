@@ -50,6 +50,9 @@ class PresetShortcutManager {
     /// Notification observer for UserDefaults changes
     private var presetsObserver: NSObjectProtocol?
 
+    /// Read closure stored to avoid capturing non-Sendable closures in observer callbacks.
+    private var readPresetsProvider: (() -> [BrightnessPreset])?
+
     /// Updates the registered shortcuts from current presets
     func updateShortcuts(from presets: [BrightnessPreset]) {
         presetShortcuts = presets.compactMap { preset in
@@ -69,6 +72,8 @@ class PresetShortcutManager {
     ///
     /// - Parameter readPresets: Closure that returns the current list of presets
     func observePresets(readPresets: @escaping () -> [BrightnessPreset]) {
+        readPresetsProvider = readPresets
+
         let presets = readPresets()
         updateShortcuts(from: presets)
         lastPresetData = try? JSONEncoder().encode(presets)
@@ -79,9 +84,14 @@ class PresetShortcutManager {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor in
-                self?.handlePresetsChange(readPresets: readPresets)
+                self?.handleObservedPresetsChange()
             }
         }
+    }
+
+    private func handleObservedPresetsChange() {
+        guard let readPresetsProvider else { return }
+        handlePresetsChange(readPresets: readPresetsProvider)
     }
 
     private func handlePresetsChange(readPresets: () -> [BrightnessPreset]) {

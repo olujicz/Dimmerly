@@ -33,7 +33,7 @@ A lightweight macOS menu bar utility for controlling external display brightness
 - **Launch at Login** — Start automatically when you log in
 - **Light & Dark Mode** — Full support for both appearances
 - **Localized** — Available in 11 languages (English, German, Spanish, French, Italian, Japanese, Korean, Dutch, Portuguese (BR), Serbian, Chinese (Simplified))
-- **Privacy-Focused** — No data collection, no network access, no tracking
+- **Privacy-Focused** — No data collection, no app-managed network requests, no tracking
 
 ## Requirements
 
@@ -204,10 +204,12 @@ Uses gamma table dimming (`CGSetDisplayTransferByFormula`) to black out displays
 ## Privacy
 
 - **No Data Collection** — Dimmerly does not collect, store, or transmit any personal data
-- **No Network Access** — The app never connects to the internet
+- **No App-Managed Network Requests** — The app does not send data to developer-owned servers, analytics, or tracking services
 - **No Tracking** — No analytics, crash reporting, or usage statistics
 - **Local Only** — All settings are stored locally using UserDefaults
 - **Open Source** — The entire codebase is available for inspection
+
+Optional system location services may use Apple-provided location infrastructure when you choose "Use Current Location" for sunrise/sunset schedules.
 
 See the full [Privacy Policy](https://olujicz.github.io/Dimmerly/privacy-policy.html).
 
