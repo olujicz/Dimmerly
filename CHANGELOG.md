@@ -79,3 +79,4 @@ Semantic Versioning.
 ### Fixed
 - Fixed locale-locked time formatting and duplicate localization keys
 - Reduced blank-dismiss flash artifacts in dimming/blanking flow
+- Disabled full-screen dimming immediately on system wake to prevent screens staying dimmed after unlock

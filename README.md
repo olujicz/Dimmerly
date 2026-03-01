@@ -50,21 +50,7 @@ Dimmerly is available on the [Mac App Store](https://apps.apple.com/app/dimmerly
 
 ### From Source
 
-1. Clone this repository:
-   ```bash
-   git clone https://github.com/olujicz/Dimmerly.git
-   cd Dimmerly
-   ```
-
-2. Open the project in Xcode:
-   ```bash
-   open Dimmerly.xcodeproj
-   ```
-
-3. Build and run:
-   - Select the **Dimmerly** scheme
-   - Press **⌘R**
-   - The app will appear in your menu bar
+If you want to build Dimmerly yourself, use the instructions in [BUILDING.md](BUILDING.md).
 
 ## Usage
 
@@ -130,76 +116,9 @@ Access via the menu bar panel (Settings... or ⌘,). All settings are presented 
 - **Presets** — Rename, delete, assign per-preset shortcuts, restore defaults
 - **About** — App information, source code link
 
-## Building from Source
+## Developer Docs
 
-### Prerequisites
-
-- Xcode 16.0 or later
-- macOS 15.0 SDK or later
-- Swift 6.0 or later
-- Optional: [just](https://github.com/casey/just) command runner (run `just setup` to configure pre-commit hooks)
-- Optional: [SwiftLint](https://github.com/realm/SwiftLint) and [SwiftFormat](https://github.com/nicklockwood/SwiftFormat) for linting
-
-### Build Configurations
-
-| Configuration | Scheme | Description |
-|---------------|--------|-------------|
-| Debug | Dimmerly | Development build with `pmset` display sleep |
-| Release | Dimmerly | Distribution build with `pmset` display sleep |
-| Debug-AppStore | Dimmerly App Store | Development build with gamma-based screen blanking |
-| Release-AppStore | Dimmerly App Store | App Store submission build |
-
-### Justfile Commands
-
-A [Justfile](Justfile) provides convenient shortcuts for common tasks:
-
-```bash
-just setup          # Configure pre-commit hooks (SwiftFormat, SwiftLint, secrets detection)
-just build          # Build debug
-just build-release  # Build release
-just test           # Run tests
-just run            # Build and run
-just lint           # Lint Swift sources (SwiftLint)
-just lint-fix       # Auto-fix linting issues
-just format         # Format Swift sources (SwiftFormat)
-just format-check   # Check formatting without changes
-just clean          # Clean build artifacts
-```
-
-### Continuous Integration
-
-GitHub Actions runs on every push and pull request to `main`:
-
-- **Lint** — SwiftLint with `--strict` mode
-- **Test** — Full test suite on macOS 15 with Xcode 16.4
-
-### Running Tests
-
-```bash
-just test
-```
-
-Or with xcodebuild directly:
-
-```bash
-xcodebuild test -scheme Dimmerly -destination 'platform=macOS'
-```
-
-Or use Xcode's Test Navigator (⌘6).
-
-## Technical Details
-
-### Architecture
-
-Built with Swift 6 and the Observation framework (`@Observable`). All state is managed through observable managers injected via SwiftUI's environment. No third-party dependencies — pure Apple frameworks only.
-
-### Standard Build (Direct Distribution)
-
-Uses `pmset displaysleepnow` to sleep displays. Includes an optional "Prevent Screen Lock" mode that blanks screens via gamma tables without triggering a session lock.
-
-### App Store Build (Sandboxed)
-
-Uses gamma table dimming (`CGSetDisplayTransferByFormula`) to black out displays. Works over fullscreen apps and dims the cursor. Gamma is restored instantly on any user input via `CGDisplayRestoreColorSyncSettings()`. If the app exits unexpectedly, macOS automatically restores gamma to normal.
+For development, source builds, test commands, and technical architecture notes, see [BUILDING.md](BUILDING.md).
 
 ## Privacy
 
@@ -243,7 +162,11 @@ Please review the [Code of Conduct](CODE_OF_CONDUCT.md) before participating. Se
 
 1. Ensure `/usr/bin/pmset` exists on your system (included with macOS)
 2. Check System Settings > Lock Screen and ensure display sleep is not disabled
-3. App Store version blanks screens rather than sleeping displays — move your mouse or press any key to dismiss
+3. In dim-only mode (App Store build or "Prevent Screen Lock"), wake behavior follows your Dimming settings:
+   - Default: keyboard, click, scroll, or mouse movement
+   - "Ignore Mouse Movement" enabled: keyboard, click, or scroll
+   - "Require Escape to Dismiss" enabled: Escape key only
+4. After system sleep/wake, full-screen dimming is cleared automatically
 
 ### Keyboard Shortcut Doesn't Work
 
