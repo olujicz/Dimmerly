@@ -109,11 +109,16 @@ class ScreenBlanker {
         }
     }
 
-    /// Dismisses blanking and restores normal display state
-    func dismiss() {
+    /// Dismisses blanking and restores normal display state.
+    ///
+    /// - Parameter force: When `true`, bypasses the post-activation grace period check.
+    ///   Used for system events (for example wake from sleep) where blanking must end immediately.
+    func dismiss(force: Bool = false) {
         guard isBlanking else { return }
         // Ignore dismiss attempts during the grace period
-        guard ProcessInfo.processInfo.systemUptime - activationTime >= gracePeriod else { return }
+        if !force {
+            guard ProcessInfo.processInfo.systemUptime - activationTime >= gracePeriod else { return }
+        }
 
         // Cancel any in-progress fade animation
         fadeTask?.cancel()

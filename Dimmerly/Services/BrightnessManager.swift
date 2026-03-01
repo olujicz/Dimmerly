@@ -708,6 +708,9 @@ class BrightnessManager {
     ///
     /// Multiple wake events (rare but possible) are coalesced by canceling previous tasks.
     private func handleWake() {
+        // Ensure full-screen blanking never persists across a system wake.
+        ScreenBlanker.shared.dismiss(force: true)
+
         // Cancel any previous wake task to avoid stacking delayed reapplications
         wakeTask?.cancel()
         wakeTask = Task { @MainActor in
