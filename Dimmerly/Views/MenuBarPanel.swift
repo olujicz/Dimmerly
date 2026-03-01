@@ -212,6 +212,7 @@ struct MenuBarPanel: View {
         .buttonStyle(.borderedProminent)
         .controlSize(.large)
         .keyboardShortcut(.return, modifiers: [])
+        .accessibilityLabel(settings.preventScreenLock ? Text("Dim all displays") : Text("Turn off all displays"))
     }
 
     // MARK: - Footer
@@ -340,6 +341,7 @@ private struct PresetsSectionView: View {
             hoveredPresetID = isHovered ? preset.id : nil
         }
         .accessibilityLabel(Text("Apply \(preset.name)"))
+        .accessibilityHint(Text("Applies saved brightness settings to all displays"))
         .help(preset.name)
         .contextMenu {
             Button("Save Current Settings") {
@@ -400,6 +402,7 @@ private struct FooterLabel: View {
         .contentShape(RoundedRectangle(cornerRadius: 8))
         .animation(.spring(response: 0.2, dampingFraction: 0.8), value: isHovered)
         .onHover { isHovered = $0 }
+        .accessibilityAddTraits(.isButton)
     }
 }
 
@@ -477,8 +480,8 @@ struct DisplayBrightnessRow: View {
                 #if !APPSTORE
                     if hasDDC {
                         Text("DDC")
-                            .font(.system(size: 8, weight: .bold))
-                            .foregroundStyle(.background)
+                            .font(.caption2.bold())
+                            .foregroundStyle(.white)
                             .padding(.horizontal, 4)
                             .padding(.vertical, 1)
                             .background(Capsule().fill(.blue.opacity(0.7)))
@@ -501,8 +504,14 @@ struct DisplayBrightnessRow: View {
                         .foregroundStyle(isBlanked ? .primary : .secondary)
                 }
                 .buttonStyle(.borderless)
+                .frame(minWidth: 28, minHeight: 28)
                 .help(isBlanked ? Text("Restore display") : Text("Dim display"))
                 .accessibilityLabel(isBlanked ? Text("Restore display") : Text("Dim display"))
+                .accessibilityHint(
+                    isBlanked
+                        ? Text("Restores the display to its previous brightness")
+                        : Text("Dims the display to minimum brightness")
+                )
             }
 
             HStack(spacing: 6) {
@@ -614,7 +623,7 @@ struct DisplayBrightnessRow: View {
 
                 HStack(spacing: 6) {
                     Image(systemName: "circle.lefthalf.filled")
-                        .font(.system(size: 9))
+                        .font(.caption2)
                         .frame(width: 12)
                         .foregroundStyle(.secondary)
                         .accessibilityHidden(true)
@@ -643,7 +652,7 @@ struct DisplayBrightnessRow: View {
                         }
 
                     Image(systemName: "circle.righthalf.filled")
-                        .font(.system(size: 9))
+                        .font(.caption2)
                         .frame(width: 12)
                         .foregroundStyle(.secondary)
                         .accessibilityHidden(true)
@@ -736,7 +745,7 @@ struct DisplayBrightnessRow: View {
                                         .font(.callout)
                                         .lineLimit(1)
                                     Image(systemName: "chevron.up.chevron.down")
-                                        .font(.system(size: 8))
+                                        .font(.caption2)
                                         .foregroundStyle(.tertiary)
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
