@@ -1,0 +1,80 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="96" y1="96" x2="912" y2="928" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#324B6B"/>
+      <stop offset="0.52" stop-color="#294464"/>
+      <stop offset="1" stop-color="#1A2F4B"/>
+    </linearGradient>
+
+    <radialGradient id="aurora" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(482 304) rotate(77) scale(660 560)">
+      <stop stop-color="#8ED8FF" stop-opacity="0.48"/>
+      <stop offset="1" stop-color="#8ED8FF" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="device" x1="168" y1="188" x2="856" y2="680" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#A5BCE0" stop-opacity="0.9"/>
+      <stop offset="0.45" stop-color="#7FA2CD" stop-opacity="0.88"/>
+      <stop offset="1" stop-color="#4F709A" stop-opacity="0.88"/>
+    </linearGradient>
+
+    <linearGradient id="glass" x1="198" y1="228" x2="824" y2="634" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.78"/>
+      <stop offset="0.36" stop-color="#DCF0FF" stop-opacity="0.66"/>
+      <stop offset="1" stop-color="#7FA9D3" stop-opacity="0.54"/>
+    </linearGradient>
+
+    <linearGradient id="shade" x1="220" y1="228" x2="824" y2="634" gradientUnits="userSpaceOnUse">
+      <stop offset="0.2" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="0.75" stop-color="#000000" stop-opacity="0.06"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.12"/>
+    </linearGradient>
+
+    <radialGradient id="focusGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(512 430) rotate(90) scale(164)">
+      <stop stop-color="#B5E4FF" stop-opacity="0.62"/>
+      <stop offset="1" stop-color="#B5E4FF" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="sunMoon" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+      <stop stop-color="#8BE4FF"/>
+      <stop offset="0.5" stop-color="#3DBDFF"/>
+      <stop offset="1" stop-color="#0A84FF"/>
+    </linearGradient>
+
+    <radialGradient id="accentGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(512 430) rotate(90) scale(124)">
+      <stop stop-color="#66D8FF" stop-opacity="0.64"/>
+      <stop offset="1" stop-color="#66D8FF" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="stand" x1="512" y1="664" x2="512" y2="852" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#93B0D5"/>
+      <stop offset="1" stop-color="#587AA5"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="14" y="14" width="996" height="996" rx="222" fill="url(#bg)"/>
+  <rect x="14" y="14" width="996" height="996" rx="222" fill="url(#aurora)"/>
+
+  <rect x="150" y="180" width="724" height="500" rx="86" fill="#3A5E8B"/>
+  <rect x="168" y="198" width="688" height="464" rx="66" fill="url(#device)"/>
+
+  <rect x="198" y="228" width="628" height="406" rx="46" fill="url(#glass)"/>
+  <rect x="198" y="228" width="628" height="406" rx="46" fill="url(#shade)"/>
+  <rect x="198" y="228" width="628" height="406" rx="46" stroke="#FFFFFF" stroke-opacity="0.42" stroke-width="2"/>
+
+  <path d="M244 272C386 238 620 238 782 286" stroke="#FFFFFF" stroke-opacity="0.24" stroke-width="16" stroke-linecap="round"/>
+  <path d="M252 302C448 274 650 284 760 330" stroke="#FFFFFF" stroke-opacity="0.11" stroke-width="8" stroke-linecap="round"/>
+
+  <circle cx="512" cy="430" r="156" fill="url(#focusGlow)"/>
+  <circle cx="512" cy="430" r="124" fill="url(#accentGlow)"/>
+
+  <g transform="translate(512 430)">
+    <circle cx="0" cy="0" r="82" fill="url(#sunMoon)"/>
+    <circle cx="32" cy="-24" r="56" fill="#4B72A3"/>
+    <circle cx="0" cy="0" r="82" stroke="#E2F6FF" stroke-opacity="0.7" stroke-width="3"/>
+  </g>
+
+  <rect x="492" y="664" width="40" height="102" rx="16" fill="url(#stand)"/>
+  <path d="M384 842C440 800 470 744 502 664H522C554 744 584 800 640 842V852H384V842Z" fill="url(#stand)"/>
+
+  <rect x="14" y="14" width="996" height="996" rx="222" stroke="#F5FBFF" stroke-opacity="0.2" stroke-width="4"/>
+</svg>
