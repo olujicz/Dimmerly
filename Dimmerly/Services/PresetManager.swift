@@ -137,8 +137,10 @@ class PresetManager {
         persistPresets()
 
         undoManager?.registerUndo(withTarget: self) { manager in
-            manager.presets.insert(deleted, at: min(index, manager.presets.count))
-            manager.persistPresets()
+            MainActor.assumeIsolated {
+                manager.presets.insert(deleted, at: min(index, manager.presets.count))
+                manager.persistPresets()
+            }
         }
         undoManager?.setActionName(
             String(
@@ -192,8 +194,10 @@ class PresetManager {
         persistPresets()
 
         undoManager?.registerUndo(withTarget: self) { manager in
-            manager.presets = previousPresets
-            manager.persistPresets()
+            MainActor.assumeIsolated {
+                manager.presets = previousPresets
+                manager.persistPresets()
+            }
         }
         undoManager?.setActionName(
             NSLocalizedString("Restore Defaults", comment: "Undo action: restore default presets")
