@@ -321,8 +321,10 @@ class ScheduleManager {
         saveSchedules()
 
         undoManager?.registerUndo(withTarget: self) { manager in
-            manager.schedules.insert(deleted, at: min(index, manager.schedules.count))
-            manager.saveSchedules()
+            MainActor.assumeIsolated {
+                manager.schedules.insert(deleted, at: min(index, manager.schedules.count))
+                manager.saveSchedules()
+            }
         }
         undoManager?.setActionName(
             String(
