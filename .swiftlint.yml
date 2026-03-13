@@ -1,5 +1,6 @@
 excluded:
   - .build
+  - tools
 
 # Disabled rules that conflict with SwiftFormat defaults
 disabled_rules:

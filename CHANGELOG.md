@@ -82,6 +82,7 @@ Semantic Versioning.
 - Menu bar panel uses overlay scroller style for a cleaner appearance
 - Scroll bounce only activates when content overflows (`.scrollBounceBehavior(.basedOnSize)`)
 - Removed "No External Displays" empty state — built-in display is always available
+- Narrowed SwiftLint scope to shipping code by excluding the local `tools/` research folder
 
 ### Fixed
 - Fixed DDC/CI hardware brightness control not working on Apple Silicon Macs:
@@ -94,6 +95,8 @@ Semantic Versioning.
 - Fixed locale-locked time formatting and duplicate localization keys
 - Reduced blank-dismiss flash artifacts in dimming/blanking flow
 - Disabled full-screen dimming immediately on system wake to prevent screens staying dimmed after unlock
+- Launch at Login settings now surface a user-facing error alert instead of silently reverting on failure
+- Clarified the location permission prompt to cover both schedules and automatic color temperature
 
 ### Changed
 - DDC/CI hardware control is now enabled by default in direct distribution builds; automatically falls back to software gamma control for displays that don't support DDC

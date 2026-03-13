@@ -7,6 +7,34 @@
 
 import SwiftUI
 
+struct LaunchAtLoginAlertContent: Equatable {
+    let title: String
+    let message: String
+}
+
+@MainActor
+func applyLaunchAtLoginChange(
+    requestedValue: Bool,
+    settings: AppSettings,
+    result: Result<Void, LaunchAtLoginError>
+) -> LaunchAtLoginAlertContent? {
+    settings.launchAtLogin = requestedValue
+
+    switch result {
+    case .success:
+        return nil
+    case let .failure(error):
+        settings.launchAtLogin = !requestedValue
+        return LaunchAtLoginAlertContent(
+            title: NSLocalizedString(
+                "Launch at Login Unavailable",
+                comment: "Settings alert title when launch at login registration fails"
+            ),
+            message: error.localizedDescription
+        )
+    }
+}
+
 /// Main settings view for the application.
 /// Uses a TabView to organize settings into logical groups following macOS HIG.
 struct SettingsView: View {
@@ -41,6 +69,7 @@ struct GeneralSettingsTab: View {
     @Environment(AppSettings.self) var settings
     @Environment(KeyboardShortcutManager.self) var shortcutManager
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var launchAtLoginAlert: LaunchAtLoginAlertContent?
 
     var body: some View {
         Form {
@@ -48,11 +77,11 @@ struct GeneralSettingsTab: View {
                 Toggle("Launch at Login", isOn: Binding(
                     get: { settings.launchAtLogin },
                     set: { newValue in
-                        settings.launchAtLogin = newValue
-                        let result = LaunchAtLoginManager.setEnabled(newValue)
-                        if case .failure = result {
-                            settings.launchAtLogin = !newValue
-                        }
+                        launchAtLoginAlert = applyLaunchAtLoginChange(
+                            requestedValue: newValue,
+                            settings: settings,
+                            result: LaunchAtLoginManager.setEnabled(newValue)
+                        )
                     }
                 ))
                 .help(Text("Automatically start Dimmerly when you log in"))
@@ -63,6 +92,23 @@ struct GeneralSettingsTab: View {
             }
         }
         .formStyle(.grouped)
+        .alert(
+            launchAtLoginAlert?.title ?? "",
+            isPresented: Binding(
+                get: { launchAtLoginAlert != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        launchAtLoginAlert = nil
+                    }
+                }
+            )
+        ) {
+            Button("OK", role: .cancel) {
+                launchAtLoginAlert = nil
+            }
+        } message: {
+            Text(launchAtLoginAlert?.message ?? "")
+        }
         .onAppear {
             // Sync launch-at-login state with system
             settings.launchAtLogin = LaunchAtLoginManager.isEnabled
