@@ -384,7 +384,6 @@
                 let vendorID = CGDisplayVendorNumber(displayID)
                 let modelID = CGDisplayModelNumber(displayID)
                 let serialNumber = CGDisplaySerialNumber(displayID)
-
                 // Strategy 1: Match by EDID vendor/model/serial via parent walk
                 for className in avServiceClassNames {
                     var iterator: io_iterator_t = 0
@@ -412,7 +411,39 @@
                     }
                 }
 
-                // Strategy 2: If only one external display and one service, assume match.
+                // Strategy 2: Match by reading EDID via I2C from each service.
+                // On some Apple Silicon Macs (e.g. M1 Pro), the IOKit registry doesn't
+                // expose vendor/model properties in the parent chain. Reading the EDID
+                // directly over I2C (address 0x50) lets us extract the manufacturer code
+                // and product ID to match against CGDisplay-reported values.
+                for className in avServiceClassNames {
+                    var iterator: io_iterator_t = 0
+                    guard IOServiceGetMatchingServices(
+                        kIOMainPortDefault,
+                        IOServiceMatching(className),
+                        &iterator
+                    ) == KERN_SUCCESS else {
+                        continue
+                    }
+                    defer { IOObjectRelease(iterator) }
+
+                    var service = IOIteratorNext(iterator)
+                    while service != IO_OBJECT_NULL {
+                        if let avService = IOAVServiceCreateWithService(nil, service)?.takeRetainedValue(),
+                           matchesDisplayViaEDID(
+                               avService: avService, vendorID: vendorID,
+                               modelID: modelID, serialNumber: serialNumber
+                           )
+                        {
+                            IOObjectRelease(service)
+                            return avService
+                        }
+                        IOObjectRelease(service)
+                        service = IOIteratorNext(iterator)
+                    }
+                }
+
+                // Strategy 3: If only one external display and one service, assume match.
                 // This handles monitors where EDID vendor/model don't match CG-reported values.
                 for className in avServiceClassNames {
                     var iterator: io_iterator_t = 0
@@ -600,6 +631,46 @@
 
                 if current != service {
                     IOObjectRelease(current)
+                }
+                return false
+            }
+
+            /// Checks if an IOAVService corresponds to a specific display by reading its
+            /// EDID over I2C and matching the manufacturer/product/serial fields.
+            ///
+            /// EDID is stored at I2C address 0x50. The first 128 bytes contain:
+            /// - Bytes 8–9: Manufacturer ID (big-endian PNP compressed ASCII)
+            /// - Bytes 10–11: Product code (little-endian)
+            /// - Bytes 12–15: Serial number (little-endian)
+            ///
+            /// CoreGraphics reports vendor as the raw 2-byte manufacturer code and model
+            /// as the product code, so these can be compared directly.
+            private static func matchesDisplayViaEDID(
+                avService: CFTypeRef,
+                vendorID: UInt32,
+                modelID: UInt32,
+                serialNumber: UInt32
+            ) -> Bool {
+                var edid = [UInt8](repeating: 0, count: 128)
+                let result = IOAVServiceReadI2C(avService, 0x50, 0x00, &edid, 128)
+                guard result == KERN_SUCCESS else { return false }
+                // Validate EDID header: 00 FF FF FF FF FF FF 00
+                guard edid[0] == 0x00, edid[1] == 0xFF, edid[2] == 0xFF, edid[7] == 0x00 else {
+                    return false
+                }
+
+                let edidVendor = UInt32(edid[8]) << 8 | UInt32(edid[9])
+                let edidProduct = UInt16(edid[10]) | (UInt16(edid[11]) << 8)
+                let edidSerial = UInt32(edid[12]) | (UInt32(edid[13]) << 8)
+                    | (UInt32(edid[14]) << 16) | (UInt32(edid[15]) << 24)
+
+                // Match by vendor + product (most reliable)
+                if edidVendor == vendorID, UInt32(edidProduct) == modelID {
+                    return true
+                }
+                // Fallback: match by serial if vendor matches but product doesn't
+                if serialNumber != 0, edidSerial == serialNumber, edidVendor == vendorID {
+                    return true
                 }
                 return false
             }
@@ -1108,22 +1179,31 @@
         ///   - expectedVCP: The VCP code we expect in the reply
         /// - Returns: Parsed current and max values, or `nil` if the response is invalid
         private static func parseDDCResponse(_ data: [UInt8], expectedVCP: VCPCode) -> DDCReadResult? {
-            // Minimum response length check
+            // DDC/CI "Get VCP Feature Reply" packet layout:
+            //   Byte 0: Source address (0x6E)
+            //   Byte 1: Length (0x88 = 8 bytes following + 0x80 flag)
+            //   Byte 2: Reply opcode (0x02 = Get VCP Feature Reply)
+            //   Byte 3: Result code (0x00 = no error, 0x01 = unsupported VCP code)
+            //   Byte 4: VCP opcode (echoed from request)
+            //   Byte 5: VCP type code (0x00 = set parameter, 0x01 = momentary)
+            //   Bytes 6–7: Maximum value (big-endian)
+            //   Bytes 8–9: Current value (big-endian)
+            //   Byte 10: Checksum
             guard data.count >= 11 else { return nil }
 
-            // Verify this is a valid VCP reply
-            let replyOpcode = data[3]
+            // Verify this is a valid VCP reply (byte 2 = opcode)
+            let replyOpcode = data[2]
             guard replyOpcode == getVCPReplyOpcode else { return nil }
 
-            // Check result code (byte 2): 0x00 = success
-            let resultCode = data[2]
+            // Check result code (byte 3): 0x00 = success
+            let resultCode = data[3]
             guard resultCode == 0x00 else { return nil }
 
             // Verify the reply is for the VCP code we asked about
             let repliedVCP = data[4]
             guard repliedVCP == expectedVCP.rawValue else { return nil }
 
-            // Extract values
+            // Extract values (bytes 6-7 = max, bytes 8-9 = current, big-endian)
             let maxValue = (UInt16(data[6]) << 8) | UInt16(data[7])
             let currentValue = (UInt16(data[8]) << 8) | UInt16(data[9])
 

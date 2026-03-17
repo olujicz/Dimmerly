@@ -202,6 +202,9 @@
                     for (displayID, cap) in results where cap.supportsDDC {
                         self.readAllValues(for: displayID)
                     }
+                    // Refresh BrightnessManager so display.supportsDDC flags
+                    // reflect the newly-probed capabilities
+                    BrightnessManager.shared.refreshDisplays()
                 }
             }
         }
