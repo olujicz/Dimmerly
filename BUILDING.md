@@ -85,6 +85,8 @@ GitHub Actions runs on every push and pull request to `main`:
 
 - Uses `pmset displaysleepnow` for real display sleep
 - Includes an optional "Prevent Screen Lock" mode that uses gamma-based dimming instead of display sleep
+- DDC/CI hardware control is enabled by default — displays are probed on launch and when connected; displays that don't support DDC automatically fall back to software gamma control
+- DDC display matching uses EDID read over I2C (address 0x50) on Apple Silicon, as the IOKit registry may not expose vendor/model properties in the DCPAVServiceProxy parent chain
 
 ### App Store Build
 

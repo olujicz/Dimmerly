@@ -479,12 +479,9 @@ struct DisplayBrightnessRow: View {
 
                 #if !APPSTORE
                     if hasDDC {
-                        Text("DDC")
-                            .font(.caption2.bold())
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 4)
-                            .padding(.vertical, 1)
-                            .background(Capsule().fill(.blue.opacity(0.7)))
+                        Label("HW", systemImage: "cable.connector.horizontal")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
                             .help("Hardware control via DDC/CI")
                     }
                 #endif

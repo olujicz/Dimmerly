@@ -51,7 +51,7 @@ Semantic Versioning.
   - Background polling to detect OSD-initiated changes
   - Debounced writes (100ms) and rate limiting (50ms min interval) to protect monitor MCU
   - Per-display DDC capability probing with cached results
-  - "DDC" badge on capable displays in the menu bar panel
+  - "HW" indicator with cable icon on capable displays in the menu bar panel
   - Hardware Control settings section with per-display status
   - Configurable polling interval and write delay
   - Unit tests with injectable DDC mocks (no hardware required)
@@ -77,6 +77,14 @@ Semantic Versioning.
 - Improved HIG compliance across Settings and menu bar panel
 
 ### Fixed
+- Fixed DDC/CI hardware brightness control not working on Apple Silicon Macs:
+  - Fixed response parser swapping opcode and result code bytes, which caused all valid DDC replies to be rejected
+  - Added EDID-based display matching via I2C (address 0x50) for Apple Silicon Macs where the IOKit registry lacks vendor/model properties in the DCPAVServiceProxy parent chain
+  - Fixed BrightnessManager not refreshing display DDC flags after async capability probing completed
 - Fixed locale-locked time formatting and duplicate localization keys
 - Reduced blank-dismiss flash artifacts in dimming/blanking flow
 - Disabled full-screen dimming immediately on system wake to prevent screens staying dimmed after unlock
+
+### Changed
+- DDC/CI hardware control is now enabled by default in direct distribution builds; automatically falls back to software gamma control for displays that don't support DDC
+- Refined DDC indicator in menu bar panel to a subtle HW label with cable icon, replacing the bold blue capsule badge

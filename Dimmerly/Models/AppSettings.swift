@@ -226,7 +226,8 @@ class AppSettings {
             ? d.integer(forKey: "dimmerlyColorTempTransitionMinutes") : 40
 
         #if !APPSTORE
-            ddcEnabled = d.bool(forKey: "dimmerlyDDCEnabled")
+            ddcEnabled = d.object(forKey: "dimmerlyDDCEnabled") != nil
+                ? d.bool(forKey: "dimmerlyDDCEnabled") : true
             ddcControlModeRaw = d.string(forKey: "dimmerlyDDCControlMode") ?? DDCControlMode.combined.rawValue
             ddcPollingInterval = d.object(forKey: "dimmerlyDDCPollingInterval") != nil
                 ? d.integer(forKey: "dimmerlyDDCPollingInterval") : 5
@@ -252,7 +253,7 @@ class AppSettings {
         nightTemperature = 2700
         colorTempTransitionMinutes = 40
         #if !APPSTORE
-            ddcEnabled = false
+            ddcEnabled = true
             ddcControlModeRaw = DDCControlMode.combined.rawValue
             ddcPollingInterval = 5
             ddcWriteDelay = 50

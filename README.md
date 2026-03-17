@@ -14,7 +14,7 @@ A lightweight macOS menu bar utility for controlling external display brightness
 - **Color Temperature (Warmth)** — Per-display warmth adjustment from neutral to warm (~1900K)
 - **Auto Color Temperature** — Automatic warmth adjustment based on time of day using sunrise/sunset data
 - **Contrast Control** — Per-display contrast via symmetric S-curve gamma adjustment
-- **DDC/CI Hardware Control** — Direct hardware brightness, contrast, and volume control via DDC/CI protocol (direct distribution only)
+- **DDC/CI Hardware Control** — Direct hardware brightness, contrast, and volume control via DDC/CI protocol (direct distribution only, enabled by default with automatic software fallback)
 - **Input Source Switching** — Switch monitor inputs (HDMI, DisplayPort, USB-C) from the menu bar
 - **Audio Mute Toggle** — Mute/unmute monitors with built-in speakers via DDC
 - **Brightness Presets** — Save, name, and instantly apply display configurations (brightness, warmth, contrast)
@@ -38,7 +38,7 @@ A lightweight macOS menu bar utility for controlling external display brightness
 ## Requirements
 
 - macOS 15.0 (Sequoia) or later
-- External display with DDC/CI brightness support (USB-C/DisplayPort recommended; HDMI via multi-transport fallback)
+- External display (DDC/CI-capable monitors get hardware control automatically; others use software gamma)
 - Optional: Accessibility permissions for global keyboard shortcuts
 - Optional: Location permission for sunrise/sunset schedules
 
@@ -176,11 +176,12 @@ Please review the [Code of Conduct](CODE_OF_CONDUCT.md) before participating. Se
 
 ### Brightness Slider Has No Effect
 
-1. Verify your external display supports DDC/CI brightness control
-2. Some USB-C/DisplayPort hubs may not pass through DDC commands
-3. Try connecting the display directly to your Mac
-4. On Apple Silicon (M1–M4), Dimmerly tries three I2C transport paths automatically — if one fails, the next is attempted
+1. DDC/CI hardware control is enabled by default — if your display supports it, the menu bar panel shows an "HW" indicator next to the display name
+2. If no "HW" indicator appears, the display is using software gamma control (still adjusts perceived brightness, but not the backlight)
+3. Some USB-C/DisplayPort hubs may not pass through DDC commands — try connecting the display directly
+4. On Apple Silicon (M1–M4), Dimmerly tries three I2C transport paths automatically (IOAVService, IOAVDevice, direct IOConnect)
 5. Built-in HDMI on M1/entry M2 Macs does not support DDC; use USB-C or DisplayPort instead
+6. You can check DDC status per display in Settings > Displays > Hardware Control
 
 ## License
 
