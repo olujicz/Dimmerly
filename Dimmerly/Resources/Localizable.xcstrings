@@ -8935,6 +8935,9 @@
         }
       }
     },
+    "HW" : {
+
+    },
     "Idle Timer" : {
       "extractionState" : "stale",
       "localizations" : {

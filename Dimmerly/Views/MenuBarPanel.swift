@@ -48,7 +48,7 @@ struct MenuBarPanel: View {
                 .padding(.horizontal, 20)
                 .padding(.vertical, 8)
         }
-        .frame(width: 280)
+        .frame(width: 300)
     }
 
     // MARK: - Empty State
@@ -111,7 +111,8 @@ struct MenuBarPanel: View {
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .padding(20)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
     }
 
     private var displayAdjustmentsDisclosure: some View {
@@ -479,9 +480,9 @@ struct DisplayBrightnessRow: View {
 
                 #if !APPSTORE
                     if hasDDC {
-                        Label("HW", systemImage: "cable.connector.horizontal")
+                        Text("HW")
                             .font(.caption2)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.tertiary)
                             .help("Hardware control via DDC/CI")
                     }
                 #endif
@@ -594,7 +595,7 @@ struct DisplayBrightnessRow: View {
                     }
 
                     HStack {
-                        Text("\(Int(BrightnessManager.kelvinForWarmth(warmthValue)))K")
+                        Text(verbatim: "\(Int(BrightnessManager.kelvinForWarmth(warmthValue)))K")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                             .monospacedDigit()
@@ -659,6 +660,13 @@ struct DisplayBrightnessRow: View {
                 .transition(.opacity.combined(with: .move(edge: .top)))
 
                 #if !APPSTORE
+
+                    // MARK: Hardware Controls (DDC only)
+
+                    if hasDDC, onVolumeChange != nil || (!availableInputSources.isEmpty && onInputSourceChange != nil) {
+                        Divider()
+                            .padding(.vertical, 2)
+                    }
 
                     // MARK: Volume Slider + Mute (DDC only)
 

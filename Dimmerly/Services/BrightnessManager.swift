@@ -307,6 +307,33 @@ class BrightnessManager {
             newDisplays.append(display)
         }
 
+        // Disambiguate identical display names by appending an index (e.g., "DELL S2723HC (1)")
+        var nameCounts: [String: Int] = [:]
+        for display in newDisplays {
+            nameCounts[display.name, default: 0] += 1
+        }
+        let duplicatedNames = Set(nameCounts.filter { $0.value > 1 }.keys)
+        if !duplicatedNames.isEmpty {
+            var nameIndex: [String: Int] = [:]
+            for i in newDisplays.indices {
+                let name = newDisplays[i].name
+                guard duplicatedNames.contains(name) else { continue }
+                let index = (nameIndex[name] ?? 0) + 1
+                nameIndex[name] = index
+                newDisplays[i] = ExternalDisplay(
+                    id: newDisplays[i].id,
+                    name: "\(name) (\(index))",
+                    brightness: newDisplays[i].brightness,
+                    warmth: newDisplays[i].warmth,
+                    contrast: newDisplays[i].contrast
+                )
+                #if !APPSTORE
+                    newDisplays[i].supportsDDC = HardwareBrightnessManager.shared
+                        .supportsDDC(for: newDisplays[i].id)
+                #endif
+            }
+        }
+
         displays = newDisplays
         // Don't reapply gamma if blanking is active (would cause visible flicker)
         if !ScreenBlanker.shared.isBlanking {

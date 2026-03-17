@@ -377,13 +377,15 @@
 
                 if cap.supportsAudioMute {
                     if let result = ddcIO.read(vcp: .audioMute, for: displayID) {
-                        muted = result.currentValue == 1
+                        // Non-continuous VCP: value in low byte only
+                        muted = (result.currentValue & 0xFF) == 1
                     }
                 }
 
                 if cap.supportsInputSource {
                     if let result = ddcIO.read(vcp: .inputSource, for: displayID) {
-                        inputSource = InputSource(rawValue: result.currentValue)
+                        // Non-continuous VCP codes return the value in the low byte only
+                        inputSource = InputSource(rawValue: result.currentValue & 0xFF)
                     }
                 }
 
