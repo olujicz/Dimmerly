@@ -81,6 +81,9 @@ Semantic Versioning.
   - Fixed response parser swapping opcode and result code bytes, which caused all valid DDC replies to be rejected
   - Added EDID-based display matching via I2C (address 0x50) for Apple Silicon Macs where the IOKit registry lacks vendor/model properties in the DCPAVServiceProxy parent chain
   - Fixed BrightnessManager not refreshing display DDC flags after async capability probing completed
+- Fixed NotificationCenter observer tokens not being stored in BrightnessManager and DimmerlyApp (widget notifications, wake observer)
+- Added missing translations for location privacy descriptions (NSLocationUsageDescription) in all 11 languages
+- Fixed untranslated temperature format string ("%@K · %@") across all localizations
 - Fixed locale-locked time formatting and duplicate localization keys
 - Reduced blank-dismiss flash artifacts in dimming/blanking flow
 - Disabled full-screen dimming immediately on system wake to prevent screens staying dimmed after unlock

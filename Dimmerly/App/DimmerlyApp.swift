@@ -46,6 +46,12 @@ struct DimmerlyApp: App {
     /// Guard against duplicate observer registration if onAppear fires more than once
     @State private var isConfigured = false
 
+    /// Distributed notification observer for widget "Sleep Displays" action
+    @State private var widgetDimObserver: NSObjectProtocol?
+
+    /// Distributed notification observer for widget preset application
+    @State private var widgetPresetObserver: NSObjectProtocol?
+
     var body: some Scene {
         // Menu bar extra (the main interface) — window style for slider support
         MenuBarExtra {
@@ -149,7 +155,7 @@ struct DimmerlyApp: App {
     /// provides better type safety and automatic main queue dispatch.
     private func observeWidgetNotifications() {
         // Widget "Sleep Displays" button
-        DistributedNotificationCenter.default().addObserver(
+        widgetDimObserver = DistributedNotificationCenter.default().addObserver(
             forName: SharedConstants.dimNotification,
             object: nil, queue: .main
         ) { [settings] _ in
@@ -159,7 +165,7 @@ struct DimmerlyApp: App {
         }
 
         // Widget preset button (preset ID passed via shared defaults)
-        DistributedNotificationCenter.default().addObserver(
+        widgetPresetObserver = DistributedNotificationCenter.default().addObserver(
             forName: SharedConstants.presetNotification,
             object: nil, queue: .main
         ) { [presetManager, brightnessManager] _ in

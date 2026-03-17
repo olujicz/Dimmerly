@@ -77,6 +77,9 @@ class BrightnessManager {
     /// Active preset transition animation task (cancelled when a new transition starts)
     private var transitionTask: Task<Void, Never>?
 
+    /// Notification observer for system wake events (re-apply gamma after wake)
+    private var wakeObserver: NSObjectProtocol?
+
     /// Standard initializer that sets up full hardware monitoring and system integration.
     /// Registers observers for display changes, wake events, and ScreenBlanker coordination.
     init() {
@@ -101,7 +104,7 @@ class BrightnessManager {
         refreshDisplays()
 
         // Re-apply gamma after wake (macOS resets gamma during wake)
-        NotificationCenter.default.addObserver(
+        wakeObserver = NotificationCenter.default.addObserver(
             forName: NSWorkspace.didWakeNotification,
             object: nil,
             queue: .main
