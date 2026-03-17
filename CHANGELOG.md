@@ -9,6 +9,7 @@ Semantic Versioning.
 
 ### Added
 - Built-in display support: brightness, warmth, and contrast controls now available for the laptop screen (always shown alongside external displays)
+- Hardware backlight control for built-in display (direct distribution only): brightness slider drives the actual backlight via DisplayServices, syncing bidirectionally with Control Center and keyboard brightness keys (~1s polling). Warmth and contrast continue to use gamma tables.
 - Per-display adjustment disclosure: each display has its own expand/collapse chevron for warmth and contrast sliders
 - Per-display brightness, warmth (color temperature), and contrast control
 - Automatic color temperature adjustment based on time of day (Helland blackbody algorithm, ~1900K–6500K)

@@ -10,6 +10,42 @@ import AppKit
 import CoreGraphics
 import IOKit
 
+// MARK: - Built-in Display Backlight (Private API)
+
+#if !APPSTORE
+    /// Dynamically loaded DisplayServices functions for controlling hardware backlight
+    /// brightness on the built-in display. Uses dlopen/dlsym to avoid linking against
+    /// a private framework, which keeps the build clean and fails gracefully at runtime
+    /// if the framework is unavailable on a future macOS version.
+    private enum DisplayServicesAPI: Sendable {
+        nonisolated(unsafe) private static let handle: UnsafeMutableRawPointer? = {
+            dlopen("/System/Library/PrivateFrameworks/DisplayServices.framework/DisplayServices", RTLD_LAZY)
+        }()
+
+        nonisolated(unsafe) private static let _setBrightness: (@convention(c) (CGDirectDisplayID, Float) -> Int32)? = {
+            guard let handle else { return nil }
+            guard let sym = dlsym(handle, "DisplayServicesSetBrightness") else { return nil }
+            return unsafeBitCast(sym, to: (@convention(c) (CGDirectDisplayID, Float) -> Int32).self)
+        }()
+
+        nonisolated(unsafe) private static let _getBrightness: (@convention(c) (CGDirectDisplayID, UnsafeMutablePointer<Float>) -> Int32)? = {
+            guard let handle else { return nil }
+            guard let sym = dlsym(handle, "DisplayServicesGetBrightness") else { return nil }
+            return unsafeBitCast(sym, to: (@convention(c) (CGDirectDisplayID, UnsafeMutablePointer<Float>) -> Int32).self)
+        }()
+
+        static var isAvailable: Bool { _setBrightness != nil && _getBrightness != nil }
+
+        static func setBrightness(_ display: CGDirectDisplayID, _ brightness: Float) -> Int32 {
+            _setBrightness?(display, brightness) ?? -1
+        }
+
+        static func getBrightness(_ display: CGDirectDisplayID, _ brightness: UnsafeMutablePointer<Float>) -> Int32 {
+            _getBrightness?(display, brightness) ?? -1
+        }
+    }
+#endif
+
 /// Represents a display with its current visual properties.
 ///
 /// This model tracks per-display brightness, warmth (color temperature), and contrast
@@ -82,6 +118,12 @@ class BrightnessManager {
     /// Notification observer for system wake events (re-apply gamma after wake)
     private var wakeObserver: NSObjectProtocol?
 
+    #if !APPSTORE
+        /// Polling task that reads the built-in display backlight to detect external changes
+        /// (keyboard brightness keys, Control Center). Runs every ~1 second.
+        private var backlightPollTask: Task<Void, Never>?
+    #endif
+
     /// Standard initializer that sets up full hardware monitoring and system integration.
     /// Registers observers for display changes, wake events, and ScreenBlanker coordination.
     init() {
@@ -123,6 +165,13 @@ class BrightnessManager {
             }
         }
 
+        #if !APPSTORE
+            // Poll the built-in display backlight to detect external brightness changes
+            // (keyboard F1/F2, Control Center). Polling is simple and reliable — the
+            // DisplayServicesGetBrightness call is very cheap (~0.1ms).
+            startBacklightPolling()
+        #endif
+
         // Coordinate with ScreenBlanker — re-apply brightness after blanking ends
         ScreenBlanker.shared.onDismiss = { [weak self] in
             self?.reapplyAll()
@@ -147,6 +196,16 @@ class BrightnessManager {
         ScreenBlanker.shared.restoreDisplay = { [weak self] displayID in
             guard let self else { return }
             guard let display = self.displays.first(where: { $0.id == displayID }) else { return }
+            #if !APPSTORE
+                if display.isBuiltIn {
+                    self.setBuiltInBacklight(for: displayID, to: display.brightness)
+                    self.applyGamma(
+                        displayID: displayID, brightness: 1.0,
+                        warmth: display.warmth, contrast: display.contrast
+                    )
+                    return
+                }
+            #endif
             self.applyGamma(
                 displayID: displayID, brightness: display.brightness,
                 warmth: display.warmth, contrast: display.contrast
@@ -168,6 +227,57 @@ class BrightnessManager {
     func contrast(for displayID: CGDirectDisplayID) -> Double {
         displays.first(where: { $0.id == displayID })?.contrast ?? 0.5
     }
+
+    // MARK: - Built-in Display Backlight
+
+    #if !APPSTORE
+        /// Reads the current hardware backlight brightness of the built-in display.
+        /// Returns nil if the display is not built-in or the API call fails.
+        func readBuiltInBrightness(for displayID: CGDirectDisplayID) -> Double? {
+            guard CGDisplayIsBuiltin(displayID) != 0,
+                  DisplayServicesAPI.isAvailable else { return nil }
+            var brightness: Float = 0
+            let result = DisplayServicesAPI.getBrightness(displayID, &brightness)
+            guard result == 0 else { return nil }
+            return Double(brightness)
+        }
+
+        /// Sets the hardware backlight brightness of the built-in display.
+        /// Returns true on success.
+        @discardableResult
+        func setBuiltInBacklight(for displayID: CGDirectDisplayID, to value: Double) -> Bool {
+            guard CGDisplayIsBuiltin(displayID) != 0,
+                  DisplayServicesAPI.isAvailable else { return false }
+            let clamped = Float(min(max(value, 0.0), 1.0))
+            return DisplayServicesAPI.setBrightness(displayID, clamped) == 0
+        }
+
+        /// Called periodically to detect external brightness changes (keyboard keys, Control Center).
+        /// Updates our model to stay in sync.
+        private func syncBuiltInBrightness() {
+            for i in displays.indices where displays[i].isBuiltIn {
+                if let hw = readBuiltInBrightness(for: displays[i].id) {
+                    let clamped = max(hw, Self.minimumBrightness)
+                    if abs(displays[i].brightness - clamped) > 0.005 {
+                        displays[i].brightness = clamped
+                        debouncePersist()
+                    }
+                }
+            }
+        }
+
+        /// Starts polling the built-in display backlight every ~1 second.
+        private func startBacklightPolling() {
+            backlightPollTask?.cancel()
+            backlightPollTask = Task { [weak self] in
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(1))
+                    guard !Task.isCancelled else { break }
+                    self?.syncBuiltInBrightness()
+                }
+            }
+        }
+    #endif
 
     /// Toggles blanking for a single display
     func toggleBlank(for displayID: CGDirectDisplayID) {
@@ -289,8 +399,20 @@ class BrightnessManager {
             let builtIn = CGDisplayIsBuiltin(displayID) != 0
 
             let name = displayName(for: displayID)
-            // Ensure brightness meets minimum threshold for visibility
-            let brightness = Swift.max(savedBrightness[String(displayID)] ?? 1.0, Self.minimumBrightness)
+
+            // For built-in displays (non-App Store), read the actual backlight level
+            // so the slider matches Control Center on launch.
+            var brightness: Double
+            #if !APPSTORE
+                if builtIn, let hw = readBuiltInBrightness(for: displayID) {
+                    brightness = Swift.max(hw, Self.minimumBrightness)
+                } else {
+                    brightness = Swift.max(savedBrightness[String(displayID)] ?? 1.0, Self.minimumBrightness)
+                }
+            #else
+                // Ensure brightness meets minimum threshold for visibility
+                brightness = Swift.max(savedBrightness[String(displayID)] ?? 1.0, Self.minimumBrightness)
+            #endif
             // Clamp warmth and contrast to valid ranges
             let warmth = min(max(savedWarmth[String(displayID)] ?? 0.0, 0.0), 1.0)
             let contrast = min(max(savedContrast[String(displayID)] ?? 0.5, 0.0), 1.0)
@@ -364,7 +486,20 @@ class BrightnessManager {
         debouncePersist()
 
         #if !APPSTORE
-            // Dispatch to hardware or software based on the active control mode
+            // Built-in display: control hardware backlight directly
+            if displays[index].isBuiltIn {
+                setBuiltInBacklight(for: displayID, to: clamped)
+                // Apply gamma for warmth/contrast only (brightness=1.0 since backlight handles it)
+                if !ScreenBlanker.shared.isBlanking {
+                    applyGamma(
+                        displayID: displayID, brightness: 1.0,
+                        warmth: displays[index].warmth, contrast: displays[index].contrast
+                    )
+                }
+                return
+            }
+
+            // External displays: dispatch to hardware or software based on the active control mode
             let mode = HardwareBrightnessManager.shared.controlMode
             let hasDDC = HardwareBrightnessManager.shared.supportsDDC(for: displayID)
 
@@ -466,6 +601,17 @@ class BrightnessManager {
     /// - Screen blanking ends (restores pre-blanking state)
     func reapplyAll() {
         for display in displays {
+            #if !APPSTORE
+                if display.isBuiltIn {
+                    // Built-in: restore backlight level and apply gamma for warmth/contrast only
+                    setBuiltInBacklight(for: display.id, to: display.brightness)
+                    applyGamma(
+                        displayID: display.id, brightness: 1.0,
+                        warmth: display.warmth, contrast: display.contrast
+                    )
+                    continue
+                }
+            #endif
             applyGamma(
                 displayID: display.id, brightness: display.brightness,
                 warmth: display.warmth, contrast: display.contrast
