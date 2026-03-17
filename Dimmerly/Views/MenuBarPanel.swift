@@ -498,11 +498,11 @@ struct DisplayBrightnessRow: View {
                     onToggleBlank()
                 } label: {
                     Image(systemName: isBlanked ? "moon.fill" : "moon")
-                        .font(.callout)
+                        .font(.caption2)
+                        .frame(width: 12)
                         .foregroundStyle(isBlanked ? .primary : .secondary)
                 }
                 .buttonStyle(.borderless)
-                .frame(minWidth: 28, minHeight: 28)
                 .help(isBlanked ? Text("Restore display") : Text("Dim display"))
                 .accessibilityLabel(isBlanked ? Text("Restore display") : Text("Dim display"))
                 .accessibilityHint(
