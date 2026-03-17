@@ -10,7 +10,7 @@ import CoreGraphics
 
 struct SetDisplayBrightnessIntent: AppIntent {
     static let title: LocalizedStringResource = "Set Display Brightness"
-    static let description: IntentDescription = .init("Sets the brightness of a specific external display.")
+    static let description: IntentDescription = .init("Sets the brightness of a specific display.")
 
     @Parameter(title: "Display")
     var display: DisplayEntity

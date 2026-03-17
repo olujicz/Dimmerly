@@ -2,7 +2,7 @@
 //  BrightnessManager.swift
 //  Dimmerly
 //
-//  Per-display software brightness control for external monitors.
+//  Per-display software brightness control for all displays (built-in and external).
 //  Uses CoreGraphics gamma table APIs (App Store safe).
 //
 
@@ -10,14 +10,14 @@ import AppKit
 import CoreGraphics
 import IOKit
 
-/// Represents an external display with its current visual properties.
+/// Represents a display with its current visual properties.
 ///
 /// This model tracks per-display brightness, warmth (color temperature), and contrast
-/// adjustments applied via CoreGraphics gamma tables. The built-in display is excluded.
+/// adjustments applied via CoreGraphics gamma tables.
 struct ExternalDisplay: Identifiable, Sendable {
     /// Core Graphics display identifier (unique hardware ID)
     let id: CGDirectDisplayID
-    /// Human-readable display name (e.g., "LG UltraFine 5K")
+    /// Human-readable display name (e.g., "LG UltraFine 5K" or "Built-in Retina Display")
     let name: String
     /// Current brightness level (0.0 = dimmest allowed, 1.0 = full brightness)
     var brightness: Double
@@ -25,6 +25,8 @@ struct ExternalDisplay: Identifiable, Sendable {
     var warmth: Double = 0.0
     /// Contrast curve steepness (0.0 = flat, 0.5 = neutral/linear, 1.0 = steep S-curve)
     var contrast: Double = 0.5
+    /// Whether this is the built-in (laptop) display
+    var isBuiltIn: Bool = false
 
     #if !APPSTORE
         /// Whether this display supports DDC/CI hardware control.
@@ -33,7 +35,7 @@ struct ExternalDisplay: Identifiable, Sendable {
     #endif
 }
 
-/// Manages software-based brightness, warmth, and contrast control for external displays.
+/// Manages software-based brightness, warmth, and contrast control for all displays.
 ///
 /// This manager uses CoreGraphics gamma table APIs to adjust display output, which is:
 /// - App Store safe (no private APIs or command-line tools required)
@@ -56,7 +58,7 @@ class BrightnessManager {
     /// Prevents accidentally setting displays to pure black, which would require external controls to recover.
     static let minimumBrightness: Double = 0.10
 
-    /// Currently connected external displays with their visual properties.
+    /// Currently connected displays (built-in and external) with their visual properties.
     /// Updated automatically when displays are connected/disconnected.
     var displays: [ExternalDisplay] = []
 
@@ -284,8 +286,7 @@ class BrightnessManager {
         var newDisplays: [ExternalDisplay] = []
 
         for displayID in displayIDs {
-            // Skip built-in display (laptop screen) — only manage external monitors
-            guard CGDisplayIsBuiltin(displayID) == 0 else { continue }
+            let builtIn = CGDisplayIsBuiltin(displayID) != 0
 
             let name = displayName(for: displayID)
             // Ensure brightness meets minimum threshold for visibility
@@ -298,10 +299,13 @@ class BrightnessManager {
                 id: displayID, name: name, brightness: brightness,
                 warmth: warmth, contrast: contrast
             )
+            display.isBuiltIn = builtIn
 
             #if !APPSTORE
-                // Check DDC capability from HardwareBrightnessManager's cached probes
-                display.supportsDDC = HardwareBrightnessManager.shared.supportsDDC(for: displayID)
+                // DDC is only available on external monitors
+                if !builtIn {
+                    display.supportsDDC = HardwareBrightnessManager.shared.supportsDDC(for: displayID)
+                }
             #endif
 
             newDisplays.append(display)
@@ -320,17 +324,18 @@ class BrightnessManager {
                 guard duplicatedNames.contains(name) else { continue }
                 let index = (nameIndex[name] ?? 0) + 1
                 nameIndex[name] = index
-                newDisplays[i] = ExternalDisplay(
+                var renamed = ExternalDisplay(
                     id: newDisplays[i].id,
                     name: "\(name) (\(index))",
                     brightness: newDisplays[i].brightness,
                     warmth: newDisplays[i].warmth,
                     contrast: newDisplays[i].contrast
                 )
+                renamed.isBuiltIn = newDisplays[i].isBuiltIn
                 #if !APPSTORE
-                    newDisplays[i].supportsDDC = HardwareBrightnessManager.shared
-                        .supportsDDC(for: newDisplays[i].id)
+                    renamed.supportsDDC = newDisplays[i].supportsDDC
                 #endif
+                newDisplays[i] = renamed
             }
         }
 

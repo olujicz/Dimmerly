@@ -10,7 +10,7 @@ import CoreGraphics
 
 struct SetDisplayWarmthIntent: AppIntent {
     static let title: LocalizedStringResource = "Set Display Warmth"
-    static let description: IntentDescription = .init("Sets the color warmth of a specific external display.")
+    static let description: IntentDescription = .init("Sets the color warmth of a specific display.")
 
     @Parameter(title: "Display")
     var display: DisplayEntity

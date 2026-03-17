@@ -16,25 +16,23 @@ struct MenuBarPanel: View {
         @Environment(HardwareBrightnessManager.self) var hardwareManager
     #endif
     @Environment(\.openSettings) private var openSettings
-    @AppStorage("showDisplayAdjustments") private var showAdjustments = false
+
 
     var body: some View {
         VStack(spacing: 0) {
-            if brightnessManager.displays.isEmpty {
-                emptyState
-            } else {
-                ScrollView {
-                    VStack(spacing: 0) {
-                        displaySliders
+            ScrollView {
+                VStack(spacing: 0) {
+                    displaySliders
 
-                        Divider()
-                        presetsSection
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 8)
-                    }
+                    Divider()
+                    presetsSection
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 8)
                 }
-                .frame(maxHeight: 400)
+                .overlayScrollerStyle()
             }
+            .scrollBounceBehavior(.basedOnSize)
+            .frame(maxHeight: 400)
 
             Divider()
 
@@ -51,24 +49,6 @@ struct MenuBarPanel: View {
         .frame(width: 300)
     }
 
-    // MARK: - Empty State
-
-    private var emptyState: some View {
-        VStack(spacing: 6) {
-            Image(systemName: "display")
-                .font(.title)
-                .foregroundStyle(.secondary)
-                .accessibilityHidden(true)
-            Text("No External Displays")
-                .font(.headline)
-            Text("Connect an external display to adjust its brightness.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .padding(20)
-    }
-
     // MARK: - Sliders
 
     private var displaySliders: some View {
@@ -81,7 +61,6 @@ struct MenuBarPanel: View {
                 DisplayBrightnessRow(
                     display: display,
                     isBlanked: ScreenBlanker.shared.isDisplayBlanked(display.id),
-                    showAdjustments: showAdjustments,
                     isAutoColorTemp: colorTempManager.isActive,
                     onChange: { newValue in
                         brightnessManager.setBrightness(for: display.id, to: newValue)
@@ -99,43 +78,16 @@ struct MenuBarPanel: View {
                 #if !APPSTORE
                 .ddcControls(
                         hardwareManager: hardwareManager,
-                        displayID: display.id
+                        displayID: display.id,
+                        isBuiltIn: display.isBuiltIn
                     )
                 #endif
             }
 
-            displayAdjustmentsDisclosure
-
-            if showAdjustments {
-                autoWarmthToggle
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            }
+            autoWarmthToggle
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
-    }
-
-    private var displayAdjustmentsDisclosure: some View {
-        Button {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                showAdjustments.toggle()
-            }
-        } label: {
-            HStack(spacing: 4) {
-                Image(systemName: "chevron.right")
-                    .font(.caption2)
-                    .rotationEffect(.degrees(showAdjustments ? 90 : 0))
-                Text("Display Adjustments")
-                    .font(.callout)
-                Spacer()
-            }
-            .foregroundStyle(.secondary)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.borderless)
-        .padding(.top, 8)
-        .accessibilityLabel(Text(showAdjustments ? "Hide display adjustments" : "Show display adjustments"))
-        .help("Show warmth and contrast sliders")
     }
 
     // MARK: - Auto Warmth Toggle
@@ -412,7 +364,6 @@ private struct FooterLabel: View {
 struct DisplayBrightnessRow: View {
     let display: ExternalDisplay
     let isBlanked: Bool
-    let showAdjustments: Bool
     let isAutoColorTemp: Bool
     let onChange: (Double) -> Void
     let onWarmthChange: (Double) -> Void
@@ -441,6 +392,7 @@ struct DisplayBrightnessRow: View {
     @State private var sliderValue: Double
     @State private var warmthValue: Double
     @State private var contrastValue: Double
+    @State private var showAdjustments = false
     #if !APPSTORE
         @State private var volumeValue: Double
     #endif
@@ -448,7 +400,6 @@ struct DisplayBrightnessRow: View {
     init(
         display: ExternalDisplay,
         isBlanked: Bool,
-        showAdjustments: Bool,
         isAutoColorTemp: Bool = false,
         onChange: @escaping (Double) -> Void,
         onWarmthChange: @escaping (Double) -> Void,
@@ -457,7 +408,6 @@ struct DisplayBrightnessRow: View {
     ) {
         self.display = display
         self.isBlanked = isBlanked
-        self.showAdjustments = showAdjustments
         self.isAutoColorTemp = isAutoColorTemp
         self.onChange = onChange
         self.onWarmthChange = onWarmthChange
@@ -474,9 +424,23 @@ struct DisplayBrightnessRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text(display.name)
-                    .font(.callout)
-                    .lineLimit(1)
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        showAdjustments.toggle()
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.right")
+                            .font(.caption2)
+                            .rotationEffect(.degrees(showAdjustments ? 90 : 0))
+                        Text(display.name)
+                            .font(.callout)
+                            .lineLimit(1)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel(Text(showAdjustments ? "Hide adjustments for \(display.name)" : "Show adjustments for \(display.name)"))
 
                 #if !APPSTORE
                     if hasDDC {
@@ -784,6 +748,7 @@ struct DisplayBrightnessRow: View {
                 #endif
             }
         }
+        .controlSize(.small)
         .onChange(of: display.brightness) {
             sliderValue = display.brightness
         }
@@ -827,8 +792,12 @@ struct DisplayBrightnessRow: View {
         /// keeping the call site clean in `displaySliders`.
         func ddcControls(
             hardwareManager: HardwareBrightnessManager,
-            displayID: CGDirectDisplayID
+            displayID: CGDirectDisplayID,
+            isBuiltIn: Bool = false
         ) -> DisplayBrightnessRow {
+            // Built-in display does not support DDC
+            guard !isBuiltIn else { return self }
+
             var copy = self
             let hasDDC = hardwareManager.supportsDDC(for: displayID)
             copy.hasDDC = hasDDC
@@ -863,3 +832,37 @@ struct DisplayBrightnessRow: View {
         }
     }
 #endif
+
+// MARK: - Overlay Scroller Style
+
+/// Forces the thin overlay scroller style on a ScrollView, regardless of
+/// the user's "Show scroll bars" system preference. Appropriate for compact
+/// transient panels (like menu bar extras) where the legacy thick scrollbar
+/// is visually intrusive.
+private struct OverlayScrollerConfigurator: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        OverlayScrollerView()
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        (nsView as? OverlayScrollerView)?.applyOverlayStyle()
+    }
+
+    final class OverlayScrollerView: NSView {
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            applyOverlayStyle()
+        }
+
+        func applyOverlayStyle() {
+            guard let scrollView = enclosingScrollView else { return }
+            scrollView.scrollerStyle = .overlay
+        }
+    }
+}
+
+extension View {
+    func overlayScrollerStyle() -> some View {
+        background(OverlayScrollerConfigurator())
+    }
+}

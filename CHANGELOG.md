@@ -8,6 +8,8 @@ Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- Built-in display support: brightness, warmth, and contrast controls now available for the laptop screen (always shown alongside external displays)
+- Per-display adjustment disclosure: each display has its own expand/collapse chevron for warmth and contrast sliders
 - Per-display brightness, warmth (color temperature), and contrast control
 - Automatic color temperature adjustment based on time of day (Helland blackbody algorithm, ~1900K–6500K)
 - Brightness presets with save, rename, and keyboard shortcut assignment (up to 10)
@@ -75,6 +77,10 @@ Semantic Versioning.
 - Adopted macOS Tahoe design patterns across all views
 - Improved VoiceOver accessibility across the Settings window
 - Improved HIG compliance across Settings and menu bar panel
+- Menu bar panel uses compact slider control size (`.controlSize(.small)`)
+- Menu bar panel uses overlay scroller style for a cleaner appearance
+- Scroll bounce only activates when content overflows (`.scrollBounceBehavior(.basedOnSize)`)
+- Removed "No External Displays" empty state — built-in display is always available
 
 ### Fixed
 - Fixed DDC/CI hardware brightness control not working on Apple Silicon Macs:

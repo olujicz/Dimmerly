@@ -741,7 +741,7 @@ struct AboutSettingsTab: View {
                 LabeledContent("Version", value: appVersion)
 
                 LabeledContent("Description") {
-                    Text("A macOS menu bar utility for controlling external display brightness.")
+                    Text("A macOS menu bar utility for controlling display brightness.")
                         .foregroundStyle(.secondary)
                 }
 

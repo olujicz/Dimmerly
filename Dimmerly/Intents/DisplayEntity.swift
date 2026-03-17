@@ -2,7 +2,7 @@
 //  DisplayEntity.swift
 //  Dimmerly
 //
-//  AppEntity representing a connected external display for Shortcuts.app.
+//  AppEntity representing a connected display for Shortcuts.app.
 //
 
 import AppIntents

@@ -1193,73 +1193,73 @@
         }
       }
     },
-    "A macOS menu bar utility for controlling external display brightness." : {
+    "A macOS menu bar utility for controlling display brightness." : {
       "comment" : "App description in About tab",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ein macOS-Menüleisten-Dienstprogramm zur Steuerung der Helligkeit externer Bildschirme."
+            "value" : "Ein macOS-Menüleisten-Dienstprogramm zur Steuerung der Bildschirmhelligkeit."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A macOS menu bar utility for controlling external display brightness."
+            "value" : "A macOS menu bar utility for controlling display brightness."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Una utilidad de barra de menú de macOS para controlar el brillo de pantallas externas."
+            "value" : "Una utilidad de barra de menú de macOS para controlar el brillo de la pantalla."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un utilitaire de barre des menus macOS pour contrôler la luminosité des écrans externes."
+            "value" : "Un utilitaire de barre des menus macOS pour contrôler la luminosité de l'écran."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un'utilità della barra dei menu di macOS per controllare la luminosità degli schermi esterni."
+            "value" : "Un'utilità della barra dei menu di macOS per controllare la luminosità dello schermo."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "外部ディスプレイの明るさを制御するmacOSメニューバーユーティリティ。"
+            "value" : "ディスプレイの明るさを制御するmacOSメニューバーユーティリティ。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "외부 디스플레이 밝기를 제어하는 macOS 메뉴 막대 유틸리티."
+            "value" : "디스플레이 밝기를 제어하는 macOS 메뉴 막대 유틸리티."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Een macOS-menubalkhulpprogramma voor het regelen van de helderheid van externe schermen."
+            "value" : "Een macOS-menubalkhulpprogramma voor het regelen van de schermhelderheid."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Um utilitário da barra de menus do macOS para controlar o brilho de telas externas."
+            "value" : "Um utilitário da barra de menus do macOS para controlar o brilho da tela."
           }
         },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "macOS uslužni program za kontrolu osvetljenosti spoljnih ekrana."
+            "value" : "macOS uslužni program za kontrolu osvetljenosti ekrana."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "用于控制外部显示器亮度的 macOS 菜单栏实用工具。"
+            "value" : "用于控制显示器亮度的 macOS 菜单栏实用工具。"
           }
         }
       }
