@@ -85,6 +85,8 @@ Semantic Versioning.
 - Narrowed SwiftLint scope to shipping code by excluding the local `tools/` research folder
 
 ### Fixed
+- Fixed DDC/CI display matching on M4 Macs: EDID reads now use `IOAVServiceCopyEDID` (DCP firmware path) instead of raw I2C, which is more reliable on M4+ where the DCP display pipeline handles I2C differently
+- Fixed DDC/CI response parser accepting bus noise as valid data by adding checksum validation (using host write address 0x50 as seed per DDC/CI spec)
 - Fixed DDC/CI hardware brightness control not working on Apple Silicon Macs:
   - Fixed response parser swapping opcode and result code bytes, which caused all valid DDC replies to be rejected
   - Added EDID-based display matching via I2C (address 0x50) for Apple Silicon Macs where the IOKit registry lacks vendor/model properties in the DCPAVServiceProxy parent chain

@@ -50,7 +50,7 @@
     ///
     /// Not all monitors support all codes — use `DDCController.capabilities(for:)` to probe
     /// which codes a specific display implements.
-    enum VCPCode: UInt8, CaseIterable, Sendable {
+    enum VCPCode: UInt8, CaseIterable {
         /// Display luminance / backlight brightness (0–100)
         /// Continuous, Read/Write. Most universally supported code.
         case brightness = 0x10
@@ -109,7 +109,7 @@
     ///
     /// Monitor manufacturers may use non-standard values. These cover the most
     /// common sources found in modern monitors.
-    enum InputSource: UInt16, CaseIterable, Sendable {
+    enum InputSource: UInt16, CaseIterable {
         case vga1 = 1
         case vga2 = 2
         case dvi1 = 3
@@ -157,7 +157,7 @@
     ///
     /// DDC returns both the current value and the maximum supported value,
     /// which is essential for normalizing to a 0.0–1.0 range.
-    struct DDCReadResult: Sendable, Equatable {
+    struct DDCReadResult: Equatable {
         /// Current value reported by the monitor
         let currentValue: UInt16
         /// Maximum supported value for this VCP code
@@ -168,36 +168,12 @@
 
     /// Low-level DDC/CI controller for reading and writing monitor VCP codes via IOKit.
     ///
-    /// This controller handles the platform-specific I/O for DDC/CI communication:
-    /// - On Apple Silicon, it uses `IOAVService` (private class) via `IOAVServiceReadI2C`/`IOAVServiceWriteI2C`
-    /// - On Intel Macs, it uses `IOI2CRequest` via `IOFBGetI2CInterfaceCount`/`IOFBCopyI2CInterfaceForBus`
+    /// Platform support:
+    /// - Apple Silicon: IOAVService → IOAVDevice → IOConnectCallMethod (fallback chain)
+    /// - Intel: IOI2CRequest via IOFramebuffer
     ///
-    /// On Apple Silicon, multiple I2C transport paths are tried in order:
-    /// 1. IOAVService (standard path, works for USB-C/DP on all Apple Silicon)
-    /// 2. IOAVDevice (alternative DCP firmware path, may help for HDMI)
-    /// 3. Direct IOConnectCallMethod (last resort, tries raw IOConnect selectors)
-    ///
-    /// Each transport uses retry logic (multiple write cycles and retry attempts) to
-    /// improve reliability on noisy I2C buses, matching MonitorControl and m1ddc behavior.
-    ///
-    /// All operations are synchronous and take ~50ms per transaction due to I2C bus speed.
-    /// Callers should dispatch DDC operations off the main thread and rate-limit writes
-    /// to prevent overwhelming the monitor's embedded microcontroller.
-    ///
-    /// Thread safety: This controller is stateless and all methods are safe to call from
-    /// any thread. However, concurrent DDC operations to the same display may interleave
-    /// and produce garbled results — serialize access per display externally.
-    ///
-    /// Usage:
-    /// ```swift
-    /// let controller = DDCController()
-    /// // Read current brightness
-    /// if let result = controller.read(vcp: .brightness, for: displayID) {
-    ///     print("Brightness: \(result.currentValue)/\(result.maxValue)")
-    /// }
-    /// // Set brightness to 50%
-    /// controller.write(vcp: .brightness, value: 50, for: displayID)
-    /// ```
+    /// All operations are synchronous (~50ms per transaction). Callers should dispatch
+    /// off the main thread and rate-limit writes. Thread-safe but serialize per display.
     enum DDCController {
         // MARK: - DDC I2C Protocol Constants
 
@@ -444,7 +420,14 @@
                 }
 
                 // Strategy 3: If only one external display and one service, assume match.
-                // This handles monitors where EDID vendor/model don't match CG-reported values.
+                return findSoleAVService(for: displayID)
+            }
+
+            /// Fallback: if only one external display and one AV service exist, assume they match.
+            ///
+            /// This handles monitors where EDID vendor/model don't match CG-reported values
+            /// or where the IOKit registry structure prevents proper matching.
+            private static func findSoleAVService(for displayID: CGDirectDisplayID) -> CFTypeRef? {
                 for className in avServiceClassNames {
                     var iterator: io_iterator_t = 0
                     guard IOServiceGetMatchingServices(
@@ -471,8 +454,8 @@
                         return displays.filter { CGDisplayIsBuiltin($0) == 0 }
                     }()
 
-                    if services.count == 1 && externalDisplays.count == 1
-                        && externalDisplays.first == displayID
+                    if services.count == 1, externalDisplays.count == 1,
+                       externalDisplays.first == displayID
                     {
                         let avService = IOAVServiceCreateWithService(nil, services[0])
                         for svc in services {
@@ -485,7 +468,6 @@
                         IOObjectRelease(svc)
                     }
                 }
-
                 return nil
             }
 
@@ -636,12 +618,14 @@
             }
 
             /// Checks if an IOAVService corresponds to a specific display by reading its
-            /// EDID over I2C and matching the manufacturer/product/serial fields.
+            /// EDID and matching the manufacturer/product/serial fields.
             ///
-            /// EDID is stored at I2C address 0x50. The first 128 bytes contain:
-            /// - Bytes 8–9: Manufacturer ID (big-endian PNP compressed ASCII)
-            /// - Bytes 10–11: Product code (little-endian)
-            /// - Bytes 12–15: Serial number (little-endian)
+            /// Tries `IOAVServiceCopyEDID` first (DCP firmware path, more reliable on M4+),
+            /// then falls back to raw I2C read at address 0x50.
+            ///
+            /// EDID bytes 8–9: Manufacturer ID (big-endian PNP compressed ASCII)
+            /// EDID bytes 10–11: Product code (little-endian)
+            /// EDID bytes 12–15: Serial number (little-endian)
             ///
             /// CoreGraphics reports vendor as the raw 2-byte manufacturer code and model
             /// as the product code, so these can be compared directly.
@@ -651,13 +635,7 @@
                 modelID: UInt32,
                 serialNumber: UInt32
             ) -> Bool {
-                var edid = [UInt8](repeating: 0, count: 128)
-                let result = IOAVServiceReadI2C(avService, 0x50, 0x00, &edid, 128)
-                guard result == KERN_SUCCESS else { return false }
-                // Validate EDID header: 00 FF FF FF FF FF FF 00
-                guard edid[0] == 0x00, edid[1] == 0xFF, edid[2] == 0xFF, edid[7] == 0x00 else {
-                    return false
-                }
+                guard let edid = readEDID(from: avService) else { return false }
 
                 let edidVendor = UInt32(edid[8]) << 8 | UInt32(edid[9])
                 let edidProduct = UInt16(edid[10]) | (UInt16(edid[11]) << 8)
@@ -673,6 +651,41 @@
                     return true
                 }
                 return false
+            }
+
+            /// Reads the first 128 bytes of EDID from an IOAVService.
+            ///
+            /// Prefers `IOAVServiceCopyEDID` (DCP firmware path) which is more reliable
+            /// on M4+ Macs where raw I2C may be restricted. Falls back to raw I2C read
+            /// at address 0x50 for older Apple Silicon.
+            private static func readEDID(from avService: CFTypeRef) -> [UInt8]? {
+                // Strategy 1: IOAVServiceCopyEDID (DCP firmware path, reliable on M4+)
+                var edidData: CFData?
+                if IOAVServiceCopyEDID(avService, &edidData) == KERN_SUCCESS,
+                   let data = edidData
+                {
+                    let length = CFDataGetLength(data)
+                    guard length >= 128 else { return nil }
+                    let ptr = CFDataGetBytePtr(data)!
+                    var edid = [UInt8](repeating: 0, count: 128)
+                    for i in 0 ..< 128 {
+                        edid[i] = ptr[i]
+                    }
+                    // Validate EDID header: 00 FF FF FF FF FF FF 00
+                    guard edid[0] == 0x00, edid[1] == 0xFF, edid[2] == 0xFF, edid[7] == 0x00 else {
+                        return nil
+                    }
+                    return edid
+                }
+
+                // Strategy 2: Raw I2C read at EDID address 0x50
+                var edid = [UInt8](repeating: 0, count: 128)
+                let result = IOAVServiceReadI2C(avService, 0x50, 0x00, &edid, 128)
+                guard result == KERN_SUCCESS else { return nil }
+                guard edid[0] == 0x00, edid[1] == 0xFF, edid[2] == 0xFF, edid[7] == 0x00 else {
+                    return nil
+                }
+                return edid
             }
 
             // MARK: Apple Silicon Read/Write (Multi-Transport)
@@ -741,9 +754,9 @@
             /// Reads a VCP code via IOAVService with retry logic.
             ///
             /// The `hostAddress` (0x51) is passed as the I2C register/sub-address parameter,
-            /// matching the behavior of MonitorControl, m1ddc, and AppleSiliconDDC. The
-            /// checksum includes 0x51 even though it is not in the packet body, because the
-            /// I2C hardware transmits it as part of the frame.
+            /// matching the behavior of MonitorControl, m1ddc, and AppleSiliconDDC.
+            /// IOAVServiceWriteI2C transmits 0x51 on the bus as a data byte before the
+            /// payload, so it is correctly included in the checksum per DDC/CI spec.
             private static func readViaService(avService: CFTypeRef, vcp: VCPCode) -> DDCReadResult? {
                 let length: UInt8 = 0x82
                 let checksum = UInt8(ddcI2CAddress << 1) ^ hostAddress ^ length ^ getVCPOpcode ^ vcp.rawValue
@@ -1191,6 +1204,18 @@
             //   Byte 10: Checksum
             guard data.count >= 11 else { return nil }
 
+            // Validate response checksum. The DDC/CI checksum covers all bytes in the
+            // message plus the implicit destination address. For a display-to-host reply,
+            // the destination is the host's write address (0x50), not the host source
+            // address (0x51) used in outgoing commands. XOR of the destination address
+            // with all message bytes (including the checksum byte) must equal zero.
+            let hostWriteAddress: UInt8 = 0x50
+            var xorCheck = hostWriteAddress
+            for i in 0 ... 10 {
+                xorCheck ^= data[i]
+            }
+            guard xorCheck == 0 else { return nil }
+
             // Verify this is a valid VCP reply (byte 2 = opcode)
             let replyOpcode = data[2]
             guard replyOpcode == getVCPReplyOpcode else { return nil }
@@ -1216,57 +1241,19 @@
 
     // MARK: - IOAVService Bridging (Apple Silicon)
 
-    // These free functions bridge to private IOKit symbols for DDC/CI I2C access on
-    // Apple Silicon Macs. They are declared with `@_silgen_name` so the linker resolves
-    // them directly from IOKit.framework — no `dlsym` or runtime lookup is needed.
-    //
-    // The symbols are undocumented but have been stable since macOS 11 (Big Sur) and
-    // are used by MonitorControl, m1ddc, and other DDC tools. If Apple ever removes
-    // these symbols, the app will fail to **link** (a build-time error), not crash
-    // at runtime.
-    //
-    // On M1–M3, the IOKit registry contains `IOAVService` instances directly.
-    // On M4+, the registry contains `DCPAVServiceProxy` instead, which must be
-    // converted to an IOAVService via `IOAVServiceCreateWithService` before the
-    // I2C functions can be used. The I2C functions accept the resulting CFTypeRef
-    // (an IOAVService object), not the raw `io_service_t` registry handle.
-    //
-    // Because these are free functions (not methods on a type), they cannot be declared
-    // inside `DDCController`. Swift's `@_silgen_name` requires a top-level or
-    // file-scope function declaration to emit the correct symbol reference.
-    //
-    // IOAVDevice symbols (IOAVDeviceCreateWithService, IOAVDeviceWriteI2C,
-    // IOAVDeviceReadI2C) are loaded dynamically via dlsym in DDCController
-    // because they may not exist on all macOS versions.
+    // Private IOKit symbols for DDC/CI I2C access, linked via @_silgen_name.
+    // Stable since macOS 11; used by MonitorControl, m1ddc, AppleSiliconDDC.
+    // Must be file-scope (Swift @_silgen_name requires top-level declarations).
+    // IOAVDevice symbols are loaded via dlsym instead (may not exist on all versions).
 
     #if arch(arm64)
 
-        /// Creates an IOAVService object from an IOKit registry entry.
-        ///
-        /// On M4+ Macs, the IOKit class is `DCPAVServiceProxy` rather than `IOAVService`.
-        /// This function bridges any compatible registry entry into an IOAVService that
-        /// the I2C read/write functions accept. On M1–M3, it works with `IOAVService`
-        /// entries as well (effectively a no-op wrapper).
-        ///
-        /// - Parameters:
-        ///   - allocator: CF allocator, pass `nil` for the default allocator
-        ///   - service: IOKit registry entry (IOAVService or DCPAVServiceProxy)
-        /// - Returns: Retained IOAVService reference, or `nil` if creation failed
         @_silgen_name("IOAVServiceCreateWithService")
         private func IOAVServiceCreateWithService(
             _ allocator: CFAllocator?,
             _ service: io_service_t
         ) -> Unmanaged<CFTypeRef>?
 
-        /// Writes data to an I2C device via IOAVService.
-        ///
-        /// - Parameters:
-        ///   - service: IOAVService object from `IOAVServiceCreateWithService`
-        ///   - address: I2C slave address (7-bit, not shifted)
-        ///   - register: I2C sub-address byte (0x51 for DDC/CI host address)
-        ///   - data: Buffer of bytes to write
-        ///   - length: Number of bytes to write
-        /// - Returns: IOKit result code (KERN_SUCCESS on success)
         @_silgen_name("IOAVServiceWriteI2C")
         private func IOAVServiceWriteI2C(
             _ service: CFTypeRef,
@@ -1276,15 +1263,6 @@
             _ length: UInt32
         ) -> IOReturn
 
-        /// Reads data from an I2C device via IOAVService.
-        ///
-        /// - Parameters:
-        ///   - service: IOAVService object from `IOAVServiceCreateWithService`
-        ///   - address: I2C slave address (7-bit, not shifted)
-        ///   - register: I2C sub-address byte (0x51 for DDC/CI host address)
-        ///   - data: Buffer to receive read bytes
-        ///   - length: Number of bytes to read
-        /// - Returns: IOKit result code (KERN_SUCCESS on success)
         @_silgen_name("IOAVServiceReadI2C")
         private func IOAVServiceReadI2C(
             _ service: CFTypeRef,
@@ -1292,6 +1270,13 @@
             _ register: UInt32,
             _ data: UnsafeMutablePointer<UInt8>,
             _ length: UInt32
+        ) -> IOReturn
+
+        /// Copies EDID via DCP firmware path — more reliable than raw I2C on M4+.
+        @_silgen_name("IOAVServiceCopyEDID")
+        private func IOAVServiceCopyEDID(
+            _ service: CFTypeRef,
+            _ edid: UnsafeMutablePointer<CFData?>
         ) -> IOReturn
 
     #endif
