@@ -17,7 +17,6 @@ struct MenuBarPanel: View {
     #endif
     @Environment(\.openSettings) private var openSettings
 
-
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
@@ -32,7 +31,8 @@ struct MenuBarPanel: View {
                 .overlayScrollerStyle()
             }
             .scrollBounceBehavior(.basedOnSize)
-            .frame(maxHeight: 400)
+            .frame(idealHeight: 200, maxHeight: 400)
+            .fixedSize(horizontal: false, vertical: true)
 
             Divider()
 
@@ -440,7 +440,11 @@ struct DisplayBrightnessRow: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.borderless)
-                .accessibilityLabel(Text(showAdjustments ? "Hide adjustments for \(display.name)" : "Show adjustments for \(display.name)"))
+                .accessibilityLabel(
+                    Text(showAdjustments
+                        ? "Hide adjustments for \(display.name)"
+                        : "Show adjustments for \(display.name)")
+                )
 
                 #if !APPSTORE
                     if hasDDC {
@@ -840,11 +844,11 @@ struct DisplayBrightnessRow: View {
 /// transient panels (like menu bar extras) where the legacy thick scrollbar
 /// is visually intrusive.
 private struct OverlayScrollerConfigurator: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSView {
+    func makeNSView(context _: Context) -> NSView {
         OverlayScrollerView()
     }
 
-    func updateNSView(_ nsView: NSView, context: Context) {
+    func updateNSView(_ nsView: NSView, context _: Context) {
         (nsView as? OverlayScrollerView)?.applyOverlayStyle()
     }
 
