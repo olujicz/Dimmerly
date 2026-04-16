@@ -20,8 +20,8 @@ import Foundation
 /// Design: Stored as enum instead of flags/bitmask for:
 /// - Clean Codable support (no custom encoding needed)
 /// - Type-safe Set operations
-/// - Sendable conformance (enum with no state is inherently sendable)
-enum ShortcutModifier: String, Codable, Hashable, Sendable {
+/// - Straightforward hashing and equality semantics
+enum ShortcutModifier: String, Codable, Hashable {
     case command
     case option
     case shift
@@ -35,12 +35,11 @@ enum ShortcutModifier: String, Codable, Hashable, Sendable {
 ///   for readability and cross-architecture stability
 /// - **Set for modifiers**: Unordered set matches macOS behavior (Cmd+Opt = Opt+Cmd)
 /// - **Codable**: Persists to UserDefaults as JSON
-/// - **Sendable**: Can be safely passed across concurrency boundaries
 ///
 /// Validation:
 /// - `isValid`: Requires at least one modifier (prevents bare keys like "d" as global shortcuts)
 /// - `isReservedSystemShortcut`: Checks against common macOS system shortcuts
-struct GlobalShortcut: Codable, Equatable, Sendable {
+struct GlobalShortcut: Codable, Equatable {
     /// The primary key (e.g., "d", "s", "return", "f1").
     /// Lowercase for letters, semantic names for special keys.
     let key: String

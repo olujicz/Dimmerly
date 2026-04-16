@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct BrightnessPreset: Identifiable, Codable, Equatable, Sendable {
+struct BrightnessPreset: Identifiable, Codable, Equatable {
     let id: UUID
     var name: String
     /// Map of display ID (as String) to brightness value (0.0–1.0)

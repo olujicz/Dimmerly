@@ -19,7 +19,7 @@
     ///
     /// Capability probing is not free — each VCP code requires a full DDC round-trip (~40ms).
     /// Probing all codes takes ~360ms. This is why results are cached.
-    struct HardwareDisplayCapability: Sendable, Equatable {
+    struct HardwareDisplayCapability: Equatable {
         /// CoreGraphics display identifier this capability belongs to
         let displayID: CGDirectDisplayID
 
@@ -130,7 +130,7 @@
     /// - Software only: Uses CoreGraphics gamma tables (existing behavior, works everywhere)
     /// - Hardware only: Uses DDC/CI to control the monitor's backlight directly
     /// - Combined: DDC for backlight + gamma for fine color tuning (warmth/contrast)
-    enum DDCControlMode: String, CaseIterable, Identifiable, Sendable {
+    enum DDCControlMode: String, CaseIterable, Identifiable {
         /// Use only software gamma tables (default, App Store safe)
         case softwareOnly = "software"
 

@@ -9,7 +9,7 @@
 import Foundation
 
 /// Errors that can occur during display sleep operations
-enum DisplayError: LocalizedError, Sendable {
+enum DisplayError: LocalizedError {
     #if !APPSTORE
         /// The pmset utility was not found at /usr/bin/pmset
         case pmsetNotFound

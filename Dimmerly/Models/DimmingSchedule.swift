@@ -9,7 +9,7 @@
 import Foundation
 
 /// When a schedule should trigger
-enum ScheduleTrigger: Codable, Equatable, Sendable {
+enum ScheduleTrigger: Codable, Equatable {
     /// Cached formatter for fixed-time display (avoids allocation on every render)
     private static let timeFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -88,7 +88,7 @@ enum ScheduleTrigger: Codable, Equatable, Sendable {
 }
 
 /// A scheduled preset application
-struct DimmingSchedule: Identifiable, Codable, Equatable, Sendable {
+struct DimmingSchedule: Identifiable, Codable, Equatable {
     let id: UUID
     var name: String
     var trigger: ScheduleTrigger
