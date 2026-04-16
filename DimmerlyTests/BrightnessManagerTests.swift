@@ -15,9 +15,17 @@ final class BrightnessManagerTests: XCTestCase {
 
     override func setUp() async throws {
         bm = BrightnessManager(forTesting: true)
+        #if !APPSTORE
+            HardwareBrightnessManager.shared.capabilities.removeAll()
+            HardwareBrightnessManager.shared.controlMode = .combined
+        #endif
     }
 
     override func tearDown() async throws {
+        #if !APPSTORE
+            HardwareBrightnessManager.shared.capabilities.removeAll()
+            HardwareBrightnessManager.shared.controlMode = .combined
+        #endif
         bm = nil
     }
 
@@ -344,6 +352,118 @@ final class BrightnessManagerTests: XCTestCase {
         bm.displays = [ExternalDisplay(id: 1, name: "A", brightness: 0.5)]
         bm.setBrightness(for: 999, to: 0.3)
         XCTAssertEqual(bm.displays[0].brightness, 0.5, "Should not change any display")
+    }
+
+    func testAnimateToPresetSyncsBuiltInBacklightAtCompletion() async {
+        var builtIn = ExternalDisplay(id: 1, name: "Built-in", brightness: 1.0, warmth: 0.0, contrast: 0.5)
+        builtIn.isBuiltIn = true
+        bm.displays = [builtIn]
+
+        let backlightSynced = expectation(description: "Built-in backlight is updated after animation")
+        let finalGammaApplied = expectation(description: "Built-in gamma is restored without brightness dimming")
+        bm.setBuiltInBacklightHook = { displayID, value in
+            XCTAssertEqual(displayID, 1)
+            XCTAssertEqual(value, 0.4, accuracy: 0.001)
+            backlightSynced.fulfill()
+            return true
+        }
+        bm.applyGammaHook = { displayID, brightness, warmth, contrast in
+            guard displayID == 1,
+                  abs(brightness - 1.0) < 0.001,
+                  abs(warmth - 0.2) < 0.001,
+                  abs(contrast - 0.7) < 0.001
+            else {
+                return
+            }
+            finalGammaApplied.fulfill()
+        }
+
+        let preset = BrightnessPreset(
+            name: "Animated",
+            universalBrightness: 0.4,
+            universalWarmth: 0.2,
+            universalContrast: 0.7
+        )
+
+        XCTAssertTrue(bm.animateToPreset(preset))
+        await fulfillment(of: [backlightSynced, finalGammaApplied], timeout: 1.0)
+        XCTAssertEqual(bm.displays[0].brightness, 0.4, accuracy: 0.001)
+    }
+
+    func testAnimateToPresetSyncsDDCBrightnessAndRestoresNeutralGammaBrightness() async {
+        var external = ExternalDisplay(id: 2, name: "External", brightness: 1.0, warmth: 0.0, contrast: 0.5)
+        external.supportsDDC = true
+        bm.displays = [external]
+
+        HardwareBrightnessManager.shared.capabilities[2] = HardwareDisplayCapability(
+            displayID: 2,
+            supportsDDC: true,
+            supportedCodes: [.brightness],
+            maxBrightness: 100,
+            maxContrast: 100,
+            maxVolume: 0
+        )
+        HardwareBrightnessManager.shared.controlMode = .combined
+
+        let hardwareSynced = expectation(description: "External DDC brightness is updated after animation")
+        let finalGammaApplied = expectation(
+            description: "External gamma keeps warmth and contrast without software dimming"
+        )
+        bm.setExternalHardwareBrightnessHook = { displayID, value in
+            XCTAssertEqual(displayID, 2)
+            XCTAssertEqual(value, 0.35, accuracy: 0.001)
+            hardwareSynced.fulfill()
+        }
+        bm.applyGammaHook = { displayID, brightness, warmth, contrast in
+            guard displayID == 2,
+                  abs(brightness - 1.0) < 0.001,
+                  abs(warmth - 0.3) < 0.001,
+                  abs(contrast - 0.65) < 0.001
+            else {
+                return
+            }
+            finalGammaApplied.fulfill()
+        }
+
+        let preset = BrightnessPreset(
+            name: "External Animated",
+            universalBrightness: 0.35,
+            universalWarmth: 0.3,
+            universalContrast: 0.65
+        )
+
+        XCTAssertTrue(bm.animateToPreset(preset))
+        await fulfillment(of: [hardwareSynced, finalGammaApplied], timeout: 1.0)
+        XCTAssertEqual(bm.displays[0].brightness, 0.35, accuracy: 0.001)
+    }
+
+    func testSetWarmthOnDDCDisplayKeepsGammaBrightnessNeutral() {
+        var external = ExternalDisplay(id: 3, name: "External", brightness: 0.3, warmth: 0.0, contrast: 0.5)
+        external.supportsDDC = true
+        bm.displays = [external]
+
+        HardwareBrightnessManager.shared.capabilities[3] = HardwareDisplayCapability(
+            displayID: 3,
+            supportsDDC: true,
+            supportedCodes: [.brightness],
+            maxBrightness: 100,
+            maxContrast: 100,
+            maxVolume: 0
+        )
+        HardwareBrightnessManager.shared.controlMode = .combined
+
+        let gammaApplied = expectation(description: "Warmth update preserves neutral gamma brightness on DDC display")
+        bm.applyGammaHook = { displayID, brightness, warmth, contrast in
+            XCTAssertEqual(displayID, 3)
+            XCTAssertEqual(brightness, 1.0, accuracy: 0.001)
+            XCTAssertEqual(warmth, 0.7, accuracy: 0.001)
+            XCTAssertEqual(contrast, 0.5, accuracy: 0.001)
+            gammaApplied.fulfill()
+        }
+
+        bm.setWarmth(for: 3, to: 0.7)
+
+        wait(for: [gammaApplied], timeout: 0.1)
     }
 
     // MARK: - buildTable

@@ -70,6 +70,8 @@
 		EX00000000000000000012 /* LocationPickerRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = EX00000000000000000002 /* LocationPickerRow.swift */; };
 		HW00000000000000000014 /* DDCControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = HW00000000000000000004 /* DDCControllerTests.swift */; };
 		HW00000000000000000015 /* HardwareBrightnessManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = HW00000000000000000005 /* HardwareBrightnessManagerTests.swift */; };
+		SB00000000000000000011 /* ScreenBlankerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SB00000000000000000001 /* ScreenBlankerTests.swift */; };
+		SH00000000000000000011 /* SharedConstantsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SH00000000000000000001 /* SharedConstantsTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -166,6 +168,8 @@
 		HW00000000000000000003 /* HardwareBrightnessManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareBrightnessManager.swift; sourceTree = "<group>"; };
 		HW00000000000000000004 /* DDCControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DDCControllerTests.swift; sourceTree = "<group>"; };
 		HW00000000000000000005 /* HardwareBrightnessManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareBrightnessManagerTests.swift; sourceTree = "<group>"; };
+		SB00000000000000000001 /* ScreenBlankerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenBlankerTests.swift; sourceTree = "<group>"; };
+		SH00000000000000000001 /* SharedConstantsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedConstantsTests.swift; sourceTree = "<group>"; };
 		EX00000000000000000001 /* PresetManagementRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetManagementRow.swift; sourceTree = "<group>"; };
 		EX00000000000000000002 /* LocationPickerRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPickerRow.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -365,6 +369,8 @@
 					UT00000000000000000030 /* MenuBarIconStyleTests.swift */,
 					UT00000000000000000020 /* PresetManagerTests.swift */,
 					NT00000000000000000030 /* ScheduleManagerTests.swift */,
+					SB00000000000000000001 /* ScreenBlankerTests.swift */,
+					SH00000000000000000001 /* SharedConstantsTests.swift */,
 					NT00000000000000000010 /* SolarCalculatorTests.swift */,
 			);
 			path = DimmerlyTests;
@@ -587,6 +593,8 @@
 				CT00000000000000000012 /* ColorTemperatureManagerTests.swift in Sources */,
 				HW00000000000000000014 /* DDCControllerTests.swift in Sources */,
 				HW00000000000000000015 /* HardwareBrightnessManagerTests.swift in Sources */,
+				SB00000000000000000011 /* ScreenBlankerTests.swift in Sources */,
+				SH00000000000000000011 /* SharedConstantsTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

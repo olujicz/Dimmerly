@@ -17,24 +17,32 @@ import IOKit
     /// brightness on the built-in display. Uses dlopen/dlsym to avoid linking against
     /// a private framework, which keeps the build clean and fails gracefully at runtime
     /// if the framework is unavailable on a future macOS version.
-    private enum DisplayServicesAPI: Sendable {
-        nonisolated(unsafe) private static let handle: UnsafeMutableRawPointer? = {
-            dlopen("/System/Library/PrivateFrameworks/DisplayServices.framework/DisplayServices", RTLD_LAZY)
-        }()
+    private enum DisplayServicesAPI {
+        private nonisolated(unsafe) static let handle: UnsafeMutableRawPointer? = dlopen(
+            "/System/Library/PrivateFrameworks/DisplayServices.framework/DisplayServices",
+            RTLD_LAZY
+        )
 
-        nonisolated(unsafe) private static let _setBrightness: (@convention(c) (CGDirectDisplayID, Float) -> Int32)? = {
+        private nonisolated(unsafe) static let _setBrightness:
+            (@convention(c) (CGDirectDisplayID, Float) -> Int32)? = {
             guard let handle else { return nil }
             guard let sym = dlsym(handle, "DisplayServicesSetBrightness") else { return nil }
             return unsafeBitCast(sym, to: (@convention(c) (CGDirectDisplayID, Float) -> Int32).self)
         }()
 
-        nonisolated(unsafe) private static let _getBrightness: (@convention(c) (CGDirectDisplayID, UnsafeMutablePointer<Float>) -> Int32)? = {
+        private nonisolated(unsafe) static let _getBrightness:
+            (@convention(c) (CGDirectDisplayID, UnsafeMutablePointer<Float>) -> Int32)? = {
             guard let handle else { return nil }
             guard let sym = dlsym(handle, "DisplayServicesGetBrightness") else { return nil }
-            return unsafeBitCast(sym, to: (@convention(c) (CGDirectDisplayID, UnsafeMutablePointer<Float>) -> Int32).self)
+            return unsafeBitCast(
+                sym,
+                to: (@convention(c) (CGDirectDisplayID, UnsafeMutablePointer<Float>) -> Int32).self
+            )
         }()
 
-        static var isAvailable: Bool { _setBrightness != nil && _getBrightness != nil }
+        static var isAvailable: Bool {
+            _setBrightness != nil && _getBrightness != nil
+        }
 
         static func setBrightness(_ display: CGDirectDisplayID, _ brightness: Float) -> Int32 {
             _setBrightness?(display, brightness) ?? -1
@@ -50,7 +58,7 @@ import IOKit
 ///
 /// This model tracks per-display brightness, warmth (color temperature), and contrast
 /// adjustments applied via CoreGraphics gamma tables.
-struct ExternalDisplay: Identifiable, Sendable {
+struct ExternalDisplay: Identifiable {
     /// Core Graphics display identifier (unique hardware ID)
     let id: CGDirectDisplayID
     /// Human-readable display name (e.g., "LG UltraFine 5K" or "Built-in Retina Display")
@@ -122,7 +130,16 @@ class BrightnessManager {
         /// Polling task that reads the built-in display backlight to detect external changes
         /// (keyboard brightness keys, Control Center). Runs every ~1 second.
         private var backlightPollTask: Task<Void, Never>?
+
+        /// Test seam for observing built-in backlight writes without invoking private APIs.
+        var setBuiltInBacklightHook: ((CGDirectDisplayID, Double) -> Bool)?
+
+        /// Test seam for observing external DDC brightness writes without hitting hardware.
+        var setExternalHardwareBrightnessHook: ((CGDirectDisplayID, Double) -> Void)?
     #endif
+
+    /// Test seam for observing gamma applications without modifying the real display state.
+    var applyGammaHook: ((CGDirectDisplayID, Double, Double, Double) -> Void)?
 
     /// Standard initializer that sets up full hardware monitoring and system integration.
     /// Registers observers for display changes, wake events, and ScreenBlanker coordination.
@@ -196,20 +213,7 @@ class BrightnessManager {
         ScreenBlanker.shared.restoreDisplay = { [weak self] displayID in
             guard let self else { return }
             guard let display = self.displays.first(where: { $0.id == displayID }) else { return }
-            #if !APPSTORE
-                if display.isBuiltIn {
-                    self.setBuiltInBacklight(for: displayID, to: display.brightness)
-                    self.applyGamma(
-                        displayID: displayID, brightness: 1.0,
-                        warmth: display.warmth, contrast: display.contrast
-                    )
-                    return
-                }
-            #endif
-            self.applyGamma(
-                displayID: displayID, brightness: display.brightness,
-                warmth: display.warmth, contrast: display.contrast
-            )
+            self.applyDisplayOutput(display, allowDuringBlanking: true)
         }
     }
 
@@ -246,6 +250,9 @@ class BrightnessManager {
         /// Returns true on success.
         @discardableResult
         func setBuiltInBacklight(for displayID: CGDirectDisplayID, to value: Double) -> Bool {
+            if let setBuiltInBacklightHook {
+                return setBuiltInBacklightHook(displayID, value)
+            }
             guard CGDisplayIsBuiltin(displayID) != 0,
                   DisplayServicesAPI.isAvailable else { return false }
             let clamped = Float(min(max(value, 0.0), 1.0))
@@ -484,42 +491,7 @@ class BrightnessManager {
         displays[index].brightness = clamped
 
         debouncePersist()
-
-        #if !APPSTORE
-            // Built-in display: control hardware backlight directly
-            if displays[index].isBuiltIn {
-                setBuiltInBacklight(for: displayID, to: clamped)
-                // Apply gamma for warmth/contrast only (brightness=1.0 since backlight handles it)
-                if !ScreenBlanker.shared.isBlanking {
-                    applyGamma(
-                        displayID: displayID, brightness: 1.0,
-                        warmth: displays[index].warmth, contrast: displays[index].contrast
-                    )
-                }
-                return
-            }
-
-            // External displays: dispatch to hardware or software based on the active control mode
-            let mode = HardwareBrightnessManager.shared.controlMode
-            let hasDDC = HardwareBrightnessManager.shared.supportsDDC(for: displayID)
-
-            if hasDDC, mode == .hardwareOnly || mode == .combined {
-                HardwareBrightnessManager.shared.setHardwareBrightness(for: displayID, to: clamped)
-            }
-
-            if mode == .hardwareOnly, hasDDC {
-                // Hardware-only mode: skip gamma table adjustment
-                return
-            }
-        #endif
-
-        // Don't apply gamma during blanking (would cause visible flicker)
-        if !ScreenBlanker.shared.isBlanking {
-            applyGamma(
-                displayID: displayID, brightness: clamped,
-                warmth: displays[index].warmth, contrast: displays[index].contrast
-            )
-        }
+        applyDisplayOutput(displays[index])
     }
 
     /// Sets the color temperature warmth for a specific display.
@@ -546,12 +518,7 @@ class BrightnessManager {
 
         debouncePersist()
 
-        if !ScreenBlanker.shared.isBlanking {
-            applyGamma(
-                displayID: displayID, brightness: displays[index].brightness,
-                warmth: clamped, contrast: displays[index].contrast
-            )
-        }
+        applyDisplayGamma(displays[index])
     }
 
     /// Sets the contrast curve steepness for a specific display.
@@ -572,12 +539,7 @@ class BrightnessManager {
 
         debouncePersist()
 
-        if !ScreenBlanker.shared.isBlanking {
-            applyGamma(
-                displayID: displayID, brightness: displays[index].brightness,
-                warmth: displays[index].warmth, contrast: clamped
-            )
-        }
+        applyDisplayGamma(displays[index])
     }
 
     /// Re-applies the current brightness via gamma for a specific display.
@@ -587,10 +549,7 @@ class BrightnessManager {
     /// control when DDC becomes unreliable at runtime.
     func applyCurrentBrightness(for displayID: CGDirectDisplayID) {
         guard let display = displays.first(where: { $0.id == displayID }) else { return }
-        applyGamma(
-            displayID: displayID, brightness: display.brightness,
-            warmth: display.warmth, contrast: display.contrast
-        )
+        applyDisplayGamma(display)
     }
 
     /// Reapplies gamma tables to all connected displays using their current settings.
@@ -601,21 +560,7 @@ class BrightnessManager {
     /// - Screen blanking ends (restores pre-blanking state)
     func reapplyAll() {
         for display in displays {
-            #if !APPSTORE
-                if display.isBuiltIn {
-                    // Built-in: restore backlight level and apply gamma for warmth/contrast only
-                    setBuiltInBacklight(for: display.id, to: display.brightness)
-                    applyGamma(
-                        displayID: display.id, brightness: 1.0,
-                        warmth: display.warmth, contrast: display.contrast
-                    )
-                    continue
-                }
-            #endif
-            applyGamma(
-                displayID: display.id, brightness: display.brightness,
-                warmth: display.warmth, contrast: display.contrast
-            )
+            applyDisplayOutput(display)
         }
     }
 
@@ -728,6 +673,9 @@ class BrightnessManager {
             }
 
             guard !Task.isCancelled else { return }
+            #if !APPSTORE
+                synchronizeHardwareBrightnessAfterAnimation()
+            #endif
             persistAll()
         }
 
@@ -784,7 +732,7 @@ class BrightnessManager {
 
                     applyGamma(
                         displayID: target.displayID,
-                        brightness: displays[index].brightness,
+                        brightness: resolvedGammaBrightness(for: displays[index]),
                         warmth: warmth,
                         contrast: displays[index].contrast
                     )
@@ -847,7 +795,7 @@ class BrightnessManager {
 
                     applyGamma(
                         displayID: target.displayID,
-                        brightness: displays[index].brightness,
+                        brightness: resolvedGammaBrightness(for: displays[index]),
                         warmth: warmth,
                         contrast: displays[index].contrast
                     )
@@ -1081,6 +1029,11 @@ class BrightnessManager {
     ///   - warmth: Color temperature warmth (0.0–1.0)
     ///   - contrast: Contrast curve steepness (0.0–1.0)
     private func applyGamma(displayID: CGDirectDisplayID, brightness: Double, warmth: Double, contrast: Double) {
+        if let applyGammaHook {
+            applyGammaHook(displayID, brightness, warmth, contrast)
+            return
+        }
+
         let m = Self.channelMultipliers(for: warmth)
         var rTable = Self.buildTable(brightness: brightness, channelMultiplier: m.r, contrast: contrast)
         var gTable = Self.buildTable(brightness: brightness, channelMultiplier: m.g, contrast: contrast)
@@ -1395,6 +1348,70 @@ class BrightnessManager {
         UserDefaults.standard.set(warmthDict, forKey: warmthPersistenceKey)
         UserDefaults.standard.set(contrastDict, forKey: contrastPersistenceKey)
     }
+
+    #if !APPSTORE
+        private func usesHardwareBrightness(for display: ExternalDisplay) -> Bool {
+            if display.isBuiltIn {
+                return true
+            }
+
+            let mode = HardwareBrightnessManager.shared.controlMode
+            return mode != .softwareOnly && HardwareBrightnessManager.shared.supportsDDC(for: display.id)
+        }
+
+        private func setExternalHardwareBrightness(for displayID: CGDirectDisplayID, to value: Double) {
+            if let setExternalHardwareBrightnessHook {
+                setExternalHardwareBrightnessHook(displayID, value)
+                return
+            }
+
+            HardwareBrightnessManager.shared.setHardwareBrightness(for: displayID, to: value)
+        }
+    #endif
+
+    private func resolvedGammaBrightness(for display: ExternalDisplay) -> Double {
+        #if !APPSTORE
+            usesHardwareBrightness(for: display) ? 1.0 : display.brightness
+        #else
+            display.brightness
+        #endif
+    }
+
+    private func applyDisplayGamma(_ display: ExternalDisplay, allowDuringBlanking: Bool = false) {
+        guard allowDuringBlanking || !ScreenBlanker.shared.isBlanking else { return }
+
+        applyGamma(
+            displayID: display.id,
+            brightness: resolvedGammaBrightness(for: display),
+            warmth: display.warmth,
+            contrast: display.contrast
+        )
+    }
+
+    private func applyDisplayOutput(_ display: ExternalDisplay, allowDuringBlanking: Bool = false) {
+        #if !APPSTORE
+            if display.isBuiltIn {
+                setBuiltInBacklight(for: display.id, to: display.brightness)
+            } else if usesHardwareBrightness(for: display) {
+                setExternalHardwareBrightness(for: display.id, to: display.brightness)
+            }
+        #endif
+
+        applyDisplayGamma(display, allowDuringBlanking: allowDuringBlanking)
+    }
+
+    #if !APPSTORE
+        /// Synchronizes hardware-backed brightness controls after a gamma-based animation completes.
+        ///
+        /// Animated preset transitions use gamma interpolation for smooth visuals. Once the
+        /// animation finishes, we must commit the final brightness to the real hardware path
+        /// so built-in backlight and DDC-backed displays match the app's final state.
+        private func synchronizeHardwareBrightnessAfterAnimation() {
+            for display in displays {
+                applyDisplayOutput(display)
+            }
+        }
+    #endif
 }
 
 // MARK: - Display Reconfiguration Callback

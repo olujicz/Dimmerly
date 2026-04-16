@@ -6,9 +6,10 @@
 //
 
 import Foundation
+import Security
 
 enum SharedConstants {
-    static let appGroupID = "MN5C3DH647.rs.in.olujic.dimmerly"
+    static let appGroupID = resolvedAppGroupID()
     static let widgetPresetsKey = "widgetPresets"
     static let widgetPresetCommandKey = "widgetPresetCommand"
 
@@ -16,6 +17,24 @@ enum SharedConstants {
     static let dimNotification = Notification.Name("rs.in.olujic.dimmerly.dim")
     /// Distributed notification posted by the widget to apply a preset
     static let presetNotification = Notification.Name("rs.in.olujic.dimmerly.preset")
+
+    static func resolvedAppGroupID(
+        teamIdentifierPrefix: String? = nil,
+        bundleIdentifier: String = Bundle.main.bundleIdentifier ?? "rs.in.olujic.dimmerly"
+    ) -> String {
+        if let teamIdentifierPrefix, !teamIdentifierPrefix.isEmpty {
+            let normalizedPrefix = teamIdentifierPrefix.hasSuffix(".")
+                ? teamIdentifierPrefix
+                : "\(teamIdentifierPrefix)."
+            return "\(normalizedPrefix)\(bundleIdentifier)"
+        }
+
+        if let entitledAppGroupID = entitledAppGroupID() {
+            return entitledAppGroupID
+        }
+
+        return bundleIdentifier
+    }
 
     nonisolated(unsafe) static let sharedDefaults: UserDefaults? = {
         // Sandboxed apps (App Store, widget): containerURL creates the directory automatically.
@@ -28,10 +47,25 @@ enum SharedConstants {
         }
         return UserDefaults(suiteName: appGroupID)
     }()
+
+    private static func entitledAppGroupID() -> String? {
+        guard let task = SecTaskCreateFromSelf(nil),
+              let value = SecTaskCopyValueForEntitlement(
+                  task,
+                  "com.apple.security.application-groups" as CFString,
+                  nil
+              )
+        else {
+            return nil
+        }
+
+        let groups = value as? [String]
+        return groups?.first
+    }
 }
 
 /// Lightweight preset info shared between main app and widget via App Group UserDefaults.
-struct WidgetPresetInfo: Codable, Identifiable, Sendable {
+struct WidgetPresetInfo: Codable, Identifiable {
     let id: String
     let name: String
 }

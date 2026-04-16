@@ -180,8 +180,11 @@ class ScreenBlanker {
             perDisplayWindows[displayID] = window
             window.orderFrontRegardless()
 
-            // If every screen is now blanked, start dismiss monitoring
-            if allExternalScreensBlanked {
+            // If every active display is now blanked, start dismiss monitoring
+            if Self.shouldEnablePerDisplayRecovery(
+                blankedDisplayIDs: blankedDisplayIDs,
+                activeDisplayIDs: BrightnessManager.activeDisplayIDs()
+            ) {
                 isPerDisplayFullBlanked = true
                 activationTime = ProcessInfo.processInfo.systemUptime
                 NSCursor.hide()
@@ -373,10 +376,15 @@ class ScreenBlanker {
         }
     }
 
-    /// Whether every external display is currently per-display blanked
-    private var allExternalScreensBlanked: Bool {
-        let externalIDs = BrightnessManager.activeDisplayIDs().filter { CGDisplayIsBuiltin($0) == 0 }
-        return !externalIDs.isEmpty && externalIDs.allSatisfy { blankedDisplayIDs.contains($0) }
+    /// Returns whether per-display blanking should enter recovery mode.
+    ///
+    /// Recovery should engage once every active display is blanked, regardless of whether
+    /// the system only has a built-in display or a mix of built-in and external panels.
+    static func shouldEnablePerDisplayRecovery(
+        blankedDisplayIDs: Set<CGDirectDisplayID>,
+        activeDisplayIDs: [CGDirectDisplayID]
+    ) -> Bool {
+        !activeDisplayIDs.isEmpty && activeDisplayIDs.allSatisfy { blankedDisplayIDs.contains($0) }
     }
 
     /// Unblanks all per-display blanked screens (called when all screens were blanked via moon buttons)
