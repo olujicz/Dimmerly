@@ -27,20 +27,10 @@ struct SetDisplayContrastIntent: AppIntent {
     @MainActor
     func perform() async throws -> some IntentResult {
         guard let displayID = CGDirectDisplayID(display.id) else {
-            throw IntentError.invalidDisplay
+            throw DisplayIntentError.invalidDisplay
         }
         let value = contrast / 100.0
         BrightnessManager.shared.setContrast(for: displayID, to: value)
         return .result()
-    }
-
-    enum IntentError: Swift.Error, CustomLocalizedStringResourceConvertible {
-        case invalidDisplay
-
-        var localizedStringResource: LocalizedStringResource {
-            switch self {
-            case .invalidDisplay: return "The selected display is no longer connected."
-            }
-        }
     }
 }

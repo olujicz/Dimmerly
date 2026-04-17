@@ -548,7 +548,7 @@ struct DisplayBrightnessRow: View {
                                         "%dK",
                                         comment: "Accessibility value: warmth in Kelvin"
                                     ),
-                                    Int(BrightnessManager.kelvinForWarmth(warmthValue))
+                                    Int(GammaMath.kelvinForWarmth(warmthValue))
                                 )
                             )
                             .onChange(of: warmthValue) {
@@ -563,7 +563,7 @@ struct DisplayBrightnessRow: View {
                     }
 
                     HStack {
-                        Text(verbatim: "\(Int(BrightnessManager.kelvinForWarmth(warmthValue)))K")
+                        Text(verbatim: "\(Int(GammaMath.kelvinForWarmth(warmthValue)))K")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                             .monospacedDigit()

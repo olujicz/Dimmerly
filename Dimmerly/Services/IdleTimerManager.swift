@@ -43,16 +43,9 @@ class IdleTimerManager {
     /// after next idle period.
     private var hasFiredForCurrentIdle = false
 
-    /// Cached settings values for change detection
+    /// Cached configuration for change detection (so identical calls are no-ops).
     private var lastEnabled: Bool?
     private var lastMinutes: Int?
-
-    /// Notification observer for UserDefaults changes
-    private var settingsObserver: NSObjectProtocol?
-
-    /// Read closures stored to avoid capturing non-Sendable closures in observer callbacks.
-    private var readEnabledSetting: (() -> Bool)?
-    private var readMinutesSetting: (() -> Int)?
 
     /// Starts monitoring idle time
     func start(thresholdMinutes: Int) {
@@ -75,48 +68,17 @@ class IdleTimerManager {
         hasFiredForCurrentIdle = false
     }
 
-    /// Begins observing settings changes and auto-starts/stops based on current values.
+    /// Applies the current idle-timer setting. Called by the app on launch and whenever
+    /// `AppSettings.idleTimerEnabled` or `.idleTimerMinutes` changes.
     ///
-    /// - Parameters:
-    ///   - readEnabled: Closure that returns the current idle-timer-enabled setting
-    ///   - readMinutes: Closure that returns the current idle-timer minutes setting
-    func observeSettings(readEnabled: @escaping () -> Bool, readMinutes: @escaping () -> Int) {
-        readEnabledSetting = readEnabled
-        readMinutesSetting = readMinutes
-
-        let enabled = readEnabled()
-        let minutes = readMinutes()
+    /// Short-circuits when the resolved state is identical to the last call so that
+    /// unrelated observable updates don't needlessly restart the timer.
+    func apply(enabled: Bool, thresholdMinutes: Int) {
+        guard enabled != lastEnabled || thresholdMinutes != lastMinutes else { return }
         lastEnabled = enabled
-        lastMinutes = minutes
-
+        lastMinutes = thresholdMinutes
         if enabled {
-            start(thresholdMinutes: minutes)
-        }
-
-        settingsObserver = NotificationCenter.default.addObserver(
-            forName: UserDefaults.didChangeNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in
-                self?.handleObservedSettingsChange()
-            }
-        }
-    }
-
-    private func handleObservedSettingsChange() {
-        guard let readEnabledSetting, let readMinutesSetting else { return }
-        handleSettingsChange(readEnabled: readEnabledSetting, readMinutes: readMinutesSetting)
-    }
-
-    private func handleSettingsChange(readEnabled: () -> Bool, readMinutes: () -> Int) {
-        let enabled = readEnabled()
-        let minutes = readMinutes()
-        guard enabled != lastEnabled || minutes != lastMinutes else { return }
-        lastEnabled = enabled
-        lastMinutes = minutes
-        if enabled {
-            start(thresholdMinutes: minutes)
+            start(thresholdMinutes: thresholdMinutes)
         } else {
             stop()
         }
@@ -149,7 +111,6 @@ class IdleTimerManager {
 
     // MARK: - Lifecycle
 
-    // Note: deinit intentionally omitted to avoid @MainActor data race warnings in Swift 6.
-    // This manager is held by @StateObject in DimmerlyApp for the app's lifetime, so deinit
-    // never executes. Cleanup is handled explicitly via stop() when idle timer is disabled.
+    // No deinit needed: the manager is held by @State in DimmerlyApp for the app's
+    // lifetime, and the timer stops when `apply(enabled: false, ...)` is called.
 }

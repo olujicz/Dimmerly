@@ -272,15 +272,15 @@ class ScreenBlanker {
                     let warmth = displayWarmth[displayID] ?? 0.0
                     let contrast = displayContrast[displayID] ?? 0.5
                     let current = start * (1.0 - progress)
-                    let m = BrightnessManager.channelMultipliers(for: warmth)
+                    let m = GammaMath.channelMultipliers(for: warmth)
 
-                    var rTable = BrightnessManager.buildTable(
+                    var rTable = GammaMath.buildTable(
                         brightness: current, channelMultiplier: m.r, contrast: contrast
                     )
-                    var gTable = BrightnessManager.buildTable(
+                    var gTable = GammaMath.buildTable(
                         brightness: current, channelMultiplier: m.g, contrast: contrast
                     )
-                    var bTable = BrightnessManager.buildTable(
+                    var bTable = GammaMath.buildTable(
                         brightness: current, channelMultiplier: m.b, contrast: contrast
                     )
 
@@ -403,7 +403,7 @@ class ScreenBlanker {
 
     /// Starts dismiss monitoring, dispatching to Escape-only or any-input based on settings.
     /// The action closure is called when the user triggers a dismiss.
-    private func startDismissMonitoring(action: @escaping @MainActor @Sendable () -> Void) {
+    private func startDismissMonitoring(action: @escaping @MainActor () -> Void) {
         if requireEscapeToDismiss {
             startEscapeOnlyDismissMonitoring(action: action)
         } else {
@@ -413,19 +413,24 @@ class ScreenBlanker {
 
     /// Escape-only mode: only Escape key triggers the action.
     /// All other keyboard and mouse input is swallowed so the screen stays dark.
-    private func startEscapeOnlyDismissMonitoring(action: @escaping @MainActor @Sendable () -> Void) {
+    ///
+    /// NSEvent monitor callbacks fire synchronously on the main thread, so the action
+    /// runs inline rather than hopping through `Task { @MainActor in … }`. Inline
+    /// invocation preserves the grace-period check (which reads `activationTime`
+    /// relative to the event timestamp); deferring to a later runloop tick would let
+    /// multiple queued events race past the guard.
+    private func startEscapeOnlyDismissMonitoring(action: @escaping @MainActor () -> Void) {
         let escapeKeyCode: UInt16 = 53
 
         let keyMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.keyDown]) { event in
-            let keyCode = event.keyCode
-            guard keyCode == escapeKeyCode else { return }
-            Task { @MainActor in action() }
+            guard event.keyCode == escapeKeyCode else { return }
+            MainActor.assumeIsolated { action() }
         }
         if let keyMonitor { eventMonitors.append(keyMonitor) }
 
         let localKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { event in
             if event.keyCode == escapeKeyCode {
-                Task { @MainActor in action() }
+                MainActor.assumeIsolated { action() }
             }
             return nil
         }
@@ -441,14 +446,14 @@ class ScreenBlanker {
     }
 
     /// Default mode: any keyboard or mouse event triggers the action.
-    private func startAnyInputDismissMonitoring(action: @escaping @MainActor @Sendable () -> Void) {
+    private func startAnyInputDismissMonitoring(action: @escaping @MainActor () -> Void) {
         let keyMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.keyDown]) { _ in
-            Task { @MainActor in action() }
+            MainActor.assumeIsolated { action() }
         }
         if let keyMonitor { eventMonitors.append(keyMonitor) }
 
         let localKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { _ in
-            Task { @MainActor in action() }
+            MainActor.assumeIsolated { action() }
             return nil
         }
         if let localKeyMonitor { eventMonitors.append(localKeyMonitor) }
@@ -458,12 +463,12 @@ class ScreenBlanker {
         let mouseEvents: NSEvent.EventTypeMask = ignoreMouseMovement ? mouseClickEvents : allMouseEvents
 
         let mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: mouseEvents) { _ in
-            Task { @MainActor in action() }
+            MainActor.assumeIsolated { action() }
         }
         if let mouseMonitor { eventMonitors.append(mouseMonitor) }
 
         let localMouseMonitor = NSEvent.addLocalMonitorForEvents(matching: mouseEvents) { event in
-            Task { @MainActor in action() }
+            MainActor.assumeIsolated { action() }
             return event
         }
         if let localMouseMonitor { eventMonitors.append(localMouseMonitor) }

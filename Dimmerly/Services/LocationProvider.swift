@@ -44,8 +44,27 @@ class LocationProvider: NSObject {
     /// Uses `startUpdatingLocation()` which reliably triggers the macOS
     /// authorization prompt, even for agent (LSUIElement) apps.
     func requestLocation() {
-        guard CLLocationManager.locationServicesEnabled() else { return }
+        // `CLLocationManager.locationServicesEnabled()` can block briefly and is
+        // flagged as non-main-thread-safe by Apple. Run it on a background task,
+        // then hop back to @MainActor to start updating.
+        Task { [weak self] in
+            let enabled = await Self.locationServicesAvailable()
+            guard enabled else { return }
+            await MainActor.run {
+                self?.beginLocationRequest()
+            }
+        }
+    }
 
+    /// Off-main helper that calls the CLLocationManager class method Apple
+    /// recommends not be invoked from the main thread.
+    private static func locationServicesAvailable() async -> Bool {
+        await Task.detached(priority: .userInitiated) {
+            CLLocationManager.locationServicesEnabled()
+        }.value
+    }
+
+    private func beginLocationRequest() {
         // Activate the app so the authorization dialog is visible for LSUIElement apps
         NSApp.activate()
 

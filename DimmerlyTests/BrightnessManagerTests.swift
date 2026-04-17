@@ -32,7 +32,7 @@ final class BrightnessManagerTests: XCTestCase {
     // MARK: - channelMultipliers
 
     func testChannelMultipliersNeutral() {
-        let m = BrightnessManager.channelMultipliers(for: 0.0)
+        let m = GammaMath.channelMultipliers(for: 0.0)
         XCTAssertEqual(m.r, 1.0)
         XCTAssertEqual(m.g, 1.0)
         XCTAssertEqual(m.b, 1.0)
@@ -40,7 +40,7 @@ final class BrightnessManagerTests: XCTestCase {
 
     func testChannelMultipliersMaxWarmth() {
         // warmth=1.0 → 1900K (Helland blackbody)
-        let m = BrightnessManager.channelMultipliers(for: 1.0)
+        let m = GammaMath.channelMultipliers(for: 1.0)
         XCTAssertEqual(m.r, 1.0, accuracy: 0.001)
         XCTAssertEqual(m.g, 0.519, accuracy: 0.001)
         XCTAssertEqual(m.b, 0.0, accuracy: 0.001)
@@ -48,7 +48,7 @@ final class BrightnessManagerTests: XCTestCase {
 
     func testChannelMultipliersMidpoint() {
         // warmth=0.5 → 4200K (Helland blackbody)
-        let m = BrightnessManager.channelMultipliers(for: 0.5)
+        let m = GammaMath.channelMultipliers(for: 0.5)
         XCTAssertEqual(m.r, 1.0, accuracy: 0.001)
         XCTAssertEqual(m.g, 0.829, accuracy: 0.001)
         XCTAssertEqual(m.b, 0.700, accuracy: 0.001)
@@ -58,8 +58,8 @@ final class BrightnessManagerTests: XCTestCase {
         // Green and blue channels should decrease as warmth increases
         let steps = stride(from: 0.0, through: 0.9, by: 0.1)
         for w in steps {
-            let m1 = BrightnessManager.channelMultipliers(for: w)
-            let m2 = BrightnessManager.channelMultipliers(for: w + 0.1)
+            let m1 = GammaMath.channelMultipliers(for: w)
+            let m2 = GammaMath.channelMultipliers(for: w + 0.1)
             XCTAssertGreaterThanOrEqual(m1.g, m2.g, "Green should decrease with warmth")
             XCTAssertGreaterThanOrEqual(m1.b, m2.b, "Blue should decrease with warmth")
         }
@@ -68,14 +68,14 @@ final class BrightnessManagerTests: XCTestCase {
     // MARK: - rgbFromKelvin
 
     func testRgbFromKelvin6500() {
-        let rgb = BrightnessManager.rgbFromKelvin(6500)
+        let rgb = GammaMath.rgbFromKelvin(6500)
         XCTAssertEqual(rgb.r, 1.0, accuracy: 0.001)
         XCTAssertEqual(rgb.g, 0.997, accuracy: 0.001)
         XCTAssertEqual(rgb.b, 0.981, accuracy: 0.001)
     }
 
     func testRgbFromKelvin1900() {
-        let rgb = BrightnessManager.rgbFromKelvin(1900)
+        let rgb = GammaMath.rgbFromKelvin(1900)
         XCTAssertEqual(rgb.r, 1.0, accuracy: 0.001)
         XCTAssertEqual(rgb.g, 0.517, accuracy: 0.001)
         XCTAssertEqual(rgb.b, 0.0, accuracy: 0.001)
@@ -83,7 +83,7 @@ final class BrightnessManagerTests: XCTestCase {
 
     func testRgbFromKelvinHighTemp() {
         // At 10000K, all channels should be positive but blue should be high
-        let rgb = BrightnessManager.rgbFromKelvin(10000)
+        let rgb = GammaMath.rgbFromKelvin(10000)
         XCTAssertGreaterThan(rgb.r, 0)
         XCTAssertGreaterThan(rgb.g, 0)
         XCTAssertEqual(rgb.b, 1.0, "Blue should be 1.0 at temp >= 6600K")
@@ -91,30 +91,30 @@ final class BrightnessManagerTests: XCTestCase {
 
     func testRgbFromKelvinClampsLow() {
         // Should clamp to 1000K, not crash on extreme values
-        let rgb = BrightnessManager.rgbFromKelvin(0)
+        let rgb = GammaMath.rgbFromKelvin(0)
         XCTAssertGreaterThan(rgb.r, 0)
     }
 
     // MARK: - kelvinForWarmth / warmthForKelvin
 
     func testKelvinForWarmthEndpoints() {
-        XCTAssertEqual(BrightnessManager.kelvinForWarmth(0.0), 6500.0)
-        XCTAssertEqual(BrightnessManager.kelvinForWarmth(1.0), 1900.0)
+        XCTAssertEqual(GammaMath.kelvinForWarmth(0.0), 6500.0)
+        XCTAssertEqual(GammaMath.kelvinForWarmth(1.0), 1900.0)
     }
 
     func testKelvinForWarmthMidpoint() {
-        XCTAssertEqual(BrightnessManager.kelvinForWarmth(0.5), 4200.0)
+        XCTAssertEqual(GammaMath.kelvinForWarmth(0.5), 4200.0)
     }
 
     func testWarmthForKelvinEndpoints() {
-        XCTAssertEqual(BrightnessManager.warmthForKelvin(6500), 0.0)
-        XCTAssertEqual(BrightnessManager.warmthForKelvin(1900), 1.0)
+        XCTAssertEqual(GammaMath.warmthForKelvin(6500), 0.0)
+        XCTAssertEqual(GammaMath.warmthForKelvin(1900), 1.0)
     }
 
     func testKelvinWarmthRoundTrip() {
         for warmth in stride(from: 0.0, through: 1.0, by: 0.1) {
-            let kelvin = BrightnessManager.kelvinForWarmth(warmth)
-            let roundTrip = BrightnessManager.warmthForKelvin(kelvin)
+            let kelvin = GammaMath.kelvinForWarmth(warmth)
+            let roundTrip = GammaMath.warmthForKelvin(kelvin)
             XCTAssertEqual(roundTrip, warmth, accuracy: 0.0001, "Round-trip failed at warmth=\(warmth)")
         }
     }
@@ -124,16 +124,16 @@ final class BrightnessManagerTests: XCTestCase {
     func testApplyContrastIdentity() {
         // At contrast=0.5 (neutral), output should equal input
         for t in stride(from: 0.0, through: 1.0, by: 0.1) {
-            XCTAssertEqual(BrightnessManager.applyContrast(t, contrast: 0.5), t, accuracy: 0.0001)
+            XCTAssertEqual(GammaMath.applyContrast(t, contrast: 0.5), t, accuracy: 0.0001)
         }
     }
 
     func testApplyContrastEndpointPreservation() {
         // Endpoints 0.0 and 1.0 should be preserved at any contrast
         for c in [0.0, 0.25, 0.5, 0.75, 1.0] {
-            XCTAssertEqual(BrightnessManager.applyContrast(0.0, contrast: c), 0.0, accuracy: 0.0001,
+            XCTAssertEqual(GammaMath.applyContrast(0.0, contrast: c), 0.0, accuracy: 0.0001,
                            "t=0 should map to 0 at contrast=\(c)")
-            XCTAssertEqual(BrightnessManager.applyContrast(1.0, contrast: c), 1.0, accuracy: 0.0001,
+            XCTAssertEqual(GammaMath.applyContrast(1.0, contrast: c), 1.0, accuracy: 0.0001,
                            "t=1 should map to 1 at contrast=\(c)")
         }
     }
@@ -141,34 +141,34 @@ final class BrightnessManagerTests: XCTestCase {
     func testApplyContrastMidpointPreservation() {
         // Midpoint t=0.5 should map to 0.5 at any contrast
         for c in [0.0, 0.25, 0.75, 1.0] {
-            XCTAssertEqual(BrightnessManager.applyContrast(0.5, contrast: c), 0.5, accuracy: 0.0001,
+            XCTAssertEqual(GammaMath.applyContrast(0.5, contrast: c), 0.5, accuracy: 0.0001,
                            "t=0.5 should map to 0.5 at contrast=\(c)")
         }
     }
 
     func testApplyContrastSteepening() {
         // At high contrast, values near 0 should be pushed lower, values near 1 pushed higher
-        let highContrast = BrightnessManager.applyContrast(0.25, contrast: 0.9)
+        let highContrast = GammaMath.applyContrast(0.25, contrast: 0.9)
         XCTAssertLessThan(highContrast, 0.25, "High contrast should push low values lower")
 
-        let highContrastHigh = BrightnessManager.applyContrast(0.75, contrast: 0.9)
+        let highContrastHigh = GammaMath.applyContrast(0.75, contrast: 0.9)
         XCTAssertGreaterThan(highContrastHigh, 0.75, "High contrast should push high values higher")
     }
 
     func testApplyContrastFlattening() {
         // At low contrast, values near 0 should be pushed higher, values near 1 pushed lower
-        let lowContrast = BrightnessManager.applyContrast(0.25, contrast: 0.1)
+        let lowContrast = GammaMath.applyContrast(0.25, contrast: 0.1)
         XCTAssertGreaterThan(lowContrast, 0.25, "Low contrast should push low values higher")
 
-        let lowContrastHigh = BrightnessManager.applyContrast(0.75, contrast: 0.1)
+        let lowContrastHigh = GammaMath.applyContrast(0.75, contrast: 0.1)
         XCTAssertLessThan(lowContrastHigh, 0.75, "Low contrast should push high values lower")
     }
 
     func testApplyContrastSymmetry() {
         // S-curve should be symmetric around 0.5
         for c in [0.0, 0.3, 0.7, 1.0] {
-            let low = BrightnessManager.applyContrast(0.25, contrast: c)
-            let high = BrightnessManager.applyContrast(0.75, contrast: c)
+            let low = GammaMath.applyContrast(0.25, contrast: c)
+            let high = GammaMath.applyContrast(0.75, contrast: c)
             XCTAssertEqual(low + high, 1.0, accuracy: 0.0001,
                            "S-curve should be symmetric at contrast=\(c)")
         }
@@ -469,20 +469,20 @@ final class BrightnessManagerTests: XCTestCase {
     // MARK: - buildTable
 
     func testBuildTableSize() {
-        let table = BrightnessManager.buildTable(brightness: 1.0, channelMultiplier: 1.0, contrast: 0.5)
+        let table = GammaMath.buildTable(brightness: 1.0, channelMultiplier: 1.0, contrast: 0.5)
         XCTAssertEqual(table.count, 256, "Gamma table should have exactly 256 entries")
     }
 
     func testBuildTableEndpoints() {
         // Full brightness, no warmth, neutral contrast: entry 0 = 0.0, entry 255 = 1.0
-        let table = BrightnessManager.buildTable(brightness: 1.0, channelMultiplier: 1.0, contrast: 0.5)
+        let table = GammaMath.buildTable(brightness: 1.0, channelMultiplier: 1.0, contrast: 0.5)
         XCTAssertEqual(table[0], 0.0, accuracy: 0.001, "First entry should be 0.0")
         XCTAssertEqual(table[255], 1.0, accuracy: 0.001, "Last entry should be 1.0")
     }
 
     func testBuildTableMonotonicity() {
         // At neutral contrast, table should be monotonically increasing
-        let table = BrightnessManager.buildTable(brightness: 1.0, channelMultiplier: 1.0, contrast: 0.5)
+        let table = GammaMath.buildTable(brightness: 1.0, channelMultiplier: 1.0, contrast: 0.5)
         for i in 1 ..< table.count {
             XCTAssertGreaterThanOrEqual(table[i], table[i - 1],
                                         "Table should be monotonically increasing at neutral contrast (index \(i))")
@@ -491,21 +491,21 @@ final class BrightnessManagerTests: XCTestCase {
 
     func testBuildTableHalfBrightness() {
         // At 50% brightness, the last entry should be ~0.5
-        let table = BrightnessManager.buildTable(brightness: 0.5, channelMultiplier: 1.0, contrast: 0.5)
+        let table = GammaMath.buildTable(brightness: 0.5, channelMultiplier: 1.0, contrast: 0.5)
         XCTAssertEqual(table[255], 0.5, accuracy: 0.01, "Last entry at 50% brightness should be ~0.5")
     }
 
     func testBuildTableWarmthScaling() {
         // With blue channel multiplier of 0.56 at full brightness, last entry should be ~0.56
-        let table = BrightnessManager.buildTable(brightness: 1.0, channelMultiplier: 0.56, contrast: 0.5)
+        let table = GammaMath.buildTable(brightness: 1.0, channelMultiplier: 0.56, contrast: 0.5)
         XCTAssertEqual(table[255], 0.56, accuracy: 0.01, "Last entry with 0.56 multiplier should be ~0.56")
         XCTAssertEqual(table[0], 0.0, accuracy: 0.001, "First entry should still be 0.0")
     }
 
     func testBuildTableHighContrastShape() {
         // High contrast should push low values lower and high values higher
-        let neutral = BrightnessManager.buildTable(brightness: 1.0, channelMultiplier: 1.0, contrast: 0.5)
-        let high = BrightnessManager.buildTable(brightness: 1.0, channelMultiplier: 1.0, contrast: 0.9)
+        let neutral = GammaMath.buildTable(brightness: 1.0, channelMultiplier: 1.0, contrast: 0.5)
+        let high = GammaMath.buildTable(brightness: 1.0, channelMultiplier: 1.0, contrast: 0.9)
 
         // Entry at 25% (index 64) should be lower with high contrast
         XCTAssertLessThan(high[64], neutral[64], "High contrast should push low values lower")

@@ -83,6 +83,13 @@ Semantic Versioning.
 - Scroll bounce only activates when content overflows (`.scrollBounceBehavior(.basedOnSize)`)
 - Removed "No External Displays" empty state — built-in display is always available
 - Narrowed SwiftLint scope to shipping code by excluding the local `tools/` research folder
+- Extracted gamma math (Helland blackbody, contrast curve, 256-entry LUT builder) from `BrightnessManager` into a new `GammaMath` enum
+- Extracted display-name resolution (NSScreen → Apple override plist → EDID/IOKit) from `BrightnessManager` into a new `DisplayNameResolver` enum
+- Consolidated three near-duplicate preset/warmth transition methods in `BrightnessManager` onto a single `runTransition(targets:)` helper with per-axis start/end values, cutting ~60 lines of copy-paste
+- Replaced `UserDefaults.didChangeNotification` fan-out in `IdleTimerManager`, `ScheduleManager`, `ColorTemperatureManager`, and `PresetShortcutManager` with explicit `.onChange(of: settings.X)` modifiers on the `MenuBarExtra` label plus a one-time `syncManagerStateFromSettings()` at launch; each manager now exposes a single `apply(enabled:…)` entry point and no longer reacts to unrelated UserDefaults writes
+- Unified the four per-intent `IntentError.invalidDisplay` declarations into a single `DisplayIntentError` type shared across `SetDisplayBrightnessIntent`, `SetDisplayContrastIntent`, `SetDisplayWarmthIntent`, and `ToggleDimIntent`
+- `BrightnessManager` now cancels any running preset/warmth transition when a direct `setBrightness` / `setWarmth` / `setContrast` call arrives, so slider drags during an animated preset apply win cleanly instead of fighting the animation loop
+- `ScreenBlanker` dismiss-monitor callbacks now invoke their action inline via `MainActor.assumeIsolated` instead of hopping through `Task { @MainActor in … }`, preserving the grace-period timing guarantee
 
 ### Fixed
 - Fixed DDC/CI display matching on M4 Macs: EDID reads now use `IOAVServiceCopyEDID` (DCP firmware path) instead of raw I2C, which is more reliable on M4+ where the DCP display pipeline handles I2C differently
@@ -99,6 +106,7 @@ Semantic Versioning.
 - Disabled full-screen dimming immediately on system wake to prevent screens staying dimmed after unlock
 - Launch at Login settings now surface a user-facing error alert instead of silently reverting on failure
 - Clarified the location permission prompt to cover both schedules and automatic color temperature
+- Moved `CLLocationManager.locationServicesEnabled()` off the main thread (Apple-recommended; the class method can block briefly)
 
 ### Changed
 - DDC/CI hardware control is now enabled by default in direct distribution builds; automatically falls back to software gamma control for displays that don't support DDC

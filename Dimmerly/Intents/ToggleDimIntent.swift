@@ -18,20 +18,10 @@ struct ToggleDimIntent: AppIntent {
     @MainActor
     func perform() async throws -> some IntentResult {
         guard let displayID = CGDirectDisplayID(display.id) else {
-            throw IntentError.invalidDisplay
+            throw DisplayIntentError.invalidDisplay
         }
         BrightnessManager.shared.toggleBlank(for: displayID)
         return .result()
-    }
-
-    enum IntentError: Swift.Error, CustomLocalizedStringResourceConvertible {
-        case invalidDisplay
-
-        var localizedStringResource: LocalizedStringResource {
-            switch self {
-            case .invalidDisplay: return "The selected display is no longer connected."
-            }
-        }
     }
 }
 

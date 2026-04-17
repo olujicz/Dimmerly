@@ -44,62 +44,33 @@ class PresetShortcutManager {
     /// Local event monitor (active when app is frontmost)
     private var localEventMonitor: Any?
 
-    /// Last known preset data (JSON) for change detection
-    private var lastPresetData: Data?
+    /// Representation of a (preset, shortcut) pair used to short-circuit identical
+    /// updates so unrelated preset edits don't needlessly restart monitoring.
+    /// Only Equatable is needed — arrays of Equatable elements are themselves Equatable.
+    private struct ShortcutBinding: Equatable {
+        let presetID: UUID
+        let shortcut: GlobalShortcut
+    }
 
-    /// Notification observer for UserDefaults changes
-    private var presetsObserver: NSObjectProtocol?
+    /// Cached signature of the last applied shortcut set.
+    private var lastShortcutSignature: [ShortcutBinding] = []
 
-    /// Read closure stored to avoid capturing non-Sendable closures in observer callbacks.
-    private var readPresetsProvider: (() -> [BrightnessPreset])?
-
-    /// Updates the registered shortcuts from current presets
+    /// Updates the registered shortcuts from the current preset list.
     func updateShortcuts(from presets: [BrightnessPreset]) {
-        presetShortcuts = presets.compactMap { preset in
+        let bindings: [ShortcutBinding] = presets.compactMap { preset in
             guard let shortcut = preset.shortcut else { return nil }
-            return (id: preset.id, shortcut: shortcut)
+            return ShortcutBinding(presetID: preset.id, shortcut: shortcut)
         }
 
-        // Restart monitoring if we have shortcuts
+        guard bindings != lastShortcutSignature else { return }
+        lastShortcutSignature = bindings
+        presetShortcuts = bindings.map { (id: $0.presetID, shortcut: $0.shortcut) }
+
         if presetShortcuts.isEmpty {
             stopMonitoring()
         } else {
             startMonitoring()
         }
-    }
-
-    /// Begins observing preset changes and auto-updates shortcuts.
-    ///
-    /// - Parameter readPresets: Closure that returns the current list of presets
-    func observePresets(readPresets: @escaping () -> [BrightnessPreset]) {
-        readPresetsProvider = readPresets
-
-        let presets = readPresets()
-        updateShortcuts(from: presets)
-        lastPresetData = try? JSONEncoder().encode(presets)
-
-        presetsObserver = NotificationCenter.default.addObserver(
-            forName: UserDefaults.didChangeNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in
-                self?.handleObservedPresetsChange()
-            }
-        }
-    }
-
-    private func handleObservedPresetsChange() {
-        guard let readPresetsProvider else { return }
-        handlePresetsChange(readPresets: readPresetsProvider)
-    }
-
-    private func handlePresetsChange(readPresets: () -> [BrightnessPreset]) {
-        let presets = readPresets()
-        let currentData = try? JSONEncoder().encode(presets)
-        guard currentData != lastPresetData else { return }
-        lastPresetData = currentData
-        updateShortcuts(from: presets)
     }
 
     private func startMonitoring() {

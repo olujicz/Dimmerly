@@ -52,10 +52,7 @@ class ScheduleManager {
     /// Enables catch-up after sleep/wake (system time jumps forward).
     private var lastCheckDate: Date?
 
-    /// Notification observer for UserDefaults changes (to react to settings toggles).
-    private var settingsObserver: NSObjectProtocol?
-
-    /// Cached enabled state to detect changes and start/stop polling.
+    /// Cached enabled state to detect changes and avoid redundant timer restarts.
     private var lastEnabled: Bool?
 
     /// UserDefaults key for persisting schedules as JSON.
@@ -65,45 +62,11 @@ class ScheduleManager {
         loadSchedules()
     }
 
-    // MARK: - Settings Observation
+    // MARK: - Enable/Disable
 
-    /// Begins observing the schedule-enabled setting and auto-starts/stops polling accordingly.
-    ///
-    /// This method:
-    /// 1. Reads the current enabled state and starts polling if enabled
-    /// 2. Registers a UserDefaults observer to react to setting changes
-    /// 3. Automatically starts/stops the polling timer when the setting toggles
-    ///
-    /// Design pattern: This follows the same pattern as IdleTimerManager, where the manager
-    /// doesn't directly access AppSettings to avoid tight coupling. Instead, the caller
-    /// provides a closure that reads the current value.
-    ///
-    /// - Parameter readEnabled: Closure that returns the current schedule-enabled setting from UserDefaults
-    func observeSettings(readEnabled: @Sendable @escaping () -> Bool) {
-        let enabled = readEnabled()
-        lastEnabled = enabled
-
-        if enabled {
-            startPolling()
-        }
-
-        settingsObserver = NotificationCenter.default.addObserver(
-            forName: UserDefaults.didChangeNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in
-                self?.handleSettingsChange(readEnabled: readEnabled)
-            }
-        }
-    }
-
-    /// Handles changes to the schedule-enabled setting by starting/stopping polling.
-    ///
-    /// Called automatically when UserDefaults changes. Only takes action if the enabled
-    /// state actually changed (prevents unnecessary timer restarts).
-    private func handleSettingsChange(readEnabled: @Sendable () -> Bool) {
-        let enabled = readEnabled()
+    /// Applies the current schedule-enabled setting. Called by the app on launch and
+    /// whenever `AppSettings.scheduleEnabled` changes. No-op when state is unchanged.
+    func apply(enabled: Bool) {
         guard enabled != lastEnabled else { return }
         lastEnabled = enabled
         if enabled {
@@ -368,8 +331,6 @@ class ScheduleManager {
 
     // MARK: - Lifecycle
 
-    // Note: deinit intentionally omitted to avoid @MainActor data race warnings in Swift 6.
-    // This manager is held by @StateObject in DimmerlyApp for the app's lifetime, so deinit
-    // never executes. Cleanup (timer invalidation, observer removal) is handled explicitly
-    // via stopPolling() when schedules are disabled.
+    // No deinit needed: the manager is held by @State in DimmerlyApp for the app's
+    // lifetime, and polling stops when `apply(enabled: false)` is called.
 }

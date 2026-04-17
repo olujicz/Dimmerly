@@ -76,9 +76,34 @@ struct DimmerlyApp: App {
                     configureScheduleManager()
                     configureColorTemperature()
                     observeWidgetNotifications()
+                    // Initial sync for settings-driven managers. `.onChange` below
+                    // keeps them current for subsequent edits without needing each
+                    // manager to observe UserDefaults directly.
+                    syncManagerStateFromSettings()
                     #if !APPSTORE
                         configureHardwareControl()
                     #endif
+                }
+                .onChange(of: settings.idleTimerEnabled) { _, _ in
+                    idleTimerManager.apply(
+                        enabled: settings.idleTimerEnabled,
+                        thresholdMinutes: settings.idleTimerMinutes
+                    )
+                }
+                .onChange(of: settings.idleTimerMinutes) { _, _ in
+                    idleTimerManager.apply(
+                        enabled: settings.idleTimerEnabled,
+                        thresholdMinutes: settings.idleTimerMinutes
+                    )
+                }
+                .onChange(of: settings.scheduleEnabled) { _, _ in
+                    scheduleManager.apply(enabled: settings.scheduleEnabled)
+                }
+                .onChange(of: settings.autoColorTempEnabled) { _, _ in
+                    colorTempManager.apply(enabled: settings.autoColorTempEnabled)
+                }
+                .onChange(of: presetManager.presets) { _, newValue in
+                    presetShortcutManager.updateShortcuts(from: newValue)
                 }
         }
         .menuBarExtraStyle(.window)
@@ -123,22 +148,13 @@ struct DimmerlyApp: App {
         }
     }
 
-    /// Configures the idle timer to automatically sleep displays after inactivity.
-    ///
-    /// Sets up:
-    /// 1. Callback for when idle threshold is reached
-    /// 2. Settings observation to start/stop timer and update timeout value
-    ///
-    /// Design pattern: Passes closures to read settings rather than injecting AppSettings
-    /// directly, reducing coupling and making the manager more testable.
+    /// Wires the idle-timer callback. Actual start/stop is driven by `.onChange(of:)`
+    /// on `settings.idleTimerEnabled` / `.idleTimerMinutes` in the scene body, plus
+    /// a one-time `syncManagerStateFromSettings()` at launch.
     private func configureIdleTimer() {
         idleTimerManager.onIdleThresholdReached = { [settings] in
             DisplayAction.performSleep(settings: settings)
         }
-        idleTimerManager.observeSettings(
-            readEnabled: { AppSettings.shared.idleTimerEnabled },
-            readMinutes: { AppSettings.shared.idleTimerMinutes }
-        )
     }
 
     /// Observes distributed notifications from widgets to handle cross-process actions.
@@ -187,46 +203,42 @@ struct DimmerlyApp: App {
         }
     }
 
-    /// Configures the schedule manager to automatically apply presets at scheduled times.
-    ///
-    /// Sets up:
-    /// 1. Callback for when a schedule triggers (applies the referenced preset)
-    /// 2. Settings observation to start/stop polling based on user preference
+    /// Wires the schedule-triggered callback. `.onChange` on `settings.scheduleEnabled`
+    /// handles start/stop; the one-time sync in `syncManagerStateFromSettings` handles launch.
     private func configureScheduleManager() {
         scheduleManager.onScheduleTriggered = { [presetManager, brightnessManager] presetID in
             guard let preset = presetManager.presets.first(where: { $0.id == presetID }) else { return }
             presetManager.applyPreset(preset, to: brightnessManager, animated: true)
         }
-        scheduleManager.observeSettings(
-            readEnabled: { UserDefaults.standard.bool(forKey: AppSettings.scheduleEnabledKey) }
-        )
     }
 
-    /// Configures the color temperature manager to automatically adjust warmth at sunrise/sunset.
-    ///
-    /// Sets up settings observation to start/stop polling based on user preference.
+    /// Color-temperature start/stop is driven entirely by `.onChange` on
+    /// `settings.autoColorTempEnabled` and the one-time sync at launch.
     private func configureColorTemperature() {
-        colorTempManager.observeSettings(
-            readEnabled: { UserDefaults.standard.bool(forKey: AppSettings.autoColorTempEnabledKey) }
-        )
+        // No wiring needed — manager is self-contained once enabled.
     }
 
-    /// Configures the preset shortcut manager to apply presets via global keyboard shortcuts.
-    ///
-    /// Sets up:
-    /// 1. Callback for when a preset shortcut is triggered (applies that preset)
-    /// 2. Preset observation to register/unregister shortcuts when presets change
-    ///
-    /// Each preset can have an optional keyboard shortcut that works globally (even when
-    /// the app isn't focused). Requires accessibility permissions.
+    /// Wires the preset-shortcut-triggered callback. `.onChange` on `presetManager.presets`
+    /// handles re-registration whenever presets/shortcuts change.
     private func configurePresetShortcuts() {
         presetShortcutManager.onPresetTriggered = { [presetManager, brightnessManager] presetID in
             guard let preset = presetManager.presets.first(where: { $0.id == presetID }) else { return }
             presetManager.applyPreset(preset, to: brightnessManager, animated: true)
         }
-        presetShortcutManager.observePresets(
-            readPresets: { PresetManager.shared.presets }
+    }
+
+    /// One-time sync of settings-driven managers at app launch.
+    ///
+    /// `.onChange` modifiers only fire when a value changes, so we need this initial pass
+    /// to pick up whatever state was persisted from the previous session.
+    private func syncManagerStateFromSettings() {
+        idleTimerManager.apply(
+            enabled: settings.idleTimerEnabled,
+            thresholdMinutes: settings.idleTimerMinutes
         )
+        scheduleManager.apply(enabled: settings.scheduleEnabled)
+        colorTempManager.apply(enabled: settings.autoColorTempEnabled)
+        presetShortcutManager.updateShortcuts(from: presetManager.presets)
     }
 
     // MARK: - Hardware Control (DDC/CI)

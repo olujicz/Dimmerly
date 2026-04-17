@@ -9,6 +9,9 @@
 /* Begin PBXBuildFile section */
 		SC00000000000000000011 /* DimmingSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC00000000000000000001 /* DimmingSchedule.swift */; };
 		SC00000000000000000012 /* SolarCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC00000000000000000002 /* SolarCalculator.swift */; };
+		GM00000000000000000011 /* GammaMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = GM00000000000000000001 /* GammaMath.swift */; };
+		DN00000000000000000011 /* DisplayNameResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = DN00000000000000000001 /* DisplayNameResolver.swift */; };
+		IE00000000000000000011 /* DisplayIntentError.swift in Sources */ = {isa = PBXBuildFile; fileRef = IE00000000000000000001 /* DisplayIntentError.swift */; };
 		SC00000000000000000013 /* LocationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC00000000000000000003 /* LocationProvider.swift */; };
 		SC00000000000000000014 /* ScheduleManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC00000000000000000004 /* ScheduleManager.swift */; };
 		SC00000000000000000015 /* ScheduleViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC00000000000000000005 /* ScheduleViews.swift */; };
@@ -108,6 +111,9 @@
 /* Begin PBXFileReference section */
 		SC00000000000000000001 /* DimmingSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DimmingSchedule.swift; sourceTree = "<group>"; };
 		SC00000000000000000002 /* SolarCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolarCalculator.swift; sourceTree = "<group>"; };
+		GM00000000000000000001 /* GammaMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GammaMath.swift; sourceTree = "<group>"; };
+		DN00000000000000000001 /* DisplayNameResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayNameResolver.swift; sourceTree = "<group>"; };
+		IE00000000000000000001 /* DisplayIntentError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayIntentError.swift; sourceTree = "<group>"; };
 		SC00000000000000000003 /* LocationProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationProvider.swift; sourceTree = "<group>"; };
 		SC00000000000000000004 /* ScheduleManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleManager.swift; sourceTree = "<group>"; };
 		SC00000000000000000005 /* ScheduleViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleViews.swift; sourceTree = "<group>"; };
@@ -334,6 +340,8 @@
 				SC00000000000000000004 /* ScheduleManager.swift */,
 				E8A1B2C3D4E5F6A7B8C9D002 /* ScreenBlanker.swift */,
 				SC00000000000000000002 /* SolarCalculator.swift */,
+				GM00000000000000000001 /* GammaMath.swift */,
+				DN00000000000000000001 /* DisplayNameResolver.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -342,6 +350,7 @@
 			isa = PBXGroup;
 			children = (
 				NF00000000000000000005 /* DisplayEntity.swift */,
+				IE00000000000000000001 /* DisplayIntentError.swift */,
 				NF00000000000000000009 /* DimmerlyShortcuts.swift */,
 				NF00000000000000000007 /* SetDisplayBrightnessIntent.swift */,
 				NF0000000000000000000C /* SetDisplayContrastIntent.swift */,
@@ -555,6 +564,7 @@
 				NF00000000000000000013 /* IdleTimerManager.swift in Sources */,
 				NF00000000000000000014 /* PresetShortcutManager.swift in Sources */,
 				NF00000000000000000015 /* DisplayEntity.swift in Sources */,
+				IE00000000000000000011 /* DisplayIntentError.swift in Sources */,
 				NF00000000000000000016 /* SleepDisplaysIntent.swift in Sources */,
 				NF00000000000000000017 /* SetDisplayBrightnessIntent.swift in Sources */,
 				NF0000000000000000001B /* SetDisplayWarmthIntent.swift in Sources */,
@@ -563,6 +573,8 @@
 				NF00000000000000000019 /* DimmerlyShortcuts.swift in Sources */,
 				SC00000000000000000011 /* DimmingSchedule.swift in Sources */,
 				SC00000000000000000012 /* SolarCalculator.swift in Sources */,
+				GM00000000000000000011 /* GammaMath.swift in Sources */,
+				DN00000000000000000011 /* DisplayNameResolver.swift in Sources */,
 				SC00000000000000000013 /* LocationProvider.swift in Sources */,
 				SC00000000000000000014 /* ScheduleManager.swift in Sources */,
 				SC00000000000000000015 /* ScheduleViews.swift in Sources */,

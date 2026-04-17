@@ -25,20 +25,20 @@ import IOKit
 
         private nonisolated(unsafe) static let _setBrightness:
             (@convention(c) (CGDirectDisplayID, Float) -> Int32)? = {
-            guard let handle else { return nil }
-            guard let sym = dlsym(handle, "DisplayServicesSetBrightness") else { return nil }
-            return unsafeBitCast(sym, to: (@convention(c) (CGDirectDisplayID, Float) -> Int32).self)
-        }()
+                guard let handle else { return nil }
+                guard let sym = dlsym(handle, "DisplayServicesSetBrightness") else { return nil }
+                return unsafeBitCast(sym, to: (@convention(c) (CGDirectDisplayID, Float) -> Int32).self)
+            }()
 
         private nonisolated(unsafe) static let _getBrightness:
             (@convention(c) (CGDirectDisplayID, UnsafeMutablePointer<Float>) -> Int32)? = {
-            guard let handle else { return nil }
-            guard let sym = dlsym(handle, "DisplayServicesGetBrightness") else { return nil }
-            return unsafeBitCast(
-                sym,
-                to: (@convention(c) (CGDirectDisplayID, UnsafeMutablePointer<Float>) -> Int32).self
-            )
-        }()
+                guard let handle else { return nil }
+                guard let sym = dlsym(handle, "DisplayServicesGetBrightness") else { return nil }
+                return unsafeBitCast(
+                    sym,
+                    to: (@convention(c) (CGDirectDisplayID, UnsafeMutablePointer<Float>) -> Int32).self
+                )
+            }()
 
         static var isAvailable: Bool {
             _setBrightness != nil && _getBrightness != nil
@@ -490,6 +490,7 @@ class BrightnessManager {
         guard let index = displays.firstIndex(where: { $0.id == displayID }) else { return }
         displays[index].brightness = clamped
 
+        cancelActiveTransition()
         debouncePersist()
         applyDisplayOutput(displays[index])
     }
@@ -514,6 +515,10 @@ class BrightnessManager {
 
         if !isAutoColorTempUpdate {
             ColorTemperatureManager.shared.notifyManualWarmthChange()
+            // Only cancel running transitions when the user is driving the change.
+            // Auto-warmth updates call this for every display inside their own
+            // animation loop; cancelling here would kill that animation.
+            cancelActiveTransition()
         }
 
         debouncePersist()
@@ -537,9 +542,19 @@ class BrightnessManager {
         guard let index = displays.firstIndex(where: { $0.id == displayID }) else { return }
         displays[index].contrast = clamped
 
+        cancelActiveTransition()
         debouncePersist()
 
         applyDisplayGamma(displays[index])
+    }
+
+    /// Cancels any in-progress preset/warmth transition so direct user input wins.
+    ///
+    /// Without this, a slider drag during an animated preset application would keep
+    /// fighting the animation loop (which writes gamma each step) until the animation
+    /// finished, producing a visible snap-back.
+    private func cancelActiveTransition() {
+        transitionTask?.cancel()
     }
 
     /// Re-applies the current brightness via gamma for a specific display.
@@ -566,6 +581,24 @@ class BrightnessManager {
 
     // MARK: - Preset Transition
 
+    /// Snapshot of start/end values for a single display in a running transition.
+    ///
+    /// Leaving `start == end` for an axis effectively freezes that axis during the
+    /// animation, which lets the same transition loop drive preset application
+    /// (all three axes) and warmth-only updates (brightness/contrast frozen).
+    private struct TransitionTarget {
+        let displayID: CGDirectDisplayID
+        let start: (brightness: Double, warmth: Double, contrast: Double)
+        let end: (brightness: Double, warmth: Double, contrast: Double)
+        /// When true, `applyGamma` uses the live display's current brightness
+        /// (via `resolvedGammaBrightness`) instead of the interpolated brightness.
+        /// Used by warmth-only animations so gamma keeps matching the hardware path.
+        let useLiveBrightness: Bool
+    }
+
+    private static let transitionSteps = 20
+    private static let transitionStepDelay = Duration.milliseconds(15)
+
     /// Smoothly transitions all displays from their current settings to a preset's target values.
     ///
     /// Animates brightness, warmth, and contrast simultaneously over ~300ms (20 steps at ~15ms each)
@@ -582,104 +615,45 @@ class BrightnessManager {
     /// - Returns: `true` if animation was started, `false` if the caller should apply instantly
     @discardableResult
     func animateToPreset(_ preset: BrightnessPreset) -> Bool {
-        transitionTask?.cancel()
+        let targets: [TransitionTarget] = displays.map { display in
+            let idString = String(display.id)
 
-        guard !ScreenBlanker.shared.isBlanking,
-              !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-        else {
-            return false
+            let endBrightness: Double
+            if let universal = preset.universalBrightness {
+                endBrightness = max(universal, Self.minimumBrightness)
+            } else if let value = preset.displayBrightness[idString] {
+                endBrightness = max(value, Self.minimumBrightness)
+            } else {
+                endBrightness = display.brightness
+            }
+
+            let endWarmth: Double
+            if let universal = preset.universalWarmth {
+                endWarmth = min(max(universal, 0), 1)
+            } else if let values = preset.displayWarmth, let value = values[idString] {
+                endWarmth = min(max(value, 0), 1)
+            } else {
+                endWarmth = display.warmth
+            }
+
+            let endContrast: Double
+            if let universal = preset.universalContrast {
+                endContrast = min(max(universal, 0), 1)
+            } else if let values = preset.displayContrast, let value = values[idString] {
+                endContrast = min(max(value, 0), 1)
+            } else {
+                endContrast = display.contrast
+            }
+
+            return TransitionTarget(
+                displayID: display.id,
+                start: (display.brightness, display.warmth, display.contrast),
+                end: (endBrightness, endWarmth, endContrast),
+                useLiveBrightness: false
+            )
         }
 
-        transitionTask = Task { @MainActor in
-            let steps = 20
-            let stepDelay = Duration.milliseconds(15)
-
-            // Snapshot current values and resolve target values per display
-            struct Target {
-                let displayID: CGDirectDisplayID
-                let startBrightness: Double
-                let startWarmth: Double
-                let startContrast: Double
-                let endBrightness: Double
-                let endWarmth: Double
-                let endContrast: Double
-            }
-
-            var targets: [Target] = []
-
-            for display in displays {
-                let idString = String(display.id)
-
-                let endBrightness: Double
-                if let universal = preset.universalBrightness {
-                    endBrightness = max(universal, Self.minimumBrightness)
-                } else if let value = preset.displayBrightness[idString] {
-                    endBrightness = max(value, Self.minimumBrightness)
-                } else {
-                    endBrightness = display.brightness
-                }
-
-                let endWarmth: Double
-                if let universal = preset.universalWarmth {
-                    endWarmth = min(max(universal, 0), 1)
-                } else if let values = preset.displayWarmth, let value = values[idString] {
-                    endWarmth = min(max(value, 0), 1)
-                } else {
-                    endWarmth = display.warmth
-                }
-
-                let endContrast: Double
-                if let universal = preset.universalContrast {
-                    endContrast = min(max(universal, 0), 1)
-                } else if let values = preset.displayContrast, let value = values[idString] {
-                    endContrast = min(max(value, 0), 1)
-                } else {
-                    endContrast = display.contrast
-                }
-
-                targets.append(Target(
-                    displayID: display.id,
-                    startBrightness: display.brightness,
-                    startWarmth: display.warmth,
-                    startContrast: display.contrast,
-                    endBrightness: endBrightness,
-                    endWarmth: endWarmth,
-                    endContrast: endContrast
-                ))
-            }
-
-            for step in 1 ... steps {
-                guard !Task.isCancelled else { return }
-
-                let progress = Double(step) / Double(steps)
-
-                for target in targets {
-                    guard let index = displays.firstIndex(where: { $0.id == target.displayID }) else { continue }
-
-                    let brightness = target.startBrightness + (target.endBrightness - target.startBrightness) * progress
-                    let warmth = target.startWarmth + (target.endWarmth - target.startWarmth) * progress
-                    let contrast = target.startContrast + (target.endContrast - target.startContrast) * progress
-
-                    displays[index].brightness = brightness
-                    displays[index].warmth = warmth
-                    displays[index].contrast = contrast
-
-                    applyGamma(displayID: target.displayID, brightness: brightness, warmth: warmth, contrast: contrast)
-                }
-
-                if step < steps {
-                    try? await Task.sleep(for: stepDelay)
-                }
-            }
-
-            guard !Task.isCancelled else { return }
-            #if !APPSTORE
-                synchronizeHardwareBrightnessAfterAnimation()
-            #endif
-            persistAll()
-        }
-
-        return true
+        return runTransition(targets: targets, synchronizeHardwareAtEnd: true)
     }
 
     /// Smoothly transitions all displays' warmth to a uniform target value.
@@ -687,67 +661,20 @@ class BrightnessManager {
     /// Animates over ~300ms (20 steps at ~15ms each), same timing as preset transitions.
     /// Brightness and contrast are left unchanged. Cancels any in-progress preset transition.
     ///
-    /// Skips animation (returns `false`) when:
-    /// - Screen blanking is active
-    /// - Reduce Motion accessibility preference is enabled
-    ///
     /// - Parameter targetWarmth: The warmth value to transition to (0.0–1.0)
     /// - Returns: `true` if animation was started, `false` if the caller should apply instantly
     @discardableResult
     func animateAllWarmth(to targetWarmth: Double) -> Bool {
-        transitionTask?.cancel()
-
-        guard !ScreenBlanker.shared.isBlanking,
-              !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-        else {
-            return false
-        }
-
         let endWarmth = min(max(targetWarmth, 0), 1)
-
-        transitionTask = Task { @MainActor in
-            let steps = 20
-            let stepDelay = Duration.milliseconds(15)
-
-            struct WarmthTarget {
-                let displayID: CGDirectDisplayID
-                let start: Double
-                let end: Double
-            }
-
-            let targets = displays.map { display in
-                WarmthTarget(displayID: display.id, start: display.warmth, end: endWarmth)
-            }
-
-            for step in 1 ... steps {
-                guard !Task.isCancelled else { return }
-
-                let progress = Double(step) / Double(steps)
-
-                for target in targets {
-                    guard let index = displays.firstIndex(where: { $0.id == target.displayID }) else { continue }
-
-                    let warmth = target.start + (target.end - target.start) * progress
-                    displays[index].warmth = warmth
-
-                    applyGamma(
-                        displayID: target.displayID,
-                        brightness: resolvedGammaBrightness(for: displays[index]),
-                        warmth: warmth,
-                        contrast: displays[index].contrast
-                    )
-                }
-
-                if step < steps {
-                    try? await Task.sleep(for: stepDelay)
-                }
-            }
-
-            guard !Task.isCancelled else { return }
-            persistAll()
+        let targets = displays.map { display in
+            TransitionTarget(
+                displayID: display.id,
+                start: (display.brightness, display.warmth, display.contrast),
+                end: (display.brightness, endWarmth, display.contrast),
+                useLiveBrightness: true
+            )
         }
-
-        return true
+        return runTransition(targets: targets, synchronizeHardwareAtEnd: false)
     }
 
     /// Smoothly transitions each display's warmth to per-display target values.
@@ -758,6 +685,24 @@ class BrightnessManager {
     /// - Returns: `true` if animation was started, `false` if the caller should apply instantly
     @discardableResult
     func animateWarmthValues(_ targetValues: [String: Double]) -> Bool {
+        let targets: [TransitionTarget] = displays.compactMap { display in
+            guard let raw = targetValues[String(display.id)] else { return nil }
+            return TransitionTarget(
+                displayID: display.id,
+                start: (display.brightness, display.warmth, display.contrast),
+                end: (display.brightness, min(max(raw, 0), 1), display.contrast),
+                useLiveBrightness: true
+            )
+        }
+        return runTransition(targets: targets, synchronizeHardwareAtEnd: false)
+    }
+
+    /// Drives a 20-step gamma interpolation for a pre-computed set of targets.
+    ///
+    /// Skips animation when blanking is active or Reduce Motion is enabled, matching
+    /// the previous per-method behavior. At the end, state is persisted and (for preset
+    /// transitions) hardware brightness is synchronized.
+    private func runTransition(targets: [TransitionTarget], synchronizeHardwareAtEnd: Bool) -> Bool {
         transitionTask?.cancel()
 
         guard !ScreenBlanker.shared.isBlanking,
@@ -767,20 +712,7 @@ class BrightnessManager {
         }
 
         transitionTask = Task { @MainActor in
-            let steps = 20
-            let stepDelay = Duration.milliseconds(15)
-
-            struct WarmthTarget {
-                let displayID: CGDirectDisplayID
-                let start: Double
-                let end: Double
-            }
-
-            let targets = displays.compactMap { display -> WarmthTarget? in
-                let idString = String(display.id)
-                guard let endWarmth = targetValues[idString] else { return nil }
-                return WarmthTarget(displayID: display.id, start: display.warmth, end: min(max(endWarmth, 0), 1))
-            }
+            let steps = Self.transitionSteps
 
             for step in 1 ... steps {
                 guard !Task.isCancelled else { return }
@@ -790,23 +722,37 @@ class BrightnessManager {
                 for target in targets {
                     guard let index = displays.firstIndex(where: { $0.id == target.displayID }) else { continue }
 
-                    let warmth = target.start + (target.end - target.start) * progress
-                    displays[index].warmth = warmth
+                    let brightness = target.start.brightness
+                        + (target.end.brightness - target.start.brightness) * progress
+                    let warmth = target.start.warmth + (target.end.warmth - target.start.warmth) * progress
+                    let contrast = target.start.contrast + (target.end.contrast - target.start.contrast) * progress
 
+                    displays[index].brightness = brightness
+                    displays[index].warmth = warmth
+                    displays[index].contrast = contrast
+
+                    let gammaBrightness = target.useLiveBrightness
+                        ? resolvedGammaBrightness(for: displays[index])
+                        : brightness
                     applyGamma(
                         displayID: target.displayID,
-                        brightness: resolvedGammaBrightness(for: displays[index]),
+                        brightness: gammaBrightness,
                         warmth: warmth,
-                        contrast: displays[index].contrast
+                        contrast: contrast
                     )
                 }
 
                 if step < steps {
-                    try? await Task.sleep(for: stepDelay)
+                    try? await Task.sleep(for: Self.transitionStepDelay)
                 }
             }
 
             guard !Task.isCancelled else { return }
+            #if !APPSTORE
+                if synchronizeHardwareAtEnd {
+                    synchronizeHardwareBrightnessAfterAnimation()
+                }
+            #endif
             persistAll()
         }
 
@@ -869,148 +815,6 @@ class BrightnessManager {
     /// Used to prevent manual-override notifications when ColorTemperatureManager is applying warmth.
     var isAutoColorTempUpdate = false
 
-    /// Calculates RGB values for a color temperature using Tanner Helland's blackbody approximation.
-    ///
-    /// Algorithm source: http://www.tannerhelland.com/4435/convert-temperature-rgb-algorithm-code/
-    /// Based on blackbody radiation curves, approximated with piecewise polynomials.
-    ///
-    /// - Parameter kelvin: Color temperature in Kelvin (1000–40000, clamped internally)
-    /// - Returns: RGB values normalized to 0.0–1.0
-    static func rgbFromKelvin(_ kelvin: Double) -> (r: Double, g: Double, b: Double) {
-        let temp = min(max(kelvin, 1000), 40000) / 100.0
-
-        // Red
-        let r: Double
-        if temp <= 66 {
-            r = 1.0
-        } else {
-            let x = temp - 60
-            r = min(max(329.698727446 * pow(x, -0.1332047592) / 255.0, 0), 1)
-        }
-
-        // Green
-        let g: Double
-        if temp <= 66 {
-            let x = temp
-            g = min(max((99.4708025861 * log(x) - 161.1195681661) / 255.0, 0), 1)
-        } else {
-            let x = temp - 60
-            g = min(max(288.1221695283 * pow(x, -0.0755148492) / 255.0, 0), 1)
-        }
-
-        // Blue
-        let b: Double
-        if temp >= 66 {
-            b = 1.0
-        } else if temp <= 19 {
-            b = 0.0
-        } else {
-            let x = temp - 10
-            b = min(max((138.5177312231 * log(x) - 305.0447927307) / 255.0, 0), 1)
-        }
-
-        return (r: r, g: g, b: b)
-    }
-
-    /// Maps a warmth value (0.0–1.0) to a color temperature in Kelvin.
-    ///
-    /// - 0.0 → 6500K (neutral daylight)
-    /// - 1.0 → 1900K (very warm candlelight)
-    ///
-    /// - Parameter warmth: Warmth level (0.0 = neutral, 1.0 = warmest)
-    /// - Returns: Color temperature in Kelvin
-    static func kelvinForWarmth(_ warmth: Double) -> Double {
-        6500.0 - warmth * (6500.0 - 1900.0)
-    }
-
-    /// Maps a color temperature in Kelvin to a warmth value (0.0–1.0).
-    ///
-    /// Inverse of `kelvinForWarmth(_:)`.
-    ///
-    /// - Parameter kelvin: Color temperature in Kelvin
-    /// - Returns: Warmth level (0.0 = neutral/6500K, 1.0 = warmest/1900K)
-    static func warmthForKelvin(_ kelvin: Double) -> Double {
-        (6500.0 - kelvin) / (6500.0 - 1900.0)
-    }
-
-    /// Calculates RGB channel multipliers for a given warmth level using blackbody radiation.
-    ///
-    /// Uses the Helland algorithm to produce physically-based color temperature shifts,
-    /// normalized against the 6500K reference point so that warmth=0 produces (1, 1, 1).
-    ///
-    /// - At warmth=0.0: (r=1.0, g=1.0, b=1.0) — neutral white, 6500K
-    /// - At warmth=1.0: ~1900K warm candlelight
-    ///
-    /// - Parameter warmth: Warmth level (0.0 = neutral, 1.0 = warmest)
-    /// - Returns: RGB channel multipliers as a tuple
-    static func channelMultipliers(for warmth: Double) -> (r: Double, g: Double, b: Double) {
-        guard warmth > 0 else { return (r: 1.0, g: 1.0, b: 1.0) }
-
-        let kelvin = kelvinForWarmth(warmth)
-        let target = rgbFromKelvin(kelvin)
-        let reference = rgbFromKelvin(6500)
-
-        return (
-            r: min(target.r / reference.r, 1.0),
-            g: min(target.g / reference.g, 1.0),
-            b: min(target.b / reference.b, 1.0)
-        )
-    }
-
-    /// Applies an S-curve contrast adjustment using a split power function.
-    ///
-    /// The curve creates symmetric enhancement that:
-    /// - Darkens shadows and brightens highlights when contrast > 0.5 (steeper slopes)
-    /// - Reduces dynamic range when contrast < 0.5 (gentler slopes, "flat" look)
-    /// - Acts as identity (no change) when contrast = 0.5 (neutral/linear)
-    ///
-    /// Mathematical approach:
-    /// - Exponent scales from 0.11 (flat) to 9.0 (steep) via `pow(3, (contrast-0.5)*2)`
-    /// - Split at midpoint (0.5) for symmetric S-curve behavior
-    /// - Power functions preserve smooth gradients (no banding artifacts)
-    ///
-    /// - Parameters:
-    ///   - t: Normalized input value [0.0, 1.0]
-    ///   - contrast: Contrast level (0.0=flat, 0.5=neutral, 1.0=steep)
-    /// - Returns: Adjusted value [0.0, 1.0] after applying contrast curve
-    static func applyContrast(_ t: Double, contrast: Double) -> Double {
-        // Fast path: neutral contrast is identity function
-        guard contrast != 0.5 else { return t }
-
-        let exponent = pow(3.0, (contrast - 0.5) * 2.0)
-        if t < 0.5 {
-            // Lower half: compress/expand shadows
-            return 0.5 * pow(2.0 * t, exponent)
-        } else {
-            // Upper half: compress/expand highlights (mirrored)
-            return 1.0 - 0.5 * pow(2.0 * (1.0 - t), exponent)
-        }
-    }
-
-    /// Builds a 256-entry gamma lookup table for a single color channel.
-    ///
-    /// The table is constructed by:
-    /// 1. Generating normalized values [0.0, 1.0] for each entry (i/255)
-    /// 2. Applying the contrast S-curve transformation
-    /// 3. Scaling by brightness and channel multiplier (for warmth)
-    ///
-    /// CoreGraphics uses these tables to remap output values:
-    /// `output = table[input_byte]` for each pixel channel.
-    ///
-    /// - Parameters:
-    ///   - brightness: Overall brightness scale (0.0–1.0)
-    ///   - channelMultiplier: RGB channel multiplier (from warmth calculation)
-    ///   - contrast: Contrast level for S-curve transformation
-    /// - Returns: 256-entry array of gamma values
-    static func buildTable(brightness: Double, channelMultiplier: Double, contrast: Double) -> [CGGammaValue] {
-        let scale = brightness * channelMultiplier
-        return (0 ..< 256).map { i in
-            let t = Double(i) / 255.0
-            let curved = applyContrast(t, contrast: contrast)
-            return CGGammaValue(curved * scale)
-        }
-    }
-
     /// Applies a complete gamma table to a display (brightness + warmth + contrast combined).
     ///
     /// This method:
@@ -1034,291 +838,22 @@ class BrightnessManager {
             return
         }
 
-        let m = Self.channelMultipliers(for: warmth)
-        var rTable = Self.buildTable(brightness: brightness, channelMultiplier: m.r, contrast: contrast)
-        var gTable = Self.buildTable(brightness: brightness, channelMultiplier: m.g, contrast: contrast)
-        var bTable = Self.buildTable(brightness: brightness, channelMultiplier: m.b, contrast: contrast)
+        let m = GammaMath.channelMultipliers(for: warmth)
+        var rTable = GammaMath.buildTable(brightness: brightness, channelMultiplier: m.r, contrast: contrast)
+        var gTable = GammaMath.buildTable(brightness: brightness, channelMultiplier: m.g, contrast: contrast)
+        var bTable = GammaMath.buildTable(brightness: brightness, channelMultiplier: m.b, contrast: contrast)
 
         // Return value intentionally ignored — no recovery action if gamma set fails
         CGSetDisplayTransferByTable(displayID, 256, &rTable, &gTable, &bTable)
     }
 
-    // MARK: - Display Name
+    // MARK: - Display Name (extracted to DisplayNameResolver)
 
-    /// Determines the human-readable name for a display using a multi-stage fallback approach.
     ///
-    /// Display naming is challenging because:
-    /// - macOS only maintains display names for popular models in common locales
-    /// - Unsupported locales receive generic "Unknown Display" fallbacks
-    /// - EDID data is available but requires IOKit parsing
-    /// - Different Mac architectures (Intel vs Apple Silicon) expose data differently
-    ///
-    /// Resolution strategy:
-    /// 1. **NSScreen.localizedName** — Fast, localized, works for ~90% of displays
-    /// 2. **Apple's display override plist** — English fallback for unsupported locales
-    /// 3. **EDID binary parsing via IOKit** — Raw monitor data
-    ///    (Intel: IODisplayConnect, Apple Silicon: IOPortTransportStateDisplayPort)
-    /// 4. **Localized "Unknown Display"** — Last resort
-    ///
-    /// - Parameter displayID: Core Graphics display identifier
-    /// - Returns: Best available human-readable display name
+    /// A stub remains so the `refreshDisplays` call site stays readable. The real logic
+    /// lives in `DisplayNameResolver.name(for:)` in this directory.
     private func displayName(for displayID: CGDirectDisplayID) -> String {
-        // Stage 1: Try NSScreen.localizedName (works for most locales and displays)
-        for screen in NSScreen.screens {
-            let key = NSDeviceDescriptionKey("NSScreenNumber")
-            if let screenNumber = screen.deviceDescription[key] as? CGDirectDisplayID,
-               screenNumber == displayID
-            {
-                let name = screen.localizedName
-                // Detect generic fallbacks (e.g., "Unknown Display" in various languages)
-                // If we get a generic name, continue to stages 2-3 for a better result
-                if !looksLikeGenericDisplayName(name) {
-                    return name
-                }
-            }
-        }
-
-        // Stage 2: Read English name from Apple's display override database
-        // (Better than generic fallback for unsupported locales like Serbian)
-        if let name = displayNameFromOverrides(for: displayID) {
-            return name
-        }
-
-        // Stage 3: Parse EDID binary data via IOKit (low-level hardware query)
-        if let name = edidDisplayName(for: displayID) {
-            return name
-        }
-
-        // Stage 4: Give up and return localized "Unknown Display"
-        return NSLocalizedString("Unknown Display", comment: "Fallback name when macOS cannot identify the display")
-    }
-
-    /// Checks if a display name appears to be a generic fallback rather than a real model name.
-    ///
-    /// When macOS doesn't recognize a display model or locale, it returns generic strings like
-    /// "Unknown Display" in various languages. We detect these patterns to trigger deeper
-    /// fallback logic (override plist or EDID parsing).
-    ///
-    /// - Parameter name: Display name to check
-    /// - Returns: `true` if the name looks generic (should try harder to resolve)
-    private func looksLikeGenericDisplayName(_ name: String) -> Bool {
-        let lowercased = name.lowercased()
-        // Check for "unknown" patterns across multiple languages
-        return lowercased.contains("unknown") ||
-            lowercased.contains("unbekannt") || // German
-            lowercased.contains("inconnu") || // French
-            lowercased.contains("desconocid") || // Spanish
-            lowercased.contains("sconosciut") || // Italian
-            lowercased.contains("onbekend") || // Dutch
-            lowercased.contains("desconhecid") || // Portuguese
-            lowercased.contains("不明") || // Japanese
-            lowercased.contains("未知") || // Chinese
-            lowercased.contains("알 수 없") || // Korean
-            lowercased.contains("nepoznat") // Serbian
-    }
-
-    /// Reads the display product name from Apple's display override plist database.
-    ///
-    /// macOS maintains a database of known displays at:
-    /// `/System/Library/Displays/Contents/Resources/Overrides/DisplayVendorID-*/DisplayProductID-*`
-    ///
-    /// These plists contain English (and sometimes localized) display names that ship with macOS.
-    /// This is a good fallback when NSScreen.localizedName returns a generic string.
-    ///
-    /// - Parameter displayID: Core Graphics display identifier
-    /// - Returns: Display name from override plist, or `nil` if not found
-    private func displayNameFromOverrides(for displayID: CGDirectDisplayID) -> String? {
-        let vendorHex = String(format: "%x", CGDisplayVendorNumber(displayID))
-        let productHex = String(format: "%x", CGDisplayModelNumber(displayID))
-        let basePath = "/System/Library/Displays/Contents/Resources/Overrides"
-        let path = "\(basePath)/DisplayVendorID-\(vendorHex)/DisplayProductID-\(productHex)"
-
-        guard let dict = NSDictionary(contentsOfFile: path) as? [String: Any] else {
-            return nil
-        }
-
-        // DisplayProductName can be either a plain string or a localized dictionary
-        if let name = dict["DisplayProductName"] as? String, !name.isEmpty {
-            return name
-        }
-        if let names = dict["DisplayProductName"] as? [String: String],
-           let name = names.values.first, !name.isEmpty
-        {
-            return name
-        }
-        return nil
-    }
-
-    /// Extracts the display name from EDID data via IOKit (architecture-aware fallback).
-    ///
-    /// EDID (Extended Display Identification Data) is a binary blob that all monitors provide,
-    /// containing the manufacturer-set display name. However, its location in the IOKit registry
-    /// differs by Mac architecture:
-    /// - **Apple Silicon**: IOPortTransportStateDisplayPort services
-    /// - **Intel Macs**: IODisplayConnect services
-    ///
-    /// This method tries Apple Silicon first (more common for newer Macs), then falls back to Intel.
-    ///
-    /// - Parameter displayID: Core Graphics display identifier
-    /// - Returns: Display name parsed from EDID, or `nil` if not found
-    private func edidDisplayName(for displayID: CGDirectDisplayID) -> String? {
-        let targetModel = Int(CGDisplayModelNumber(displayID))
-
-        // Apple Silicon: display info lives under IOPortTransportStateDisplayPort
-        if let name = displayNameFromTransportService(matchingProductID: targetModel) {
-            return name
-        }
-
-        // Intel Macs: display info lives under IODisplayConnect
-        let targetVendor = Int(CGDisplayVendorNumber(displayID))
-        var iterator: io_iterator_t = 0
-        guard IOServiceGetMatchingServices(
-            kIOMainPortDefault,
-            IOServiceMatching("IODisplayConnect"),
-            &iterator
-        ) == KERN_SUCCESS else { return nil }
-        defer { IOObjectRelease(iterator) }
-
-        var service = IOIteratorNext(iterator)
-        while service != 0 {
-            defer {
-                IOObjectRelease(service)
-                service = IOIteratorNext(iterator)
-            }
-
-            var properties: Unmanaged<CFMutableDictionary>?
-            guard IORegistryEntryCreateCFProperties(service, &properties, kCFAllocatorDefault, 0) == KERN_SUCCESS,
-                  let dict = properties?.takeRetainedValue() as? [String: Any]
-            else {
-                continue
-            }
-
-            guard let vendorID = dict["DisplayVendorID"] as? Int,
-                  let productID = dict["DisplayProductID"] as? Int,
-                  targetVendor == vendorID, targetModel == productID
-            else {
-                continue
-            }
-
-            if let info = IODisplayCreateInfoDictionary(service, 0)?.takeRetainedValue() as? [String: Any],
-               let names = info["DisplayProductName"] as? [String: String],
-               let name = names.values.first, !name.isEmpty
-            {
-                return name
-            }
-
-            if let edidData = dict["IODisplayEDID"] as? Data,
-               let name = parseEDIDName(edidData)
-            {
-                return name
-            }
-        }
-
-        return nil
-    }
-
-    /// Reads display product name from IOPortTransportStateDisplayPort services (Apple Silicon).
-    ///
-    /// On Apple Silicon Macs, display information is exposed through port transport services
-    /// in the IOKit registry. This method:
-    /// 1. Enumerates all IOPortTransportStateDisplayPort services
-    /// 2. Matches by ProductID (corresponds to CGDisplayModelNumber)
-    /// 3. Extracts ProductName or EDID data from service properties
-    ///
-    /// - Parameter targetModel: Display model number from CoreGraphics
-    /// - Returns: Display name if found, otherwise `nil`
-    private func displayNameFromTransportService(matchingProductID targetModel: Int) -> String? {
-        var iterator: io_iterator_t = 0
-        guard IOServiceGetMatchingServices(
-            kIOMainPortDefault,
-            IOServiceMatching("IOPortTransportStateDisplayPort"),
-            &iterator
-        ) == KERN_SUCCESS else { return nil }
-        defer { IOObjectRelease(iterator) }
-
-        var service = IOIteratorNext(iterator)
-        while service != 0 {
-            defer {
-                IOObjectRelease(service)
-                service = IOIteratorNext(iterator)
-            }
-
-            var properties: Unmanaged<CFMutableDictionary>?
-            guard IORegistryEntryCreateCFProperties(service, &properties, kCFAllocatorDefault, 0) == KERN_SUCCESS,
-                  let dict = properties?.takeRetainedValue() as? [String: Any]
-            else {
-                continue
-            }
-
-            // Match by ProductID (corresponds to CGDisplayModelNumber)
-            guard let productID = dict["ProductID"] as? Int,
-                  productID == targetModel
-            else {
-                continue
-            }
-
-            // Read ProductName directly from the service properties
-            if let name = dict["ProductName"] as? String, !name.isEmpty {
-                return name
-            }
-
-            // Fall back to EDID binary from the service or its Metadata
-            if let edidData = dict["EDID"] as? Data,
-               let name = parseEDIDName(edidData)
-            {
-                return name
-            }
-            if let metadata = dict["Metadata"] as? [String: Any],
-               let edidData = metadata["EDID"] as? Data,
-               let name = parseEDIDName(edidData)
-            {
-                return name
-            }
-        }
-
-        return nil
-    }
-
-    /// Parses the monitor name from raw EDID binary data.
-    ///
-    /// EDID (Extended Display Identification Data) is a 128+ byte binary structure that
-    /// monitors provide via DDC/EDID protocols. The standard defines 4 descriptor blocks
-    /// at offset 54, each 18 bytes long.
-    ///
-    /// Display name format (descriptor tag 0xFC):
-    /// - Bytes 0-2: Always 0x00 (marks as descriptor, not detailed timing)
-    /// - Byte 3: Descriptor type tag (0xFC = display name)
-    /// - Byte 4: Reserved (0x00)
-    /// - Bytes 5-17: 13 ASCII characters (padded with spaces or 0x0A)
-    ///
-    /// Reference: VESA Enhanced Extended Display Identification Data Standard (E-EDID)
-    ///
-    /// - Parameter edid: Raw EDID binary data from IOKit
-    /// - Returns: ASCII monitor name if found and valid, otherwise `nil`
-    private func parseEDIDName(_ edid: Data) -> String? {
-        guard edid.count >= 128 else { return nil }
-
-        // EDID has 4 descriptor blocks of 18 bytes each, starting at byte 54
-        for i in 0 ..< 4 {
-            let offset = 54 + (i * 18)
-            guard offset + 17 < edid.count else { continue }
-
-            // Monitor descriptor signature: bytes 0-2 are 0x00, byte 3 is the tag
-            // Tag 0xFC = Display Product Name descriptor
-            if edid[offset] == 0, edid[offset + 1] == 0, edid[offset + 2] == 0, edid[offset + 3] == 0xFC {
-                // Name is in bytes 5-17 (13 chars max), padded with 0x0A (newline) or spaces
-                let nameBytes = edid[(offset + 5) ... (offset + 17)]
-                if let name = String(bytes: nameBytes, encoding: .ascii)?
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
-                    .trimmingCharacters(in: CharacterSet(charactersIn: "\n\r\0")),
-                    !name.isEmpty
-                {
-                    return name
-                }
-            }
-        }
-
-        return nil
+        DisplayNameResolver.name(for: displayID)
     }
 
     // MARK: - Persistence

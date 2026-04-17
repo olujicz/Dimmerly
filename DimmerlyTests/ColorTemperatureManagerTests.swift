@@ -204,9 +204,10 @@ final class ColorTemperatureManagerTests: XCTestCase {
 
     func testManualOverrideDeactivatesAutoMode() {
         let manager = ColorTemperatureManager.shared
+        // Reset then enable so the apply() guard doesn't short-circuit from prior-test state.
+        manager.apply(enabled: false)
+        manager.apply(enabled: true)
         manager.isActive = true
-        // Simulate that auto mode has been enabled via settings
-        manager.observeSettings(readEnabled: { true })
 
         manager.notifyManualWarmthChange()
 
@@ -215,8 +216,9 @@ final class ColorTemperatureManagerTests: XCTestCase {
 
     func testPresetAppliedTriggersOverride() {
         let manager = ColorTemperatureManager.shared
+        manager.apply(enabled: false)
+        manager.apply(enabled: true)
         manager.isActive = true
-        manager.observeSettings(readEnabled: { true })
 
         manager.notifyPresetApplied()
 

@@ -54,14 +54,12 @@ class ColorTemperatureManager {
     /// Timer for periodic color temperature checks (fires every 60 seconds).
     private var timer: Timer?
 
-    /// Notification observer for UserDefaults changes.
-    private var settingsObserver: NSObjectProtocol?
-
     /// Notification observer for system wake events.
     private var wakeObserver: NSObjectProtocol?
 
-    /// Cached enabled state to detect changes.
-    private var lastEnabled: Bool?
+    /// Whether auto color temperature is currently enabled (mirrors AppSettings).
+    /// Used by `notifyManualWarmthChange` to decide whether a manual override applies.
+    private var isEnabled: Bool = false
 
     /// Whether the user has manually overridden warmth since the last boundary crossing.
     private var manualOverrideActive = false
@@ -78,37 +76,18 @@ class ColorTemperatureManager {
     /// Set to true when auto mode is first enabled; cleared after the first update.
     private var animateNextUpdate = false
 
-    // MARK: - Settings Observation
+    // MARK: - Enable/Disable
 
-    /// Begins observing the auto color temperature setting and starts/stops polling accordingly.
+    /// Applies the current auto-color-temperature setting. Called by the app on launch
+    /// and whenever `AppSettings.autoColorTempEnabled` changes.
     ///
-    /// - Parameter readEnabled: Closure that returns the current auto-color-temp-enabled setting
-    func observeSettings(readEnabled: @Sendable @escaping () -> Bool) {
-        let enabled = readEnabled()
-        lastEnabled = enabled
-
+    /// Turning the feature ON snapshots the user's current warmth so it can be restored
+    /// if they later turn it OFF, clears any prior manual override, and enables an
+    /// animated first update. Turning it OFF stops polling and restores the snapshot.
+    func apply(enabled: Bool) {
+        guard enabled != isEnabled else { return }
+        isEnabled = enabled
         if enabled {
-            savedWarmthSnapshot = BrightnessManager.shared.currentWarmthSnapshot()
-            startPolling()
-        }
-
-        settingsObserver = NotificationCenter.default.addObserver(
-            forName: UserDefaults.didChangeNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in
-                self?.handleSettingsChange(readEnabled: readEnabled)
-            }
-        }
-    }
-
-    private func handleSettingsChange(readEnabled: @Sendable () -> Bool) {
-        let enabled = readEnabled()
-        guard enabled != lastEnabled else { return }
-        lastEnabled = enabled
-        if enabled {
-            // Save current warmth so we can restore it if auto mode is disabled
             savedWarmthSnapshot = BrightnessManager.shared.currentWarmthSnapshot()
             manualOverrideActive = false
             overrideState = nil
@@ -236,7 +215,7 @@ class ColorTemperatureManager {
         }
 
         currentKelvin = targetKelvin
-        let warmth = BrightnessManager.warmthForKelvin(targetKelvin)
+        let warmth = GammaMath.warmthForKelvin(targetKelvin)
         let clamped = min(max(warmth, 0.0), 1.0)
 
         let bm = BrightnessManager.shared
@@ -311,7 +290,7 @@ class ColorTemperatureManager {
     /// Called when the user manually changes warmth (via slider or other direct input).
     /// Pauses auto mode until the next day/night boundary crossing.
     func notifyManualWarmthChange() {
-        guard lastEnabled == true else { return }
+        guard isEnabled else { return }
         guard !manualOverrideActive else { return }
 
         manualOverrideActive = true
