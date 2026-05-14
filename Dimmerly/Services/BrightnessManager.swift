@@ -212,8 +212,8 @@ class BrightnessManager {
         // Provide restore callback so ScreenBlanker can restore the full gamma table
         ScreenBlanker.shared.restoreDisplay = { [weak self] displayID in
             guard let self else { return }
-            guard let display = self.displays.first(where: { $0.id == displayID }) else { return }
-            self.applyDisplayOutput(display, allowDuringBlanking: true)
+            guard let display = displays.first(where: { $0.id == displayID }) else { return }
+            applyDisplayOutput(display, allowDuringBlanking: true)
         }
     }
 
@@ -618,31 +618,28 @@ class BrightnessManager {
         let targets: [TransitionTarget] = displays.map { display in
             let idString = String(display.id)
 
-            let endBrightness: Double
-            if let universal = preset.universalBrightness {
-                endBrightness = max(universal, Self.minimumBrightness)
+            let endBrightness: Double = if let universal = preset.universalBrightness {
+                max(universal, Self.minimumBrightness)
             } else if let value = preset.displayBrightness[idString] {
-                endBrightness = max(value, Self.minimumBrightness)
+                max(value, Self.minimumBrightness)
             } else {
-                endBrightness = display.brightness
+                display.brightness
             }
 
-            let endWarmth: Double
-            if let universal = preset.universalWarmth {
-                endWarmth = min(max(universal, 0), 1)
+            let endWarmth: Double = if let universal = preset.universalWarmth {
+                min(max(universal, 0), 1)
             } else if let values = preset.displayWarmth, let value = values[idString] {
-                endWarmth = min(max(value, 0), 1)
+                min(max(value, 0), 1)
             } else {
-                endWarmth = display.warmth
+                display.warmth
             }
 
-            let endContrast: Double
-            if let universal = preset.universalContrast {
-                endContrast = min(max(universal, 0), 1)
+            let endContrast: Double = if let universal = preset.universalContrast {
+                min(max(universal, 0), 1)
             } else if let values = preset.displayContrast, let value = values[idString] {
-                endContrast = min(max(value, 0), 1)
+                min(max(value, 0), 1)
             } else {
-                endContrast = display.contrast
+                display.contrast
             }
 
             return TransitionTarget(

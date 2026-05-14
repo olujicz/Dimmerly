@@ -14,7 +14,7 @@ enum DisplayIntentError: Swift.Error, CustomLocalizedStringResourceConvertible {
 
     var localizedStringResource: LocalizedStringResource {
         switch self {
-        case .invalidDisplay: return "The selected display is no longer connected."
+        case .invalidDisplay: "The selected display is no longer connected."
         }
     }
 }

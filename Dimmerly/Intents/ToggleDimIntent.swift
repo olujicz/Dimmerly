@@ -50,7 +50,7 @@ struct ApplyPresetIntent: AppIntent {
 
         var localizedStringResource: LocalizedStringResource {
             switch self {
-            case .presetNotFound: return "No preset found with that name."
+            case .presetNotFound: "No preset found with that name."
             }
         }
     }

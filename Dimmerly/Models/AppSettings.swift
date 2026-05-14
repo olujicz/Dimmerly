@@ -29,21 +29,21 @@ enum MenuBarIconStyle: String, CaseIterable, Identifiable {
     /// SF Symbol name, or nil for the custom asset
     var systemImageName: String? {
         switch self {
-        case .defaultIcon: return nil
-        case .monitor: return "display"
-        case .moonFilled: return "moon.fill"
-        case .moonOutline: return "moon"
-        case .sunMoon: return "moon.haze"
+        case .defaultIcon: nil
+        case .monitor: "display"
+        case .moonFilled: "moon.fill"
+        case .moonOutline: "moon"
+        case .sunMoon: "moon.haze"
         }
     }
 
     var displayName: LocalizedStringKey {
         switch self {
-        case .defaultIcon: return "Default"
-        case .monitor: return "Monitor"
-        case .moonFilled: return "Moon (Filled)"
-        case .moonOutline: return "Moon (Outline)"
-        case .sunMoon: return "Moon & Haze"
+        case .defaultIcon: "Default"
+        case .monitor: "Monitor"
+        case .moonFilled: "Moon (Filled)"
+        case .moonOutline: "Moon (Outline)"
+        case .sunMoon: "Moon & Haze"
         }
     }
 }

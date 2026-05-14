@@ -154,7 +154,7 @@ struct GlobalShortcut: Codable, Equatable {
     /// Validates that the shortcut has at least one modifier
     /// (shortcuts without modifiers are generally not recommended as global shortcuts)
     var isValid: Bool {
-        return !modifiers.isEmpty
+        !modifiers.isEmpty
     }
 
     /// Checks if this shortcut conflicts with a standard macOS system shortcut
@@ -175,6 +175,6 @@ struct GlobalShortcut: Codable, Equatable {
             ("tab", [.command]), ("space", [.command]),
         ]
 
-        return reserved.contains { $0.key == self.key && $0.modifiers == self.modifiers }
+        return reserved.contains { $0.key == key && $0.modifiers == modifiers }
     }
 }

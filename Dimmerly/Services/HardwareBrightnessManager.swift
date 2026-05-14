@@ -197,7 +197,7 @@
 
                 await MainActor.run { [weak self] in
                     guard let self else { return }
-                    self.capabilities = results
+                    capabilities = results
                     // Read initial values for DDC-capable displays
                     for (displayID, cap) in results where cap.supportsDDC {
                         self.readAllValues(for: displayID)
@@ -392,11 +392,11 @@
                 // Apply all read values on the main actor in a single hop
                 await MainActor.run { [weak self] in
                     guard let self else { return }
-                    if let brightness { self.hardwareBrightness[displayID] = brightness }
-                    if let contrast { self.hardwareContrast[displayID] = contrast }
-                    if let volume { self.hardwareVolume[displayID] = volume }
-                    if let muted { self.hardwareMute[displayID] = muted }
-                    if let inputSource { self.activeInputSource[displayID] = inputSource }
+                    if let brightness { hardwareBrightness[displayID] = brightness }
+                    if let contrast { hardwareContrast[displayID] = contrast }
+                    if let volume { hardwareVolume[displayID] = volume }
+                    if let muted { hardwareMute[displayID] = muted }
+                    if let inputSource { activeInputSource[displayID] = inputSource }
                 }
             }
         }
@@ -460,14 +460,14 @@
                     guard let self else { return }
 
                     if success {
-                        self.consecutiveWriteFailures[displayID] = 0
+                        consecutiveWriteFailures[displayID] = 0
                     } else {
-                        let count = (self.consecutiveWriteFailures[displayID] ?? 0) + 1
-                        self.consecutiveWriteFailures[displayID] = count
+                        let count = (consecutiveWriteFailures[displayID] ?? 0) + 1
+                        consecutiveWriteFailures[displayID] = count
 
                         if count >= threshold {
                             // Downgrade to software brightness
-                            self.capabilities[displayID] = .notSupported(displayID: displayID)
+                            capabilities[displayID] = .notSupported(displayID: displayID)
                             BrightnessManager.shared.applyCurrentBrightness(for: displayID)
                         }
                     }

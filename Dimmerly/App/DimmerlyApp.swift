@@ -140,7 +140,7 @@ struct DimmerlyApp: App {
 
     /// Configures the global keyboard shortcut monitor to trigger display sleep.
     ///
-    /// The shortcut is loaded from settings before monitoring starts (see Issue #1 fix).
+    /// The shortcut is loaded from settings before monitoring starts.
     /// Requires accessibility permissions to function.
     private func startGlobalShortcutMonitoring() {
         shortcutManager.startMonitoring { [settings] in

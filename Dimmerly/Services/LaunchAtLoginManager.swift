@@ -17,7 +17,7 @@ enum LaunchAtLoginError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case let .registrationFailed(error):
-            return String(
+            String(
                 format: NSLocalizedString(
                     "Failed to enable launch at login: %@",
                     comment: "Error registering login item"
@@ -25,7 +25,7 @@ enum LaunchAtLoginError: LocalizedError {
                 error.localizedDescription
             )
         case let .unregistrationFailed(error):
-            return String(
+            String(
                 format: NSLocalizedString(
                     "Failed to disable launch at login: %@",
                     comment: "Error unregistering login item"
@@ -68,7 +68,7 @@ enum LaunchAtLoginManager {
     ///
     /// - Returns: true if registered, false otherwise
     static var isEnabled: Bool {
-        return SMAppService.mainApp.status == .enabled
+        SMAppService.mainApp.status == .enabled
     }
 
     /// Sets the launch-at-login state
@@ -78,9 +78,9 @@ enum LaunchAtLoginManager {
     @discardableResult
     static func setEnabled(_ enabled: Bool) -> Result<Void, LaunchAtLoginError> {
         if enabled {
-            return enable()
+            enable()
         } else {
-            return disable()
+            disable()
         }
     }
 }

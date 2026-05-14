@@ -117,7 +117,7 @@ struct GeneralSettingsTab: View {
         }
     }
 
-    // MARK: - Menu Bar Icon Picker (Fix #10)
+    // MARK: - Menu Bar Icon Picker
 
     private var menuBarIconPicker: some View {
         LabeledContent("Menu Bar Icon:") {
@@ -273,7 +273,6 @@ struct DisplaySettingsTab: View {
                 .accessibilityValue(settings.idleTimerEnabled ? "\(settings.idleTimerMinutes) minutes" : "Off")
 
             if settings.idleTimerEnabled {
-                // Fix #6: Proper pluralization
                 Stepper(value: $settings.idleTimerMinutes, in: 1 ... 60) {
                     Text(
                         settings.idleTimerMinutes == 1
@@ -329,7 +328,6 @@ struct DisplaySettingsTab: View {
             if settings.autoColorTempEnabled {
                 LocationPickerRow()
 
-                // Fix #1: Use LabeledContent for Day/Night sliders
                 LabeledContent("Day:") {
                     HStack(spacing: 4) {
                         Text("Warm")
@@ -566,7 +564,6 @@ struct DisplaySettingsTab: View {
 // MARK: - Schedule Tab
 
 /// Schedule settings: preset schedules with sunrise/sunset triggers.
-/// Fix #5: LocationPickerRow appears only once here, not duplicated.
 struct ScheduleSettingsTab: View {
     @Environment(AppSettings.self) var settings
     @Environment(ScheduleManager.self) var scheduleManager
@@ -763,7 +760,6 @@ struct ShortcutsSettingsTab: View {
 
 // MARK: - About Tab
 
-/// Fix #9: Inline version info instead of button that duplicates the app menu item
 struct AboutSettingsTab: View {
     /// App version from the main bundle
     private var appVersion: String {
@@ -791,36 +787,42 @@ struct AboutSettingsTab: View {
                         .foregroundStyle(.secondary)
                 }
 
-                Button {
-                    if let url = URL(string: "https://olujicz.github.io/Dimmerly/privacy-policy.html") {
-                        NSWorkspace.shared.open(url)
-                    }
-                } label: {
-                    HStack(spacing: 2) {
-                        Text("Privacy Policy")
-                        Image(systemName: "arrow.up.forward")
-                            .imageScale(.small)
-                    }
-                }
-                .help("Open the Dimmerly privacy policy")
+                ExternalLinkButton(
+                    title: String(localized: "Privacy Policy", comment: "About link title"),
+                    urlString: "https://olujicz.github.io/Dimmerly/privacy-policy.html",
+                    helpText: String(localized: "Open the Dimmerly privacy policy", comment: "About link help text")
+                )
 
-                Button {
-                    if let url = URL(string: "https://github.com/olujicz/Dimmerly") {
-                        NSWorkspace.shared.open(url)
-                    }
-                } label: {
-                    HStack(spacing: 2) {
-                        Text("Source Code on GitHub")
-                        Image(systemName: "arrow.up.forward")
-                            .imageScale(.small)
-                    }
-                }
-                .help("Open the Dimmerly GitHub repository")
+                ExternalLinkButton(
+                    title: String(localized: "Source Code on GitHub", comment: "About link title"),
+                    urlString: "https://github.com/olujicz/Dimmerly",
+                    helpText: String(localized: "Open the Dimmerly GitHub repository", comment: "About link help text")
+                )
             } header: {
                 Label("About Dimmerly", systemImage: "info.circle")
             }
         }
         .formStyle(.grouped)
+    }
+}
+
+private struct ExternalLinkButton: View {
+    let title: String
+    let urlString: String
+    let helpText: String
+
+    var body: some View {
+        Button {
+            guard let url = URL(string: urlString) else { return }
+            NSWorkspace.shared.open(url)
+        } label: {
+            HStack(spacing: 2) {
+                Text(title)
+                Image(systemName: "arrow.up.forward")
+                    .imageScale(.small)
+            }
+        }
+        .help(helpText)
     }
 }
 

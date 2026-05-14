@@ -146,9 +146,9 @@
 
         var displayName: String {
             switch self {
-            case .softwareOnly: return String(localized: "Software Only", comment: "DDC control mode name")
-            case .hardwareOnly: return String(localized: "Hardware Only", comment: "DDC control mode name")
-            case .combined: return String(localized: "Combined", comment: "DDC control mode name")
+            case .softwareOnly: String(localized: "Software Only", comment: "DDC control mode name")
+            case .hardwareOnly: String(localized: "Hardware Only", comment: "DDC control mode name")
+            case .combined: String(localized: "Combined", comment: "DDC control mode name")
             }
         }
 
@@ -156,17 +156,17 @@
         var description: String {
             switch self {
             case .softwareOnly:
-                return String(
+                String(
                     localized: "Uses gamma tables to adjust display output. Works with all displays but does not change the actual backlight.",
                     comment: "Description of software-only DDC control mode"
                 )
             case .hardwareOnly:
-                return String(
+                String(
                     localized: "Controls the monitor's backlight directly via DDC/CI. Falls back to software brightness if DDC is not available.",
                     comment: "Description of hardware-only DDC control mode"
                 )
             case .combined:
-                return String(
+                String(
                     localized: "Uses DDC for brightness and gamma tables for warmth and contrast. Automatically uses software brightness if DDC is not available.",
                     comment: "Description of combined DDC control mode"
                 )

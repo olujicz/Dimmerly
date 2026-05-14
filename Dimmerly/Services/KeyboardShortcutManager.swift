@@ -40,7 +40,7 @@ class KeyboardShortcutManager {
     ///
     /// - Returns: true if permissions are granted
     static func checkAccessibilityPermission() -> Bool {
-        return AXIsProcessTrusted()
+        AXIsProcessTrusted()
     }
 
     /// Requests accessibility permissions from the user

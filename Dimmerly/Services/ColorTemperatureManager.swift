@@ -202,16 +202,15 @@ class ColorTemperatureManager {
         let dayKelvin = Double(settings.dayTemperature)
         let nightKelvin = Double(settings.nightTemperature)
 
-        let targetKelvin: Double
-        switch state {
+        let targetKelvin: Double = switch state {
         case .day:
-            targetKelvin = dayKelvin
+            dayKelvin
         case .night:
-            targetKelvin = nightKelvin
+            nightKelvin
         case let .sunriseTransition(progress):
-            targetKelvin = nightKelvin + (dayKelvin - nightKelvin) * progress
+            nightKelvin + (dayKelvin - nightKelvin) * progress
         case let .sunsetTransition(progress):
-            targetKelvin = dayKelvin + (nightKelvin - dayKelvin) * progress
+            dayKelvin + (nightKelvin - dayKelvin) * progress
         }
 
         currentKelvin = targetKelvin
@@ -279,9 +278,9 @@ class ColorTemperatureManager {
     private static func baseState(_ state: ColorTempState) -> ColorTempState {
         switch state {
         case .day, .sunriseTransition:
-            return .day
+            .day
         case .night, .sunsetTransition:
-            return .night
+            .night
         }
     }
 

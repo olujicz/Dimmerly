@@ -81,8 +81,8 @@ enum ScheduleTrigger: Codable, Equatable {
     /// Whether this trigger requires location data
     var requiresLocation: Bool {
         switch self {
-        case .fixedTime: return false
-        case .sunrise, .sunset: return true
+        case .fixedTime: false
+        case .sunrise, .sunset: true
         }
     }
 }

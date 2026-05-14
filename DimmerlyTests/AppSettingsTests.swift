@@ -125,7 +125,7 @@ final class AppSettingsTests: XCTestCase {
     /// Tests that AppSettings is Observable
     func testObservableConformance() {
         /// Compile-time conformance check via type constraint
-        func requiresObservable<T: Observable>(_: T) {}
+        func requiresObservable(_: some Observable) {}
         requiresObservable(settings)
     }
 

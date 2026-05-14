@@ -91,6 +91,27 @@ struct ScheduleRow: View {
 
 // MARK: - Add Schedule Sheet
 
+private enum AddScheduleTriggerType: Int, CaseIterable, Identifiable {
+    case fixedTime
+    case sunrise
+    case sunset
+
+    var id: Int {
+        rawValue
+    }
+
+    var title: String {
+        switch self {
+        case .fixedTime:
+            String(localized: "Fixed Time", comment: "Schedule trigger type")
+        case .sunrise:
+            String(localized: "Sunrise", comment: "Schedule trigger type")
+        case .sunset:
+            String(localized: "Sunset", comment: "Schedule trigger type")
+        }
+    }
+}
+
 /// Modal sheet for creating a new schedule
 struct AddScheduleSheet: View {
     @Environment(ScheduleManager.self) var scheduleManager
@@ -98,7 +119,7 @@ struct AddScheduleSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var name = ""
-    @State private var triggerType = 0 // 0 = fixed, 1 = sunrise, 2 = sunset
+    @State private var triggerType: AddScheduleTriggerType = .fixedTime
     @State private var selectedTime = Calendar.current.date(from: DateComponents(hour: 20, minute: 0)) ?? Date()
     @State private var offsetMinutes = 0
     @State private var selectedPresetID: UUID?
@@ -111,15 +132,15 @@ struct AddScheduleSheet: View {
 
             Section("Trigger") {
                 Picker("Type", selection: $triggerType) {
-                    Text("Fixed Time").tag(0)
-                    Text("Sunrise").tag(1)
-                    Text("Sunset").tag(2)
+                    ForEach(AddScheduleTriggerType.allCases) { type in
+                        Text(type.title).tag(type)
+                    }
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
                 .accessibilityLabel("Trigger type")
 
-                if triggerType == 0 {
+                if triggerType == .fixedTime {
                     DatePicker(
                         "Time",
                         selection: $selectedTime,
@@ -170,16 +191,18 @@ struct AddScheduleSheet: View {
 
     private var offsetDescription: String {
         if offsetMinutes == 0 {
-            return triggerType == 1
-                ? String(localized: "At sunrise", comment: "Schedule offset: exactly at sunrise")
-                : String(localized: "At sunset", comment: "Schedule offset: exactly at sunset")
+            if triggerType == .sunrise {
+                String(localized: "At sunrise", comment: "Schedule offset: exactly at sunrise")
+            } else {
+                String(localized: "At sunset", comment: "Schedule offset: exactly at sunset")
+            }
         } else if offsetMinutes > 0 {
-            return String(
+            String(
                 format: NSLocalizedString("%d min after", comment: "Schedule offset: minutes after sunrise/sunset"),
                 offsetMinutes
             )
         } else {
-            return String(
+            String(
                 format: NSLocalizedString("%d min before", comment: "Schedule offset: minutes before sunrise/sunset"),
                 abs(offsetMinutes)
             )
@@ -195,11 +218,11 @@ struct AddScheduleSheet: View {
 
         let trigger: ScheduleTrigger
         switch triggerType {
-        case 1:
+        case .sunrise:
             trigger = .sunrise(offsetMinutes: offsetMinutes)
-        case 2:
+        case .sunset:
             trigger = .sunset(offsetMinutes: offsetMinutes)
-        default:
+        case .fixedTime:
             let components = Calendar.current.dateComponents([.hour, .minute], from: selectedTime)
             trigger = .fixedTime(hour: components.hour ?? 20, minute: components.minute ?? 0)
         }
