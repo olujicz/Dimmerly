@@ -5,6 +5,7 @@
 //  Settings window for configuring app preferences.
 //
 
+import AppKit
 import SwiftUI
 
 struct LaunchAtLoginAlertContent: Equatable {
@@ -435,6 +436,14 @@ struct DisplaySettingsTab: View {
                     }
                     .pickerStyle(.radioGroup)
                     .help("Choose how Dimmerly controls display output")
+                    .onChange(of: settings.ddcControlMode) {
+                        hardwareManager.applyRuntimeSettings(
+                            controlMode: settings.ddcControlMode,
+                            pollingInterval: settings.ddcPollingInterval,
+                            writeDelayMilliseconds: settings.ddcWriteDelay
+                        )
+                        brightnessManager.reapplyAll()
+                    }
 
                     Text(settings.ddcControlMode.description)
                         .font(.caption)
@@ -455,7 +464,11 @@ struct DisplaySettingsTab: View {
                     .accessibilityValue("\(settings.ddcPollingInterval) seconds")
                     .help("How often to read hardware values from the monitor")
                     .onChange(of: settings.ddcPollingInterval) {
-                        hardwareManager.pollingInterval = TimeInterval(settings.ddcPollingInterval)
+                        hardwareManager.applyRuntimeSettings(
+                            controlMode: settings.ddcControlMode,
+                            pollingInterval: settings.ddcPollingInterval,
+                            writeDelayMilliseconds: settings.ddcWriteDelay
+                        )
                         if settings.ddcEnabled {
                             hardwareManager.startPolling()
                         }
@@ -476,7 +489,11 @@ struct DisplaySettingsTab: View {
                     .accessibilityValue("\(settings.ddcWriteDelay) milliseconds")
                     .help("Minimum delay between DDC writes (increase if monitor is unresponsive)")
                     .onChange(of: settings.ddcWriteDelay) {
-                        hardwareManager.minimumWriteInterval = TimeInterval(settings.ddcWriteDelay) / 1000.0
+                        hardwareManager.applyRuntimeSettings(
+                            controlMode: settings.ddcControlMode,
+                            pollingInterval: settings.ddcPollingInterval,
+                            writeDelayMilliseconds: settings.ddcWriteDelay
+                        )
                     }
 
                     // Per-display DDC status
@@ -629,6 +646,7 @@ struct ShortcutsSettingsTab: View {
     @Environment(AppSettings.self) var settings
     @Environment(KeyboardShortcutManager.self) var shortcutManager
     @Environment(PresetManager.self) var presetManager
+    @Environment(PresetShortcutManager.self) var presetShortcutManager
     @Environment(\.undoManager) var undoManager
 
     @State private var mainShortcutConflictMessage: String?
@@ -641,6 +659,12 @@ struct ShortcutsSettingsTab: View {
             presetsManagementSection
         }
         .formStyle(.grouped)
+        .onAppear {
+            refreshAccessibilityState()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            refreshAccessibilityState()
+        }
     }
 
     // MARK: - Keyboard Shortcut
@@ -719,6 +743,11 @@ struct ShortcutsSettingsTab: View {
         mainShortcutConflictMessage = nil
         settings.keyboardShortcut = shortcut
         shortcutManager.updateShortcut(shortcut)
+    }
+
+    private func refreshAccessibilityState() {
+        shortcutManager.refreshAccessibilityPermissionAndRestartIfNeeded()
+        presetShortcutManager.refreshAccessibilityPermissionAndRestartIfNeeded()
     }
 
     // MARK: - Presets Management
@@ -832,6 +861,7 @@ private struct ExternalLinkButton: View {
     SettingsView()
         .environment(AppSettings())
         .environment(KeyboardShortcutManager())
+        .environment(PresetShortcutManager())
         .environment(PresetManager())
         .environment(BrightnessManager())
         .environment(ScheduleManager())

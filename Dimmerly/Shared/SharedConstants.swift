@@ -11,6 +11,7 @@ import Security
 enum SharedConstants {
     static let appGroupID = resolvedAppGroupID()
     static let widgetPresetsKey = "widgetPresets"
+    static let widgetDimCommandKey = "widgetDimCommand"
     static let widgetPresetCommandKey = "widgetPresetCommand"
 
     /// Distributed notification posted by the widget to dim displays
@@ -61,6 +62,26 @@ enum SharedConstants {
 
         let groups = value as? [String]
         return groups?.first
+    }
+
+    static func storeWidgetDimCommand(in defaults: UserDefaults? = sharedDefaults) {
+        defaults?.set(true, forKey: widgetDimCommandKey)
+    }
+
+    static func consumeWidgetDimCommand(from defaults: UserDefaults? = sharedDefaults) -> Bool {
+        guard defaults?.bool(forKey: widgetDimCommandKey) == true else { return false }
+        defaults?.removeObject(forKey: widgetDimCommandKey)
+        return true
+    }
+
+    static func storeWidgetPresetCommand(_ presetID: String, in defaults: UserDefaults? = sharedDefaults) {
+        defaults?.set(presetID, forKey: widgetPresetCommandKey)
+    }
+
+    static func consumeWidgetPresetCommand(from defaults: UserDefaults? = sharedDefaults) -> UUID? {
+        guard let presetIDString = defaults?.string(forKey: widgetPresetCommandKey) else { return nil }
+        defaults?.removeObject(forKey: widgetPresetCommandKey)
+        return UUID(uuidString: presetIDString)
     }
 }
 

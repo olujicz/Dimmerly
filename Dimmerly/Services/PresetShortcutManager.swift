@@ -16,6 +16,7 @@
 
 import AppKit
 import Foundation
+import Observation
 
 /// Manages keyboard shortcuts for individual brightness presets.
 ///
@@ -30,7 +31,13 @@ import Foundation
 ///
 /// Thread safety: All methods must be called from the main actor.
 @MainActor
+@Observable
 class PresetShortcutManager {
+    typealias PermissionChecker = @MainActor () -> Bool
+    typealias GlobalMonitorInstaller = @MainActor (@escaping (NSEvent) -> Void) -> Any?
+    typealias LocalMonitorInstaller = @MainActor (@escaping (NSEvent) -> NSEvent?) -> Any?
+    typealias MonitorRemover = @MainActor (Any) -> Void
+
     /// Callback invoked when a preset shortcut is pressed (passes preset ID)
     var onPresetTriggered: ((UUID) -> Void)?
 
@@ -55,6 +62,29 @@ class PresetShortcutManager {
     /// Cached signature of the last applied shortcut set.
     private var lastShortcutSignature: [ShortcutBinding] = []
 
+    private let permissionChecker: PermissionChecker
+    private let globalMonitorInstaller: GlobalMonitorInstaller
+    private let localMonitorInstaller: LocalMonitorInstaller
+    private let monitorRemover: MonitorRemover
+
+    init(
+        permissionChecker: @escaping PermissionChecker = KeyboardShortcutManager.checkAccessibilityPermission,
+        globalMonitorInstaller: @escaping GlobalMonitorInstaller = { handler in
+            NSEvent.addGlobalMonitorForEvents(matching: .keyDown, handler: handler)
+        },
+        localMonitorInstaller: @escaping LocalMonitorInstaller = { handler in
+            NSEvent.addLocalMonitorForEvents(matching: .keyDown, handler: handler)
+        },
+        monitorRemover: @escaping MonitorRemover = { monitor in
+            NSEvent.removeMonitor(monitor)
+        }
+    ) {
+        self.permissionChecker = permissionChecker
+        self.globalMonitorInstaller = globalMonitorInstaller
+        self.localMonitorInstaller = localMonitorInstaller
+        self.monitorRemover = monitorRemover
+    }
+
     /// Updates the registered shortcuts from the current preset list.
     func updateShortcuts(from presets: [BrightnessPreset]) {
         let bindings: [ShortcutBinding] = presets.compactMap { preset in
@@ -76,9 +106,9 @@ class PresetShortcutManager {
     private func startMonitoring() {
         stopMonitoring()
 
-        guard KeyboardShortcutManager.checkAccessibilityPermission() else { return }
+        guard permissionChecker() else { return }
 
-        globalEventMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+        globalEventMonitor = globalMonitorInstaller { [weak self] event in
             let keyCode = event.keyCode
             let modifierFlags = event.modifierFlags
             Task { @MainActor in
@@ -86,7 +116,7 @@ class PresetShortcutManager {
             }
         }
 
-        localEventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+        localEventMonitor = localMonitorInstaller { [weak self] event in
             let keyCode = event.keyCode
             let modifierFlags = event.modifierFlags
             Task { @MainActor in
@@ -98,13 +128,29 @@ class PresetShortcutManager {
 
     private func stopMonitoring() {
         if let monitor = globalEventMonitor {
-            NSEvent.removeMonitor(monitor)
+            monitorRemover(monitor)
             globalEventMonitor = nil
         }
         if let monitor = localEventMonitor {
-            NSEvent.removeMonitor(monitor)
+            monitorRemover(monitor)
             localEventMonitor = nil
         }
+    }
+
+    /// Rechecks Accessibility permission and starts preset shortcut monitoring
+    /// when permission was granted after the shortcut set was already registered.
+    func refreshAccessibilityPermissionAndRestartIfNeeded() {
+        guard permissionChecker() else {
+            stopMonitoring()
+            return
+        }
+        guard !presetShortcuts.isEmpty,
+              globalEventMonitor == nil,
+              localEventMonitor == nil
+        else {
+            return
+        }
+        startMonitoring()
     }
 
     private func handleKeyEvent(keyCode: UInt16, modifierFlags: NSEvent.ModifierFlags) {

@@ -107,6 +107,7 @@ struct MenuBarPanel: View {
                     .toggleStyle(.switch)
                     .controlSize(.mini)
                     .labelsHidden()
+                    .accessibilityLabel(Text("Auto Warmth"))
             }
 
             if settings.autoColorTempEnabled {

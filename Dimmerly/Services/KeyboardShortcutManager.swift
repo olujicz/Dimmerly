@@ -14,6 +14,11 @@ import Observation
 @MainActor
 @Observable
 class KeyboardShortcutManager {
+    typealias PermissionChecker = @MainActor () -> Bool
+    typealias GlobalMonitorInstaller = @MainActor (@escaping (NSEvent) -> Void) -> Any?
+    typealias LocalMonitorInstaller = @MainActor (@escaping (NSEvent) -> NSEvent?) -> Any?
+    typealias MonitorRemover = @MainActor (Any) -> Void
+
     /// The currently registered keyboard shortcut
     var currentShortcut: GlobalShortcut
 
@@ -28,12 +33,33 @@ class KeyboardShortcutManager {
     /// Callback to invoke when the shortcut is triggered
     private var onShortcutTriggered: (() -> Void)?
 
+    private let permissionChecker: PermissionChecker
+    private let globalMonitorInstaller: GlobalMonitorInstaller
+    private let localMonitorInstaller: LocalMonitorInstaller
+    private let monitorRemover: MonitorRemover
+
     /// Initializes the manager with a keyboard shortcut
     ///
     /// - Parameter shortcut: The keyboard shortcut to monitor
-    init(shortcut: GlobalShortcut = .default) {
+    init(
+        shortcut: GlobalShortcut = .default,
+        permissionChecker: @escaping PermissionChecker = KeyboardShortcutManager.checkAccessibilityPermission,
+        globalMonitorInstaller: @escaping GlobalMonitorInstaller = { handler in
+            NSEvent.addGlobalMonitorForEvents(matching: .keyDown, handler: handler)
+        },
+        localMonitorInstaller: @escaping LocalMonitorInstaller = { handler in
+            NSEvent.addLocalMonitorForEvents(matching: .keyDown, handler: handler)
+        },
+        monitorRemover: @escaping MonitorRemover = { monitor in
+            NSEvent.removeMonitor(monitor)
+        }
+    ) {
         currentShortcut = shortcut
-        hasAccessibilityPermission = Self.checkAccessibilityPermission()
+        self.permissionChecker = permissionChecker
+        self.globalMonitorInstaller = globalMonitorInstaller
+        self.localMonitorInstaller = localMonitorInstaller
+        self.monitorRemover = monitorRemover
+        hasAccessibilityPermission = permissionChecker()
     }
 
     /// Checks if the app has accessibility permissions
@@ -59,14 +85,14 @@ class KeyboardShortcutManager {
         stopMonitoring()
 
         // Check for permissions (don't prompt — let the user enable via Settings)
-        hasAccessibilityPermission = Self.checkAccessibilityPermission()
+        hasAccessibilityPermission = permissionChecker()
 
         if !hasAccessibilityPermission {
             return
         }
 
         // Global monitor for when another app is frontmost
-        globalEventMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+        globalEventMonitor = globalMonitorInstaller { [weak self] event in
             let keyCode = event.keyCode
             let modifierFlags = event.modifierFlags
             Task { @MainActor in
@@ -75,7 +101,7 @@ class KeyboardShortcutManager {
         }
 
         // Local monitor for when Dimmerly is frontmost
-        localEventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+        localEventMonitor = localMonitorInstaller { [weak self] event in
             let keyCode = event.keyCode
             let modifierFlags = event.modifierFlags
             Task { @MainActor in
@@ -88,13 +114,29 @@ class KeyboardShortcutManager {
     /// Stops monitoring for keyboard shortcuts
     func stopMonitoring() {
         if let monitor = globalEventMonitor {
-            NSEvent.removeMonitor(monitor)
+            monitorRemover(monitor)
             globalEventMonitor = nil
         }
         if let monitor = localEventMonitor {
-            NSEvent.removeMonitor(monitor)
+            monitorRemover(monitor)
             localEventMonitor = nil
         }
+    }
+
+    /// Rechecks Accessibility permission and starts monitoring if permission was
+    /// granted after an earlier failed start attempt.
+    func refreshAccessibilityPermissionAndRestartIfNeeded() {
+        hasAccessibilityPermission = permissionChecker()
+        guard hasAccessibilityPermission else {
+            stopMonitoring()
+            return
+        }
+        guard globalEventMonitor == nil, localEventMonitor == nil,
+              let callback = onShortcutTriggered
+        else {
+            return
+        }
+        startMonitoring(onTriggered: callback)
     }
 
     /// Updates the monitored keyboard shortcut

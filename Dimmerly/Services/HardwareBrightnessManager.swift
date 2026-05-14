@@ -320,6 +320,17 @@
             pollingTask = nil
         }
 
+        /// Applies settings that can change while the app is running.
+        func applyRuntimeSettings(
+            controlMode: DDCControlMode,
+            pollingInterval: Int,
+            writeDelayMilliseconds: Int
+        ) {
+            self.controlMode = controlMode
+            self.pollingInterval = TimeInterval(pollingInterval)
+            minimumWriteInterval = TimeInterval(writeDelayMilliseconds) / 1000.0
+        }
+
         /// Cleans up state for disconnected displays.
         func removeDisplay(_ displayID: CGDirectDisplayID) {
             capabilities.removeValue(forKey: displayID)

@@ -76,6 +76,7 @@ struct DimmerlyApp: App {
                     configureScheduleManager()
                     configureColorTemperature()
                     observeWidgetNotifications()
+                    processPendingWidgetCommands()
                     // Initial sync for settings-driven managers. `.onChange` below
                     // keeps them current for subsequent edits without needing each
                     // manager to observe UserDefaults directly.
@@ -113,6 +114,7 @@ struct DimmerlyApp: App {
             SettingsView()
                 .environment(settings)
                 .environment(shortcutManager)
+                .environment(presetShortcutManager)
                 .environment(presetManager)
                 .environment(brightnessManager)
                 .environment(scheduleManager)
@@ -176,6 +178,7 @@ struct DimmerlyApp: App {
             object: nil, queue: .main
         ) { [settings] _ in
             Task { @MainActor in
+                _ = SharedConstants.consumeWidgetDimCommand()
                 DisplayAction.performSleep(settings: settings)
             }
         }
@@ -186,21 +189,28 @@ struct DimmerlyApp: App {
             object: nil, queue: .main
         ) { [presetManager, brightnessManager] _ in
             Task { @MainActor in
-                // Read preset ID from shared defaults (set by widget before posting notification)
-                let defaults = SharedConstants.sharedDefaults
-                guard let presetIDString = defaults?.string(
-                    forKey: SharedConstants.widgetPresetCommandKey
-                ),
-                    let uuid = UUID(uuidString: presetIDString),
-                    let preset = presetManager.presets.first(where: { $0.id == uuid })
+                guard let uuid = SharedConstants.consumeWidgetPresetCommand(),
+                      let preset = presetManager.presets.first(where: { $0.id == uuid })
                 else {
                     return
                 }
                 presetManager.applyPreset(preset, to: brightnessManager, animated: true)
-                // Clean up after processing (prevents applying same preset on next app launch)
-                SharedConstants.sharedDefaults?.removeObject(forKey: SharedConstants.widgetPresetCommandKey)
             }
         }
+    }
+
+    /// Drains widget commands that were written before this process had observers registered.
+    private func processPendingWidgetCommands() {
+        if SharedConstants.consumeWidgetDimCommand() {
+            DisplayAction.performSleep(settings: settings)
+        }
+
+        guard let presetID = SharedConstants.consumeWidgetPresetCommand(),
+              let preset = presetManager.presets.first(where: { $0.id == presetID })
+        else {
+            return
+        }
+        presetManager.applyPreset(preset, to: brightnessManager, animated: true)
     }
 
     /// Wires the schedule-triggered callback. `.onChange` on `settings.scheduleEnabled`
@@ -256,8 +266,11 @@ struct DimmerlyApp: App {
         private func configureHardwareControl() {
             guard settings.ddcEnabled else { return }
             hardwareManager.isEnabled = true
-            hardwareManager.controlMode = settings.ddcControlMode
-            hardwareManager.pollingInterval = TimeInterval(settings.ddcPollingInterval)
+            hardwareManager.applyRuntimeSettings(
+                controlMode: settings.ddcControlMode,
+                pollingInterval: settings.ddcPollingInterval,
+                writeDelayMilliseconds: settings.ddcWriteDelay
+            )
             hardwareManager.probeAllDisplays()
             hardwareManager.startPolling()
         }

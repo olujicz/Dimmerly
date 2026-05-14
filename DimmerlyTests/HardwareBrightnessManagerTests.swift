@@ -334,6 +334,18 @@ import XCTest
             manager.stopPolling()
         }
 
+        func testApplyRuntimeSettingsUpdatesControlModePollingAndWriteDelay() {
+            manager.applyRuntimeSettings(
+                controlMode: .softwareOnly,
+                pollingInterval: 12,
+                writeDelayMilliseconds: 120
+            )
+
+            XCTAssertEqual(manager.controlMode, .softwareOnly)
+            XCTAssertEqual(manager.pollingInterval, 12)
+            XCTAssertEqual(manager.minimumWriteInterval, 0.12, accuracy: 0.001)
+        }
+
         // MARK: - HardwareDisplayCapability Tests
 
         /// Tests notSupported factory method

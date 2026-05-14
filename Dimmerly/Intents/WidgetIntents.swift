@@ -18,6 +18,8 @@ struct DimDisplaysWidgetIntent: AppIntent {
     @MainActor
     func perform() async throws -> some IntentResult {
         #if WIDGET_EXTENSION
+            SharedConstants.storeWidgetDimCommand()
+            SharedConstants.sharedDefaults?.synchronize()
             DistributedNotificationCenter.default().postNotificationName(
                 SharedConstants.dimNotification, object: nil, userInfo: nil, deliverImmediately: true
             )
@@ -46,7 +48,7 @@ struct ApplyPresetWidgetIntent: AppIntent {
     @MainActor
     func perform() async throws -> some IntentResult {
         #if WIDGET_EXTENSION
-            SharedConstants.sharedDefaults?.set(presetID, forKey: SharedConstants.widgetPresetCommandKey)
+            SharedConstants.storeWidgetPresetCommand(presetID)
             SharedConstants.sharedDefaults?.synchronize()
             DistributedNotificationCenter.default().postNotificationName(
                 SharedConstants.presetNotification, object: nil, userInfo: nil, deliverImmediately: true

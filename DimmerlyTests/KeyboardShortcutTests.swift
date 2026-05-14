@@ -234,3 +234,72 @@ final class GlobalShortcutTests: XCTestCase {
         XCTAssertFalse(ctrlShiftK.isReservedSystemShortcut, "Ctrl+Shift+K should not be reserved")
     }
 }
+
+@MainActor
+final class KeyboardShortcutManagerTests: XCTestCase {
+    private final class MonitorToken {}
+
+    func testRefreshPermissionRestartsMainShortcutMonitoringAfterPermissionIsGranted() {
+        var permissionGranted = false
+        var globalMonitorInstallCount = 0
+        var localMonitorInstallCount = 0
+
+        let manager = KeyboardShortcutManager(
+            permissionChecker: { permissionGranted },
+            globalMonitorInstaller: { _ in
+                globalMonitorInstallCount += 1
+                return MonitorToken()
+            },
+            localMonitorInstaller: { _ in
+                localMonitorInstallCount += 1
+                return MonitorToken()
+            },
+            monitorRemover: { _ in }
+        )
+
+        manager.startMonitoring {}
+        XCTAssertFalse(manager.hasAccessibilityPermission)
+        XCTAssertEqual(globalMonitorInstallCount, 0)
+        XCTAssertEqual(localMonitorInstallCount, 0)
+
+        permissionGranted = true
+        manager.refreshAccessibilityPermissionAndRestartIfNeeded()
+
+        XCTAssertTrue(manager.hasAccessibilityPermission)
+        XCTAssertEqual(globalMonitorInstallCount, 1)
+        XCTAssertEqual(localMonitorInstallCount, 1)
+    }
+
+    func testRefreshPermissionRestartsPresetShortcutMonitoringAfterPermissionIsGranted() {
+        var permissionGranted = false
+        var globalMonitorInstallCount = 0
+        var localMonitorInstallCount = 0
+
+        let manager = PresetShortcutManager(
+            permissionChecker: { permissionGranted },
+            globalMonitorInstaller: { _ in
+                globalMonitorInstallCount += 1
+                return MonitorToken()
+            },
+            localMonitorInstaller: { _ in
+                localMonitorInstallCount += 1
+                return MonitorToken()
+            },
+            monitorRemover: { _ in }
+        )
+        let preset = BrightnessPreset(
+            name: "Night",
+            shortcut: GlobalShortcut(key: "1", modifiers: [.command, .option])
+        )
+
+        manager.updateShortcuts(from: [preset])
+        XCTAssertEqual(globalMonitorInstallCount, 0)
+        XCTAssertEqual(localMonitorInstallCount, 0)
+
+        permissionGranted = true
+        manager.refreshAccessibilityPermissionAndRestartIfNeeded()
+
+        XCTAssertEqual(globalMonitorInstallCount, 1)
+        XCTAssertEqual(localMonitorInstallCount, 1)
+    }
+}
