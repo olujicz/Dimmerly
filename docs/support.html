@@ -76,15 +76,15 @@
 <body>
     <div class="container">
         <h1>Dimmerly Support</h1>
-        <p class="tagline">Control your external display brightness from the menu bar.</p>
+        <p class="tagline">Control display brightness from the menu bar.</p>
 
         <h2>Troubleshooting</h2>
 
         <h3>Displays don't dim</h3>
         <ul>
-            <li>Ensure your external display supports DDC/CI brightness control.</li>
-            <li>Some USB-C hubs or docks may not pass through DDC commands — try connecting the display directly to your Mac.</li>
-            <li>If using the App Store version, screens are blanked rather than put to sleep. Move your mouse or press any key to restore.</li>
+            <li>If using the App Store version, Dimmerly uses software dimming and screen blanking. Move your mouse, press a key, or press Escape depending on your wake setting.</li>
+            <li>Some displays and display modes do not respond equally to software gamma changes. Try changing brightness, warmth, or contrast separately to confirm which controls affect your display.</li>
+            <li>If using the direct download or source version with DDC/CI enabled, ensure your external display supports DDC/CI brightness control and try connecting the display directly to your Mac.</li>
         </ul>
 
         <h3>Keyboard shortcut doesn't work</h3>
@@ -97,8 +97,8 @@
 
         <h3>Brightness slider has no effect</h3>
         <ul>
-            <li>Not all displays support software brightness control. Built-in MacBook displays are not supported — Dimmerly controls external displays only.</li>
-            <li>Verify your monitor supports DDC/CI (most modern monitors do).</li>
+            <li>The App Store version uses software brightness through gamma tables. Some displays, HDR modes, or color profiles may limit the visible effect.</li>
+            <li>The direct download or source version can use DDC/CI hardware brightness for supported external monitors. Some USB-C hubs, docks, DisplayLink adapters, TVs, or monitor settings may block DDC/CI.</li>
         </ul>
 
         <h3>Menu bar icon not visible</h3>
@@ -110,7 +110,7 @@
         <h2>Frequently Asked Questions</h2>
 
         <h3>Does Dimmerly work with built-in displays?</h3>
-        <p>Dimmerly is designed for external displays. Your Mac's built-in display brightness is controlled through System Settings or the keyboard brightness keys.</p>
+        <p>Dimmerly shows connected displays, including the built-in display where supported. The App Store version uses software dimming. The direct download or source version may use additional hardware brightness controls where macOS and the display support them.</p>
 
         <h3>How many presets can I save?</h3>
         <p>You can save up to 10 brightness presets. Each preset can have its own keyboard shortcut for quick access.</p>

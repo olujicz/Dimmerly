@@ -90,67 +90,67 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmerly verwendet deinen Standort, um Sonnenauf- und -untergangszeiten für geplante Verdunkelung zu berechnen."
+            "value" : "Dimmerly verwendet deinen Standort, um Sonnenauf- und -untergangszeiten für Zeitpläne und automatische Farbtemperatur zu berechnen."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmerly uses your location to calculate sunrise and sunset times for scheduled dimming."
+            "value" : "Dimmerly uses your location to calculate sunrise and sunset times for schedules and automatic color temperature."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmerly usa tu ubicación para calcular los horarios de amanecer y atardecer para la atenuación programada."
+            "value" : "Dimmerly usa tu ubicación para calcular los horarios de amanecer y atardecer para horarios programados y temperatura de color automática."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmerly utilise votre position pour calculer les heures de lever et coucher du soleil pour la gradation programmée."
+            "value" : "Dimmerly utilise votre position pour calculer les heures de lever et de coucher du soleil pour les programmes et la température de couleur automatique."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmerly utilizza la tua posizione per calcolare gli orari di alba e tramonto per l'oscuramento programmato."
+            "value" : "Dimmerly utilizza la tua posizione per calcolare gli orari di alba e tramonto per le programmazioni e la temperatura colore automatica."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmerly は、スケジュールされた調光のために日の出と日の入りの時間を計算するためにあなたの位置情報を使用します。"
+            "value" : "Dimmerly は、スケジュールと自動色温度のために日の出と日の入りの時刻を計算する目的で位置情報を使用します。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmerly는 예약된 화면 어둡게 하기를 위해 일출 및 일몰 시간을 계산하는 데 사용자의 위치를 사용합니다."
+            "value" : "Dimmerly는 일정과 자동 색온도를 위해 일출 및 일몰 시간을 계산하는 데 사용자의 위치를 사용합니다."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmerly gebruikt je locatie om zonsopgang- en zonsondergangtijden te berekenen voor geplande dimming."
+            "value" : "Dimmerly gebruikt je locatie om zonsopgang- en zonsondergangtijden te berekenen voor schema's en automatische kleurtemperatuur."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O Dimmerly usa sua localização para calcular os horários de nascer e pôr do sol para o escurecimento programado."
+            "value" : "O Dimmerly usa sua localização para calcular os horários de nascer e pôr do sol para agendas e temperatura de cor automática."
           }
         },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmerly koristi vašu lokaciju za izračunavanje vremena izlaska i zalaska sunca za zakazano zatamnjivanje."
+            "value" : "Dimmerly koristi vašu lokaciju za izračunavanje vremena izlaska i zalaska sunca za rasporede i automatsku temperaturu boje."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmerly 使用您的位置来计算日出和日落时间，以便进行定时调光。"
+            "value" : "Dimmerly 使用您的位置来计算日出和日落时间，用于计划任务和自动色温。"
           }
         }
       }
@@ -161,67 +161,67 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmerly verwendet deinen Standort, um Sonnenauf- und -untergangszeiten für geplante Verdunkelung zu berechnen."
+            "value" : "Dimmerly verwendet deinen Standort, um Sonnenauf- und -untergangszeiten für Zeitpläne und automatische Farbtemperatur zu berechnen."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmerly uses your location to calculate sunrise and sunset times for scheduled dimming."
+            "value" : "Dimmerly uses your location to calculate sunrise and sunset times for schedules and automatic color temperature."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmerly usa tu ubicación para calcular los horarios de amanecer y atardecer para la atenuación programada."
+            "value" : "Dimmerly usa tu ubicación para calcular los horarios de amanecer y atardecer para horarios programados y temperatura de color automática."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmerly utilise votre position pour calculer les heures de lever et coucher du soleil pour la gradation programmée."
+            "value" : "Dimmerly utilise votre position pour calculer les heures de lever et de coucher du soleil pour les programmes et la température de couleur automatique."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmerly utilizza la tua posizione per calcolare gli orari di alba e tramonto per l'oscuramento programmato."
+            "value" : "Dimmerly utilizza la tua posizione per calcolare gli orari di alba e tramonto per le programmazioni e la temperatura colore automatica."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmerly は、スケジュールされた調光のために日の出と日の入りの時間を計算するためにあなたの位置情報を使用します。"
+            "value" : "Dimmerly は、スケジュールと自動色温度のために日の出と日の入りの時刻を計算する目的で位置情報を使用します。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmerly는 예약된 화면 어둡게 하기를 위해 일출 및 일몰 시간을 계산하는 데 사용자의 위치를 사용합니다."
+            "value" : "Dimmerly는 일정과 자동 색온도를 위해 일출 및 일몰 시간을 계산하는 데 사용자의 위치를 사용합니다."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmerly gebruikt je locatie om zonsopgang- en zonsondergangtijden te berekenen voor geplande dimming."
+            "value" : "Dimmerly gebruikt je locatie om zonsopgang- en zonsondergangtijden te berekenen voor schema's en automatische kleurtemperatuur."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O Dimmerly usa sua localização para calcular os horários de nascer e pôr do sol para o escurecimento programado."
+            "value" : "O Dimmerly usa sua localização para calcular os horários de nascer e pôr do sol para agendas e temperatura de cor automática."
           }
         },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmerly koristi vašu lokaciju za izračunavanje vremena izlaska i zalaska sunca za zakazano zatamnjivanje."
+            "value" : "Dimmerly koristi vašu lokaciju za izračunavanje vremena izlaska i zalaska sunca za rasporede i automatsku temperaturu boje."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmerly 使用您的位置来计算日出和日落时间，以便进行定时调光。"
+            "value" : "Dimmerly 使用您的位置来计算日出和日落时间，用于计划任务和自动色温。"
           }
         }
       }

@@ -792,6 +792,19 @@ struct AboutSettingsTab: View {
                 }
 
                 Button {
+                    if let url = URL(string: "https://olujicz.github.io/Dimmerly/privacy-policy.html") {
+                        NSWorkspace.shared.open(url)
+                    }
+                } label: {
+                    HStack(spacing: 2) {
+                        Text("Privacy Policy")
+                        Image(systemName: "arrow.up.forward")
+                            .imageScale(.small)
+                    }
+                }
+                .help("Open the Dimmerly privacy policy")
+
+                Button {
                     if let url = URL(string: "https://github.com/olujicz/Dimmerly") {
                         NSWorkspace.shared.open(url)
                     }

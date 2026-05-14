@@ -165,7 +165,11 @@ struct MenuBarPanel: View {
         .buttonStyle(.borderedProminent)
         .controlSize(.large)
         .keyboardShortcut(.return, modifiers: [])
-        .accessibilityLabel(settings.preventScreenLock ? Text("Dim all displays") : Text("Turn off all displays"))
+        #if APPSTORE
+            .accessibilityLabel(Text("Dim all displays"))
+        #else
+            .accessibilityLabel(settings.preventScreenLock ? Text("Dim all displays") : Text("Turn off all displays"))
+        #endif
     }
 
     // MARK: - Footer
