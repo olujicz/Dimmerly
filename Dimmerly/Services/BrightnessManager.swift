@@ -141,6 +141,9 @@ class BrightnessManager {
     /// Test seam for observing gamma applications without modifying the real display state.
     var applyGammaHook: ((CGDirectDisplayID, Double, Double, Double) -> Void)?
 
+    /// Test seam for forcing transition eligibility independent of process-wide accessibility state.
+    var canAnimateTransitionsHook: (() -> Bool)?
+
     /// Standard initializer that sets up full hardware monitoring and system integration.
     /// Registers observers for display changes, wake events, and ScreenBlanker coordination.
     init() {
@@ -702,9 +705,11 @@ class BrightnessManager {
     private func runTransition(targets: [TransitionTarget], synchronizeHardwareAtEnd: Bool) -> Bool {
         transitionTask?.cancel()
 
-        guard !ScreenBlanker.shared.isBlanking,
-              !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-        else {
+        let canAnimate = canAnimateTransitionsHook?() ?? (
+            !ScreenBlanker.shared.isBlanking &&
+                !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        )
+        guard canAnimate else {
             return false
         }
 

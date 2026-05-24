@@ -359,6 +359,7 @@ final class BrightnessManagerTests: XCTestCase {
             var builtIn = ExternalDisplay(id: 1, name: "Built-in", brightness: 1.0, warmth: 0.0, contrast: 0.5)
             builtIn.isBuiltIn = true
             bm.displays = [builtIn]
+            bm.canAnimateTransitionsHook = { true }
 
             let backlightSynced = expectation(description: "Built-in backlight is updated after animation")
             let finalGammaApplied = expectation(description: "Built-in gamma is restored without brightness dimming")
@@ -395,6 +396,7 @@ final class BrightnessManagerTests: XCTestCase {
             var external = ExternalDisplay(id: 2, name: "External", brightness: 1.0, warmth: 0.0, contrast: 0.5)
             external.supportsDDC = true
             bm.displays = [external]
+            bm.canAnimateTransitionsHook = { true }
 
             HardwareBrightnessManager.shared.capabilities[2] = HardwareDisplayCapability(
                 displayID: 2,
