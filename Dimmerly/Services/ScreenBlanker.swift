@@ -369,10 +369,10 @@ class ScreenBlanker {
         // Fade the hint out after 4 seconds
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(4))
-            await NSAnimationContext.runAnimationGroup { context in
-                context.duration = 1.0
-                label.animator().alphaValue = 0
-            }
+            NSAnimationContext.beginGrouping()
+            NSAnimationContext.current.duration = 1.0
+            label.animator().alphaValue = 0
+            NSAnimationContext.endGrouping()
         }
     }
 
