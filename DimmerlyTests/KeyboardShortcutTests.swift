@@ -239,13 +239,17 @@ final class GlobalShortcutTests: XCTestCase {
 final class KeyboardShortcutManagerTests: XCTestCase {
     private final class MonitorToken {}
 
+    private final class PermissionProbe: @unchecked Sendable {
+        var isGranted = false
+    }
+
     func testRefreshPermissionRestartsMainShortcutMonitoringAfterPermissionIsGranted() {
-        var permissionGranted = false
+        let permissionProbe = PermissionProbe()
         var globalMonitorInstallCount = 0
         var localMonitorInstallCount = 0
 
         let manager = KeyboardShortcutManager(
-            permissionChecker: { permissionGranted },
+            permissionChecker: { @MainActor @Sendable in permissionProbe.isGranted },
             globalMonitorInstaller: { _ in
                 globalMonitorInstallCount += 1
                 return MonitorToken()
@@ -262,7 +266,7 @@ final class KeyboardShortcutManagerTests: XCTestCase {
         XCTAssertEqual(globalMonitorInstallCount, 0)
         XCTAssertEqual(localMonitorInstallCount, 0)
 
-        permissionGranted = true
+        permissionProbe.isGranted = true
         manager.refreshAccessibilityPermissionAndRestartIfNeeded()
 
         XCTAssertTrue(manager.hasAccessibilityPermission)
@@ -271,12 +275,12 @@ final class KeyboardShortcutManagerTests: XCTestCase {
     }
 
     func testRefreshPermissionRestartsPresetShortcutMonitoringAfterPermissionIsGranted() {
-        var permissionGranted = false
+        let permissionProbe = PermissionProbe()
         var globalMonitorInstallCount = 0
         var localMonitorInstallCount = 0
 
         let manager = PresetShortcutManager(
-            permissionChecker: { permissionGranted },
+            permissionChecker: { @MainActor @Sendable in permissionProbe.isGranted },
             globalMonitorInstaller: { _ in
                 globalMonitorInstallCount += 1
                 return MonitorToken()
@@ -296,7 +300,7 @@ final class KeyboardShortcutManagerTests: XCTestCase {
         XCTAssertEqual(globalMonitorInstallCount, 0)
         XCTAssertEqual(localMonitorInstallCount, 0)
 
-        permissionGranted = true
+        permissionProbe.isGranted = true
         manager.refreshAccessibilityPermissionAndRestartIfNeeded()
 
         XCTAssertEqual(globalMonitorInstallCount, 1)

@@ -1,0 +1,17 @@
+--swift-version 6.0
+--indent 4
+--linebreaks lf
+--header ignore
+--disable numberFormatting
+
+--binary-grouping none
+--decimal-grouping none
+--hex-grouping none
+--hex-literal-case lowercase
+--octal-grouping none
+
+--wrap-collections before-first
+--wrap-parameters before-first
+
+--exclude .build
+--exclude tools

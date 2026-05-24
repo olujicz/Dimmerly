@@ -23,14 +23,14 @@ import IOKit
             RTLD_LAZY
         )
 
-        private nonisolated(unsafe) static let _setBrightness:
+        private static let _setBrightness:
             (@convention(c) (CGDirectDisplayID, Float) -> Int32)? = {
                 guard let handle else { return nil }
                 guard let sym = dlsym(handle, "DisplayServicesSetBrightness") else { return nil }
                 return unsafeBitCast(sym, to: (@convention(c) (CGDirectDisplayID, Float) -> Int32).self)
             }()
 
-        private nonisolated(unsafe) static let _getBrightness:
+        private static let _getBrightness:
             (@convention(c) (CGDirectDisplayID, UnsafeMutablePointer<Float>) -> Int32)? = {
                 guard let handle else { return nil }
                 guard let sym = dlsym(handle, "DisplayServicesGetBrightness") else { return nil }
