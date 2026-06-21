@@ -325,7 +325,7 @@ jobs:
           shasum -a 256 "$DMG_PATH" | tee "$CHECKSUM_PATH"
 
       - name: Upload signed DMG artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Dimmerly-${{ steps.release_version.outputs.version }}-signed-dmg
           path: |
