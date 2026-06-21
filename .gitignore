@@ -27,8 +27,24 @@ DerivedData/
 
 ## App packaging
 *.ipa
+*.dmg
+*.pkg
+*.xcarchive
 *.dSYM.zip
 *.dSYM
+*.notarization-info.json
+
+## Signing and release secrets
+*.cer
+*.p12
+*.p8
+*.pem
+*.provisionprofile
+*.mobileprovision
+private_keys/
+.env
+.env.*
+!.env.example
 
 ## Playgrounds
 timeline.xctimeline

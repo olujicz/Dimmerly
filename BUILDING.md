@@ -70,8 +70,17 @@ xcodebuild test -scheme Dimmerly -destination 'platform=macOS'
 
 GitHub Actions runs on every push and pull request to `main`:
 
+- Workflow lint: `actionlint`
+- Format: SwiftFormat check
 - Lint: SwiftLint with `--strict`
 - Test: Full test suite on macOS 15 with Xcode 16.4
+- Build: App Store scheme smoke build with signing disabled
+
+## Release Packaging
+
+Direct-download releases are built as signed and notarized Developer ID DMGs by the `Release` GitHub Actions workflow. Follow [docs/RELEASE.md](docs/RELEASE.md) for the release checklist, required secrets, manual release-candidate build, tag flow, final QA, and rollback process.
+
+Repository-level branch protection, tag protection, Actions, and security settings are documented in [docs/REPOSITORY_SETTINGS.md](docs/REPOSITORY_SETTINGS.md).
 
 ## Architecture Notes
 
@@ -86,6 +95,7 @@ GitHub Actions runs on every push and pull request to `main`:
 - Uses `pmset displaysleepnow` for real display sleep
 - Includes an optional "Prevent Screen Lock" mode that uses gamma-based dimming instead of display sleep
 - DDC/CI hardware control is enabled by default — displays are probed on launch and when connected; displays that don't support DDC automatically fall back to software gamma control
+- DDC/CI probe, read, and write operations are serialized on a dedicated queue and writes are rate-limited to avoid overlapping transactions on the monitor control bus
 - DDC display matching uses EDID read over I2C (address 0x50) on Apple Silicon, as the IOKit registry may not expose vendor/model properties in the DCPAVServiceProxy parent chain
 
 ### App Store Build

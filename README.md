@@ -1,196 +1,211 @@
 # Dimmerly
 
-A lightweight macOS menu bar utility for controlling external display brightness — with presets, keyboard shortcuts, and desktop widgets.
+Dimmerly is a native macOS menu bar app for display brightness, warmth,
+contrast, presets, schedules, and display sleep.
+
+It is mainly built for external-monitor setups where the useful controls are
+either buried in the monitor OSD or split across System Settings. On supported
+external displays, Dimmerly can use DDC/CI for hardware brightness and monitor
+controls. When DDC/CI is not available, it falls back to software dimming.
 
 ![macOS 15.0+](https://img.shields.io/badge/macOS-15.0%2B-blue)
-![Swift](https://img.shields.io/badge/Swift-6-orange)
-![License](https://img.shields.io/badge/License-MIT-green)
+![Swift 6](https://img.shields.io/badge/Swift-6-orange)
+![License: MIT](https://img.shields.io/badge/License-MIT-green)
 
-![Dimmerly — menu bar panel, brightness presets, and desktop widgets](images/image1.png)
+![Dimmerly menu bar panel on macOS](images/image1.png)
 
 ## Features
 
-- **Per-Display Brightness Control** — Individual sliders for each connected external display
-- **Color Temperature (Warmth)** — Per-display warmth adjustment from neutral to warm (~1900K)
-- **Auto Color Temperature** — Automatic warmth adjustment based on time of day using sunrise/sunset data
-- **Contrast Control** — Per-display contrast via symmetric S-curve gamma adjustment
-- **DDC/CI Hardware Control** — Direct hardware brightness, contrast, and volume control via DDC/CI protocol (direct distribution only, enabled by default with automatic software fallback)
-- **Input Source Switching** — Switch monitor inputs (HDMI, DisplayPort, USB-C) from the menu bar
-- **Audio Mute Toggle** — Mute/unmute monitors with built-in speakers via DDC
-- **Brightness Presets** — Save, name, and instantly apply display configurations (brightness, warmth, contrast)
-- **Smooth Preset Transitions** — Animated ~300ms interpolation when switching presets (respects Reduce Motion)
-- **Global Keyboard Shortcuts** — Dim displays or apply presets from any app
-- **Desktop Widgets** — Small and medium widgets for quick access
-- **Control Center Integration** — Quick toggle from Control Center (macOS 26+)
-- **Shortcuts App Support** — Automate display control with Shortcuts workflows (6 actions: brightness, warmth, contrast, sleep, toggle dim, apply preset)
-- **Scheduled Presets** — Automatically apply presets at specific times, sunrise, or sunset
-- **Auto-Dim** — Automatically dim displays after a configurable idle period
-- **Fade Transition** — Smooth fade-to-black animation option
-- **Ignore Mouse Movement** — Only wake screens on keyboard or click
-- **Display Blanking** — Dim individual displays independently
-- **Accessibility** — Full VoiceOver support, respects Reduce Motion, semantic accessibility labels on all controls
-- **Menu Bar Icon Styles** — Choose from 5 icon styles
-- **Launch at Login** — Start automatically when you log in
-- **Light & Dark Mode** — Full support for both appearances
-- **Localized** — Available in 11 languages (English, German, Spanish, French, Italian, Japanese, Korean, Dutch, Portuguese (BR), Serbian, Chinese (Simplified))
-- **Privacy-Focused** — No data collection, no app-managed network requests, no tracking
+- Per-display brightness, warmth, contrast, and blanking controls
+- Built-in display support where macOS exposes the needed controls
+- Presets for saving and restoring complete display setups
+- Global keyboard shortcuts for dimming and presets
+- Schedules based on a fixed time, sunrise, or sunset
+- Desktop widgets and Shortcuts actions
+- Optional automatic color temperature changes
+- Optional auto-dim after inactivity
+- Direct-download build: display sleep through macOS tools
+- Direct-download build: DDC/CI hardware brightness, contrast, volume, mute, and input switching
+- App Store build: sandbox-compatible software dimming and screen blanking
+- VoiceOver labels and Reduce Motion support
+- Local settings only; no analytics, tracking, or app-managed network requests
 
 ## Requirements
 
-- macOS 15.0 (Sequoia) or later
-- External display (DDC/CI-capable monitors get hardware control automatically; others use software gamma)
-- Optional: Accessibility permissions for global keyboard shortcuts
-- Optional: Location permission for sunrise/sunset schedules
+- macOS 15 Sequoia or later
+- Optional Accessibility permission for global shortcuts
+- Optional Location permission for sunrise and sunset schedules
+- Optional DDC/CI-capable external monitor for hardware controls
 
-## Installation
+## Install
 
-### Mac App Store
+### Direct Download
 
-Dimmerly is available on the [Mac App Store](https://apps.apple.com/app/dimmerly). The App Store version uses screen blanking to comply with sandbox requirements.
+Download the latest signed and notarized DMG from
+[GitHub Releases](https://github.com/olujicz/Dimmerly/releases/latest).
 
-### From Source
+This build has the full feature set, including display sleep, DDC/CI hardware
+control, monitor input switching, and hardware volume controls where the display
+and connection support them.
 
-If you want to build Dimmerly yourself, use the instructions in [BUILDING.md](BUILDING.md).
+### App Store Build
+
+The repository also includes a sandboxed App Store configuration. Because that
+build runs inside Apple's sandbox, it uses software dimming and screen blanking
+instead of DDC/CI or system display sleep.
+
+### Build From Source
+
+See [BUILDING.md](BUILDING.md) for Xcode requirements, build configurations,
+test commands, and architecture notes.
+
+## Build Differences
+
+| Capability | Direct download | App Store build |
+| --- | --- | --- |
+| Per-display brightness, warmth, and contrast | Yes | Yes |
+| Presets, schedules, widgets, Shortcuts | Yes | Yes |
+| Display sleep using macOS system tools | Yes | No |
+| DDC/CI hardware monitor control | Yes | No |
+| Monitor input switching | Yes | No |
+| Hardware monitor volume and mute | Yes | No |
+| App Sandbox | No | Yes |
+
+Use the direct-download build if you want the hardware monitor controls. Use
+the sandboxed build when App Store distribution or sandboxing matters more.
+
+## Screenshots
+
+![Dimmerly display settings window](images/image2.png)
 
 ## Usage
 
-### Menu Bar Panel
+### Menu Bar Controls
 
-Click the Dimmerly icon in your menu bar to open the panel:
+Open Dimmerly from the menu bar to adjust each display. The main slider controls
+brightness. Expand a display row for warmth, contrast, and, when available,
+DDC/CI controls such as volume or input source.
 
-- Adjust brightness per display with sliders
-- Expand "Display Adjustments" for warmth, contrast, and auto color temperature
-- Toggle Auto Warmth to automatically adjust color temperature throughout the day
-- Dim individual displays with the moon toggle
-- Apply saved presets with a click, or right-click to save current settings to a preset
-- Save current display settings as a new preset
-- Dim all displays with the main button
+If a display shows the hardware indicator, Dimmerly is talking to it through
+DDC/CI. Otherwise the app uses software dimming for that display.
 
-### Keyboard Shortcuts
+### Presets And Schedules
 
-| Action | Default Shortcut | Customizable |
-|--------|------------------|--------------|
-| Dim Displays | ⌘⌥⇧D | Yes |
-| Apply Preset | — | Yes (per preset) |
-| Open Settings | ⌘, | No (in menu) |
-| Quit | ⌘Q | No (in menu) |
+Presets save the current display setup: brightness, warmth, and contrast for
+each display. They can be applied from the menu bar, widgets, Shortcuts,
+schedules, or per-preset keyboard shortcuts.
 
-Global shortcuts require Accessibility permission (System Settings > Privacy & Security > Accessibility).
+Schedules can run at a fixed time, at sunrise, at sunset, or with an offset
+from sunrise or sunset. Sunrise and sunset schedules can use your current
+location or manually entered coordinates.
 
-### Presets
+### Dimming And Wake Behavior
 
-Dimmerly includes three default presets:
+The direct-download build can put displays to sleep. Dim-only mode keeps the
+session visible but darkened, which is useful when you want quick wake behavior
+without display sleep.
 
-- **Full** — 100% brightness, neutral warmth and contrast
-- **Evening** — 70% brightness, moderate warmth
-- **Night** — 30% brightness, high warmth
+Wake behavior can be configured for:
 
-You can save up to 10 custom presets and assign keyboard shortcuts to each. Right-click a preset to update it with your current display settings.
+- keyboard, click, scroll, or mouse movement
+- keyboard, click, or scroll when mouse movement is ignored
+- Escape only for stricter dismissal
 
-### Widgets
+Animated transitions respect the macOS Reduce Motion setting.
 
-- **Small Widget** — Quick dim button
-- **Medium Widget** — Dim button + up to 3 preset buttons
+### Automation
 
-Add widgets by right-clicking the desktop > Edit Widgets > Dimmerly.
+Dimmerly includes Shortcuts actions for setting brightness, warmth, and contrast,
+sleeping displays, toggling dimming, and applying presets.
 
-### Scheduled Presets
-
-Automatically apply presets at specific times of day:
-
-- **Fixed Time** — Trigger at an exact time (e.g., 8:00 PM)
-- **Sunrise/Sunset** — Trigger relative to sunrise or sunset with an optional offset (e.g., 30 min before sunset)
-
-Schedules reference your existing presets, so editing a preset automatically updates what the schedule applies. Sunrise and sunset triggers require a location — use "Use Current Location" or enter coordinates manually in Settings.
-
-### Settings
-
-Access via the menu bar panel (Settings... or ⌘,). All settings are presented in a single grouped form:
-
-- **General** — Launch at login, menu bar icon style
-- **Color Temperature** — Day and night temperature targets, transition duration
-- **Dimming** — Display sleep vs dim-only mode, fade transition, wake input options, ignore mouse movement
-- **Idle Timer** — Auto-dim after inactivity with configurable timeout (1–60 minutes)
-- **Schedule** — Enable scheduled presets, set location (automatic or manual coordinates), manage schedules
-- **Keyboard Shortcut** — Global keyboard shortcut for dimming, accessibility permission status
-- **Presets** — Rename, delete, assign per-preset shortcuts, restore defaults
-- **About** — App information, source code link
-
-## Developer Docs
-
-For development, source builds, test commands, and technical architecture notes, see [BUILDING.md](BUILDING.md).
+It also includes small and medium desktop widgets for quick dimming and preset
+access.
 
 ## Privacy
 
-- **No Data Collection** — Dimmerly does not collect, store, or transmit any personal data
-- **No App-Managed Network Requests** — The app does not send data to developer-owned servers, analytics, or tracking services
-- **No Tracking** — No analytics, crash reporting, or usage statistics
-- **Local Only** — All settings are stored locally using UserDefaults
-- **Open Source** — The entire codebase is available for inspection
+Dimmerly does not collect analytics, usage data, crash reports, or personal data.
 
-Optional system location services may use Apple-provided location infrastructure when you choose "Use Current Location" for sunrise/sunset schedules.
+Settings are stored locally with UserDefaults. If you use current location for
+sunrise and sunset schedules, macOS Location Services provides the coordinate
+used for the calculation. Dimmerly does not send that coordinate to a
+developer-owned service.
 
-See the full [Privacy Policy](https://olujicz.github.io/Dimmerly/privacy-policy.html).
-
-## Open Source + App Store
-
-Dimmerly is fully open source under the MIT License. You can build and run it from source for free.
-
-The [Mac App Store listing](https://apps.apple.com/app/dimmerly) is a convenient way to install the app and support ongoing development.
-
-If you find Dimmerly useful, consider:
-- Purchasing from the App Store to support development
-- Starring the repository on GitHub
-- Contributing code, bug reports, or feature ideas
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit issues, feature requests, or pull requests.
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature-name`
-3. Run `just setup` to configure pre-commit hooks
-4. Make your changes and add tests
-5. Run `just lint` and `just test` to ensure code quality and all tests pass
-6. Submit a Pull Request
-
-Please review the [Code of Conduct](CODE_OF_CONDUCT.md) before participating. See the [Security Policy](SECURITY.md) for reporting vulnerabilities.
+Read the full [Privacy Policy](https://olujicz.github.io/Dimmerly/privacy-policy.html).
 
 ## Troubleshooting
 
-### Displays Don't Sleep
+### Brightness Does Not Change The Monitor Backlight
 
-1. Ensure `/usr/bin/pmset` exists on your system (included with macOS)
-2. Check System Settings > Lock Screen and ensure display sleep is not disabled
-3. In dim-only mode (App Store build or "Prevent Screen Lock"), wake behavior follows your Dimming settings:
-   - Default: keyboard, click, scroll, or mouse movement
-   - "Ignore Mouse Movement" enabled: keyboard, click, or scroll
-   - "Require Escape to Dismiss" enabled: Escape key only
-4. After system sleep/wake, full-screen dimming is cleared automatically
+If a display does not show the hardware indicator, Dimmerly is using software
+dimming for that display. Software dimming changes perceived brightness, not the
+monitor backlight.
 
-### Keyboard Shortcut Doesn't Work
+Common reasons DDC/CI is unavailable:
 
-1. Check that Accessibility permission is granted in System Settings > Privacy & Security > Accessibility
-2. Restart Dimmerly after granting permissions
-3. Try a different shortcut to avoid conflicts with other apps
+- the monitor does not support DDC/CI
+- DDC/CI is disabled in the monitor's on-screen menu
+- a USB-C hub, dock, KVM, HDMI adapter, or DisplayLink adapter blocks DDC commands
+- the display is connected through built-in HDMI on some Apple Silicon Macs
 
-### Brightness Slider Has No Effect
+Try connecting the monitor directly over USB-C or DisplayPort and check the
+monitor's settings for DDC/CI support.
 
-1. DDC/CI hardware control is enabled by default — if your display supports it, the menu bar panel shows an "HW" indicator next to the display name
-2. If no "HW" indicator appears, the display is using software gamma control (still adjusts perceived brightness, but not the backlight)
-3. Some USB-C/DisplayPort hubs may not pass through DDC commands — try connecting the display directly
-4. On Apple Silicon (M1–M4), Dimmerly tries three I2C transport paths automatically (IOAVService, IOAVDevice, direct IOConnect)
-5. Built-in HDMI on M1/entry M2 Macs does not support DDC; use USB-C or DisplayPort instead
-6. You can check DDC status per display in Settings > Displays > Hardware Control
+### Keyboard Shortcuts Do Not Work
+
+Global shortcuts require Accessibility permission:
+
+```text
+System Settings -> Privacy & Security -> Accessibility
+```
+
+After granting permission, restart Dimmerly. If the shortcut still does not
+work, choose a shortcut that is not already reserved by macOS or another app.
+
+### Displays Wake Too Easily
+
+Open Settings and adjust the dimming wake behavior. Enable "Ignore mouse
+movement" if small pointer movement wakes the displays, or enable Escape-only
+dismissal for stricter control.
+
+## Development
+
+Dimmerly is a Swift 6 macOS project with no third-party runtime dependencies.
+
+Useful commands:
+
+```bash
+just setup
+just format-check
+just lint
+just test
+just build-release
+```
+
+Project documentation:
+
+- [BUILDING.md](BUILDING.md) - local build, test, and architecture notes
+- [docs/RELEASE.md](docs/RELEASE.md) - release process for signed and notarized builds
+- [docs/REPOSITORY_SETTINGS.md](docs/REPOSITORY_SETTINGS.md) - required GitHub repository settings
+- [SECURITY.md](SECURITY.md) - supported versions and vulnerability reporting
+
+## Contributing
+
+Bug reports, focused fixes, and well-scoped feature proposals are welcome.
+
+Before opening a pull request:
+
+1. Run `just setup` once to enable the local pre-commit hooks.
+2. Keep changes focused.
+3. Add or update tests for behavior changes.
+4. Run `just format-check`, `just lint`, and `just test`.
+5. Update `CHANGELOG.md` when the change affects users.
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+before participating.
+
+Security vulnerabilities should not be reported in public issues. Follow
+[SECURITY.md](SECURITY.md).
 
 ## License
 
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
-
-## Support
-
-If you encounter issues:
-
-1. Check the [Troubleshooting](#troubleshooting) section
-2. Search existing [GitHub Issues](https://github.com/olujicz/Dimmerly/issues)
-3. Create a new issue with your macOS version, Dimmerly version, and steps to reproduce
+Dimmerly is released under the MIT License. See [LICENSE](LICENSE).

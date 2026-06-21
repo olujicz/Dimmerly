@@ -208,6 +208,7 @@ struct MenuBarPanel: View {
 private struct PresetsSectionView: View {
     @Environment(PresetManager.self) var presetManager
     @Environment(BrightnessManager.self) var brightnessManager
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isAddingPreset = false
     @State private var newPresetName = ""
     @State private var hoveredPresetID: UUID?
@@ -290,7 +291,7 @@ private struct PresetsSectionView: View {
                 RoundedRectangle(cornerRadius: 8)
                     .fill(hoveredPresetID == preset.id ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.clear))
             )
-            .animation(.spring(response: 0.2, dampingFraction: 0.8), value: hoveredPresetID)
+            .animation(reduceMotion ? nil : .spring(response: 0.2, dampingFraction: 0.8), value: hoveredPresetID)
             .contentShape(Rectangle())
         }
         .buttonStyle(.borderless)
@@ -328,6 +329,8 @@ private struct PresetsSectionView: View {
 // MARK: - Footer Label
 
 private struct FooterLabel: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     let title: LocalizedStringKey
     let icon: String
     let shortcut: String?
@@ -358,7 +361,7 @@ private struct FooterLabel: View {
                 .fill(isHovered ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.clear))
         )
         .contentShape(RoundedRectangle(cornerRadius: 8))
-        .animation(.spring(response: 0.2, dampingFraction: 0.8), value: isHovered)
+        .animation(reduceMotion ? nil : .spring(response: 0.2, dampingFraction: 0.8), value: isHovered)
         .onHover { isHovered = $0 }
         .accessibilityAddTraits(.isButton)
     }
@@ -366,7 +369,27 @@ private struct FooterLabel: View {
 
 // MARK: - Display Brightness Row
 
+struct SliderSyncGate {
+    private var shouldSuppressNextChange = false
+
+    mutating func markProgrammaticSync() {
+        shouldSuppressNextChange = true
+    }
+
+    mutating func shouldPropagateChange() -> Bool {
+        if shouldSuppressNextChange {
+            shouldSuppressNextChange = false
+            return false
+        }
+        return true
+    }
+}
+
+private let displaySliderSyncTolerance = 0.0005
+
 struct DisplayBrightnessRow: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     let display: ExternalDisplay
     let isBlanked: Bool
     let isAutoColorTemp: Bool
@@ -397,9 +420,13 @@ struct DisplayBrightnessRow: View {
     @State private var sliderValue: Double
     @State private var warmthValue: Double
     @State private var contrastValue: Double
+    @State private var brightnessSyncGate = SliderSyncGate()
+    @State private var warmthSyncGate = SliderSyncGate()
+    @State private var contrastSyncGate = SliderSyncGate()
     @State private var showAdjustments = false
     #if !APPSTORE
         @State private var volumeValue: Double
+        @State private var volumeSyncGate = SliderSyncGate()
     #endif
 
     init(
@@ -430,7 +457,7 @@ struct DisplayBrightnessRow: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Button {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8)) {
                         showAdjustments.toggle()
                     }
                 } label: {
@@ -515,6 +542,7 @@ struct DisplayBrightnessRow: View {
                     )
                 )
                 .onChange(of: sliderValue) {
+                    guard brightnessSyncGate.shouldPropagateChange() else { return }
                     onChange(sliderValue)
                 }
 
@@ -557,6 +585,7 @@ struct DisplayBrightnessRow: View {
                                 )
                             )
                             .onChange(of: warmthValue) {
+                                guard warmthSyncGate.shouldPropagateChange() else { return }
                                 onWarmthChange(warmthValue)
                             }
 
@@ -590,7 +619,7 @@ struct DisplayBrightnessRow: View {
                 .opacity(isBlanked ? 0.4 : 1.0)
                 .disabled(isBlanked)
                 .transition(.opacity.combined(with: .move(edge: .top)))
-                .animation(.spring(response: 0.3, dampingFraction: 0.8), value: showAdjustments)
+                .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8), value: showAdjustments)
 
                 HStack(spacing: 6) {
                     Image(systemName: "circle.lefthalf.filled")
@@ -619,6 +648,7 @@ struct DisplayBrightnessRow: View {
                             )
                         )
                         .onChange(of: contrastValue) {
+                            guard contrastSyncGate.shouldPropagateChange() else { return }
                             onContrastChange(contrastValue)
                         }
 
@@ -677,6 +707,7 @@ struct DisplayBrightnessRow: View {
                                     )
                                 )
                                 .onChange(of: volumeValue) {
+                                    guard volumeSyncGate.shouldPropagateChange() else { return }
                                     onVolumeChange?(volumeValue)
                                 }
 
@@ -758,20 +789,30 @@ struct DisplayBrightnessRow: View {
             }
         }
         .controlSize(.small)
+        .onAppear {
+            syncDisplayValuesFromModel()
+        }
         .onChange(of: display.brightness) {
-            sliderValue = display.brightness
+            if abs(sliderValue - display.brightness) > displaySliderSyncTolerance {
+                brightnessSyncGate.markProgrammaticSync()
+                sliderValue = display.brightness
+            }
         }
         .onChange(of: display.warmth) {
-            warmthValue = display.warmth
+            if abs(warmthValue - display.warmth) > displaySliderSyncTolerance {
+                warmthSyncGate.markProgrammaticSync()
+                warmthValue = display.warmth
+            }
         }
         .onChange(of: display.contrast) {
-            contrastValue = display.contrast
+            if abs(contrastValue - display.contrast) > displaySliderSyncTolerance {
+                contrastSyncGate.markProgrammaticSync()
+                contrastValue = display.contrast
+            }
         }
         #if !APPSTORE
         .onChange(of: hardwareVolume) {
-                if let vol = hardwareVolume {
-                    volumeValue = vol
-                }
+                syncVolumeFromHardware()
             }
         #endif
             .accessibilityElement(children: .contain)
@@ -789,6 +830,34 @@ struct DisplayBrightnessRow: View {
                 Button("Reset Contrast") { onContrastChange(0.5) }
             }
     }
+
+    private func syncDisplayValuesFromModel() {
+        if abs(sliderValue - display.brightness) > displaySliderSyncTolerance {
+            brightnessSyncGate.markProgrammaticSync()
+            sliderValue = display.brightness
+        }
+        if abs(warmthValue - display.warmth) > displaySliderSyncTolerance {
+            warmthSyncGate.markProgrammaticSync()
+            warmthValue = display.warmth
+        }
+        if abs(contrastValue - display.contrast) > displaySliderSyncTolerance {
+            contrastSyncGate.markProgrammaticSync()
+            contrastValue = display.contrast
+        }
+        #if !APPSTORE
+            syncVolumeFromHardware()
+        #endif
+    }
+
+    #if !APPSTORE
+        private func syncVolumeFromHardware() {
+            guard let hardwareVolume else { return }
+            if abs(volumeValue - hardwareVolume) > displaySliderSyncTolerance {
+                volumeSyncGate.markProgrammaticSync()
+                volumeValue = hardwareVolume
+            }
+        }
+    #endif
 }
 
 // MARK: - DDC Controls Modifier

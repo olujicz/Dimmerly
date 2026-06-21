@@ -38,6 +38,73 @@ import XCTest
         }
     }
 
+    final class DDCConcurrencyProbe: @unchecked Sendable {
+        private let lock = NSLock()
+        private var inFlightWrites = 0
+        private(set) var detectedOverlap = false
+        private let expectation: XCTestExpectation
+
+        init(expectation: XCTestExpectation) {
+            self.expectation = expectation
+        }
+
+        func recordWrite() {
+            lock.lock()
+            inFlightWrites += 1
+            if inFlightWrites > 1 {
+                detectedOverlap = true
+            }
+            lock.unlock()
+
+            Thread.sleep(forTimeInterval: 0.15)
+
+            lock.lock()
+            inFlightWrites -= 1
+            lock.unlock()
+            expectation.fulfill()
+        }
+    }
+
+    final class DDCWriteSpacingProbe: @unchecked Sendable {
+        private let lock = NSLock()
+        private var writeStartTimes: [Date] = []
+        private let expectation: XCTestExpectation
+
+        init(expectation: XCTestExpectation) {
+            self.expectation = expectation
+        }
+
+        var minimumObservedInterval: TimeInterval {
+            lock.lock()
+            defer { lock.unlock() }
+            guard writeStartTimes.count > 1 else { return .infinity }
+
+            return zip(writeStartTimes, writeStartTimes.dropFirst())
+                .map { $1.timeIntervalSince($0) }
+                .min() ?? .infinity
+        }
+
+        func recordWrite() {
+            lock.lock()
+            writeStartTimes.append(Date())
+            lock.unlock()
+            expectation.fulfill()
+        }
+    }
+
+    final class FirstCallGate: @unchecked Sendable {
+        private let lock = NSLock()
+        private var isFirstCall = true
+
+        func consume() -> Bool {
+            lock.lock()
+            defer { lock.unlock() }
+            guard isFirstCall else { return false }
+            isFirstCall = false
+            return true
+        }
+    }
+
     @MainActor
     final class HardwareBrightnessManagerTests: XCTestCase {
         // XCTest lifecycle overrides are nonisolated in Xcode 26.2, so test fixtures
@@ -344,6 +411,123 @@ import XCTest
             XCTAssertEqual(manager.controlMode, .softwareOnly)
             XCTAssertEqual(manager.pollingInterval, 12)
             XCTAssertEqual(manager.minimumWriteInterval, 0.12, accuracy: 0.001)
+        }
+
+        func testDDCWritesAreSerialized() async {
+            let writesCompleted = expectation(description: "DDC writes completed")
+            writesCompleted.expectedFulfillmentCount = 2
+            let probe = DDCConcurrencyProbe(expectation: writesCompleted)
+
+            var mock = MockDDCInterface()
+            mock.writeHandler = { _, _, _ in
+                probe.recordWrite()
+                return true
+            }
+
+            let manager = HardwareBrightnessManager(forTesting: true, ddcInterface: mock)
+            let displayID: CGDirectDisplayID = 1
+            manager.capabilities[displayID] = HardwareDisplayCapability(
+                displayID: displayID,
+                supportsDDC: true,
+                supportedCodes: [.brightness, .volume],
+                maxBrightness: 100,
+                maxContrast: 100,
+                maxVolume: 100
+            )
+
+            manager.setHardwareBrightness(for: displayID, to: 0.7)
+            manager.setHardwareVolume(for: displayID, to: 0.4)
+
+            await fulfillment(of: [writesCompleted], timeout: 2.0)
+            XCTAssertFalse(probe.detectedOverlap, "DDC writes must not overlap on the hardware bus")
+        }
+
+        func testDDCWritesRespectMinimumIntervalAfterQueueBacklog() async {
+            let readStarted = expectation(description: "DDC read started")
+            let writesCompleted = expectation(description: "DDC writes completed")
+            writesCompleted.expectedFulfillmentCount = 2
+            let spacingProbe = DDCWriteSpacingProbe(expectation: writesCompleted)
+            let firstRead = FirstCallGate()
+
+            var mock = MockDDCInterface()
+            mock.readHandler = { _, _ in
+                if firstRead.consume() {
+                    readStarted.fulfill()
+                    Thread.sleep(forTimeInterval: 0.35)
+                }
+
+                return DDCReadResult(currentValue: 50, maxValue: 100)
+            }
+            mock.writeHandler = { _, _, _ in
+                spacingProbe.recordWrite()
+                return true
+            }
+
+            let manager = HardwareBrightnessManager(forTesting: true, ddcInterface: mock)
+            let displayID: CGDirectDisplayID = 1
+            manager.minimumWriteInterval = 0.12
+            manager.pollingInterval = 0.01
+            manager.capabilities[displayID] = HardwareDisplayCapability(
+                displayID: displayID,
+                supportsDDC: true,
+                supportedCodes: [.brightness, .volume],
+                maxBrightness: 100,
+                maxContrast: 100,
+                maxVolume: 100
+            )
+
+            manager.startPolling()
+            await fulfillment(of: [readStarted], timeout: 1.0)
+            manager.stopPolling()
+
+            manager.setHardwareBrightness(for: displayID, to: 0.7)
+            manager.setHardwareVolume(for: displayID, to: 0.4)
+
+            await fulfillment(of: [writesCompleted], timeout: 2.0)
+            XCTAssertGreaterThanOrEqual(
+                spacingProbe.minimumObservedInterval,
+                manager.minimumWriteInterval,
+                "DDC writes must be spaced by the configured minimum interval when the queue drains"
+            )
+        }
+
+        func testStaleDDCReadDoesNotOverwriteNewerLocalVolumeWrite() async {
+            let readStarted = expectation(description: "DDC read started")
+            let readCanFinish = DispatchSemaphore(value: 0)
+
+            var mock = MockDDCInterface()
+            mock.readHandler = { _, _ in
+                readStarted.fulfill()
+                _ = readCanFinish.wait(timeout: .now() + 1.0)
+                return DDCReadResult(currentValue: 20, maxValue: 100)
+            }
+
+            let manager = HardwareBrightnessManager(forTesting: true, ddcInterface: mock)
+            let displayID: CGDirectDisplayID = 1
+            manager.pollingInterval = 0.01
+            manager.capabilities[displayID] = HardwareDisplayCapability(
+                displayID: displayID,
+                supportsDDC: true,
+                supportedCodes: [.volume],
+                maxBrightness: 100,
+                maxContrast: 100,
+                maxVolume: 100
+            )
+
+            manager.startPolling()
+            await fulfillment(of: [readStarted], timeout: 1.0)
+            manager.stopPolling()
+
+            manager.setHardwareVolume(for: displayID, to: 0.8)
+            readCanFinish.signal()
+
+            try? await Task.sleep(for: .milliseconds(150))
+            XCTAssertEqual(
+                manager.hardwareVolume[displayID] ?? -1,
+                0.8,
+                accuracy: 0.001,
+                "A read that started before a local write must not replace the newer optimistic value"
+            )
         }
 
         // MARK: - HardwareDisplayCapability Tests

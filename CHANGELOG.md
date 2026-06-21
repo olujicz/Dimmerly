@@ -92,6 +92,12 @@ Semantic Versioning.
 - `ScreenBlanker` dismiss-monitor callbacks now invoke their action inline via `MainActor.assumeIsolated` instead of hopping through `Task { @MainActor in … }`, preserving the grace-period timing guarantee
 
 ### Fixed
+- Serialized DDC/CI probe, read, and write operations to prevent overlapping hardware transactions on the monitor control bus
+- Enforced the DDC/CI write delay between actual queued hardware writes, even after slow reads or probes have backed up the control bus
+- Ignored stale DDC/CI poll results when a newer local hardware control change is already pending or visible in the UI
+- Fixed menu bar sliders sending redundant brightness, warmth, contrast, and DDC volume writes when syncing from presets, polling, or model updates
+- Fixed DDC volume sliders initially showing a default midpoint before the current hardware volume was applied
+- Fixed remaining menu bar panel hover and disclosure animations so they fully respect Reduce Motion
 - Fixed DDC/CI display matching on M4 Macs: EDID reads now use `IOAVServiceCopyEDID` (DCP firmware path) instead of raw I2C, which is more reliable on M4+ where the DCP display pipeline handles I2C differently
 - Fixed DDC/CI response parser accepting bus noise as valid data by adding checksum validation (using host write address 0x50 as seed per DDC/CI spec)
 - Fixed DDC/CI hardware brightness control not working on Apple Silicon Macs:

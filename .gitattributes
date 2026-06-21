@@ -1,0 +1,13 @@
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.icns binary
+*.pdf binary
+*.dmg binary
+*.p12 binary
+*.p8 binary
+*.mobileprovision binary
+*.provisionprofile binary

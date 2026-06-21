@@ -111,8 +111,15 @@
         /// Serial queue for DDC I/O operations (prevents interleaved transactions).
         private let ddcQueue = DispatchQueue(label: "com.dimmerly.ddc", qos: .userInitiated)
 
-        /// Timestamps of the last write per display (for rate limiting).
-        private var lastWriteTime: [CGDirectDisplayID: Date] = [:]
+        /// Queue-owned write timing state. Used from `ddcQueue` so the minimum interval
+        /// is measured between actual hardware writes, not between enqueue times.
+        private let writeTiming = DDCWriteTiming()
+
+        /// Local user/app writes that have not yet completed on the hardware bus.
+        private var pendingHardwareWrites: Set<WriteKey> = []
+
+        /// Timestamps of local user/app writes, used to ignore stale DDC poll results.
+        private var lastLocalWriteTime: [WriteKey: Date] = [:]
 
         /// Consecutive DDC write failure count per display.
         /// When this exceeds `maxWriteFailuresBeforeFallback`, the display is downgraded
@@ -132,6 +139,35 @@
         private struct WriteKey: Hashable {
             let displayID: CGDirectDisplayID
             let vcp: VCPCode
+        }
+
+        private final class DDCWriteTiming: @unchecked Sendable {
+            private let lock = NSLock()
+            private var lastWriteTime: [CGDirectDisplayID: Date] = [:]
+
+            func waitUntilReady(for displayID: CGDirectDisplayID, minimumInterval: TimeInterval) {
+                while true {
+                    lock.lock()
+                    let now = Date()
+                    let remaining = lastWriteTime[displayID]
+                        .map { minimumInterval - now.timeIntervalSince($0) } ?? 0
+
+                    if remaining <= 0 {
+                        lastWriteTime[displayID] = now
+                        lock.unlock()
+                        return
+                    }
+
+                    lock.unlock()
+                    Thread.sleep(forTimeInterval: remaining)
+                }
+            }
+
+            func removeDisplay(_ displayID: CGDirectDisplayID) {
+                lock.lock()
+                lastWriteTime.removeValue(forKey: displayID)
+                lock.unlock()
+            }
         }
 
         /// Pending write tasks per display+VCP code (for debouncing rapid slider changes).
@@ -186,8 +222,9 @@
         func probeAllDisplays() {
             let displayIDs = BrightnessManager.activeDisplayIDs().filter { CGDisplayIsBuiltin($0) == 0 }
             let ddcIO = ddcInterface
+            let ddcQueue = ddcQueue
 
-            Task.detached {
+            ddcQueue.async {
                 var results: [CGDirectDisplayID: HardwareDisplayCapability] = [:]
 
                 for displayID in displayIDs {
@@ -195,7 +232,7 @@
                     results[displayID] = capability
                 }
 
-                await MainActor.run { [weak self] in
+                Task { @MainActor [weak self] in
                     guard let self else { return }
                     capabilities = results
                     // Read initial values for DDC-capable displays
@@ -221,6 +258,7 @@
             guard let cap = capabilities[displayID], cap.supportsBrightness else { return }
 
             let clamped = min(max(value, 0.0), 1.0)
+            markLocalWrite(vcp: .brightness, for: displayID)
             hardwareBrightness[displayID] = clamped
 
             let rawValue = UInt16(clamped * Double(cap.maxBrightness))
@@ -236,6 +274,7 @@
             guard let cap = capabilities[displayID], cap.supportsContrast else { return }
 
             let clamped = min(max(value, 0.0), 1.0)
+            markLocalWrite(vcp: .contrast, for: displayID)
             hardwareContrast[displayID] = clamped
 
             let rawValue = UInt16(clamped * Double(cap.maxContrast))
@@ -251,6 +290,7 @@
             guard let cap = capabilities[displayID], cap.supportsVolume else { return }
 
             let clamped = min(max(value, 0.0), 1.0)
+            markLocalWrite(vcp: .volume, for: displayID)
             hardwareVolume[displayID] = clamped
 
             let rawValue = UInt16(clamped * Double(cap.maxVolume))
@@ -267,6 +307,7 @@
 
             let currentlyMuted = hardwareMute[displayID] ?? false
             let newMuted = !currentlyMuted
+            markLocalWrite(vcp: .audioMute, for: displayID)
             hardwareMute[displayID] = newMuted
 
             let rawValue: UInt16 = newMuted ? 1 : 2
@@ -281,6 +322,7 @@
         func setInputSource(for displayID: CGDirectDisplayID, to source: InputSource) {
             guard let cap = capabilities[displayID], cap.supportsInputSource else { return }
 
+            markLocalWrite(vcp: .inputSource, for: displayID)
             activeInputSource[displayID] = source
             debouncedWrite(vcp: .inputSource, value: source.rawValue, for: displayID)
         }
@@ -344,7 +386,9 @@
                 pendingWrites[key]?.cancel()
                 pendingWrites.removeValue(forKey: key)
             }
-            lastWriteTime.removeValue(forKey: displayID)
+            pendingHardwareWrites = pendingHardwareWrites.filter { $0.displayID != displayID }
+            lastLocalWriteTime = lastLocalWriteTime.filter { $0.key.displayID != displayID }
+            writeTiming.removeDisplay(displayID)
             consecutiveWriteFailures.removeValue(forKey: displayID)
         }
 
@@ -354,14 +398,16 @@
 
         /// Reads all supported VCP values for a display.
         ///
-        /// Captures the DDC interface locally before the detached task to avoid
+        /// Captures the DDC interface locally before the queued work to avoid
         /// accessing `self` from a non-isolated context for I/O operations.
-        /// The detached task only hops back to MainActor for publishing results.
+        /// The queue work only hops back to MainActor for publishing results.
         private func readAllValues(for displayID: CGDirectDisplayID) {
             guard let cap = capabilities[displayID], cap.supportsDDC else { return }
 
             let ddcIO = ddcInterface
-            Task.detached {
+            let ddcQueue = ddcQueue
+            ddcQueue.async {
+                let readStartedAt = Date()
                 var brightness: Double?
                 var contrast: Double?
                 var volume: Double?
@@ -401,13 +447,25 @@
                 }
 
                 // Apply all read values on the main actor in a single hop
-                await MainActor.run { [weak self] in
+                Task { @MainActor [weak self] in
                     guard let self else { return }
-                    if let brightness { hardwareBrightness[displayID] = brightness }
-                    if let contrast { hardwareContrast[displayID] = contrast }
-                    if let volume { hardwareVolume[displayID] = volume }
-                    if let muted { hardwareMute[displayID] = muted }
-                    if let inputSource { activeInputSource[displayID] = inputSource }
+                    if let brightness, shouldApplyRead(vcp: .brightness, for: displayID, readStartedAt: readStartedAt) {
+                        hardwareBrightness[displayID] = brightness
+                    }
+                    if let contrast, shouldApplyRead(vcp: .contrast, for: displayID, readStartedAt: readStartedAt) {
+                        hardwareContrast[displayID] = contrast
+                    }
+                    if let volume, shouldApplyRead(vcp: .volume, for: displayID, readStartedAt: readStartedAt) {
+                        hardwareVolume[displayID] = volume
+                    }
+                    if let muted, shouldApplyRead(vcp: .audioMute, for: displayID, readStartedAt: readStartedAt) {
+                        hardwareMute[displayID] = muted
+                    }
+                    if let inputSource,
+                       shouldApplyRead(vcp: .inputSource, for: displayID, readStartedAt: readStartedAt)
+                    {
+                        activeInputSource[displayID] = inputSource
+                    }
                 }
             }
         }
@@ -438,17 +496,6 @@
                 try? await Task.sleep(for: .seconds(self?.writeDebounceDelay ?? 0.1))
                 guard !Task.isCancelled else { return }
 
-                // Rate limit: ensure minimum interval since last write
-                if let lastWrite = self?.lastWriteTime[displayID] {
-                    let elapsed = Date().timeIntervalSince(lastWrite)
-                    let minInterval = self?.minimumWriteInterval ?? 0.05
-                    if elapsed < minInterval {
-                        let remaining = minInterval - elapsed
-                        try? await Task.sleep(for: .seconds(remaining))
-                        guard !Task.isCancelled else { return }
-                    }
-                }
-
                 // Perform the write
                 self?.performWrite(vcp: vcp, value: value, for: displayID)
             }
@@ -460,15 +507,19 @@
         /// consecutive failures, the display is downgraded to `.notSupported` and gamma-based
         /// software brightness is applied immediately so the user doesn't lose control.
         private func performWrite(vcp: VCPCode, value: UInt16, for displayID: CGDirectDisplayID) {
-            lastWriteTime[displayID] = Date()
-
             let ddcIO = ddcInterface
+            let minInterval = minimumWriteInterval
             let threshold = maxWriteFailuresBeforeFallback
-            Task.detached {
+            let ddcQueue = ddcQueue
+            let writeTiming = writeTiming
+            let writeKey = WriteKey(displayID: displayID, vcp: vcp)
+            ddcQueue.async {
+                writeTiming.waitUntilReady(for: displayID, minimumInterval: minInterval)
                 let success = ddcIO.write(vcp: vcp, value: value, for: displayID)
 
-                await MainActor.run { [weak self] in
+                Task { @MainActor [weak self] in
                     guard let self else { return }
+                    pendingHardwareWrites.remove(writeKey)
 
                     if success {
                         consecutiveWriteFailures[displayID] = 0
@@ -484,6 +535,23 @@
                     }
                 }
             }
+        }
+
+        private func markLocalWrite(vcp: VCPCode, for displayID: CGDirectDisplayID) {
+            let writeKey = WriteKey(displayID: displayID, vcp: vcp)
+            pendingHardwareWrites.insert(writeKey)
+            lastLocalWriteTime[writeKey] = Date()
+        }
+
+        private func shouldApplyRead(
+            vcp: VCPCode,
+            for displayID: CGDirectDisplayID,
+            readStartedAt: Date
+        ) -> Bool {
+            let writeKey = WriteKey(displayID: displayID, vcp: vcp)
+            guard !pendingHardwareWrites.contains(writeKey) else { return false }
+            guard let localWriteTime = lastLocalWriteTime[writeKey] else { return true }
+            return localWriteTime <= readStartedAt
         }
     }
 
