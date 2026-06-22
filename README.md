@@ -131,6 +131,23 @@ sleeping displays, toggling dimming, and applying presets.
 It also includes small and medium desktop widgets for quick dimming and preset
 access.
 
+## Known Limitations
+
+- Hardware monitor controls require a DDC/CI-capable display and connection.
+  Some hubs, docks, KVMs, HDMI adapters, DisplayLink adapters, and built-in HDMI
+  ports can block DDC/CI commands even when the monitor supports them.
+- Monitor support varies by manufacturer and model. Some displays expose only
+  brightness, while others also expose contrast, volume, mute, or input
+  switching.
+- The direct-download and Homebrew builds include display sleep and DDC/CI
+  hardware controls. The App Store build is sandboxed, so it uses software
+  dimming and screen blanking instead.
+- Global keyboard shortcuts require Accessibility permission from macOS.
+- Sunrise and sunset schedules need Location permission unless you enter a
+  manual coordinate.
+- Dimmerly stores settings locally and does not sync presets or schedules
+  between Macs.
+
 ## Privacy
 
 Dimmerly does not collect analytics, usage data, crash reports, or personal data.
