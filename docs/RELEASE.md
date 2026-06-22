@@ -192,7 +192,63 @@ When final QA passes:
 3. Confirm the DMG and checksum assets are attached.
 4. Publish the release.
 5. Verify the public release page downloads the same checksum.
-6. Announce the release only after the public download and checksum are verified.
+6. Update and verify the Homebrew tap using the next section.
+7. Announce the release only after the public download, checksum, and Homebrew
+   tap are verified.
+
+## Homebrew Tap Update
+
+After the GitHub Release is published, update the public Homebrew cask so
+`brew install --cask dimmerly` installs the new version before the release is
+broadly announced.
+
+The tap lives in:
+
+```text
+git@github.com:olujicz/homebrew-dimmerly.git
+```
+
+Use the checksum from the published GitHub Release asset:
+
+```bash
+VERSION=<version>
+curl -L -o /tmp/Dimmerly-$VERSION.dmg \
+  "https://github.com/olujicz/Dimmerly/releases/download/v$VERSION/Dimmerly-$VERSION.dmg"
+shasum -a 256 /tmp/Dimmerly-$VERSION.dmg
+```
+
+Then update `Casks/dimmerly.rb` in the tap:
+
+```ruby
+version "<version>"
+sha256 "<sha256>"
+```
+
+Validate the tap before pushing:
+
+```bash
+brew untap olujicz/dimmerly || true
+brew tap olujicz/dimmerly /path/to/homebrew-dimmerly
+brew audit --cask olujicz/dimmerly/dimmerly
+brew fetch --cask olujicz/dimmerly/dimmerly
+```
+
+Commit and push the tap update:
+
+```bash
+git status --short
+git add Casks/dimmerly.rb
+git commit -m "Update Dimmerly to <version>"
+git push origin main
+```
+
+After pushing, retap from GitHub and verify Homebrew resolves the public tap:
+
+```bash
+brew untap olujicz/dimmerly
+brew tap olujicz/dimmerly
+brew info --cask olujicz/dimmerly/dimmerly
+```
 
 ## Rollback
 
