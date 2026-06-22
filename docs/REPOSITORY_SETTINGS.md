@@ -7,9 +7,6 @@ These settings cannot be fully enforced from files in this repository, but they 
 Protect `main` with:
 
 - Require pull request before merging.
-- Require at least one approving review.
-- Require review from Code Owners.
-- Dismiss stale approvals when new commits are pushed.
 - Require status checks to pass before merging:
   - `workflow-lint`
   - `format`
@@ -21,6 +18,17 @@ Protect `main` with:
 - Restrict who can push to matching branches.
 - Do not allow force pushes.
 - Do not allow deletions.
+
+For repositories with multiple maintainers, also enable:
+
+- Require at least one approving review.
+- Require review from Code Owners.
+- Dismiss stale approvals when new commits are pushed.
+
+For a solo-maintainer repository, do not require approving reviews or Code
+Owner reviews. GitHub does not allow pull request authors to approve their own
+pull requests, so those rules make protected-branch merges impossible without a
+second maintainer.
 
 ## Tag Protection
 
