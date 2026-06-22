@@ -7,6 +7,8 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-06-22
+
 ### Added
 - Built-in display support: brightness, warmth, and contrast controls now available for the laptop screen (always shown alongside external displays)
 - Hardware backlight control for built-in display (direct distribution only): brightness slider drives the actual backlight via DisplayServices, syncing bidirectionally with Control Center and keyboard brightness keys (~1s polling). Warmth and contrast continue to use gamma tables.

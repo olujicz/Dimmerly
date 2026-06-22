@@ -113,6 +113,7 @@ iOSInjectionProject/
 .agents/
 
 # Documentation artifacts
+docs/
 TEST_TARGET_SETUP.md
 docs/plans/
 
