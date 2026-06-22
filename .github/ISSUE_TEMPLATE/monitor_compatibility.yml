@@ -1,0 +1,103 @@
+name: Monitor / DDC compatibility report
+description: Report what hardware monitor controls work with your display setup
+title: "[Monitor] "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        DDC/CI support depends on the monitor, cable, adapter, hub, dock, KVM, and Mac.
+        These reports help track which setups work and which ones need troubleshooting.
+  - type: input
+    id: dimmerly-version
+    attributes:
+      label: Dimmerly version
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: input
+    id: macos-version
+    attributes:
+      label: macOS version
+      placeholder: "macOS 15.5"
+    validations:
+      required: true
+  - type: input
+    id: mac-model
+    attributes:
+      label: Mac model
+      placeholder: "MacBook Pro 14-inch M3 Pro"
+    validations:
+      required: true
+  - type: input
+    id: monitor-model
+    attributes:
+      label: Monitor manufacturer and model
+      placeholder: "LG 27UL850-W"
+    validations:
+      required: true
+  - type: dropdown
+    id: connection-type
+    attributes:
+      label: Connection type
+      options:
+        - USB-C direct
+        - Thunderbolt direct
+        - DisplayPort direct
+        - HDMI direct
+        - USB-C hub or dock
+        - Thunderbolt dock
+        - KVM
+        - DisplayLink adapter or dock
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: connection-details
+    attributes:
+      label: Connection details
+      description: Include cable, adapter, hub, dock, or KVM model names if known.
+      placeholder: "Example: MacBook -> CalDigit TS4 -> DisplayPort -> monitor."
+    validations:
+      required: true
+  - type: dropdown
+    id: ddc-enabled
+    attributes:
+      label: Is DDC/CI enabled in the monitor's on-screen menu?
+      options:
+        - "Yes"
+        - "No"
+        - I cannot find this setting
+        - Not sure
+    validations:
+      required: true
+  - type: checkboxes
+    id: working-controls
+    attributes:
+      label: Which hardware controls work?
+      options:
+        - label: Brightness
+        - label: Contrast
+        - label: Volume
+        - label: Mute
+        - label: Input switching
+        - label: None
+  - type: textarea
+    id: not-working
+    attributes:
+      label: What does not work?
+      description: Describe controls that appear but fail, controls that are missing, or any inconsistent behavior.
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional notes
+      description: Add screenshots, Console logs, monitor firmware version, or anything else that may help.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-flight checks
+      options:
+        - label: I checked that the monitor supports DDC/CI.
+          required: true
+        - label: I checked the README troubleshooting and known limitations sections.
+          required: true

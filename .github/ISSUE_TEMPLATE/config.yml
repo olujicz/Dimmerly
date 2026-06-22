@@ -1,5 +1,11 @@
 blank_issues_enabled: true
 contact_links:
+  - name: Troubleshooting and known limitations
+    url: https://github.com/olujicz/Dimmerly#troubleshooting
+    about: Check common DDC/CI, keyboard shortcut, and display wake behavior issues before opening a report.
+  - name: Latest release
+    url: https://github.com/olujicz/Dimmerly/releases/latest
+    about: Download the latest signed and notarized direct-download build.
   - name: Security vulnerability
     url: https://github.com/olujicz/Dimmerly/security/advisories/new
     about: Please report security vulnerabilities privately. Do not open a public issue with exploit details.
