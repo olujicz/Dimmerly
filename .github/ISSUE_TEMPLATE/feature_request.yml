@@ -1,0 +1,56 @@
+name: Feature request
+description: Suggest a focused improvement for Dimmerly
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an improvement. Please describe the workflow or problem first,
+        then the behavior you would like Dimmerly to support.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or workflow
+      description: What are you trying to do, and what makes it difficult today?
+      placeholder: "When I use multiple external displays, I need to ..."
+    validations:
+      required: true
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed solution
+      description: What should Dimmerly do?
+      placeholder: "Add an option to ..."
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What workarounds or other apps have you tried?
+  - type: dropdown
+    id: build
+    attributes:
+      label: Which build should support this?
+      options:
+        - Direct-download/Homebrew build
+        - App Store build
+        - Both builds
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add screenshots, examples, links, or details about your display setup if useful.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-flight checks
+      options:
+        - label: I checked existing issues for a similar request.
+          required: true
+        - label: This request describes a user-facing workflow or problem, not only an implementation detail.
+          required: true
