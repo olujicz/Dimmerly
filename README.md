@@ -39,6 +39,16 @@ controls. When DDC/CI is not available, it falls back to software dimming.
 
 ## Install
 
+### Homebrew
+
+```bash
+brew tap olujicz/dimmerly
+brew install --cask dimmerly
+```
+
+The Homebrew cask installs the signed and notarized direct-download build with
+the full feature set.
+
 ### Direct Download
 
 Download the latest signed and notarized DMG from
