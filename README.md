@@ -211,8 +211,8 @@ just build-release
 Project documentation:
 
 - [BUILDING.md](BUILDING.md) - local build, test, and architecture notes
-- [docs/RELEASE.md](docs/RELEASE.md) - release process for signed and notarized builds
-- [docs/REPOSITORY_SETTINGS.md](docs/REPOSITORY_SETTINGS.md) - required GitHub repository settings
+- [documentation/RELEASE.md](documentation/RELEASE.md) - release process for signed and notarized builds
+- [documentation/REPOSITORY_SETTINGS.md](documentation/REPOSITORY_SETTINGS.md) - required GitHub repository settings
 - [SECURITY.md](SECURITY.md) - supported versions and vulnerability reporting
 
 ## Contributing

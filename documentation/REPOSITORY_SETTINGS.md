@@ -51,6 +51,23 @@ Recommended Actions settings:
 - Store signing and App Store Connect credentials as repository or environment secrets.
 - Protect release secrets with a GitHub Environment if the repository plan supports required reviewers.
 
+## Pages
+
+GitHub Pages should use **GitHub Actions** as its publishing source. The
+`.github/workflows/pages.yml` workflow publishes only the public static pages
+copied from the tracked `documentation/` folder:
+
+- `privacy-policy.html`
+- `support.html`
+
+The rest of `documentation/` remains visible in the repository but is not
+published to GitHub Pages. The ignored `docs/` folder remains internal.
+
+These public URLs must resolve before App Store submission:
+
+- `https://olujicz.github.io/Dimmerly/privacy-policy.html`
+- `https://olujicz.github.io/Dimmerly/support.html`
+
 ## Security
 
 - Enable Dependabot alerts.
@@ -62,5 +79,5 @@ Recommended Actions settings:
 ## Releases
 
 - Public release assets are created only by `.github/workflows/release.yml`.
-- GitHub Releases created by automation must remain drafts until final QA from `docs/RELEASE.md` passes.
+- GitHub Releases created by automation must remain drafts until final QA from `documentation/RELEASE.md` passes.
 - Do not upload replacement assets to a published release. Publish a new patch version instead.

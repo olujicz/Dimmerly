@@ -4,8 +4,8 @@ These instructions apply to the entire Dimmerly repository.
 
 ## Release Process Is Mandatory
 
-Before changing any release-related file or action, read `docs/RELEASE.md`.
-Before recommending release publication or tag operations, also check `docs/REPOSITORY_SETTINGS.md`.
+Before changing any release-related file or action, read `documentation/RELEASE.md`.
+Before recommending release publication or tag operations, also check `documentation/REPOSITORY_SETTINGS.md`.
 
 Release-related work includes changes to:
 
@@ -25,10 +25,10 @@ AI agents must follow these rules:
 - Release candidates are produced by the manual GitHub Actions workflow and stay as artifacts.
 - Tag-triggered workflows may create draft GitHub Releases only.
 - Do not publish a GitHub Release, push release tags, upload public DMG assets, or move/delete tags unless the user explicitly asks for that action.
-- Do not bypass signing, notarization, checksum, Gatekeeper, or final QA steps from `docs/RELEASE.md`.
+- Do not bypass signing, notarization, checksum, Gatekeeper, or final QA steps from `documentation/RELEASE.md`.
 - Do not reuse or retag a published version. Use a new patch version for rebuilds or hotfixes.
 
-When implementing release process changes, update both the workflow and `docs/RELEASE.md` so the automation and human runbook stay aligned.
+When implementing release process changes, update both the workflow and `documentation/RELEASE.md` so the automation and human runbook stay aligned.
 
 ## Coding And Editing
 

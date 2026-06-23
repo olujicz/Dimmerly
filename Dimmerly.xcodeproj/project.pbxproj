@@ -39,6 +39,7 @@
 		C1B2C3D4E5F6A7B8C9D0E1F3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B1B2C3D4E5F6A7B8C9D0E1F4 /* Assets.xcassets */; };
 		D020A5D272EBF573C8F22F90 /* KeyboardShortcutRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = C50F163FD03D0874576E9962 /* KeyboardShortcutRecorder.swift */; };
 		D4F246BF3A0883989414211C /* KeyboardShortcutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4938628BCBDB203349940ACE /* KeyboardShortcutManager.swift */; };
+		DN00000000000000000012 /* DisplayNameResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DN00000000000000000002 /* DisplayNameResolverTests.swift */; };
 		E8A1B2C3D4E5F6A7B8C9D001 /* ScreenBlanker.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8A1B2C3D4E5F6A7B8C9D002 /* ScreenBlanker.swift */; };
 		F002FDE8D5FAD64627544CEC /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE7B95B7556B68B59FE0DC7B /* AppSettings.swift */; };
 		NF00000000000000000011 /* BrightnessPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF00000000000000000001 /* BrightnessPreset.swift */; };
@@ -114,6 +115,7 @@
 		SC00000000000000000002 /* SolarCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolarCalculator.swift; sourceTree = "<group>"; };
 		GM00000000000000000001 /* GammaMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GammaMath.swift; sourceTree = "<group>"; };
 		DN00000000000000000001 /* DisplayNameResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayNameResolver.swift; sourceTree = "<group>"; };
+		DN00000000000000000002 /* DisplayNameResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayNameResolverTests.swift; sourceTree = "<group>"; };
 		IE00000000000000000001 /* DisplayIntentError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayIntentError.swift; sourceTree = "<group>"; };
 		SC00000000000000000003 /* LocationProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationProvider.swift; sourceTree = "<group>"; };
 		SC00000000000000000004 /* ScheduleManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleManager.swift; sourceTree = "<group>"; };
@@ -373,6 +375,7 @@
 					CT00000000000000000002 /* ColorTemperatureManagerTests.swift */,
 					HW00000000000000000004 /* DDCControllerTests.swift */,
 					NT00000000000000000020 /* DimmingScheduleTests.swift */,
+					DN00000000000000000002 /* DisplayNameResolverTests.swift */,
 					T1B2C3D4E5F6A7B8C9D0E300 /* DisplayControllerTests.swift */,
 					HW00000000000000000005 /* HardwareBrightnessManagerTests.swift */,
 					T1B2C3D4E5F6A7B8C9D0E320 /* KeyboardShortcutTests.swift */,
@@ -605,6 +608,7 @@
 					NT00000000000000000001 /* SolarCalculatorTests.swift in Sources */,
 				NT00000000000000000002 /* DimmingScheduleTests.swift in Sources */,
 				NT00000000000000000003 /* ScheduleManagerTests.swift in Sources */,
+				DN00000000000000000012 /* DisplayNameResolverTests.swift in Sources */,
 				CT00000000000000000012 /* ColorTemperatureManagerTests.swift in Sources */,
 				HW00000000000000000014 /* DDCControllerTests.swift in Sources */,
 				HW00000000000000000015 /* HardwareBrightnessManagerTests.swift in Sources */,

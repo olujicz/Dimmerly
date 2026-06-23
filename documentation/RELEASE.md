@@ -4,7 +4,7 @@ This runbook covers public direct-download releases of Dimmerly as a signed and 
 
 AI agents must also follow the release rules in `AGENTS.md`. If this runbook and `AGENTS.md` drift, update both in the same change.
 
-Repository settings that cannot be fully enforced from files are documented in `docs/REPOSITORY_SETTINGS.md`.
+Repository settings that cannot be fully enforced from files are documented in `documentation/REPOSITORY_SETTINGS.md`.
 
 ## Release Goals
 
@@ -101,7 +101,7 @@ base64 -i AuthKey_KEYID.p8 | pbcopy
 - Confirm `MARKETING_VERSION` in `Dimmerly.xcodeproj` exactly matches the intended release version, for example `1.0.0`.
 - Confirm `CURRENT_PROJECT_VERSION` is a positive integer and greater than any previously distributed build number.
 - Confirm the release commit is merged to `main` before tagging.
-- Confirm repository branch protection and tag protection match `docs/REPOSITORY_SETTINGS.md`.
+- Confirm repository branch protection and tag protection match `documentation/REPOSITORY_SETTINGS.md`.
 - Run local quality checks:
 
 ```bash
