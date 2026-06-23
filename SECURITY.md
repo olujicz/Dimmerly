@@ -12,4 +12,4 @@ Use GitHub private vulnerability reporting if it is enabled for this repository.
 
 Include the affected Dimmerly version, macOS version, clear reproduction steps, impact, and whether the issue affects the App Store build, the direct-download build, or both.
 
-We will acknowledge valid reports as soon as practical, investigate the affected supported version, and release fixes through the patch release process documented in `docs/RELEASE.md`.
+We will acknowledge valid reports as soon as practical, investigate the affected supported version, and release fixes through the patch release process documented in `documentation/RELEASE.md`.

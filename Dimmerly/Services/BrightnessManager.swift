@@ -8,7 +8,6 @@
 
 import AppKit
 import CoreGraphics
-import IOKit
 
 // MARK: - Built-in Display Backlight (Private API)
 

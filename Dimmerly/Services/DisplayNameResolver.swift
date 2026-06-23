@@ -6,20 +6,29 @@
 //
 //  macOS display naming is unreliable: NSScreen.localizedName returns generic
 //  "Unknown Display" strings for unsupported locales, and architecture-specific
-//  IOKit keys differ between Intel and Apple Silicon. This resolver walks four
-//  fallback stages to produce the best available name.
+//  IOKit keys differ between Intel and Apple Silicon. Direct distribution builds
+//  use deeper IOKit fallbacks; App Store builds avoid IOKit display probing.
 //
 
 import AppKit
 import CoreGraphics
 import Foundation
-import IOKit
+
+#if !APPSTORE
+    import IOKit
+#endif
 
 enum DisplayNameResolver {
+    #if APPSTORE
+        static let usesIOKitFallbacks = false
+    #else
+        static let usesIOKitFallbacks = true
+    #endif
+
     /// Resolution strategy:
     /// 1. **NSScreen.localizedName** — fast, localized, works for ~90% of displays.
     /// 2. **Apple's display override plist** — English fallback for unsupported locales.
-    /// 3. **EDID binary parsing via IOKit** — Intel: IODisplayConnect; Apple Silicon: IOPortTransportStateDisplayPort.
+    /// 3. **Direct builds only:** EDID binary parsing via IOKit.
     /// 4. **Localized "Unknown Display"** — last resort.
     static func name(for displayID: CGDirectDisplayID) -> String {
         for screen in NSScreen.screens {
@@ -38,9 +47,11 @@ enum DisplayNameResolver {
             return name
         }
 
-        if let name = nameFromEDID(for: displayID) {
-            return name
-        }
+        #if !APPSTORE
+            if let name = nameFromEDID(for: displayID) {
+                return name
+            }
+        #endif
 
         return NSLocalizedString("Unknown Display", comment: "Fallback name when macOS cannot identify the display")
     }
@@ -85,111 +96,113 @@ enum DisplayNameResolver {
         return nil
     }
 
-    /// Parses display name from IOKit — tries Apple Silicon's
-    /// `IOPortTransportStateDisplayPort` first, then Intel's `IODisplayConnect`.
-    private static func nameFromEDID(for displayID: CGDirectDisplayID) -> String? {
-        let targetModel = Int(CGDisplayModelNumber(displayID))
+    #if !APPSTORE
+        /// Parses display name from IOKit — tries Apple Silicon's
+        /// `IOPortTransportStateDisplayPort` first, then Intel's `IODisplayConnect`.
+        private static func nameFromEDID(for displayID: CGDirectDisplayID) -> String? {
+            let targetModel = Int(CGDisplayModelNumber(displayID))
 
-        if let name = nameFromTransportService(matchingProductID: targetModel) {
-            return name
+            if let name = nameFromTransportService(matchingProductID: targetModel) {
+                return name
+            }
+
+            let targetVendor = Int(CGDisplayVendorNumber(displayID))
+            var iterator: io_iterator_t = 0
+            guard IOServiceGetMatchingServices(
+                kIOMainPortDefault,
+                IOServiceMatching("IODisplayConnect"),
+                &iterator
+            ) == KERN_SUCCESS else { return nil }
+            defer { IOObjectRelease(iterator) }
+
+            var service = IOIteratorNext(iterator)
+            while service != 0 {
+                defer {
+                    IOObjectRelease(service)
+                    service = IOIteratorNext(iterator)
+                }
+
+                var properties: Unmanaged<CFMutableDictionary>?
+                guard IORegistryEntryCreateCFProperties(service, &properties, kCFAllocatorDefault, 0) == KERN_SUCCESS,
+                      let dict = properties?.takeRetainedValue() as? [String: Any]
+                else {
+                    continue
+                }
+
+                guard let vendorID = dict["DisplayVendorID"] as? Int,
+                      let productID = dict["DisplayProductID"] as? Int,
+                      targetVendor == vendorID, targetModel == productID
+                else {
+                    continue
+                }
+
+                if let info = IODisplayCreateInfoDictionary(service, 0)?.takeRetainedValue() as? [String: Any],
+                   let names = info["DisplayProductName"] as? [String: String],
+                   let name = names.values.first, !name.isEmpty
+                {
+                    return name
+                }
+
+                if let edidData = dict["IODisplayEDID"] as? Data,
+                   let name = parseEDIDName(edidData)
+                {
+                    return name
+                }
+            }
+
+            return nil
         }
 
-        let targetVendor = Int(CGDisplayVendorNumber(displayID))
-        var iterator: io_iterator_t = 0
-        guard IOServiceGetMatchingServices(
-            kIOMainPortDefault,
-            IOServiceMatching("IODisplayConnect"),
-            &iterator
-        ) == KERN_SUCCESS else { return nil }
-        defer { IOObjectRelease(iterator) }
+        /// Apple Silicon path: reads product info from `IOPortTransportStateDisplayPort`.
+        private static func nameFromTransportService(matchingProductID targetModel: Int) -> String? {
+            var iterator: io_iterator_t = 0
+            guard IOServiceGetMatchingServices(
+                kIOMainPortDefault,
+                IOServiceMatching("IOPortTransportStateDisplayPort"),
+                &iterator
+            ) == KERN_SUCCESS else { return nil }
+            defer { IOObjectRelease(iterator) }
 
-        var service = IOIteratorNext(iterator)
-        while service != 0 {
-            defer {
-                IOObjectRelease(service)
-                service = IOIteratorNext(iterator)
+            var service = IOIteratorNext(iterator)
+            while service != 0 {
+                defer {
+                    IOObjectRelease(service)
+                    service = IOIteratorNext(iterator)
+                }
+
+                var properties: Unmanaged<CFMutableDictionary>?
+                guard IORegistryEntryCreateCFProperties(service, &properties, kCFAllocatorDefault, 0) == KERN_SUCCESS,
+                      let dict = properties?.takeRetainedValue() as? [String: Any]
+                else {
+                    continue
+                }
+
+                guard let productID = dict["ProductID"] as? Int,
+                      productID == targetModel
+                else {
+                    continue
+                }
+
+                if let name = dict["ProductName"] as? String, !name.isEmpty {
+                    return name
+                }
+
+                if let edidData = dict["EDID"] as? Data,
+                   let name = parseEDIDName(edidData)
+                {
+                    return name
+                }
+                if let metadata = dict["Metadata"] as? [String: Any],
+                   let edidData = metadata["EDID"] as? Data,
+                   let name = parseEDIDName(edidData)
+                {
+                    return name
+                }
             }
 
-            var properties: Unmanaged<CFMutableDictionary>?
-            guard IORegistryEntryCreateCFProperties(service, &properties, kCFAllocatorDefault, 0) == KERN_SUCCESS,
-                  let dict = properties?.takeRetainedValue() as? [String: Any]
-            else {
-                continue
-            }
-
-            guard let vendorID = dict["DisplayVendorID"] as? Int,
-                  let productID = dict["DisplayProductID"] as? Int,
-                  targetVendor == vendorID, targetModel == productID
-            else {
-                continue
-            }
-
-            if let info = IODisplayCreateInfoDictionary(service, 0)?.takeRetainedValue() as? [String: Any],
-               let names = info["DisplayProductName"] as? [String: String],
-               let name = names.values.first, !name.isEmpty
-            {
-                return name
-            }
-
-            if let edidData = dict["IODisplayEDID"] as? Data,
-               let name = parseEDIDName(edidData)
-            {
-                return name
-            }
+            return nil
         }
-
-        return nil
-    }
-
-    /// Apple Silicon path: reads product info from `IOPortTransportStateDisplayPort`.
-    private static func nameFromTransportService(matchingProductID targetModel: Int) -> String? {
-        var iterator: io_iterator_t = 0
-        guard IOServiceGetMatchingServices(
-            kIOMainPortDefault,
-            IOServiceMatching("IOPortTransportStateDisplayPort"),
-            &iterator
-        ) == KERN_SUCCESS else { return nil }
-        defer { IOObjectRelease(iterator) }
-
-        var service = IOIteratorNext(iterator)
-        while service != 0 {
-            defer {
-                IOObjectRelease(service)
-                service = IOIteratorNext(iterator)
-            }
-
-            var properties: Unmanaged<CFMutableDictionary>?
-            guard IORegistryEntryCreateCFProperties(service, &properties, kCFAllocatorDefault, 0) == KERN_SUCCESS,
-                  let dict = properties?.takeRetainedValue() as? [String: Any]
-            else {
-                continue
-            }
-
-            guard let productID = dict["ProductID"] as? Int,
-                  productID == targetModel
-            else {
-                continue
-            }
-
-            if let name = dict["ProductName"] as? String, !name.isEmpty {
-                return name
-            }
-
-            if let edidData = dict["EDID"] as? Data,
-               let name = parseEDIDName(edidData)
-            {
-                return name
-            }
-            if let metadata = dict["Metadata"] as? [String: Any],
-               let edidData = metadata["EDID"] as? Data,
-               let name = parseEDIDName(edidData)
-            {
-                return name
-            }
-        }
-
-        return nil
-    }
+    #endif
 
     /// Parses monitor name from raw EDID binary data (VESA E-EDID standard).
     ///

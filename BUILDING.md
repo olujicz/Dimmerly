@@ -78,9 +78,9 @@ GitHub Actions runs on every push and pull request to `main`:
 
 ## Release Packaging
 
-Direct-download releases are built as signed and notarized Developer ID DMGs by the `Release` GitHub Actions workflow. Follow [docs/RELEASE.md](docs/RELEASE.md) for the release checklist, required secrets, manual release-candidate build, tag flow, final QA, and rollback process.
+Direct-download releases are built as signed and notarized Developer ID DMGs by the `Release` GitHub Actions workflow. Follow [documentation/RELEASE.md](documentation/RELEASE.md) for the release checklist, required secrets, manual release-candidate build, tag flow, final QA, and rollback process.
 
-Repository-level branch protection, tag protection, Actions, and security settings are documented in [docs/REPOSITORY_SETTINGS.md](docs/REPOSITORY_SETTINGS.md).
+Repository-level branch protection, tag protection, Actions, and security settings are documented in [documentation/REPOSITORY_SETTINGS.md](documentation/REPOSITORY_SETTINGS.md).
 
 ## Architecture Notes
 
