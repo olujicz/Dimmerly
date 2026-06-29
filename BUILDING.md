@@ -45,7 +45,9 @@ A [Justfile](Justfile) provides shortcuts for common tasks:
 just setup          # Configure pre-commit hooks (SwiftFormat, SwiftLint, secrets detection)
 just build          # Build debug
 just build-release  # Build release
+just build-appstore # Build App Store scheme
 just test           # Run tests
+just check          # Run format, lint, tests, and App Store smoke build
 just run            # Build and run
 just lint           # Lint Swift sources (SwiftLint)
 just lint-fix       # Auto-fix linting issues

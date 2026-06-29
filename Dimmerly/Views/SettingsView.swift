@@ -36,6 +36,31 @@ func applyLaunchAtLoginChange(
     }
 }
 
+#if !APPSTORE
+    @MainActor
+    func applyDDCEnabledChange(
+        _ newValue: Bool,
+        settings: AppSettings,
+        hardwareManager: HardwareBrightnessManager
+    ) {
+        settings.ddcEnabled = newValue
+
+        if newValue {
+            hardwareManager.isEnabled = true
+            hardwareManager.applyRuntimeSettings(
+                controlMode: settings.ddcControlMode,
+                pollingInterval: settings.ddcPollingInterval,
+                writeDelayMilliseconds: settings.ddcWriteDelay
+            )
+            hardwareManager.probeAllDisplays()
+            hardwareManager.startPolling()
+        } else {
+            hardwareManager.isEnabled = false
+            hardwareManager.stopPolling()
+        }
+    }
+#endif
+
 /// Main settings view for the application.
 /// Uses a TabView to organize settings into logical groups following macOS HIG.
 struct SettingsView: View {
@@ -415,15 +440,11 @@ struct DisplaySettingsTab: View {
                 Toggle("Enable DDC/CI hardware control", isOn: Binding(
                     get: { settings.ddcEnabled },
                     set: { newValue in
-                        settings.ddcEnabled = newValue
-                        if newValue {
-                            hardwareManager.isEnabled = true
-                            hardwareManager.probeAllDisplays()
-                            hardwareManager.startPolling()
-                        } else {
-                            hardwareManager.isEnabled = false
-                            hardwareManager.stopPolling()
-                        }
+                        applyDDCEnabledChange(
+                            newValue,
+                            settings: settings,
+                            hardwareManager: hardwareManager
+                        )
                     }
                 ))
                 .help("Control monitor brightness, volume, and input via DDC/CI protocol")

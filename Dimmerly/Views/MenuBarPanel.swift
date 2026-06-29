@@ -28,7 +28,6 @@ struct MenuBarPanel: View {
                         .padding(.horizontal, 20)
                         .padding(.vertical, 8)
                 }
-                .overlayScrollerStyle()
             }
             .scrollBounceBehavior(.basedOnSize)
             .frame(idealHeight: 200, maxHeight: 400)
@@ -910,37 +909,3 @@ struct DisplayBrightnessRow: View {
         }
     }
 #endif
-
-// MARK: - Overlay Scroller Style
-
-/// Forces the thin overlay scroller style on a ScrollView, regardless of
-/// the user's "Show scroll bars" system preference. Appropriate for compact
-/// transient panels (like menu bar extras) where the legacy thick scrollbar
-/// is visually intrusive.
-private struct OverlayScrollerConfigurator: NSViewRepresentable {
-    func makeNSView(context _: Context) -> NSView {
-        OverlayScrollerView()
-    }
-
-    func updateNSView(_ nsView: NSView, context _: Context) {
-        (nsView as? OverlayScrollerView)?.applyOverlayStyle()
-    }
-
-    final class OverlayScrollerView: NSView {
-        override func viewDidMoveToWindow() {
-            super.viewDidMoveToWindow()
-            applyOverlayStyle()
-        }
-
-        func applyOverlayStyle() {
-            guard let scrollView = enclosingScrollView else { return }
-            scrollView.scrollerStyle = .overlay
-        }
-    }
-}
-
-extension View {
-    func overlayScrollerStyle() -> some View {
-        background(OverlayScrollerConfigurator())
-    }
-}

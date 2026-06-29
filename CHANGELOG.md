@@ -7,6 +7,25 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-06-29
+
+### Added
+- Added structured GitHub issue templates for bug reports, feature requests, and monitor compatibility reports, making it easier to collect the display details needed to diagnose hardware-specific issues.
+- Added Homebrew installation guidance and release-maintenance documentation for direct-download distribution.
+- Added GitHub Pages deployment for the public privacy policy and support pages.
+
+### Changed
+- Updated release, CI, and documentation workflows so release candidates, App Store smoke builds, public Pages assets, and repository settings are checked more consistently.
+- Moved public release documentation into `documentation/`.
+- App Store builds now avoid direct IOKit display-name fallbacks while preserving deeper display-name resolution in direct-download builds.
+- The menu bar panel now respects the user's macOS scrollbar visibility setting instead of forcing overlay scrollbars.
+- Build documentation now includes the App Store scheme build and the aggregate `just check` validation command.
+
+### Fixed
+- Fixed widget "Turn Displays Off" handling so duplicate, stale, or unrelated notifications do not dim or sleep displays unless a pending widget command exists.
+- Fixed DDC/CI settings so saved control mode, polling interval, and write delay are applied immediately when hardware control is enabled after launch.
+- Fixed preset, widget preset, and schedule persistence diagnostics so encode/decode failures are logged instead of failing silently.
+
 ## [1.0.0] - 2026-06-22
 
 ### Added
