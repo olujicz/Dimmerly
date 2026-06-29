@@ -61,7 +61,7 @@ copied from the tracked `documentation/` folder:
 - `support.html`
 
 The rest of `documentation/` remains visible in the repository but is not
-published to GitHub Pages. The ignored `docs/` folder remains internal.
+published to GitHub Pages.
 
 These public URLs must resolve before App Store submission:
 

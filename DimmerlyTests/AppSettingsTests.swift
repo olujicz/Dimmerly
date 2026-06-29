@@ -34,9 +34,18 @@ final class AppSettingsTests: XCTestCase {
         "dimmerlyColorTempTransitionMinutes",
     ]
 
+    #if !APPSTORE
+        private let ddcSettingsKeys = [
+            "dimmerlyDDCEnabled",
+            "dimmerlyDDCControlMode",
+            "dimmerlyDDCPollingInterval",
+            "dimmerlyDDCWriteDelay",
+        ]
+    #endif
+
     override func setUp() async throws {
         // Remove all AppSettings keys so UserDefaults sees its declared defaults
-        for key in appStorageKeys {
+        for key in allSettingsKeys {
             UserDefaults.standard.removeObject(forKey: key)
         }
         settings = AppSettings()
@@ -44,9 +53,17 @@ final class AppSettingsTests: XCTestCase {
 
     override func tearDown() async throws {
         settings = nil
-        for key in appStorageKeys {
+        for key in allSettingsKeys {
             UserDefaults.standard.removeObject(forKey: key)
         }
+    }
+
+    private var allSettingsKeys: [String] {
+        #if !APPSTORE
+            appStorageKeys + ddcSettingsKeys
+        #else
+            appStorageKeys
+        #endif
     }
 
     /// Tests that AppSettings has proper default values
@@ -66,6 +83,25 @@ final class AppSettingsTests: XCTestCase {
             "Default modifiers should match"
         )
     }
+
+    #if !APPSTORE
+        func testApplyDDCEnabledChangeAppliesRuntimeSettingsWhenTurningOn() {
+            settings.ddcEnabled = false
+            settings.ddcControlMode = .hardwareOnly
+            settings.ddcPollingInterval = 13
+            settings.ddcWriteDelay = 120
+            let manager = HardwareBrightnessManager(forTesting: true, ddcInterface: MockDDCInterface())
+
+            applyDDCEnabledChange(true, settings: settings, hardwareManager: manager)
+            manager.stopPolling()
+
+            XCTAssertTrue(settings.ddcEnabled)
+            XCTAssertTrue(manager.isEnabled)
+            XCTAssertEqual(manager.controlMode, .hardwareOnly)
+            XCTAssertEqual(manager.pollingInterval, 13)
+            XCTAssertEqual(manager.minimumWriteInterval, 0.12, accuracy: 0.001)
+        }
+    #endif
 
     /// Tests that keyboard shortcut changes are tracked by Observation
     func testKeyboardShortcutChangeNotification() {

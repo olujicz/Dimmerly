@@ -13,6 +13,12 @@
 
 import Foundation
 import Observation
+import OSLog
+
+private let scheduleManagerLogger = Logger(
+    subsystem: "rs.in.olujic.dimmerly",
+    category: "ScheduleManager"
+)
 
 /// Manages automatic preset application based on time-of-day schedules.
 ///
@@ -316,17 +322,26 @@ class ScheduleManager {
     // MARK: - Persistence
 
     private func loadSchedules() {
-        guard let data = UserDefaults.standard.data(forKey: Self.schedulesKey),
-              let decoded = try? JSONDecoder().decode([DimmingSchedule].self, from: data)
-        else {
-            return
+        guard let data = UserDefaults.standard.data(forKey: Self.schedulesKey) else { return }
+
+        do {
+            schedules = try JSONDecoder().decode([DimmingSchedule].self, from: data)
+        } catch {
+            scheduleManagerLogger.error(
+                "Failed to decode dimming schedules: \(error.localizedDescription, privacy: .public)"
+            )
         }
-        schedules = decoded
     }
 
     private func saveSchedules() {
-        guard let data = try? JSONEncoder().encode(schedules) else { return }
-        UserDefaults.standard.set(data, forKey: Self.schedulesKey)
+        do {
+            let data = try JSONEncoder().encode(schedules)
+            UserDefaults.standard.set(data, forKey: Self.schedulesKey)
+        } catch {
+            scheduleManagerLogger.error(
+                "Failed to encode dimming schedules: \(error.localizedDescription, privacy: .public)"
+            )
+        }
     }
 
     // MARK: - Lifecycle

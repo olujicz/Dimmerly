@@ -53,6 +53,34 @@ final class SharedConstantsTests: XCTestCase {
         XCTAssertFalse(SharedConstants.consumeWidgetDimCommand(from: defaults))
     }
 
+    @MainActor
+    func testHandleWidgetDimNotificationIgnoresMissingCommand() {
+        let settings = AppSettings()
+        var sleepCallCount = 0
+
+        handleWidgetDimNotification(
+            settings: settings,
+            consumeCommand: { false },
+            performSleep: { _ in sleepCallCount += 1 }
+        )
+
+        XCTAssertEqual(sleepCallCount, 0)
+    }
+
+    @MainActor
+    func testHandleWidgetDimNotificationPerformsSleepForPendingCommand() {
+        let settings = AppSettings()
+        var sleepCallCount = 0
+
+        handleWidgetDimNotification(
+            settings: settings,
+            consumeCommand: { true },
+            performSleep: { _ in sleepCallCount += 1 }
+        )
+
+        XCTAssertEqual(sleepCallCount, 1)
+    }
+
     func testConsumeWidgetPresetCommandReturnsUUIDOnceAndClearsCommand() {
         let id = UUID()
         SharedConstants.storeWidgetPresetCommand(id.uuidString, in: defaults)

@@ -9,6 +9,16 @@
 import AppKit
 import SwiftUI
 
+@MainActor
+func handleWidgetDimNotification(
+    settings: AppSettings,
+    consumeCommand: () -> Bool = { SharedConstants.consumeWidgetDimCommand() },
+    performSleep: (AppSettings) -> Void = { DisplayAction.performSleep(settings: $0) }
+) {
+    guard consumeCommand() else { return }
+    performSleep(settings)
+}
+
 @main
 struct DimmerlyApp: App {
     /// Application settings shared across all views
@@ -178,8 +188,7 @@ struct DimmerlyApp: App {
             object: nil, queue: .main
         ) { [settings] _ in
             Task { @MainActor in
-                _ = SharedConstants.consumeWidgetDimCommand()
-                DisplayAction.performSleep(settings: settings)
+                handleWidgetDimNotification(settings: settings)
             }
         }
 

@@ -15,7 +15,13 @@
 
 import Foundation
 import Observation
+import OSLog
 import WidgetKit
+
+private let presetManagerLogger = Logger(
+    subsystem: "rs.in.olujic.dimmerly",
+    category: "PresetManager"
+)
 
 /// Manages saved brightness presets and coordinates with widgets.
 ///
@@ -217,18 +223,27 @@ class PresetManager {
     // MARK: - Persistence
 
     private func loadPresets() {
-        guard let data = UserDefaults.standard.data(forKey: persistenceKey),
-              let decoded = try? JSONDecoder().decode([BrightnessPreset].self, from: data)
-        else {
-            return
+        guard let data = UserDefaults.standard.data(forKey: persistenceKey) else { return }
+
+        do {
+            presets = try JSONDecoder().decode([BrightnessPreset].self, from: data)
+        } catch {
+            presetManagerLogger.error(
+                "Failed to decode brightness presets: \(error.localizedDescription, privacy: .public)"
+            )
         }
-        presets = decoded
     }
 
     private func persistPresets() {
-        guard let data = try? JSONEncoder().encode(presets) else { return }
-        UserDefaults.standard.set(data, forKey: persistenceKey)
-        syncPresetsToWidget()
+        do {
+            let data = try JSONEncoder().encode(presets)
+            UserDefaults.standard.set(data, forKey: persistenceKey)
+            syncPresetsToWidget()
+        } catch {
+            presetManagerLogger.error(
+                "Failed to encode brightness presets: \(error.localizedDescription, privacy: .public)"
+            )
+        }
     }
 
     // MARK: - Widget Sync
@@ -248,17 +263,29 @@ class PresetManager {
     ///
     /// Timeline reload: Tells WidgetKit to refresh all widget displays immediately.
     private func syncPresetsToWidget() {
+        guard let sharedDefaults = SharedConstants.sharedDefaults else {
+            presetManagerLogger.error("Shared defaults unavailable; widget presets were not synchronized")
+            WidgetCenter.shared.reloadAllTimelines()
+            return
+        }
+
         if presets.isEmpty {
             // No presets: remove from shared defaults so widget hides preset buttons
-            SharedConstants.sharedDefaults?.removeObject(forKey: SharedConstants.widgetPresetsKey)
+            sharedDefaults.removeObject(forKey: SharedConstants.widgetPresetsKey)
             WidgetCenter.shared.reloadAllTimelines()
             return
         }
 
         // Convert to lightweight WidgetPresetInfo (ID + name only)
         let widgetPresets = presets.map { WidgetPresetInfo(id: $0.id.uuidString, name: $0.name) }
-        guard let data = try? JSONEncoder().encode(widgetPresets) else { return }
-        SharedConstants.sharedDefaults?.set(data, forKey: SharedConstants.widgetPresetsKey)
-        WidgetCenter.shared.reloadAllTimelines()
+        do {
+            let data = try JSONEncoder().encode(widgetPresets)
+            sharedDefaults.set(data, forKey: SharedConstants.widgetPresetsKey)
+            WidgetCenter.shared.reloadAllTimelines()
+        } catch {
+            presetManagerLogger.error(
+                "Failed to encode widget presets: \(error.localizedDescription, privacy: .public)"
+            )
+        }
     }
 }
