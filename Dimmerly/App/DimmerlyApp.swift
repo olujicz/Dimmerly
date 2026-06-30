@@ -63,7 +63,7 @@ struct DimmerlyApp: App {
     @State private var widgetPresetObserver: NSObjectProtocol?
 
     var body: some Scene {
-        // Menu bar extra (the main interface) — window style for slider support
+        // Menu bar extra (the main interface) — window style preserves slider controls.
         MenuBarExtra {
             MenuBarPanel()
                 .environment(settings)

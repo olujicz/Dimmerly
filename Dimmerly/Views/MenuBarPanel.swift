@@ -2,10 +2,58 @@
 //  MenuBarPanel.swift
 //  Dimmerly
 //
-//  Window-style MenuBarExtra content with per-display brightness sliders.
+//  MenuBarExtra content with per-display brightness sliders.
 //
 
+import AppKit
 import SwiftUI
+
+enum MenuBarPanelGlassStyle {
+    static let windowMaterial: NSVisualEffectView.Material = .menu
+    static let blendingMode: NSVisualEffectView.BlendingMode = .behindWindow
+    static let state: NSVisualEffectView.State = .active
+    static let clearsHostWindowBackground = true
+    static let cornerRadius: CGFloat = 22
+    static let separatorOpacity = 0.55
+}
+
+@MainActor
+enum MenuBarPanelGlassBackgroundPolicy {
+    static func shouldClearLayerBackground(
+        for view: NSView,
+        glassIdentifier: NSUserInterfaceItemIdentifier
+    ) -> Bool {
+        guard view.identifier != glassIdentifier else { return false }
+        guard !(view is NSVisualEffectView), !(view is NSControl) else { return false }
+        guard !(view is NSScrollView) else { return false }
+
+        return isContainerView(view)
+    }
+
+    static func shouldVisitSubviews(
+        of view: NSView,
+        glassIdentifier: NSUserInterfaceItemIdentifier
+    ) -> Bool {
+        guard view.identifier != glassIdentifier else { return false }
+        return !(view is NSVisualEffectView) && !(view is NSControl) && !(view is NSScrollView)
+    }
+
+    private static func isContainerView(_ view: NSView) -> Bool {
+        view is NSClipView
+            || type(of: view) == NSView.self
+            || view.subviews.isEmpty == false
+    }
+}
+
+@MainActor
+enum MenuBarPanelScrollStyle {
+    static func apply(to scrollView: NSScrollView) {
+        scrollView.scrollerStyle = .overlay
+        scrollView.autohidesScrollers = true
+        scrollView.verticalScroller?.controlSize = .small
+        scrollView.horizontalScroller?.controlSize = .small
+    }
+}
 
 struct MenuBarPanel: View {
     @Environment(BrightnessManager.self) var brightnessManager
@@ -23,32 +71,43 @@ struct MenuBarPanel: View {
                 VStack(spacing: 0) {
                     displaySliders
 
-                    Divider()
+                    panelDivider
                     presetsSection
                         .padding(.horizontal, 20)
                         .padding(.vertical, 8)
                 }
+                .menuBarPanelScrollStyle()
             }
             .scrollBounceBehavior(.basedOnSize)
             .frame(idealHeight: 200, maxHeight: 400)
             .fixedSize(horizontal: false, vertical: true)
 
-            Divider()
+            panelDivider
 
             turnOffButton
                 .padding(.horizontal, 20)
                 .padding(.vertical, 8)
 
-            Divider()
+            panelDivider
 
             footer
                 .padding(.horizontal, 20)
                 .padding(.vertical, 8)
         }
         .frame(width: 300)
+        .background(MenuBarPanelHostConfigurator())
+        .overlay(
+            RoundedRectangle(cornerRadius: MenuBarPanelGlassStyle.cornerRadius, style: .continuous)
+                .stroke(.separator.opacity(0.45), lineWidth: 0.75)
+        )
     }
 
     // MARK: - Sliders
+
+    private var panelDivider: some View {
+        Divider()
+            .opacity(MenuBarPanelGlassStyle.separatorOpacity)
+    }
 
     private var displaySliders: some View {
         VStack(spacing: 0) {
@@ -143,7 +202,18 @@ struct MenuBarPanel: View {
 
     // MARK: - Turn Off Button
 
+    @ViewBuilder
     private var turnOffButton: some View {
+        if #available(macOS 26.0, *) {
+            turnOffButtonContent
+                .buttonStyle(.glassProminent)
+        } else {
+            turnOffButtonContent
+                .buttonStyle(.borderedProminent)
+        }
+    }
+
+    private var turnOffButtonContent: some View {
         Button {
             DisplayAction.performSleep(settings: settings)
         } label: {
@@ -162,7 +232,6 @@ struct MenuBarPanel: View {
             }
             .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.borderedProminent)
         .controlSize(.large)
         .keyboardShortcut(.return, modifiers: [])
         #if APPSTORE
@@ -199,6 +268,169 @@ struct MenuBarPanel: View {
         }
         .font(.callout)
         .foregroundStyle(.secondary)
+    }
+}
+
+// MARK: - Scroll Style
+
+final class MenuBarPanelScrollStyleConfiguratorView: NSView {
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        scheduleApply()
+    }
+
+    override func viewDidMoveToSuperview() {
+        super.viewDidMoveToSuperview()
+        scheduleApply()
+    }
+
+    func scheduleApply(attemptsRemaining: Int = 8) {
+        DispatchQueue.main.async { [weak self] in
+            self?.applyStyleWhenReady(attemptsRemaining: attemptsRemaining)
+        }
+    }
+
+    private func applyStyleWhenReady(attemptsRemaining: Int) {
+        guard let scrollView = nearestScrollView() else {
+            if attemptsRemaining > 0 {
+                scheduleApply(attemptsRemaining: attemptsRemaining - 1)
+            }
+            return
+        }
+
+        MenuBarPanelScrollStyle.apply(to: scrollView)
+    }
+
+    private func nearestScrollView() -> NSScrollView? {
+        if let enclosingScrollView {
+            return enclosingScrollView
+        }
+
+        var view = superview
+        while let currentView = view {
+            if let scrollView = currentView as? NSScrollView {
+                return scrollView
+            }
+            view = currentView.superview
+        }
+
+        return nil
+    }
+}
+
+private struct MenuBarPanelScrollStyleConfigurator: NSViewRepresentable {
+    func makeNSView(context _: Context) -> NSView {
+        MenuBarPanelScrollStyleConfiguratorView()
+    }
+
+    func updateNSView(_ nsView: NSView, context _: Context) {
+        (nsView as? MenuBarPanelScrollStyleConfiguratorView)?.scheduleApply()
+    }
+}
+
+private extension View {
+    func menuBarPanelScrollStyle() -> some View {
+        background(MenuBarPanelScrollStyleConfigurator())
+    }
+}
+
+// MARK: - Host Glass Configuration
+
+private struct MenuBarPanelHostConfigurator: NSViewRepresentable {
+    func makeNSView(context _: Context) -> NSView {
+        HostConfiguratorView()
+    }
+
+    func updateNSView(_ nsView: NSView, context _: Context) {
+        (nsView as? HostConfiguratorView)?.scheduleApply()
+    }
+
+    private final class HostConfiguratorView: NSView {
+        private static let glassIdentifier = NSUserInterfaceItemIdentifier("DimmerlyMenuBarPanelGlass")
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            scheduleApply()
+        }
+
+        override func viewDidMoveToSuperview() {
+            super.viewDidMoveToSuperview()
+            scheduleApply()
+        }
+
+        func scheduleApply() {
+            DispatchQueue.main.async { [weak self] in
+                self?.applyGlassConfiguration()
+            }
+        }
+
+        private func applyGlassConfiguration() {
+            guard let window, let contentView = window.contentView else { return }
+
+            if MenuBarPanelGlassStyle.clearsHostWindowBackground {
+                window.isOpaque = false
+                window.backgroundColor = .clear
+            }
+
+            contentView.wantsLayer = true
+            contentView.layer?.backgroundColor = NSColor.clear.cgColor
+
+            let effectView = existingGlassEffectView(in: contentView) ?? makeGlassEffectView(in: contentView)
+            effectView.material = MenuBarPanelGlassStyle.windowMaterial
+            effectView.blendingMode = MenuBarPanelGlassStyle.blendingMode
+            effectView.state = MenuBarPanelGlassStyle.state
+            effectView.isEmphasized = true
+
+            clearContentBackgrounds(in: contentView)
+        }
+
+        private func existingGlassEffectView(in contentView: NSView) -> NSVisualEffectView? {
+            contentView.subviews
+                .compactMap { $0 as? NSVisualEffectView }
+                .first { $0.identifier == Self.glassIdentifier }
+        }
+
+        private func makeGlassEffectView(in contentView: NSView) -> NSVisualEffectView {
+            let effectView = NSVisualEffectView()
+            effectView.identifier = Self.glassIdentifier
+            effectView.translatesAutoresizingMaskIntoConstraints = false
+            effectView.wantsLayer = true
+            effectView.layer?.cornerRadius = MenuBarPanelGlassStyle.cornerRadius
+            effectView.layer?.cornerCurve = .continuous
+            effectView.layer?.masksToBounds = true
+
+            contentView.addSubview(effectView, positioned: .below, relativeTo: contentView.subviews.first)
+
+            NSLayoutConstraint.activate([
+                effectView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+                effectView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+                effectView.topAnchor.constraint(equalTo: contentView.topAnchor),
+                effectView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            ])
+
+            return effectView
+        }
+
+        private func clearContentBackgrounds(in view: NSView) {
+            if MenuBarPanelGlassBackgroundPolicy.shouldClearLayerBackground(
+                for: view,
+                glassIdentifier: Self.glassIdentifier
+            ) {
+                view.wantsLayer = true
+                view.layer?.backgroundColor = NSColor.clear.cgColor
+            }
+
+            guard MenuBarPanelGlassBackgroundPolicy.shouldVisitSubviews(
+                of: view,
+                glassIdentifier: Self.glassIdentifier
+            ) else {
+                return
+            }
+
+            for subview in view.subviews {
+                clearContentBackgrounds(in: subview)
+            }
+        }
     }
 }
 

@@ -36,3 +36,8 @@ When implementing release process changes, update both the workflow and `documen
 - Prefer existing project conventions and commands from `BUILDING.md` and `Justfile`.
 - Do not revert unrelated local changes.
 - Run the narrowest useful validation before reporting completion.
+
+## Internal Notes
+
+- Keep internal development notes in the gitignored `docs/` directory.
+- Do not put internal-only notes in the public `documentation/` directory.
