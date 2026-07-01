@@ -7,6 +7,12 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-07-01
+
+### Fixed
+- Polished the menu bar panel glass styling so it more closely matches macOS menu surfaces while keeping the window-style panel behavior.
+- Restored subtle overlay scrollbars in the menu bar panel and kept scrollbar behavior aligned with the user's macOS appearance settings.
+
 ## [1.0.1] - 2026-06-29
 
 ### Added
