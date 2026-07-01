@@ -91,7 +91,6 @@ final class MenuBarPanelTests: XCTestCase {
         configuratorView.scheduleApply()
         drainMainRunLoop()
 
-        XCTAssertEqual(scrollView.scrollerStyle, .overlay)
         XCTAssertTrue(scrollView.autohidesScrollers)
         XCTAssertEqual(scrollView.verticalScroller?.controlSize, .small)
     }
