@@ -204,13 +204,18 @@ struct MenuBarPanel: View {
 
     @ViewBuilder
     private var turnOffButton: some View {
-        if #available(macOS 26.0, *) {
-            turnOffButtonContent
-                .buttonStyle(.glassProminent)
-        } else {
+        #if compiler(>=6.2)
+            if #available(macOS 26.0, *) {
+                turnOffButtonContent
+                    .buttonStyle(.glassProminent)
+            } else {
+                turnOffButtonContent
+                    .buttonStyle(.borderedProminent)
+            }
+        #else
             turnOffButtonContent
                 .buttonStyle(.borderedProminent)
-        }
+        #endif
     }
 
     private var turnOffButtonContent: some View {
