@@ -285,16 +285,17 @@ final class MenuBarPanelScrollStyleConfiguratorView: NSView {
     }
 
     func scheduleApply(attemptsRemaining: Int = 8) {
+        applyStyleWhenReady()
+
+        guard attemptsRemaining > 0 else { return }
+
         DispatchQueue.main.async { [weak self] in
-            self?.applyStyleWhenReady(attemptsRemaining: attemptsRemaining)
+            self?.scheduleApply(attemptsRemaining: attemptsRemaining - 1)
         }
     }
 
-    private func applyStyleWhenReady(attemptsRemaining: Int) {
+    private func applyStyleWhenReady() {
         guard let scrollView = nearestScrollView() else {
-            if attemptsRemaining > 0 {
-                scheduleApply(attemptsRemaining: attemptsRemaining - 1)
-            }
             return
         }
 
