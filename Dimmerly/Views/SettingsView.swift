@@ -38,25 +38,98 @@ func applyLaunchAtLoginChange(
 
 #if !APPSTORE
     @MainActor
+    func isDDCControlModeAvailable(
+        _ mode: DDCControlMode,
+        hardwareManager: HardwareBrightnessManager
+    ) -> Bool {
+        switch mode {
+        case .softwareOnly:
+            true
+        case .hardwareOnly, .combined:
+            hardwareManager.isEnabled
+                && hardwareManager.capabilities.values.contains { $0.supportsDDC && $0.supportsBrightness }
+        }
+    }
+
+    func ddcFeatureLabels(for cap: HardwareDisplayCapability) -> String {
+        var labels: [String] = []
+        if cap.supportsBrightness { labels.append("Brightness") }
+        if cap.supportsContrast { labels.append("Contrast") }
+        if cap.supportsVolume { labels.append("Volume") }
+        if cap.supportsInputSource { labels.append("Input") }
+        return labels.joined(separator: ", ")
+    }
+
+    func ddcDisplayStatusSymbolName(for cap: HardwareDisplayCapability) -> String {
+        if cap.supportsDDC, cap.supportsBrightness {
+            return "checkmark.circle.fill"
+        }
+        if cap.supportsDDC {
+            return "exclamationmark.circle"
+        }
+        return "tv.and.mediabox"
+    }
+
+    func ddcDisplayStatusText(for cap: HardwareDisplayCapability) -> String {
+        guard cap.supportsDDC else {
+            return "Software brightness"
+        }
+
+        let features = ddcFeatureLabels(for: cap)
+        guard cap.supportsBrightness else {
+            return features.isEmpty ? "No hardware brightness" : "No hardware brightness (\(features))"
+        }
+
+        return features.isEmpty ? "Hardware brightness" : features
+    }
+
+    func ddcDisplayAccessibilityStatus(for cap: HardwareDisplayCapability) -> String {
+        guard cap.supportsDDC else {
+            return "using software brightness"
+        }
+
+        let features = ddcFeatureLabels(for: cap)
+        guard cap.supportsBrightness else {
+            return features.isEmpty
+                ? "DDC available, no hardware brightness"
+                : "DDC available, no hardware brightness, \(features)"
+        }
+
+        return features.isEmpty
+            ? "hardware brightness available"
+            : "hardware brightness available, \(features)"
+    }
+
+    @MainActor
+    func applyDDCRuntimeSettings(
+        settings: AppSettings,
+        hardwareManager: HardwareBrightnessManager
+    ) {
+        hardwareManager.applyRuntimeSettings(
+            controlMode: settings.ddcControlMode,
+            pollingInterval: settings.ddcPollingInterval,
+            writeDelayMilliseconds: settings.ddcWriteDelay
+        )
+    }
+
+    @MainActor
     func applyDDCEnabledChange(
         _ newValue: Bool,
         settings: AppSettings,
-        hardwareManager: HardwareBrightnessManager
+        hardwareManager: HardwareBrightnessManager,
+        brightnessManager: BrightnessManager = .shared
     ) {
         settings.ddcEnabled = newValue
 
         if newValue {
             hardwareManager.isEnabled = true
-            hardwareManager.applyRuntimeSettings(
-                controlMode: settings.ddcControlMode,
-                pollingInterval: settings.ddcPollingInterval,
-                writeDelayMilliseconds: settings.ddcWriteDelay
-            )
+            applyDDCRuntimeSettings(settings: settings, hardwareManager: hardwareManager)
             hardwareManager.probeAllDisplays()
             hardwareManager.startPolling()
         } else {
             hardwareManager.isEnabled = false
             hardwareManager.stopPolling()
+            brightnessManager.reapplyAll()
         }
     }
 #endif
@@ -447,31 +520,49 @@ struct DisplaySettingsTab: View {
                         )
                     }
                 ))
-                .help("Control monitor brightness, volume, and input via DDC/CI protocol")
+                .help("DDC/CI controls compatible external displays over the display cable. "
+                    + "Built-in HDMI on Apple Silicon Macs, DisplayLink adapters, and most TVs may not work; "
+                    + "unsupported displays use software brightness automatically.")
 
                 if settings.ddcEnabled {
-                    Picker("Control Mode:", selection: $settings.ddcControlMode) {
+                    let selectedControlMode = isDDCControlModeAvailable(
+                        settings.ddcControlMode,
+                        hardwareManager: hardwareManager
+                    ) ? settings.ddcControlMode : .softwareOnly
+                    let hardwareControlModesAvailable = isDDCControlModeAvailable(
+                        .hardwareOnly,
+                        hardwareManager: hardwareManager
+                    )
+
+                    Picker("Control Mode:", selection: Binding(
+                        get: { selectedControlMode },
+                        set: { settings.ddcControlMode = $0 }
+                    )) {
                         ForEach(DDCControlMode.allCases) { mode in
-                            Text(mode.displayName).tag(mode)
+                            Text(mode.displayName)
+                                .tag(mode)
+                                .disabled(!isDDCControlModeAvailable(mode, hardwareManager: hardwareManager))
                         }
                     }
                     .pickerStyle(.radioGroup)
                     .help("Choose how Dimmerly controls display output")
                     .onChange(of: settings.ddcControlMode) {
-                        hardwareManager.applyRuntimeSettings(
-                            controlMode: settings.ddcControlMode,
-                            pollingInterval: settings.ddcPollingInterval,
-                            writeDelayMilliseconds: settings.ddcWriteDelay
-                        )
+                        applyDDCRuntimeSettings(settings: settings, hardwareManager: hardwareManager)
                         brightnessManager.reapplyAll()
                     }
 
-                    Text(settings.ddcControlMode.description)
+                    Text(selectedControlMode.description)
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
-                    Stepper(value: $settings.ddcPollingInterval, in: 1 ... 30) {
-                        Text(
+                    if !hardwareControlModesAvailable {
+                        Text("Hardware modes require a DDC-capable display with brightness control.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    DisclosureGroup("Advanced") {
+                        ddcAdvancedStepperRow(
                             String(
                                 format: NSLocalizedString(
                                     "Poll every %d seconds",
@@ -479,24 +570,22 @@ struct DisplaySettingsTab: View {
                                 ),
                                 settings.ddcPollingInterval
                             )
-                        )
-                    }
-                    .accessibilityLabel("DDC polling interval")
-                    .accessibilityValue("\(settings.ddcPollingInterval) seconds")
-                    .help("How often to read hardware values from the monitor")
-                    .onChange(of: settings.ddcPollingInterval) {
-                        hardwareManager.applyRuntimeSettings(
-                            controlMode: settings.ddcControlMode,
-                            pollingInterval: settings.ddcPollingInterval,
-                            writeDelayMilliseconds: settings.ddcWriteDelay
-                        )
-                        if settings.ddcEnabled {
-                            hardwareManager.startPolling()
+                        ) {
+                            Stepper("", value: $settings.ddcPollingInterval, in: 1 ... 30)
+                                .labelsHidden()
+                                .controlSize(.small)
+                                .accessibilityLabel("DDC polling interval")
+                                .accessibilityValue("\(settings.ddcPollingInterval) seconds")
+                                .help("How often to read hardware values from the monitor")
+                                .onChange(of: settings.ddcPollingInterval) {
+                                    applyDDCRuntimeSettings(settings: settings, hardwareManager: hardwareManager)
+                                    if settings.ddcEnabled {
+                                        hardwareManager.startPolling()
+                                    }
+                                }
                         }
-                    }
 
-                    Stepper(value: $settings.ddcWriteDelay, in: 20 ... 200, step: 10) {
-                        Text(
+                        ddcAdvancedStepperRow(
                             String(
                                 format: NSLocalizedString(
                                     "Write delay: %d ms",
@@ -504,17 +593,17 @@ struct DisplaySettingsTab: View {
                                 ),
                                 settings.ddcWriteDelay
                             )
-                        )
-                    }
-                    .accessibilityLabel("DDC write delay")
-                    .accessibilityValue("\(settings.ddcWriteDelay) milliseconds")
-                    .help("Minimum delay between DDC writes (increase if monitor is unresponsive)")
-                    .onChange(of: settings.ddcWriteDelay) {
-                        hardwareManager.applyRuntimeSettings(
-                            controlMode: settings.ddcControlMode,
-                            pollingInterval: settings.ddcPollingInterval,
-                            writeDelayMilliseconds: settings.ddcWriteDelay
-                        )
+                        ) {
+                            Stepper("", value: $settings.ddcWriteDelay, in: 20 ... 200, step: 10)
+                                .labelsHidden()
+                                .controlSize(.small)
+                                .accessibilityLabel("DDC write delay")
+                                .accessibilityValue("\(settings.ddcWriteDelay) milliseconds")
+                                .help("Minimum delay between DDC writes (increase if monitor is unresponsive)")
+                                .onChange(of: settings.ddcWriteDelay) {
+                                    applyDDCRuntimeSettings(settings: settings, hardwareManager: hardwareManager)
+                                }
+                        }
                     }
 
                     // Per-display DDC status
@@ -531,19 +620,24 @@ struct DisplaySettingsTab: View {
                             }
                         }
                     }
-
-                    Text(
-                        "DDC/CI controls the monitor's hardware directly over the display cable. "
-                            + "Not all monitors support DDC — built-in HDMI on Apple Silicon Macs, "
-                            + "DisplayLink adapters, and most TVs do not work. "
-                            + "Unsupported displays use software brightness automatically."
-                    )
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
                 }
             } header: {
                 Label("Hardware Control", systemImage: "cable.connector.horizontal")
             }
+        }
+
+        private func ddcAdvancedStepperRow(
+            _ label: String,
+            @ViewBuilder control: () -> some View
+        ) -> some View {
+            HStack(alignment: .center, spacing: 8) {
+                Text(label)
+                    .lineLimit(1)
+                    .layoutPriority(1)
+
+                control()
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
 
         private func ddcDisplayStatusRow(
@@ -552,49 +646,27 @@ struct DisplaySettingsTab: View {
         ) -> some View {
             let displayName = brightnessManager.displays.first(where: { $0.id == displayID })?.name
                 ?? "Display \(displayID)"
-            let features = capability.supportsDDC ? ddcFeatureLabels(for: capability) : ""
+            let statusText = ddcDisplayStatusText(for: capability)
+            let supportsHardwareBrightness = capability.supportsDDC && capability.supportsBrightness
 
             return HStack(spacing: 6) {
-                if capability.supportsDDC {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                        .font(.caption)
-                } else {
-                    Image(systemName: "tv.and.mediabox")
-                        .foregroundStyle(.secondary)
-                        .font(.caption)
-                }
+                Image(systemName: ddcDisplayStatusSymbolName(for: capability))
+                    .foregroundStyle(supportsHardwareBrightness ? Color.green : Color.secondary)
+                    .font(.caption)
 
                 Text(displayName)
                     .font(.caption)
 
                 Spacer()
 
-                if capability.supportsDDC {
-                    Text(features)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Text("Software brightness")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
+                Text(statusText)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
             }
             .accessibilityElement(children: .combine)
             .accessibilityLabel(
-                capability.supportsDDC
-                    ? "\(displayName), DDC supported, \(features)"
-                    : "\(displayName), using software brightness"
+                "\(displayName), \(ddcDisplayAccessibilityStatus(for: capability))"
             )
-        }
-
-        private func ddcFeatureLabels(for cap: HardwareDisplayCapability) -> String {
-            var labels: [String] = []
-            if cap.supportsBrightness { labels.append("Brightness") }
-            if cap.supportsContrast { labels.append("Contrast") }
-            if cap.supportsVolume { labels.append("Volume") }
-            if cap.supportsInputSource { labels.append("Input") }
-            return labels.joined(separator: ", ")
         }
     #endif
 }

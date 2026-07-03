@@ -1116,7 +1116,7 @@ struct DisplayBrightnessRow: View {
             guard !isBuiltIn else { return self }
 
             var copy = self
-            let hasDDC = hardwareManager.supportsDDC(for: displayID)
+            let hasDDC = hardwareManager.isEnabled && hardwareManager.supportsDDC(for: displayID)
             copy.hasDDC = hasDDC
 
             if hasDDC {

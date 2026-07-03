@@ -133,6 +133,45 @@ final class ScheduleManagerTests: XCTestCase {
         XCTAssertEqual(triggerCount, 1, "Should fire once after gap crossing trigger time")
     }
 
+    func testCheckSchedulesCatchesUpAcrossMidnight() {
+        var firedPresets: [UUID] = []
+        manager.onScheduleTriggered = { firedPresets.append($0) }
+
+        let presetID = UUID()
+        let schedule = makeSchedule(hour: 22, minute: 0, presetID: presetID)
+        manager.addSchedule(schedule)
+
+        let beforeSleep = makeDate(day: 1, hour: 21, minute: 30)
+        manager.checkSchedules(now: beforeSleep)
+        XCTAssertTrue(firedPresets.isEmpty)
+
+        let afterWake = makeDate(day: 2, hour: 7, minute: 0)
+        manager.checkSchedules(now: afterWake)
+
+        XCTAssertEqual(firedPresets, [presetID], "Should fire yesterday's missed trigger after overnight sleep")
+    }
+
+    func testCheckSchedulesFiresMissedSchedulesInTriggerOrder() {
+        var firedPresets: [UUID] = []
+        manager.onScheduleTriggered = { firedPresets.append($0) }
+
+        let earlierPreset = UUID()
+        let laterPreset = UUID()
+        manager.addSchedule(makeSchedule(name: "Later", hour: 22, minute: 0, presetID: laterPreset))
+        manager.addSchedule(makeSchedule(name: "Earlier", hour: 20, minute: 0, presetID: earlierPreset))
+
+        let before = makeDate(hour: 19, minute: 0)
+        manager.checkSchedules(now: before)
+        let after = makeDate(hour: 23, minute: 0)
+        manager.checkSchedules(now: after)
+
+        XCTAssertEqual(
+            firedPresets,
+            [earlierPreset, laterPreset],
+            "Missed schedules should apply in trigger-time order so the final preset is the latest one"
+        )
+    }
+
     func testDisabledScheduleDoesNotFire() {
         var triggerCount = 0
         manager.onScheduleTriggered = { _ in triggerCount += 1 }
