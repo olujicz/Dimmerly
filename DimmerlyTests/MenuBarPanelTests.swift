@@ -10,6 +10,18 @@ import AppKit
 import XCTest
 
 final class MenuBarPanelTests: XCTestCase {
+    func testMenuBarPanelChromeClearsWindowContainerWithoutManualPerimeterStroke() throws {
+        let sourceURL = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Dimmerly/Views/MenuBarPanel.swift")
+        let source = try String(contentsOf: sourceURL, encoding: .utf8)
+
+        XCTAssertTrue(source.contains(".menuBarPanelChrome()"))
+        XCTAssertTrue(source.contains("containerBackground(.clear, for: .window)"))
+        XCTAssertFalse(source.contains(".stroke(.separator.opacity(0.45), lineWidth: 0.75)"))
+    }
+
     func testMenuBarPanelGlassStyleUsesSingleMenuMaterialLayer() {
         XCTAssertEqual(MenuBarPanelGlassStyle.windowMaterial, .menu)
         XCTAssertEqual(MenuBarPanelGlassStyle.blendingMode, .behindWindow)
