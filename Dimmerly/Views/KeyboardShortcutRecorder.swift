@@ -122,6 +122,9 @@ private struct ShortcutRecorderView: NSViewRepresentable {
         if let captureView = nsView as? ShortcutCaptureView {
             captureView.isActive = isRecording
         }
+        if isRecording {
+            nsView.window?.makeFirstResponder(nsView)
+        }
     }
 }
 

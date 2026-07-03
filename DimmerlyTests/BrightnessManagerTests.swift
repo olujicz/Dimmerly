@@ -18,6 +18,7 @@ final class BrightnessManagerTests: XCTestCase {
         #if !APPSTORE
             HardwareBrightnessManager.shared.capabilities.removeAll()
             HardwareBrightnessManager.shared.controlMode = .combined
+            HardwareBrightnessManager.shared.isEnabled = true
         #endif
     }
 
@@ -25,6 +26,7 @@ final class BrightnessManagerTests: XCTestCase {
         #if !APPSTORE
             HardwareBrightnessManager.shared.capabilities.removeAll()
             HardwareBrightnessManager.shared.controlMode = .combined
+            HardwareBrightnessManager.shared.isEnabled = false
         #endif
         bm = nil
     }
@@ -407,6 +409,7 @@ final class BrightnessManagerTests: XCTestCase {
                 maxVolume: 0
             )
             HardwareBrightnessManager.shared.controlMode = .combined
+            HardwareBrightnessManager.shared.isEnabled = true
 
             let hardwareSynced = expectation(description: "External DDC brightness is updated after animation")
             let finalGammaApplied = expectation(
@@ -454,6 +457,7 @@ final class BrightnessManagerTests: XCTestCase {
                 maxVolume: 0
             )
             HardwareBrightnessManager.shared.controlMode = .combined
+            HardwareBrightnessManager.shared.isEnabled = true
 
             let gammaApplied = expectation(
                 description: "Warmth update preserves neutral gamma brightness on DDC display"
@@ -469,6 +473,37 @@ final class BrightnessManagerTests: XCTestCase {
             bm.setWarmth(for: 3, to: 0.7)
 
             wait(for: [gammaApplied], timeout: 0.1)
+        }
+
+        func testDisabledDDCFallsBackToSoftwareGammaForExternalBrightness() throws {
+            var external = ExternalDisplay(id: 4, name: "External", brightness: 1.0, warmth: 0.0, contrast: 0.5)
+            external.supportsDDC = true
+            bm.displays = [external]
+
+            HardwareBrightnessManager.shared.capabilities[4] = HardwareDisplayCapability(
+                displayID: 4,
+                supportsDDC: true,
+                supportedCodes: [.brightness],
+                maxBrightness: 100,
+                maxContrast: 100,
+                maxVolume: 0
+            )
+            HardwareBrightnessManager.shared.controlMode = .combined
+            HardwareBrightnessManager.shared.isEnabled = false
+
+            var hardwareWriteCount = 0
+            var gammaBrightness: Double?
+            bm.setExternalHardwareBrightnessHook = { _, _ in
+                hardwareWriteCount += 1
+            }
+            bm.applyGammaHook = { _, brightness, _, _ in
+                gammaBrightness = brightness
+            }
+
+            bm.setBrightness(for: 4, to: 0.4)
+
+            XCTAssertEqual(hardwareWriteCount, 0)
+            XCTAssertEqual(try XCTUnwrap(gammaBrightness), 0.4, accuracy: 0.001)
         }
     #endif
 

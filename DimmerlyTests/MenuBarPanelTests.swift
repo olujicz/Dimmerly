@@ -122,6 +122,51 @@ final class MenuBarPanelTests: XCTestCase {
         XCTAssertTrue(gate.shouldPropagateChange())
     }
 
+    #if !APPSTORE
+        @MainActor
+        func testDDCControlsAreHiddenWhenHardwareManagerIsDisabled() {
+            let displayID: CGDirectDisplayID = 42
+            let manager = HardwareBrightnessManager(forTesting: true)
+            manager.isEnabled = false
+            manager.capabilities[displayID] = HardwareDisplayCapability(
+                displayID: displayID,
+                supportsDDC: true,
+                supportedCodes: [.brightness, .volume, .audioMute, .inputSource],
+                maxBrightness: 100,
+                maxContrast: 100,
+                maxVolume: 100
+            )
+
+            let row = DisplayBrightnessRow(
+                display: ExternalDisplay(id: displayID, name: "External", brightness: 0.6),
+                isBlanked: false,
+                onChange: { _ in },
+                onWarmthChange: { _ in },
+                onContrastChange: { _ in },
+                onToggleBlank: {}
+            )
+            let wired = row.ddcControls(hardwareManager: manager, displayID: displayID)
+
+            XCTAssertFalse(wired.hasDDC)
+            XCTAssertNil(wired.onVolumeChange)
+            XCTAssertNil(wired.onMuteToggle)
+            XCTAssertNil(wired.onInputSourceChange)
+        }
+    #endif
+
+    func testMainShortcutRecorderRequestsFirstResponderWhenRecording() throws {
+        let sourceURL = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Dimmerly/Views/KeyboardShortcutRecorder.swift")
+        let source = try String(contentsOf: sourceURL, encoding: .utf8)
+
+        XCTAssertTrue(
+            source.contains("nsView.window?.makeFirstResponder(nsView)"),
+            "Main shortcut recording should make its capture view first responder when recording starts"
+        )
+    }
+
     @MainActor
     private func drainMainRunLoop(iterations: Int = 12) {
         for _ in 0 ..< iterations {

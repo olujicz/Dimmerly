@@ -91,6 +91,14 @@ final class AppSettingsTests: XCTestCase {
             settings.ddcPollingInterval = 13
             settings.ddcWriteDelay = 120
             let manager = HardwareBrightnessManager(forTesting: true, ddcInterface: MockDDCInterface())
+            manager.capabilities[25] = HardwareDisplayCapability(
+                displayID: 25,
+                supportsDDC: true,
+                supportedCodes: [.brightness],
+                maxBrightness: 100,
+                maxContrast: 0,
+                maxVolume: 0
+            )
 
             applyDDCEnabledChange(true, settings: settings, hardwareManager: manager)
             manager.stopPolling()
@@ -100,6 +108,177 @@ final class AppSettingsTests: XCTestCase {
             XCTAssertEqual(manager.controlMode, .hardwareOnly)
             XCTAssertEqual(manager.pollingInterval, 13)
             XCTAssertEqual(manager.minimumWriteInterval, 0.12, accuracy: 0.001)
+        }
+
+        func testSettingsHardwareModesAreDisabledWhenUnavailable() throws {
+            let repositoryURL = URL(fileURLWithPath: #filePath)
+                .deletingLastPathComponent()
+                .deletingLastPathComponent()
+            let settingsViewSourceURL = repositoryURL.appendingPathComponent("Dimmerly/Views/SettingsView.swift")
+            let source = try String(contentsOf: settingsViewSourceURL, encoding: .utf8)
+
+            XCTAssertTrue(
+                source.contains(".disabled(!isDDCControlModeAvailable(mode, hardwareManager: hardwareManager))"),
+                "Hardware and Combined DDC mode picker rows should be disabled when hardware brightness is unavailable"
+            )
+        }
+
+        func testSettingsExplainsWhyHardwareModesAreUnavailable() throws {
+            let repositoryURL = URL(fileURLWithPath: #filePath)
+                .deletingLastPathComponent()
+                .deletingLastPathComponent()
+            let settingsViewSourceURL = repositoryURL.appendingPathComponent("Dimmerly/Views/SettingsView.swift")
+            let source = try String(contentsOf: settingsViewSourceURL, encoding: .utf8)
+
+            XCTAssertTrue(
+                source.contains("Hardware modes require a DDC-capable display with brightness control."),
+                "Unavailable Hardware and Combined picker rows should have a nearby explanation"
+            )
+        }
+
+        func testSettingsKeepsAdvancedDDCControlsBehindDisclosure() throws {
+            let repositoryURL = URL(fileURLWithPath: #filePath)
+                .deletingLastPathComponent()
+                .deletingLastPathComponent()
+            let settingsViewSourceURL = repositoryURL.appendingPathComponent("Dimmerly/Views/SettingsView.swift")
+            let source = try String(contentsOf: settingsViewSourceURL, encoding: .utf8)
+
+            XCTAssertTrue(
+                source.contains("DisclosureGroup(\"Advanced\")"),
+                "DDC polling and write timing controls should be grouped as advanced settings"
+            )
+            XCTAssertTrue(
+                source.contains(".help(\"DDC/CI controls"),
+                "Detailed DDC compatibility caveats should live in help text instead of always-visible copy"
+            )
+            XCTAssertFalse(
+                source.contains("Text(\n                        \"DDC/CI controls"),
+                "The hardware section should avoid a long always-visible DDC compatibility paragraph"
+            )
+        }
+
+        func testAdvancedDDCSteppersUseCompactRows() throws {
+            let repositoryURL = URL(fileURLWithPath: #filePath)
+                .deletingLastPathComponent()
+                .deletingLastPathComponent()
+            let settingsViewSourceURL = repositoryURL.appendingPathComponent("Dimmerly/Views/SettingsView.swift")
+            let source = try String(contentsOf: settingsViewSourceURL, encoding: .utf8)
+
+            XCTAssertTrue(
+                source.contains("ddcAdvancedStepperRow("),
+                "Advanced DDC steppers should use compact rows so controls stay visually attached to their labels"
+            )
+            XCTAssertTrue(
+                source.contains(".labelsHidden()"),
+                "Compact DDC stepper rows should hide the empty native Stepper label"
+            )
+            XCTAssertTrue(
+                source.contains(".frame(maxWidth: .infinity, alignment: .leading)"),
+                "Compact DDC stepper rows should align their contents to the leading edge "
+                    + "instead of the far trailing edge"
+            )
+        }
+
+        func testDDCDisplayStatusPresentationRequiresBrightnessForSuccess() {
+            let brightnessCapable = HardwareDisplayCapability(
+                displayID: 25,
+                supportsDDC: true,
+                supportedCodes: [.brightness, .volume],
+                maxBrightness: 100,
+                maxContrast: 0,
+                maxVolume: 100
+            )
+            let partialDDC = HardwareDisplayCapability(
+                displayID: 26,
+                supportsDDC: true,
+                supportedCodes: [.volume, .inputSource],
+                maxBrightness: 0,
+                maxContrast: 0,
+                maxVolume: 100
+            )
+            let unsupported = HardwareDisplayCapability.notSupported(displayID: 27)
+
+            XCTAssertEqual(ddcDisplayStatusSymbolName(for: brightnessCapable), "checkmark.circle.fill")
+            XCTAssertEqual(ddcDisplayStatusText(for: brightnessCapable), "Brightness, Volume")
+            XCTAssertEqual(
+                ddcDisplayAccessibilityStatus(for: brightnessCapable),
+                "hardware brightness available, Brightness, Volume"
+            )
+
+            XCTAssertEqual(ddcDisplayStatusSymbolName(for: partialDDC), "exclamationmark.circle")
+            XCTAssertEqual(ddcDisplayStatusText(for: partialDDC), "No hardware brightness (Volume, Input)")
+            XCTAssertEqual(
+                ddcDisplayAccessibilityStatus(for: partialDDC),
+                "DDC available, no hardware brightness, Volume, Input"
+            )
+
+            XCTAssertEqual(ddcDisplayStatusSymbolName(for: unsupported), "tv.and.mediabox")
+            XCTAssertEqual(ddcDisplayStatusText(for: unsupported), "Software brightness")
+            XCTAssertEqual(ddcDisplayAccessibilityStatus(for: unsupported), "using software brightness")
+        }
+
+        func testDDCControlModeAvailabilityRequiresEnabledHardwareBrightness() {
+            let manager = HardwareBrightnessManager(forTesting: true, ddcInterface: MockDDCInterface())
+
+            XCTAssertTrue(isDDCControlModeAvailable(.softwareOnly, hardwareManager: manager))
+            XCTAssertFalse(isDDCControlModeAvailable(.hardwareOnly, hardwareManager: manager))
+            XCTAssertFalse(isDDCControlModeAvailable(.combined, hardwareManager: manager))
+
+            manager.isEnabled = true
+            manager.capabilities[25] = HardwareDisplayCapability(
+                displayID: 25,
+                supportsDDC: true,
+                supportedCodes: [.volume],
+                maxBrightness: 0,
+                maxContrast: 0,
+                maxVolume: 100
+            )
+
+            XCTAssertFalse(isDDCControlModeAvailable(.hardwareOnly, hardwareManager: manager))
+            XCTAssertFalse(isDDCControlModeAvailable(.combined, hardwareManager: manager))
+
+            manager.capabilities[25] = HardwareDisplayCapability(
+                displayID: 25,
+                supportsDDC: true,
+                supportedCodes: [.brightness],
+                maxBrightness: 100,
+                maxContrast: 0,
+                maxVolume: 0
+            )
+
+            XCTAssertTrue(isDDCControlModeAvailable(.hardwareOnly, hardwareManager: manager))
+            XCTAssertTrue(isDDCControlModeAvailable(.combined, hardwareManager: manager))
+
+            manager.isEnabled = false
+            XCTAssertFalse(isDDCControlModeAvailable(.hardwareOnly, hardwareManager: manager))
+            XCTAssertFalse(isDDCControlModeAvailable(.combined, hardwareManager: manager))
+        }
+
+        func testApplyDDCEnabledChangeReappliesSoftwareGammaWhenTurningOff() {
+            let hardwareManager = HardwareBrightnessManager(forTesting: true)
+            let brightnessManager = BrightnessManager(forTesting: true)
+            settings.ddcEnabled = true
+            hardwareManager.isEnabled = true
+            brightnessManager.displays = [
+                ExternalDisplay(id: 91, name: "External", brightness: 0.42, warmth: 0.0, contrast: 0.5),
+            ]
+            var reapplyCount = 0
+            brightnessManager.applyGammaHook = { displayID, brightness, _, _ in
+                guard displayID == 91 else { return }
+                reapplyCount += 1
+                XCTAssertEqual(brightness, 0.42, accuracy: 0.001)
+            }
+
+            applyDDCEnabledChange(
+                false,
+                settings: settings,
+                hardwareManager: hardwareManager,
+                brightnessManager: brightnessManager
+            )
+
+            XCTAssertFalse(settings.ddcEnabled)
+            XCTAssertFalse(hardwareManager.isEnabled)
+            XCTAssertEqual(reapplyCount, 1)
         }
     #endif
 

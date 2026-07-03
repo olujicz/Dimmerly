@@ -891,8 +891,9 @@ class BrightnessManager {
                 return true
             }
 
-            let mode = HardwareBrightnessManager.shared.controlMode
-            return mode != .softwareOnly && HardwareBrightnessManager.shared.supportsDDC(for: display.id)
+            let hardwareManager = HardwareBrightnessManager.shared
+            let mode = hardwareManager.controlMode
+            return hardwareManager.isEnabled && mode != .softwareOnly && hardwareManager.supportsDDC(for: display.id)
         }
 
         private func setExternalHardwareBrightness(for displayID: CGDirectDisplayID, to value: Double) {

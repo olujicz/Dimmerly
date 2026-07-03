@@ -61,6 +61,14 @@ class ScheduleManager {
     /// Cached enabled state to detect changes and avoid redundant timer restarts.
     private var lastEnabled: Bool?
 
+    /// A concrete schedule trigger that falls inside a polling catch-up window.
+    private struct ScheduleFireCandidate {
+        let triggerDate: Date
+        let scheduleIndex: Int
+        let schedule: DimmingSchedule
+        let dayString: String
+    }
+
     /// UserDefaults key for persisting schedules as JSON.
     private static let schedulesKey = "dimmerlyDimmingSchedules"
 
@@ -135,24 +143,10 @@ class ScheduleManager {
         let todayString = Self.dateString(for: now)
         let previousCheck = effectivePreviousCheckDate(for: now)
 
-        for schedule in schedules where schedule.isEnabled {
-            // Skip if already fired today (prevents firing same schedule multiple times per day)
-            if firedToday[schedule.id] == todayString {
-                continue
-            }
-
-            // Resolve the trigger to a concrete date/time for today
-            // (sunrise/sunset times vary by date, so we must resolve each check)
-            guard let triggerDate = resolveTriggerDate(schedule.trigger, on: now) else {
-                continue
-            }
-
-            // Fire once if the trigger time falls within the check window (previousCheck, now]
-            // This half-open interval ensures we fire exactly once when crossing the trigger time
-            if triggerDate > previousCheck, triggerDate <= now {
-                firedToday[schedule.id] = todayString
-                onScheduleTriggered?(schedule.presetID)
-            }
+        for candidate in fireCandidates(previousCheck: previousCheck, now: now) {
+            guard firedToday[candidate.schedule.id] != candidate.dayString else { continue }
+            firedToday[candidate.schedule.id] = candidate.dayString
+            onScheduleTriggered?(candidate.schedule.presetID)
         }
 
         // Clean up stale entries from firedToday (schedules fired on previous days)
@@ -178,6 +172,50 @@ class ScheduleManager {
             return now.addingTimeInterval(-120)
         }
         return lastCheckDate
+    }
+
+    /// Builds all schedule triggers crossed in `(previousCheck, now]`, sorted by trigger time.
+    private func fireCandidates(previousCheck: Date, now: Date) -> [ScheduleFireCandidate] {
+        let daysToCheck = Self.daysInRange(from: previousCheck, through: now)
+        var candidates: [ScheduleFireCandidate] = []
+
+        for (scheduleIndex, schedule) in schedules.enumerated() where schedule.isEnabled {
+            for day in daysToCheck {
+                let dayString = Self.dateString(for: day)
+                guard firedToday[schedule.id] != dayString else { continue }
+                guard let triggerDate = resolveTriggerDate(schedule.trigger, on: day) else { continue }
+                guard triggerDate > previousCheck, triggerDate <= now else { continue }
+
+                candidates.append(ScheduleFireCandidate(
+                    triggerDate: triggerDate,
+                    scheduleIndex: scheduleIndex,
+                    schedule: schedule,
+                    dayString: dayString
+                ))
+            }
+        }
+
+        return candidates.sorted {
+            if $0.triggerDate == $1.triggerDate {
+                return $0.scheduleIndex < $1.scheduleIndex
+            }
+            return $0.triggerDate < $1.triggerDate
+        }
+    }
+
+    private static func daysInRange(from start: Date, through end: Date) -> [Date] {
+        let calendar = Calendar.current
+        var day = calendar.startOfDay(for: start)
+        let endDay = calendar.startOfDay(for: end)
+        var days: [Date] = []
+
+        while day <= endDay {
+            days.append(day)
+            guard let nextDay = calendar.date(byAdding: .day, value: 1, to: day) else { break }
+            day = nextDay
+        }
+
+        return days
     }
 
     /// Converts a ScheduleTrigger to a concrete Date for a given day.
