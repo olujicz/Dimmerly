@@ -7,6 +7,15 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+### Changed
+- Refined Hardware Control settings so unavailable hardware control modes are disabled with clearer fallback guidance.
+- Clarified per-display DDC/CI support status and tightened the advanced polling and write-delay controls.
+
+### Fixed
+- Fixed hardware brightness control fallback so DDC/CI control is only used when hardware control is enabled and available.
+- Fixed display schedules so missed events between app checks are applied in chronological order.
+- Fixed keyboard shortcut recording so the recorder reliably receives focus before capturing keys.
+
 ## [1.0.2] - 2026-07-01
 
 ### Fixed
