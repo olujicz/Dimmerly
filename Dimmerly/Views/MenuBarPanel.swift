@@ -96,10 +96,7 @@ struct MenuBarPanel: View {
         }
         .frame(width: 300)
         .background(MenuBarPanelHostConfigurator())
-        .overlay(
-            RoundedRectangle(cornerRadius: MenuBarPanelGlassStyle.cornerRadius, style: .continuous)
-                .stroke(.separator.opacity(0.45), lineWidth: 0.75)
-        )
+        .menuBarPanelChrome()
     }
 
     // MARK: - Sliders
@@ -337,6 +334,11 @@ private struct MenuBarPanelScrollStyleConfigurator: NSViewRepresentable {
 private extension View {
     func menuBarPanelScrollStyle() -> some View {
         background(MenuBarPanelScrollStyleConfigurator())
+    }
+
+    /// Let `MenuBarExtra` draw the only rounded window chrome.
+    func menuBarPanelChrome() -> some View {
+        containerBackground(.clear, for: .window)
     }
 }
 
