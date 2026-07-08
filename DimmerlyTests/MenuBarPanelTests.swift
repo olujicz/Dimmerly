@@ -7,6 +7,7 @@
 
 import AppKit
 @testable import Dimmerly
+import SwiftUI
 import XCTest
 
 final class MenuBarPanelTests: XCTestCase {
@@ -172,5 +173,69 @@ final class MenuBarPanelTests: XCTestCase {
         for _ in 0 ..< iterations {
             RunLoop.current.run(until: Date().addingTimeInterval(0.01))
         }
+    }
+
+    // MARK: - Host Glass Configuration
+
+    @MainActor
+    func testConfigureWindowInsertsSingleGlassEffectView() {
+        let window = Self.makeTestWindow()
+
+        MenuBarPanelHostGlass.configureWindow(window)
+
+        XCTAssertFalse(window.isOpaque)
+        XCTAssertEqual(window.backgroundColor, .clear)
+
+        let effectViews = window.contentView?.subviews.compactMap { $0 as? NSVisualEffectView } ?? []
+        XCTAssertEqual(effectViews.count, 1)
+        XCTAssertEqual(effectViews.first?.material, MenuBarPanelGlassStyle.windowMaterial)
+        XCTAssertEqual(effectViews.first?.blendingMode, MenuBarPanelGlassStyle.blendingMode)
+        XCTAssertEqual(effectViews.first?.state, MenuBarPanelGlassStyle.state)
+    }
+
+    @MainActor
+    func testConfigureWindowIsIdempotent() {
+        let window = Self.makeTestWindow()
+
+        MenuBarPanelHostGlass.configureWindow(window)
+        MenuBarPanelHostGlass.configureWindow(window)
+
+        let effectViews = window.contentView?.subviews.compactMap { $0 as? NSVisualEffectView } ?? []
+        XCTAssertEqual(effectViews.count, 1)
+    }
+
+    @MainActor
+    func testRefreshContentBackgroundsClearsNewlyAddedContainerViews() {
+        let window = Self.makeTestWindow()
+        MenuBarPanelHostGlass.configureWindow(window)
+
+        let newContainer = NSView()
+        newContainer.wantsLayer = true
+        newContainer.layer?.backgroundColor = NSColor.white.cgColor
+        window.contentView?.addSubview(newContainer)
+
+        MenuBarPanelHostGlass.refreshContentBackgrounds(in: window)
+
+        XCTAssertEqual(newContainer.layer?.backgroundColor, NSColor.clear.cgColor)
+    }
+
+    @MainActor
+    private static func makeTestWindow() -> NSWindow {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 300, height: 200),
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: false
+        )
+        window.contentView = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 200))
+        return window
+    }
+
+    // MARK: - Close Panel Environment Action
+
+    @MainActor
+    func testCloseMenuBarPanelEnvironmentDefaultIsNoOp() {
+        // Should not crash when no environment override has been set.
+        EnvironmentValues().closeMenuBarPanel()
     }
 }

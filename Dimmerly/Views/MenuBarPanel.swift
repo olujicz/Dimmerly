@@ -6,6 +6,7 @@
 //
 
 import AppKit
+import MenuBarExtraAccess
 import SwiftUI
 
 extension EnvironmentValues {
@@ -100,7 +101,7 @@ struct MenuBarPanel: View {
                 .padding(.vertical, 8)
         }
         .frame(width: 300)
-        .background(MenuBarPanelHostConfigurator())
+        .menuBarPanelHostGlass()
         .menuBarPanelChrome()
     }
 
@@ -350,101 +351,108 @@ private extension View {
 
 // MARK: - Host Glass Configuration
 
-private struct MenuBarPanelHostConfigurator: NSViewRepresentable {
+/// Glass window styling, driven by `MenuBarExtraAccess`'s `introspectMenuBarExtraWindow`
+/// instead of a hand-rolled `viewDidMoveToWindow`/`viewDidMoveToSuperview` polling `NSView`.
+@MainActor
+enum MenuBarPanelHostGlass {
+    private static let glassIdentifier = NSUserInterfaceItemIdentifier("DimmerlyMenuBarPanelGlass")
+
+    /// One-time window setup: transparency and the rounded glass effect view.
+    static func configureWindow(_ window: NSWindow) {
+        guard let contentView = window.contentView else { return }
+
+        if MenuBarPanelGlassStyle.clearsHostWindowBackground {
+            window.isOpaque = false
+            window.backgroundColor = .clear
+        }
+
+        contentView.wantsLayer = true
+        contentView.layer?.backgroundColor = NSColor.clear.cgColor
+
+        let effectView = existingGlassEffectView(in: contentView) ?? makeGlassEffectView(in: contentView)
+        effectView.material = MenuBarPanelGlassStyle.windowMaterial
+        effectView.blendingMode = MenuBarPanelGlassStyle.blendingMode
+        effectView.state = MenuBarPanelGlassStyle.state
+        effectView.isEmphasized = true
+
+        clearContentBackgrounds(in: contentView)
+    }
+
+    /// Re-clears layer backgrounds that SwiftUI adds as the content view hierarchy changes
+    /// (hover highlights, expanding adjustments, etc.), so the glass effect stays visible.
+    static func refreshContentBackgrounds(in window: NSWindow) {
+        guard let contentView = window.contentView else { return }
+        clearContentBackgrounds(in: contentView)
+    }
+
+    private static func existingGlassEffectView(in contentView: NSView) -> NSVisualEffectView? {
+        contentView.subviews
+            .compactMap { $0 as? NSVisualEffectView }
+            .first { $0.identifier == glassIdentifier }
+    }
+
+    private static func makeGlassEffectView(in contentView: NSView) -> NSVisualEffectView {
+        let effectView = NSVisualEffectView()
+        effectView.identifier = glassIdentifier
+        effectView.translatesAutoresizingMaskIntoConstraints = false
+        effectView.wantsLayer = true
+        effectView.layer?.cornerRadius = MenuBarPanelGlassStyle.cornerRadius
+        effectView.layer?.cornerCurve = .continuous
+        effectView.layer?.masksToBounds = true
+
+        contentView.addSubview(effectView, positioned: .below, relativeTo: contentView.subviews.first)
+
+        NSLayoutConstraint.activate([
+            effectView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            effectView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            effectView.topAnchor.constraint(equalTo: contentView.topAnchor),
+            effectView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+        ])
+
+        return effectView
+    }
+
+    private static func clearContentBackgrounds(in view: NSView) {
+        if MenuBarPanelGlassBackgroundPolicy.shouldClearLayerBackground(
+            for: view,
+            glassIdentifier: glassIdentifier
+        ) {
+            view.wantsLayer = true
+            view.layer?.backgroundColor = NSColor.clear.cgColor
+        }
+
+        guard MenuBarPanelGlassBackgroundPolicy.shouldVisitSubviews(
+            of: view,
+            glassIdentifier: glassIdentifier
+        ) else {
+            return
+        }
+
+        for subview in view.subviews {
+            clearContentBackgrounds(in: subview)
+        }
+    }
+}
+
+/// Re-applies glass background clearing as SwiftUI's content view hierarchy changes.
+/// Window-level setup (transparency, effect view) happens once via `introspectMenuBarExtraWindow`.
+private struct MenuBarPanelHostRefreshConfigurator: NSViewRepresentable {
     func makeNSView(context _: Context) -> NSView {
-        HostConfiguratorView()
+        NSView()
     }
 
     func updateNSView(_ nsView: NSView, context _: Context) {
-        (nsView as? HostConfiguratorView)?.scheduleApply()
+        guard let window = nsView.window else { return }
+        MenuBarPanelHostGlass.refreshContentBackgrounds(in: window)
     }
+}
 
-    private final class HostConfiguratorView: NSView {
-        private static let glassIdentifier = NSUserInterfaceItemIdentifier("DimmerlyMenuBarPanelGlass")
-
-        override func viewDidMoveToWindow() {
-            super.viewDidMoveToWindow()
-            scheduleApply()
-        }
-
-        override func viewDidMoveToSuperview() {
-            super.viewDidMoveToSuperview()
-            scheduleApply()
-        }
-
-        func scheduleApply() {
-            DispatchQueue.main.async { [weak self] in
-                self?.applyGlassConfiguration()
+private extension View {
+    func menuBarPanelHostGlass() -> some View {
+        background(MenuBarPanelHostRefreshConfigurator())
+            .introspectMenuBarExtraWindow { window in
+                MenuBarPanelHostGlass.configureWindow(window)
             }
-        }
-
-        private func applyGlassConfiguration() {
-            guard let window, let contentView = window.contentView else { return }
-
-            if MenuBarPanelGlassStyle.clearsHostWindowBackground {
-                window.isOpaque = false
-                window.backgroundColor = .clear
-            }
-
-            contentView.wantsLayer = true
-            contentView.layer?.backgroundColor = NSColor.clear.cgColor
-
-            let effectView = existingGlassEffectView(in: contentView) ?? makeGlassEffectView(in: contentView)
-            effectView.material = MenuBarPanelGlassStyle.windowMaterial
-            effectView.blendingMode = MenuBarPanelGlassStyle.blendingMode
-            effectView.state = MenuBarPanelGlassStyle.state
-            effectView.isEmphasized = true
-
-            clearContentBackgrounds(in: contentView)
-        }
-
-        private func existingGlassEffectView(in contentView: NSView) -> NSVisualEffectView? {
-            contentView.subviews
-                .compactMap { $0 as? NSVisualEffectView }
-                .first { $0.identifier == Self.glassIdentifier }
-        }
-
-        private func makeGlassEffectView(in contentView: NSView) -> NSVisualEffectView {
-            let effectView = NSVisualEffectView()
-            effectView.identifier = Self.glassIdentifier
-            effectView.translatesAutoresizingMaskIntoConstraints = false
-            effectView.wantsLayer = true
-            effectView.layer?.cornerRadius = MenuBarPanelGlassStyle.cornerRadius
-            effectView.layer?.cornerCurve = .continuous
-            effectView.layer?.masksToBounds = true
-
-            contentView.addSubview(effectView, positioned: .below, relativeTo: contentView.subviews.first)
-
-            NSLayoutConstraint.activate([
-                effectView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-                effectView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-                effectView.topAnchor.constraint(equalTo: contentView.topAnchor),
-                effectView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
-            ])
-
-            return effectView
-        }
-
-        private func clearContentBackgrounds(in view: NSView) {
-            if MenuBarPanelGlassBackgroundPolicy.shouldClearLayerBackground(
-                for: view,
-                glassIdentifier: Self.glassIdentifier
-            ) {
-                view.wantsLayer = true
-                view.layer?.backgroundColor = NSColor.clear.cgColor
-            }
-
-            guard MenuBarPanelGlassBackgroundPolicy.shouldVisitSubviews(
-                of: view,
-                glassIdentifier: Self.glassIdentifier
-            ) else {
-                return
-            }
-
-            for subview in view.subviews {
-                clearContentBackgrounds(in: subview)
-            }
-        }
     }
 }
 

@@ -57,6 +57,7 @@
 		NF0000000000000000001A /* BrightnessPresetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF0000000000000000000A /* BrightnessPresetTests.swift */; };
 		PRV00000000000000000002 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = PRV00000000000000000001 /* PrivacyInfo.xcprivacy */; };
 		T1B2C3D4E5F6A7B8C9D0E301 /* DisplayControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1B2C3D4E5F6A7B8C9D0E300 /* DisplayControllerTests.swift */; };
+		DA00000000000000000002 /* DimmerlyAppTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA00000000000000000001 /* DimmerlyAppTests.swift */; };
 		T1B2C3D4E5F6A7B8C9D0E311 /* AppSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1B2C3D4E5F6A7B8C9D0E310 /* AppSettingsTests.swift */; };
 		T1B2C3D4E5F6A7B8C9D0E321 /* KeyboardShortcutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1B2C3D4E5F6A7B8C9D0E320 /* KeyboardShortcutTests.swift */; };
 		UT00000000000000000001 /* BrightnessManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = UT00000000000000000010 /* BrightnessManagerTests.swift */; };
@@ -162,6 +163,7 @@
 		PRV00000000000000000001 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		T1B2C3D4E5F6A7B8C9D0E1FF /* DimmerlyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DimmerlyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		T1B2C3D4E5F6A7B8C9D0E300 /* DisplayControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayControllerTests.swift; sourceTree = "<group>"; };
+		DA00000000000000000001 /* DimmerlyAppTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DimmerlyAppTests.swift; sourceTree = "<group>"; };
 		T1B2C3D4E5F6A7B8C9D0E310 /* AppSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsTests.swift; sourceTree = "<group>"; };
 		T1B2C3D4E5F6A7B8C9D0E320 /* KeyboardShortcutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutTests.swift; sourceTree = "<group>"; };
 		UT00000000000000000010 /* BrightnessManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrightnessManagerTests.swift; sourceTree = "<group>"; };
@@ -372,6 +374,7 @@
 			isa = PBXGroup;
 				children = (
 					T1B2C3D4E5F6A7B8C9D0E310 /* AppSettingsTests.swift */,
+					DA00000000000000000001 /* DimmerlyAppTests.swift */,
 					UT00000000000000000010 /* BrightnessManagerTests.swift */,
 					NF0000000000000000000A /* BrightnessPresetTests.swift */,
 					CT00000000000000000002 /* ColorTemperatureManagerTests.swift */,
@@ -606,6 +609,7 @@
 			buildActionMask = 2147483647;
 				files = (
 					T1B2C3D4E5F6A7B8C9D0E301 /* DisplayControllerTests.swift in Sources */,
+					DA00000000000000000002 /* DimmerlyAppTests.swift in Sources */,
 					T1B2C3D4E5F6A7B8C9D0E311 /* AppSettingsTests.swift in Sources */,
 					T1B2C3D4E5F6A7B8C9D0E321 /* KeyboardShortcutTests.swift in Sources */,
 					NF0000000000000000001A /* BrightnessPresetTests.swift in Sources */,
