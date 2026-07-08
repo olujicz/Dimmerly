@@ -7,11 +7,16 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+### Added
+- Added a right-click quick actions menu on the menu bar icon (Turn Displays Off / Dim Displays, Settings, Quit) for one-step access without opening the full panel.
+- Added an Acknowledgements section to Settings > About crediting third-party open-source software used by Dimmerly.
+
 ### Changed
 - Refined Hardware Control settings so unavailable hardware control modes are disabled with clearer fallback guidance.
 - Clarified per-display DDC/CI support status and tightened the advanced polling and write-delay controls.
 
 ### Fixed
+- Fixed the menu bar icon staying visually highlighted after using "Turn Displays Off" to close the panel.
 - Fixed hardware brightness control fallback so DDC/CI control is only used when hardware control is enabled and available.
 - Fixed display schedules so missed events between app checks are applied in chronological order.
 - Fixed keyboard shortcut recording so the recorder reliably receives focus before capturing keys.
