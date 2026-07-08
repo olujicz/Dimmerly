@@ -7,6 +7,7 @@
 //
 
 import AppKit
+import MenuBarExtraAccess
 import SwiftUI
 
 @MainActor
@@ -56,6 +57,15 @@ struct DimmerlyApp: App {
     /// Guard against duplicate observer registration if onAppear fires more than once
     @State private var isConfigured = false
 
+    /// Presentation state for the menu bar panel, so it can be dismissed programmatically
+    /// (e.g. after "Turn Displays Off") without leaving the status bar icon stuck highlighted.
+    @State private var isMenuBarPanelPresented = false
+
+    /// Handles the right-click quick actions menu on the status bar icon.
+    @State private var statusItemQuickActions = StatusItemQuickActions()
+
+    @Environment(\.openSettings) private var openSettings
+
     /// Distributed notification observer for widget "Sleep Displays" action
     @State private var widgetDimObserver: NSObjectProtocol?
 
@@ -73,6 +83,7 @@ struct DimmerlyApp: App {
             #if !APPSTORE
                 .environment(hardwareManager)
             #endif
+                .environment(\.closeMenuBarPanel) { isMenuBarPanelPresented = false }
         } label: {
             menuBarLabel
                 .onAppear {
@@ -116,6 +127,17 @@ struct DimmerlyApp: App {
                 .onChange(of: presetManager.presets) { _, newValue in
                     presetShortcutManager.updateShortcuts(from: newValue)
                 }
+        }
+        .menuBarExtraAccess(isPresented: $isMenuBarPanelPresented) { statusItem in
+            statusItemQuickActions.configure(
+                statusItem: statusItem,
+                settings: settings,
+                performSleep: { DisplayAction.performSleep(settings: settings) },
+                openSettings: {
+                    openSettings()
+                    NSApp.activate()
+                }
+            )
         }
         .menuBarExtraStyle(.window)
 
@@ -284,4 +306,95 @@ struct DimmerlyApp: App {
             hardwareManager.startPolling()
         }
     #endif
+}
+
+/// Attaches a right-click quick-actions menu to the status bar icon, using the
+/// `NSStatusItem` exposed by `MenuBarExtraAccess`. A local event monitor detects
+/// right-clicks on the button specifically so left-clicks keep opening the panel
+/// exactly as `MenuBarExtra` already handles it.
+@MainActor
+final class StatusItemQuickActions: NSObject {
+    private var statusItem: NSStatusItem?
+    private var rightClickMonitor: Any?
+    private var settings: AppSettings?
+    private var performSleep: (() -> Void)?
+    private var openSettings: (() -> Void)?
+
+    func configure(
+        statusItem: NSStatusItem,
+        settings: AppSettings,
+        performSleep: @escaping () -> Void,
+        openSettings: @escaping () -> Void
+    ) {
+        self.statusItem = statusItem
+        self.settings = settings
+        self.performSleep = performSleep
+        self.openSettings = openSettings
+
+        guard rightClickMonitor == nil, let button = statusItem.button else { return }
+
+        rightClickMonitor = NSEvent.addLocalMonitorForEvents(matching: .rightMouseDown) { [weak self] event in
+            guard let self, event.window === button.window else { return event }
+            showQuickActionsMenu()
+            return nil
+        }
+    }
+
+    private func showQuickActionsMenu() {
+        guard let statusItem, let settings else { return }
+
+        let menu = makeQuickActionsMenu(turnOffTitle: Self.turnOffTitle(settings: settings))
+
+        // Temporarily assign the menu so this click shows it, then clear it so
+        // subsequent left-clicks keep going through the normal panel toggle.
+        statusItem.menu = menu
+        statusItem.button?.performClick(nil)
+        statusItem.menu = nil
+    }
+
+    /// Title matches the primary panel button's wording (`turnOffButtonContent` in
+    /// `MenuBarPanel`), so the quick-actions menu never disagrees with the panel.
+    static func turnOffTitle(settings: AppSettings) -> String {
+        #if APPSTORE
+            "Dim Displays"
+        #else
+            settings.preventScreenLock ? "Dim Displays" : "Turn Displays Off"
+        #endif
+    }
+
+    /// Builds the right-click menu contents. Separated from `showQuickActionsMenu()`
+    /// so the menu structure (order, labels, separators) is unit-testable without
+    /// needing a live `NSStatusItem`.
+    func makeQuickActionsMenu(turnOffTitle: String) -> NSMenu {
+        let menu = NSMenu()
+
+        let turnOffItem = NSMenuItem(title: turnOffTitle, action: #selector(handleTurnOff), keyEquivalent: "")
+        turnOffItem.target = self
+        menu.addItem(turnOffItem)
+
+        // Ellipsis per HIG: the action opens a window that needs further input.
+        let settingsItem = NSMenuItem(title: "Settings…", action: #selector(handleOpenSettings), keyEquivalent: ",")
+        settingsItem.target = self
+        menu.addItem(settingsItem)
+
+        menu.addItem(.separator())
+
+        let quitItem = NSMenuItem(
+            title: "Quit Dimmerly",
+            action: #selector(NSApplication.terminate(_:)),
+            keyEquivalent: "q"
+        )
+        quitItem.target = NSApp
+        menu.addItem(quitItem)
+
+        return menu
+    }
+
+    @objc private func handleTurnOff() {
+        performSleep?()
+    }
+
+    @objc private func handleOpenSettings() {
+        openSettings?()
+    }
 }
