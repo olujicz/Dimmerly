@@ -196,7 +196,9 @@ dismissal for stricter control.
 
 ## Development
 
-Dimmerly is a Swift 6 macOS project with no third-party runtime dependencies.
+Dimmerly is a Swift 6 macOS project with a single third-party runtime
+dependency: [MenuBarExtraAccess](https://github.com/orchetect/MenuBarExtraAccess)
+(MIT). See [NOTICES.md](NOTICES.md) for its license text.
 
 Useful commands:
 
@@ -236,3 +238,4 @@ Security vulnerabilities should not be reported in public issues. Follow
 ## License
 
 Dimmerly is released under the MIT License. See [LICENSE](LICENSE).
+Third-party software notices are listed in [NOTICES.md](NOTICES.md).
