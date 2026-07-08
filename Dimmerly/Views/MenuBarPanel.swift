@@ -8,6 +8,10 @@
 import AppKit
 import SwiftUI
 
+extension EnvironmentValues {
+    @Entry var closeMenuBarPanel: @MainActor @Sendable () -> Void = {}
+}
+
 enum MenuBarPanelGlassStyle {
     static let windowMaterial: NSVisualEffectView.Material = .menu
     static let blendingMode: NSVisualEffectView.BlendingMode = .behindWindow
@@ -64,6 +68,7 @@ struct MenuBarPanel: View {
         @Environment(HardwareBrightnessManager.self) var hardwareManager
     #endif
     @Environment(\.openSettings) private var openSettings
+    @Environment(\.closeMenuBarPanel) private var closeMenuBarPanel
 
     var body: some View {
         VStack(spacing: 0) {
@@ -218,6 +223,7 @@ struct MenuBarPanel: View {
     private var turnOffButtonContent: some View {
         Button {
             DisplayAction.performSleep(settings: settings)
+            closeMenuBarPanel()
         } label: {
             HStack {
                 #if APPSTORE

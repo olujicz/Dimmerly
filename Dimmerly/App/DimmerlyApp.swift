@@ -7,6 +7,7 @@
 //
 
 import AppKit
+import MenuBarExtraAccess
 import SwiftUI
 
 @MainActor
@@ -56,6 +57,10 @@ struct DimmerlyApp: App {
     /// Guard against duplicate observer registration if onAppear fires more than once
     @State private var isConfigured = false
 
+    /// Presentation state for the menu bar panel, so it can be dismissed programmatically
+    /// (e.g. after "Turn Displays Off") without leaving the status bar icon stuck highlighted.
+    @State private var isMenuBarPanelPresented = false
+
     /// Distributed notification observer for widget "Sleep Displays" action
     @State private var widgetDimObserver: NSObjectProtocol?
 
@@ -73,6 +78,7 @@ struct DimmerlyApp: App {
             #if !APPSTORE
                 .environment(hardwareManager)
             #endif
+                .environment(\.closeMenuBarPanel) { isMenuBarPanelPresented = false }
         } label: {
             menuBarLabel
                 .onAppear {
@@ -117,6 +123,7 @@ struct DimmerlyApp: App {
                     presetShortcutManager.updateShortcuts(from: newValue)
                 }
         }
+        .menuBarExtraAccess(isPresented: $isMenuBarPanelPresented)
         .menuBarExtraStyle(.window)
 
         // Settings window

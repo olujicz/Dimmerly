@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		729A00012F3C8B1700E8C290 /* MenuBarExtraAccess in Frameworks */ = {isa = PBXBuildFile; productRef = 729A00022F3C8B1700E8C290 /* MenuBarExtraAccess */; };
 		SC00000000000000000011 /* DimmingSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC00000000000000000001 /* DimmingSchedule.swift */; };
 		SC00000000000000000012 /* SolarCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC00000000000000000002 /* SolarCalculator.swift */; };
 		GM00000000000000000011 /* GammaMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = GM00000000000000000001 /* GammaMath.swift */; };
@@ -212,6 +213,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				729A00012F3C8B1700E8C290 /* MenuBarExtraAccess in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -431,6 +433,9 @@
 				4CFE3A162F3C8B1700E8C290 /* PBXTargetDependency */,
 			);
 			name = Dimmerly;
+			packageProductDependencies = (
+				729A00022F3C8B1700E8C290 /* MenuBarExtraAccess */,
+			);
 			productName = Dimmerly;
 			productReference = A1B2C3D4E5F6A7B8C9D0E1FF /* Dimmerly.app */;
 			productType = "com.apple.product-type.application";
@@ -494,6 +499,9 @@
 				Base,
 			);
 			mainGroup = A1B2C3D4E5F6A7B8C9D0E1F3;
+			packageReferences = (
+				729A00032F3C8B1700E8C290 /* XCRemoteSwiftPackageReference "MenuBarExtraAccess" */,
+			);
 			productRefGroup = A1B2C3D4E5F6A7B8C9D0E1F4 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -1223,6 +1231,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		729A00032F3C8B1700E8C290 /* XCRemoteSwiftPackageReference "MenuBarExtraAccess" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/orchetect/MenuBarExtraAccess";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		729A00022F3C8B1700E8C290 /* MenuBarExtraAccess */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 729A00032F3C8B1700E8C290 /* XCRemoteSwiftPackageReference "MenuBarExtraAccess" */;
+			productName = MenuBarExtraAccess;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = A1B2C3D4E5F6A7B8C9D0E1F2 /* Project object */;
 }
