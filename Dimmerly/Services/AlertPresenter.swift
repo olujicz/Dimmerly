@@ -9,6 +9,13 @@
 import AppKit
 
 /// Utility for presenting user-facing alerts
+///
+/// `NSAlert.runModal()` blocks the caller until the alert is dismissed, but it only pumps
+/// the main run loop's `.modalPanel` mode — `Timer`s scheduled in the `.default` mode alone
+/// (the `Timer.scheduledTimer` convenience API's default) would otherwise appear to pause
+/// while an alert is on screen. `ScheduleManager`, `IdleTimerManager`, and
+/// `ColorTemperatureManager` register their polling timers in `.common` modes (which include
+/// `.modalPanel`) specifically so they keep running during this alert, not just at app idle.
 @MainActor
 struct AlertPresenter {
     /// Presents an error alert to the user

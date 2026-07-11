@@ -22,6 +22,7 @@
 //
 
 import AppKit
+import Observation
 
 /// Manages screen blanking using gamma manipulation and overlay windows.
 ///
@@ -40,7 +41,12 @@ import AppKit
 /// - Can be disabled for instant blanking (accessibility/reduced motion)
 ///
 /// Thread safety: All methods must be called from the main actor.
+///
+/// `@Observable` so SwiftUI views reading `isDisplayBlanked`/`isBlanking` (directly, via
+/// `ScreenBlanker.shared`) re-render when blanking state changes from *any* path —
+/// including dismissal triggered by user input, not just the button that started it.
 @MainActor
+@Observable
 class ScreenBlanker {
     static let shared = ScreenBlanker()
 
@@ -88,7 +94,27 @@ class ScreenBlanker {
     /// Per-display overlay windows for individual blanking
     private var perDisplayWindows: [CGDirectDisplayID: NSWindow] = [:]
 
+    /// Tracks whether this class currently considers the cursor hidden, so that full
+    /// blanking and per-display full-blanking (which can both reach their cursor-hiding
+    /// branch, e.g. if a per-display blank completes the set while a full blank is already
+    /// active) never call `NSCursor.hide()` more times than `NSCursor.unhide()` — `hide`/
+    /// `unhide` are reference-counted by AppKit, but `dismiss()`/`unblankDisplay()` each call
+    /// `unhide()` at most once, so an extra `hide()` would leave the cursor stuck invisible.
+    private var isCursorHidden = false
+
     private init() {}
+
+    private func hideCursorIfNeeded() {
+        guard !isCursorHidden else { return }
+        isCursorHidden = true
+        NSCursor.hide()
+    }
+
+    private func unhideCursorIfNeeded() {
+        guard isCursorHidden else { return }
+        isCursorHidden = false
+        NSCursor.unhide()
+    }
 
     /// Blanks all connected screens using gamma dimming and overlay windows
     func blank() {
@@ -96,7 +122,7 @@ class ScreenBlanker {
         isBlanking = true
         activationTime = ProcessInfo.processInfo.systemUptime
 
-        NSCursor.hide()
+        hideCursorIfNeeded()
         startDismissMonitoring(action: { [weak self] in self?.dismiss() })
 
         if useFadeTransition {
@@ -151,7 +177,7 @@ class ScreenBlanker {
         }
         perDisplayWindows.removeAll()
 
-        NSCursor.unhide()
+        unhideCursorIfNeeded()
         isBlanking = false
         isPerDisplayFullBlanked = false
         onDismiss?()
@@ -174,25 +200,32 @@ class ScreenBlanker {
 
         blankedDisplayIDs.insert(displayID)
 
-        // Create overlay window on the matching screen
-        if let screen = screenForDisplay(displayID) {
-            let window = createBlankWindow(for: screen)
+        // Create an overlay window on the matching screen, if one can be found (mirrored
+        // display sets or a transient reconfiguration can leave this display without a
+        // matching NSScreen — gamma is still zeroed above, just without the overlay window).
+        let matchedScreen = screenForDisplay(displayID)
+        if let matchedScreen {
+            let window = createBlankWindow(for: matchedScreen)
             perDisplayWindows[displayID] = window
             window.orderFrontRegardless()
+        }
 
-            // If every active display is now blanked, start dismiss monitoring
-            if Self.shouldEnablePerDisplayRecovery(
-                blankedDisplayIDs: blankedDisplayIDs,
-                activeDisplayIDs: BrightnessManager.activeDisplayIDs()
-            ) {
-                isPerDisplayFullBlanked = true
-                activationTime = ProcessInfo.processInfo.systemUptime
-                NSCursor.hide()
-                if requireEscapeToDismiss {
-                    addWakeHint(to: window, screen: screen)
-                }
-                startDismissMonitoring(action: { [weak self] in self?.unblankAllDisplays() })
+        // If every active display is now blanked, start dismiss monitoring. Checked
+        // unconditionally (not nested inside the screen-match branch above) so that if this
+        // display had no matching NSScreen, and it was the last one needed to complete a full
+        // blank, recovery still arms — otherwise every screen would go black with no input
+        // monitor installed, leaving no way to un-blank.
+        if Self.shouldEnablePerDisplayRecovery(
+            blankedDisplayIDs: blankedDisplayIDs,
+            activeDisplayIDs: BrightnessManager.activeDisplayIDs()
+        ) {
+            isPerDisplayFullBlanked = true
+            activationTime = ProcessInfo.processInfo.systemUptime
+            hideCursorIfNeeded()
+            if requireEscapeToDismiss, let matchedScreen, let window = perDisplayWindows[displayID] {
+                addWakeHint(to: window, screen: matchedScreen)
             }
+            startDismissMonitoring(action: { [weak self] in self?.unblankAllDisplays() })
         }
     }
 
@@ -203,7 +236,7 @@ class ScreenBlanker {
         // Clean up per-display full-blank monitoring if active
         if isPerDisplayFullBlanked {
             stopDismissMonitoring()
-            NSCursor.unhide()
+            unhideCursorIfNeeded()
             isPerDisplayFullBlanked = false
         }
 
@@ -246,20 +279,21 @@ class ScreenBlanker {
             let steps = 30
             let stepDelay = Duration.milliseconds(500 / steps)
 
-            // Read starting brightness, warmth, and contrast per display
+            // Read starting brightness, warmth, and contrast per display. These closures
+            // (set by BrightnessManager) return the actually-*applied* gamma values, not
+            // just the model's brightness/warmth/contrast — for hardware-controlled
+            // displays (built-in backlight, DDC), gamma sits at 1.0/neutral even though the
+            // model brightness may be lower, so starting the fade from the model value
+            // would jump/flash instead of fading smoothly. There is no special case for
+            // built-in displays: the same closures resolve the correct starting point for
+            // every display type.
             var startBrightness: [CGDirectDisplayID: Double] = [:]
             var displayWarmth: [CGDirectDisplayID: Double] = [:]
             var displayContrast: [CGDirectDisplayID: Double] = [:]
             for displayID in displayIDs {
-                if CGDisplayIsBuiltin(displayID) != 0 {
-                    startBrightness[displayID] = 1.0
-                    displayWarmth[displayID] = 0.0
-                    displayContrast[displayID] = 0.5
-                } else {
-                    startBrightness[displayID] = brightnessForDisplay?(displayID) ?? 1.0
-                    displayWarmth[displayID] = warmthForDisplay?(displayID) ?? 0.0
-                    displayContrast[displayID] = contrastForDisplay?(displayID) ?? 0.5
-                }
+                startBrightness[displayID] = brightnessForDisplay?(displayID) ?? 1.0
+                displayWarmth[displayID] = warmthForDisplay?(displayID) ?? 0.0
+                displayContrast[displayID] = contrastForDisplay?(displayID) ?? 0.5
             }
 
             for step in 1 ... steps {
@@ -426,7 +460,9 @@ class ScreenBlanker {
             guard event.keyCode == escapeKeyCode else { return }
             MainActor.assumeIsolated { action() }
         }
-        if let keyMonitor { eventMonitors.append(keyMonitor) }
+        if let keyMonitor {
+            eventMonitors.append(keyMonitor)
+        }
 
         let localKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { event in
             if event.keyCode == escapeKeyCode {
@@ -434,7 +470,9 @@ class ScreenBlanker {
             }
             return nil
         }
-        if let localKeyMonitor { eventMonitors.append(localKeyMonitor) }
+        if let localKeyMonitor {
+            eventMonitors.append(localKeyMonitor)
+        }
 
         let swallowedEvents: NSEvent.EventTypeMask = [
             .leftMouseDown, .rightMouseDown, .scrollWheel, .mouseMoved,
@@ -442,7 +480,9 @@ class ScreenBlanker {
         let localMouseMonitor = NSEvent.addLocalMonitorForEvents(matching: swallowedEvents) { _ in
             nil
         }
-        if let localMouseMonitor { eventMonitors.append(localMouseMonitor) }
+        if let localMouseMonitor {
+            eventMonitors.append(localMouseMonitor)
+        }
     }
 
     /// Default mode: any keyboard or mouse event triggers the action.
@@ -450,13 +490,17 @@ class ScreenBlanker {
         let keyMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.keyDown]) { _ in
             MainActor.assumeIsolated { action() }
         }
-        if let keyMonitor { eventMonitors.append(keyMonitor) }
+        if let keyMonitor {
+            eventMonitors.append(keyMonitor)
+        }
 
         let localKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { _ in
             MainActor.assumeIsolated { action() }
             return nil
         }
-        if let localKeyMonitor { eventMonitors.append(localKeyMonitor) }
+        if let localKeyMonitor {
+            eventMonitors.append(localKeyMonitor)
+        }
 
         let mouseClickEvents: NSEvent.EventTypeMask = [.leftMouseDown, .rightMouseDown]
         let allMouseEvents: NSEvent.EventTypeMask = [.leftMouseDown, .rightMouseDown, .scrollWheel, .mouseMoved]
@@ -465,13 +509,17 @@ class ScreenBlanker {
         let mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: mouseEvents) { _ in
             MainActor.assumeIsolated { action() }
         }
-        if let mouseMonitor { eventMonitors.append(mouseMonitor) }
+        if let mouseMonitor {
+            eventMonitors.append(mouseMonitor)
+        }
 
         let localMouseMonitor = NSEvent.addLocalMonitorForEvents(matching: mouseEvents) { event in
             MainActor.assumeIsolated { action() }
             return event
         }
-        if let localMouseMonitor { eventMonitors.append(localMouseMonitor) }
+        if let localMouseMonitor {
+            eventMonitors.append(localMouseMonitor)
+        }
     }
 
     private func stopDismissMonitoring() {

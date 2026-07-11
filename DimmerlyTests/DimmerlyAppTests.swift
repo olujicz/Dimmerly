@@ -11,8 +11,13 @@ import XCTest
 
 @MainActor
 final class DimmerlyAppTests: XCTestCase {
-    func testTurnOffTitleReflectsPreventScreenLockSetting() {
-        let settings = AppSettings()
+    func testTurnOffTitleReflectsPreventScreenLockSetting() throws {
+        // Isolated suite so this test doesn't read or overwrite the developer's real
+        // preventScreenLock setting in UserDefaults.standard.
+        let suiteName = "DimmerlyAppTests-\(UUID().uuidString)"
+        let testDefaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { testDefaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: testDefaults)
 
         #if APPSTORE
             settings.preventScreenLock = false

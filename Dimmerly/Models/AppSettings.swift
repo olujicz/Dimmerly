@@ -63,7 +63,7 @@ class AppSettings {
     // swiftlint:disable:next force_try
     private static let defaultShortcutData = try! JSONEncoder().encode(GlobalShortcut.default)
 
-    private let defaults = UserDefaults.standard
+    private let defaults: UserDefaults
 
     // MARK: - Settings Properties
 
@@ -195,8 +195,12 @@ class AppSettings {
 
     // MARK: - Initialization
 
-    init() {
-        let d = UserDefaults.standard
+    /// - Parameter defaults: The `UserDefaults` suite to read from and persist to. Defaults to
+    ///   `.standard` for production use; tests should inject an isolated suite so they don't
+    ///   read or overwrite the developer's real app settings.
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        let d = defaults
 
         // Load shortcut data (Data type needs special handling)
         shortcutData = d.data(forKey: "dimmerlyKeyboardShortcut") ?? Self.defaultShortcutData

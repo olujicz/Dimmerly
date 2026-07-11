@@ -115,18 +115,25 @@
         /// is measured between actual hardware writes, not between enqueue times.
         private let writeTiming = DDCWriteTiming()
 
-        /// Local user/app writes that have not yet completed on the hardware bus.
-        private var pendingHardwareWrites: Set<WriteKey> = []
+        /// Count of local user/app writes that have not yet completed on the hardware bus,
+        /// per display+VCP code. A counter rather than a `Set` membership flag: if two writes
+        /// to the same key overlap (e.g. two slider nudges close enough together that both
+        /// escape debounce cancellation), the first write's completion must not clear the
+        /// "pending" state while the second write is still in flight — that gap previously let
+        /// a concurrent poll apply a stale hardware read and snap the UI back to the old value.
+        private var pendingHardwareWrites: [WriteKey: Int] = [:]
 
         /// Timestamps of local user/app writes, used to ignore stale DDC poll results.
         private var lastLocalWriteTime: [WriteKey: Date] = [:]
 
-        /// Consecutive DDC write failure count per display.
-        /// When this exceeds `maxWriteFailuresBeforeFallback`, the display is downgraded
-        /// to software-only brightness (gamma tables) to avoid silent control loss.
-        private var consecutiveWriteFailures: [CGDirectDisplayID: Int] = [:]
+        /// Consecutive DDC write failure count per display+VCP code.
+        /// When a single code's count exceeds `maxWriteFailuresBeforeFallback`, only that
+        /// code is dropped from the display's supported set — a flaky volume or input-source
+        /// control no longer takes hardware brightness down with it.
+        private var consecutiveWriteFailures: [WriteKey: Int] = [:]
 
-        /// Number of consecutive DDC write failures before auto-downgrading to software brightness.
+        /// Number of consecutive DDC write failures (for a single VCP code) before
+        /// auto-downgrading that code to software/no control.
         private let maxWriteFailuresBeforeFallback = 3
 
         /// Minimum interval between DDC writes to the same display.
@@ -171,7 +178,15 @@
         }
 
         /// Pending write tasks per display+VCP code (for debouncing rapid slider changes).
+        /// Entries are removed once their scheduled task's body finishes (see
+        /// `clearPendingWriteSlotIfCurrent`) rather than left to sit as completed/cancelled
+        /// `Task` objects until the next write to the same key happens to replace them.
         private var pendingWrites: [WriteKey: Task<Void, Never>] = [:]
+
+        /// Monotonic per-key counter so a debounced write's own completion can tell whether
+        /// it's still the current pending attempt for its key before clearing `pendingWrites`
+        /// — a newer `debouncedWrite` call for the same key may have already taken the slot.
+        private var pendingWriteGeneration: [WriteKey: Int] = [:]
 
         /// Background polling task for reading hardware values.
         private var pollingTask: Task<Void, Never>?
@@ -211,32 +226,49 @@
             capabilities[displayID]?.supportsDDC ?? false
         }
 
-        /// Probes all currently connected external displays for DDC capabilities.
+        /// Probes external displays for DDC capabilities.
         ///
         /// Called when:
-        /// - DDC is enabled for the first time
-        /// - Displays are connected/disconnected
-        /// - The app launches with DDC enabled
+        /// - DDC is enabled for the first time or toggled back on (`force: true`, the
+        ///   default) — re-probes every connected external display, since capabilities
+        ///   may have changed (e.g. DDC/CI toggled in the monitor's OSD).
+        /// - A display-reconfiguration event reports displays that have never been
+        ///   probed (`force: false`) — probes only the unprobed ones, so hot-plugged
+        ///   monitors gain DDC support without waiting for a relaunch or Settings toggle.
         ///
         /// Probing is done on a background queue to avoid blocking the UI (~360ms per display).
-        func probeAllDisplays() {
-            let displayIDs = BrightnessManager.activeDisplayIDs().filter { CGDisplayIsBuiltin($0) == 0 }
+        /// Results are merged into `capabilities` rather than replacing it wholesale, and
+        /// any display that disconnected while the (multi-display) probe was in flight is
+        /// dropped instead of being resurrected.
+        func probeAllDisplays(force: Bool = true) {
+            let connectedDisplayIDs = BrightnessManager.activeDisplayIDs().filter { CGDisplayIsBuiltin($0) == 0 }
+            let idsToProbe = force ? connectedDisplayIDs : connectedDisplayIDs.filter { capabilities[$0] == nil }
+            guard !idsToProbe.isEmpty else { return }
+
             let ddcIO = ddcInterface
             let ddcQueue = ddcQueue
 
             ddcQueue.async {
                 var results: [CGDirectDisplayID: HardwareDisplayCapability] = [:]
 
-                for displayID in displayIDs {
+                for displayID in idsToProbe {
                     let capability = ddcIO.probeCapabilities(for: displayID)
                     results[displayID] = capability
                 }
 
                 Task { @MainActor [weak self] in
                     guard let self else { return }
-                    capabilities = results
+                    let stillConnected = Set(BrightnessManager.activeDisplayIDs())
+                    for (displayID, cap) in results where stillConnected.contains(displayID) {
+                        capabilities[displayID] = cap
+                        // A fresh probe gets a fresh failure budget — otherwise a display that
+                        // previously hit the fallback threshold on some VCP code stays primed
+                        // to re-downgrade after a single transient failure post-reprobe,
+                        // instead of the full `maxWriteFailuresBeforeFallback` count.
+                        consecutiveWriteFailures = consecutiveWriteFailures.filter { $0.key.displayID != displayID }
+                    }
                     // Read initial values for DDC-capable displays
-                    for (displayID, cap) in results where cap.supportsDDC {
+                    for (displayID, cap) in results where cap.supportsDDC && stillConnected.contains(displayID) {
                         self.readAllValues(for: displayID)
                     }
                     // Refresh BrightnessManager so display.supportsDDC flags
@@ -261,7 +293,7 @@
             markLocalWrite(vcp: .brightness, for: displayID)
             hardwareBrightness[displayID] = clamped
 
-            let rawValue = UInt16(clamped * Double(cap.maxBrightness))
+            let rawValue = UInt16((clamped * Double(cap.maxBrightness)).rounded())
             debouncedWrite(vcp: .brightness, value: rawValue, for: displayID)
         }
 
@@ -277,7 +309,7 @@
             markLocalWrite(vcp: .contrast, for: displayID)
             hardwareContrast[displayID] = clamped
 
-            let rawValue = UInt16(clamped * Double(cap.maxContrast))
+            let rawValue = UInt16((clamped * Double(cap.maxContrast)).rounded())
             debouncedWrite(vcp: .contrast, value: rawValue, for: displayID)
         }
 
@@ -293,7 +325,7 @@
             markLocalWrite(vcp: .volume, for: displayID)
             hardwareVolume[displayID] = clamped
 
-            let rawValue = UInt16(clamped * Double(cap.maxVolume))
+            let rawValue = UInt16((clamped * Double(cap.maxVolume)).rounded())
             debouncedWrite(vcp: .volume, value: rawValue, for: displayID)
         }
 
@@ -386,10 +418,11 @@
                 pendingWrites[key]?.cancel()
                 pendingWrites.removeValue(forKey: key)
             }
-            pendingHardwareWrites = pendingHardwareWrites.filter { $0.displayID != displayID }
+            pendingWriteGeneration = pendingWriteGeneration.filter { $0.key.displayID != displayID }
+            pendingHardwareWrites = pendingHardwareWrites.filter { $0.key.displayID != displayID }
             lastLocalWriteTime = lastLocalWriteTime.filter { $0.key.displayID != displayID }
             writeTiming.removeDisplay(displayID)
-            consecutiveWriteFailures.removeValue(forKey: displayID)
+            consecutiveWriteFailures = consecutiveWriteFailures.filter { $0.key.displayID != displayID }
         }
 
         // MARK: - Private: DDC Read
@@ -491,21 +524,63 @@
             let writeKey = WriteKey(displayID: displayID, vcp: vcp)
             pendingWrites[writeKey]?.cancel()
 
+            let generation = (pendingWriteGeneration[writeKey] ?? 0) + 1
+            pendingWriteGeneration[writeKey] = generation
+
             pendingWrites[writeKey] = Task { [weak self] in
                 // Wait for debounce period
                 try? await Task.sleep(for: .seconds(self?.writeDebounceDelay ?? 0.1))
-                guard !Task.isCancelled else { return }
+                guard !Task.isCancelled else {
+                    // This scheduled attempt was superseded before it ever reached the
+                    // hardware — undo its `markLocalWrite` increment here, in the same task
+                    // that observes the cancellation, rather than at the `.cancel()` call
+                    // site. `Task.cancel()` is cooperative: if the previous task had already
+                    // passed this checkpoint (i.e. is already inside `performWrite`), calling
+                    // `.cancel()` on it is a no-op, and only `performWrite`'s own completion
+                    // decrements — deciding it here, atomically with the cancellation check,
+                    // is the only way to avoid double-decrementing that case.
+                    self?.decrementPendingHardwareWrite(writeKey)
+                    self?.clearPendingWriteSlotIfCurrent(writeKey, generation: generation)
+                    return
+                }
 
                 // Perform the write
                 self?.performWrite(vcp: vcp, value: value, for: displayID)
+                self?.clearPendingWriteSlotIfCurrent(writeKey, generation: generation)
+            }
+        }
+
+        /// Removes a finished debounce task from `pendingWrites` — but only if no newer
+        /// `debouncedWrite` call for the same key has already taken the slot (tracked via
+        /// `pendingWriteGeneration`), so this cleanup can never clobber a task that
+        /// superseded the one finishing here.
+        private func clearPendingWriteSlotIfCurrent(_ writeKey: WriteKey, generation: Int) {
+            guard pendingWriteGeneration[writeKey] == generation else { return }
+            pendingWrites.removeValue(forKey: writeKey)
+            pendingWriteGeneration.removeValue(forKey: writeKey)
+        }
+
+        /// Decrements the pending-write count for a key, removing the entry once it reaches
+        /// zero. Shared by a cancelled debounced write and a completed one — both represent
+        /// one fewer write still "in flight" toward the hardware.
+        private func decrementPendingHardwareWrite(_ writeKey: WriteKey) {
+            guard let remaining = pendingHardwareWrites[writeKey] else { return }
+            if remaining > 1 {
+                pendingHardwareWrites[writeKey] = remaining - 1
+            } else {
+                pendingHardwareWrites.removeValue(forKey: writeKey)
             }
         }
 
         /// Performs a single DDC write using the injected DDC interface.
         ///
-        /// Tracks consecutive write failures per display. After `maxWriteFailuresBeforeFallback`
-        /// consecutive failures, the display is downgraded to `.notSupported` and gamma-based
-        /// software brightness is applied immediately so the user doesn't lose control.
+        /// Tracks consecutive write failures per display+VCP code. After
+        /// `maxWriteFailuresBeforeFallback` consecutive failures for that code, only that
+        /// code is dropped from the display's supported set (e.g. a flaky volume control
+        /// stops being offered) rather than downgrading the whole display to `.notSupported`.
+        /// If the failing code was brightness (or it was the last remaining supported code),
+        /// this naturally falls back to software brightness for the same reason `.notSupported`
+        /// used to — `usesHardwareBrightness` checks `supportsBrightness`, which is now `false`.
         private func performWrite(vcp: VCPCode, value: UInt16, for displayID: CGDirectDisplayID) {
             let ddcIO = ddcInterface
             let minInterval = minimumWriteInterval
@@ -519,17 +594,25 @@
 
                 Task { @MainActor [weak self] in
                     guard let self else { return }
-                    pendingHardwareWrites.remove(writeKey)
+                    decrementPendingHardwareWrite(writeKey)
 
                     if success {
-                        consecutiveWriteFailures[displayID] = 0
+                        consecutiveWriteFailures[writeKey] = 0
                     } else {
-                        let count = (consecutiveWriteFailures[displayID] ?? 0) + 1
-                        consecutiveWriteFailures[displayID] = count
+                        let count = (consecutiveWriteFailures[writeKey] ?? 0) + 1
+                        consecutiveWriteFailures[writeKey] = count
 
-                        if count >= threshold {
-                            // Downgrade to software brightness
-                            capabilities[displayID] = .notSupported(displayID: displayID)
+                        if count >= threshold, let cap = capabilities[displayID] {
+                            var remainingCodes = cap.supportedCodes
+                            remainingCodes.remove(vcp)
+                            capabilities[displayID] = HardwareDisplayCapability(
+                                displayID: cap.displayID,
+                                supportsDDC: !remainingCodes.isEmpty,
+                                supportedCodes: remainingCodes,
+                                maxBrightness: cap.maxBrightness,
+                                maxContrast: cap.maxContrast,
+                                maxVolume: cap.maxVolume
+                            )
                             BrightnessManager.shared.applyCurrentBrightness(for: displayID)
                         }
                     }
@@ -539,7 +622,7 @@
 
         private func markLocalWrite(vcp: VCPCode, for displayID: CGDirectDisplayID) {
             let writeKey = WriteKey(displayID: displayID, vcp: vcp)
-            pendingHardwareWrites.insert(writeKey)
+            pendingHardwareWrites[writeKey, default: 0] += 1
             lastLocalWriteTime[writeKey] = Date()
         }
 
@@ -549,7 +632,7 @@
             readStartedAt: Date
         ) -> Bool {
             let writeKey = WriteKey(displayID: displayID, vcp: vcp)
-            guard !pendingHardwareWrites.contains(writeKey) else { return false }
+            guard (pendingHardwareWrites[writeKey] ?? 0) == 0 else { return false }
             guard let localWriteTime = lastLocalWriteTime[writeKey] else { return true }
             return localWriteTime <= readStartedAt
         }
