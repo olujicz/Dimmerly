@@ -108,6 +108,39 @@ final class MenuBarPanelTests: XCTestCase {
         XCTAssertEqual(scrollView.verticalScroller?.controlSize, .small)
     }
 
+    @MainActor
+    func testScrollStyleConfiguratorDoesNotReapplyAfterFirstSuccess() {
+        // Regression test: `updateNSView` calls `scheduleApply()` with its default
+        // `attemptsRemaining` on every SwiftUI body re-evaluation (dozens per second while
+        // dragging a slider). Once the scroll view has been found and styled, further calls
+        // must be no-ops instead of each restarting an 8-step async retry chain.
+        let scrollView = NSScrollView()
+        scrollView.scrollerStyle = .legacy
+        scrollView.autohidesScrollers = false
+        scrollView.verticalScroller = NSScroller()
+        scrollView.verticalScroller?.controlSize = .regular
+
+        let configuratorView = MenuBarPanelScrollStyleConfiguratorView()
+        scrollView.addSubview(configuratorView)
+
+        configuratorView.scheduleApply()
+        drainMainRunLoop()
+        XCTAssertTrue(scrollView.autohidesScrollers)
+
+        // Revert the scroll view's style externally, then call scheduleApply() again —
+        // simulating another SwiftUI re-render after the style was already applied once.
+        scrollView.autohidesScrollers = false
+        scrollView.verticalScroller?.controlSize = .regular
+        configuratorView.scheduleApply()
+        drainMainRunLoop()
+
+        XCTAssertFalse(
+            scrollView.autohidesScrollers,
+            "Once already styled, scheduleApply() must not re-walk and reapply"
+        )
+        XCTAssertEqual(scrollView.verticalScroller?.controlSize, .regular)
+    }
+
     func testSliderSyncGateSuppressesProgrammaticChangeOnce() {
         var gate = SliderSyncGate()
 
@@ -163,7 +196,7 @@ final class MenuBarPanelTests: XCTestCase {
         let source = try String(contentsOf: sourceURL, encoding: .utf8)
 
         XCTAssertTrue(
-            source.contains("nsView.window?.makeFirstResponder(nsView)"),
+            source.contains("window?.makeFirstResponder(self)"),
             "Main shortcut recording should make its capture view first responder when recording starts"
         )
     }
@@ -217,6 +250,24 @@ final class MenuBarPanelTests: XCTestCase {
         MenuBarPanelHostGlass.refreshContentBackgrounds(in: window)
 
         XCTAssertEqual(newContainer.layer?.backgroundColor, NSColor.clear.cgColor)
+    }
+
+    @MainActor
+    func testHostRefreshConfiguratorCoalescesRapidScheduleRefreshCalls() {
+        // Regression test: `updateNSView` calls `scheduleRefresh()` on every SwiftUI body
+        // re-evaluation (dozens per second while dragging a slider). These must coalesce
+        // into a single actual hierarchy walk per run-loop turn, not one walk per call.
+        let window = Self.makeTestWindow()
+        let configuratorView = MenuBarPanelHostRefreshConfiguratorView()
+        window.contentView?.addSubview(configuratorView)
+
+        for _ in 0 ..< 20 {
+            configuratorView.scheduleRefresh()
+        }
+
+        drainMainRunLoop()
+
+        XCTAssertEqual(configuratorView.refreshCount, 1)
     }
 
     @MainActor

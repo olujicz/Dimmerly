@@ -79,6 +79,9 @@
 		MB00000000000000000011 /* MenuBarPanelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = MB00000000000000000001 /* MenuBarPanelTests.swift */; };
 		SB00000000000000000011 /* ScreenBlankerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SB00000000000000000001 /* ScreenBlankerTests.swift */; };
 		SH00000000000000000011 /* SharedConstantsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SH00000000000000000001 /* SharedConstantsTests.swift */; };
+		IT00000000000000000011 /* IdleTimerManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = IT00000000000000000001 /* IdleTimerManagerTests.swift */; };
+		PE00000000000000000011 /* PresetEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = PE00000000000000000001 /* PresetEntity.swift */; };
+		LP00000000000000000011 /* LocationProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = LP00000000000000000001 /* LocationProviderTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -185,6 +188,9 @@
 		SH00000000000000000001 /* SharedConstantsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedConstantsTests.swift; sourceTree = "<group>"; };
 		EX00000000000000000001 /* PresetManagementRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetManagementRow.swift; sourceTree = "<group>"; };
 		EX00000000000000000002 /* LocationPickerRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPickerRow.swift; sourceTree = "<group>"; };
+		IT00000000000000000001 /* IdleTimerManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleTimerManagerTests.swift; sourceTree = "<group>"; };
+		PE00000000000000000001 /* PresetEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetEntity.swift; sourceTree = "<group>"; };
+		LP00000000000000000001 /* LocationProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationProviderTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -358,6 +364,7 @@
 			isa = PBXGroup;
 			children = (
 				NF00000000000000000005 /* DisplayEntity.swift */,
+				PE00000000000000000001 /* PresetEntity.swift */,
 				IE00000000000000000001 /* DisplayIntentError.swift */,
 				NF00000000000000000009 /* DimmerlyShortcuts.swift */,
 				NF00000000000000000007 /* SetDisplayBrightnessIntent.swift */,
@@ -392,6 +399,8 @@
 					SB00000000000000000001 /* ScreenBlankerTests.swift */,
 					SH00000000000000000001 /* SharedConstantsTests.swift */,
 					NT00000000000000000010 /* SolarCalculatorTests.swift */,
+					IT00000000000000000001 /* IdleTimerManagerTests.swift */,
+					LP00000000000000000001 /* LocationProviderTests.swift */,
 			);
 			path = DimmerlyTests;
 			sourceTree = "<group>";
@@ -581,6 +590,7 @@
 				NF00000000000000000013 /* IdleTimerManager.swift in Sources */,
 				NF00000000000000000014 /* PresetShortcutManager.swift in Sources */,
 				NF00000000000000000015 /* DisplayEntity.swift in Sources */,
+				PE00000000000000000011 /* PresetEntity.swift in Sources */,
 				IE00000000000000000011 /* DisplayIntentError.swift in Sources */,
 				NF00000000000000000016 /* SleepDisplaysIntent.swift in Sources */,
 				NF00000000000000000017 /* SetDisplayBrightnessIntent.swift in Sources */,
@@ -627,6 +637,8 @@
 				MB00000000000000000011 /* MenuBarPanelTests.swift in Sources */,
 				SB00000000000000000011 /* ScreenBlankerTests.swift in Sources */,
 				SH00000000000000000011 /* SharedConstantsTests.swift in Sources */,
+				IT00000000000000000011 /* IdleTimerManagerTests.swift in Sources */,
+				LP00000000000000000011 /* LocationProviderTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -72,7 +72,13 @@ class ScheduleManager {
     /// UserDefaults key for persisting schedules as JSON.
     private static let schedulesKey = "dimmerlyDimmingSchedules"
 
-    init() {
+    /// The `UserDefaults` suite to read from and persist to. Defaults to `.standard` for
+    /// production use; tests should inject an isolated suite so they don't read or overwrite
+    /// the developer's real saved schedules.
+    private let defaults: UserDefaults
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
         loadSchedules()
     }
 
@@ -104,11 +110,18 @@ class ScheduleManager {
         stopPolling()
         // 30-second interval is sufficient for minute-resolution schedules
         // (worst-case delay: 30 seconds after trigger time)
-        timer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
+        //
+        // Added to `.common` run loop modes (not just the `.default` mode that
+        // `Timer.scheduledTimer` uses) so schedule checks keep firing while the main
+        // run loop is in a different mode — e.g. a modal alert (`.modalPanel`) or menu
+        // tracking/slider dragging (`.eventTracking`) — instead of silently pausing.
+        let newTimer = Timer(timeInterval: 30, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.checkSchedules()
             }
         }
+        RunLoop.main.add(newTimer, forMode: .common)
+        timer = newTimer
         // Also check immediately to handle schedules that should fire right now
         checkSchedules()
     }
@@ -360,7 +373,7 @@ class ScheduleManager {
     // MARK: - Persistence
 
     private func loadSchedules() {
-        guard let data = UserDefaults.standard.data(forKey: Self.schedulesKey) else { return }
+        guard let data = defaults.data(forKey: Self.schedulesKey) else { return }
 
         do {
             schedules = try JSONDecoder().decode([DimmingSchedule].self, from: data)
@@ -374,7 +387,7 @@ class ScheduleManager {
     private func saveSchedules() {
         do {
             let data = try JSONEncoder().encode(schedules)
-            UserDefaults.standard.set(data, forKey: Self.schedulesKey)
+            defaults.set(data, forKey: Self.schedulesKey)
         } catch {
             scheduleManagerLogger.error(
                 "Failed to encode dimming schedules: \(error.localizedDescription, privacy: .public)"

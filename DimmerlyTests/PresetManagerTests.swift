@@ -13,8 +13,16 @@ final class PresetManagerTests: XCTestCase {
     var manager: PresetManager!
     var bm: BrightnessManager!
 
+    /// An isolated UserDefaults suite, unique per test run, so these tests never read or
+    /// overwrite the developer's real saved presets in `UserDefaults.standard`.
+    private var testSuiteName: String!
+    private var testDefaults: UserDefaults!
+
     override func setUp() async throws {
-        manager = PresetManager()
+        testSuiteName = "PresetManagerTests-\(UUID().uuidString)"
+        testDefaults = UserDefaults(suiteName: testSuiteName)
+        testDefaults.removePersistentDomain(forName: testSuiteName)
+        manager = PresetManager(defaults: testDefaults)
         bm = BrightnessManager(forTesting: true)
         // Clear presets for a clean slate
         while !manager.presets.isEmpty {
@@ -27,9 +35,9 @@ final class PresetManagerTests: XCTestCase {
         while !manager.presets.isEmpty {
             manager.deletePreset(id: manager.presets[0].id)
         }
-        // Clean up UserDefaults keys used by PresetManager
-        UserDefaults.standard.removeObject(forKey: "dimmerlyBrightnessPresets")
-        UserDefaults.standard.removeObject(forKey: "dimmerlyDefaultPresetsSeeded")
+        testDefaults.removePersistentDomain(forName: testSuiteName)
+        testDefaults = nil
+        testSuiteName = nil
         SharedConstants.sharedDefaults?.removeObject(forKey: SharedConstants.widgetPresetsKey)
         manager = nil
         bm = nil

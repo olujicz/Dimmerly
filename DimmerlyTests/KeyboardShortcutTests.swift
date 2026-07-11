@@ -7,6 +7,7 @@
 //
 
 import AppKit
+import Carbon.HIToolbox
 @testable import Dimmerly
 import XCTest
 
@@ -243,6 +244,72 @@ final class KeyboardShortcutManagerTests: XCTestCase {
         var isGranted = false
     }
 
+    /// Synthesizes a key-down `NSEvent` for feeding directly into a captured local monitor
+    /// handler, matching the technique `GlobalShortcutTests.testFromKeyCodeAndModifiers` uses
+    /// to validate key-code mapping (keyCode 2 is 'd' on the ANSI layout).
+    private func makeKeyDownEvent(keyCode: UInt16, modifierFlags: NSEvent.ModifierFlags) -> NSEvent {
+        NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: modifierFlags,
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            characters: "",
+            charactersIgnoringModifiers: "",
+            isARepeat: false,
+            keyCode: keyCode
+        )!
+    }
+
+    func testLocalMonitorSwallowsMatchingShortcutEvent() throws {
+        var capturedHandler: ((NSEvent) -> NSEvent?)?
+        let manager = KeyboardShortcutManager(
+            shortcut: GlobalShortcut(key: "d", modifiers: [.command, .option, .shift]),
+            permissionChecker: { true },
+            globalMonitorInstaller: { _ in MonitorToken() },
+            localMonitorInstaller: { handler in
+                capturedHandler = handler
+                return MonitorToken()
+            },
+            monitorRemover: { _ in }
+        )
+
+        var triggerCount = 0
+        manager.startMonitoring { triggerCount += 1 }
+
+        let handler = try XCTUnwrap(capturedHandler)
+        let matchingEvent = makeKeyDownEvent(keyCode: 2, modifierFlags: [.command, .option, .shift])
+        let result = handler(matchingEvent)
+
+        XCTAssertNil(result, "A matching shortcut event must be swallowed, not passed through")
+        XCTAssertEqual(triggerCount, 1, "The shortcut callback must still fire")
+    }
+
+    func testLocalMonitorPassesThroughNonMatchingEvent() throws {
+        var capturedHandler: ((NSEvent) -> NSEvent?)?
+        let manager = KeyboardShortcutManager(
+            shortcut: GlobalShortcut(key: "d", modifiers: [.command, .option, .shift]),
+            permissionChecker: { true },
+            globalMonitorInstaller: { _ in MonitorToken() },
+            localMonitorInstaller: { handler in
+                capturedHandler = handler
+                return MonitorToken()
+            },
+            monitorRemover: { _ in }
+        )
+
+        var triggerCount = 0
+        manager.startMonitoring { triggerCount += 1 }
+
+        let handler = try XCTUnwrap(capturedHandler)
+        let nonMatchingEvent = makeKeyDownEvent(keyCode: 0, modifierFlags: [.command])
+        let result = handler(nonMatchingEvent)
+
+        XCTAssertNotNil(result, "A non-matching event must pass through so other UI can use it")
+        XCTAssertEqual(triggerCount, 0, "The shortcut callback must not fire")
+    }
+
     func testRefreshPermissionRestartsMainShortcutMonitoringAfterPermissionIsGranted() {
         let permissionProbe = PermissionProbe()
         var globalMonitorInstallCount = 0
@@ -305,5 +372,63 @@ final class KeyboardShortcutManagerTests: XCTestCase {
 
         XCTAssertEqual(globalMonitorInstallCount, 1)
         XCTAssertEqual(localMonitorInstallCount, 1)
+    }
+
+    func testPresetLocalMonitorSwallowsMatchingShortcutEvent() throws {
+        var capturedHandler: ((NSEvent) -> NSEvent?)?
+        let manager = PresetShortcutManager(
+            permissionChecker: { true },
+            globalMonitorInstaller: { _ in MonitorToken() },
+            localMonitorInstaller: { handler in
+                capturedHandler = handler
+                return MonitorToken()
+            },
+            monitorRemover: { _ in }
+        )
+        let presetID = UUID()
+        let preset = BrightnessPreset(
+            id: presetID,
+            name: "Night",
+            shortcut: GlobalShortcut(key: "1", modifiers: [.command, .option])
+        )
+
+        var triggeredID: UUID?
+        manager.onPresetTriggered = { triggeredID = $0 }
+        manager.updateShortcuts(from: [preset])
+
+        let handler = try XCTUnwrap(capturedHandler)
+        let matchingEvent = makeKeyDownEvent(keyCode: UInt16(kVK_ANSI_1), modifierFlags: [.command, .option])
+        let result = handler(matchingEvent)
+
+        XCTAssertNil(result, "A matching preset shortcut event must be swallowed, not passed through")
+        XCTAssertEqual(triggeredID, presetID)
+    }
+
+    func testPresetLocalMonitorPassesThroughNonMatchingEvent() throws {
+        var capturedHandler: ((NSEvent) -> NSEvent?)?
+        let manager = PresetShortcutManager(
+            permissionChecker: { true },
+            globalMonitorInstaller: { _ in MonitorToken() },
+            localMonitorInstaller: { handler in
+                capturedHandler = handler
+                return MonitorToken()
+            },
+            monitorRemover: { _ in }
+        )
+        let preset = BrightnessPreset(
+            name: "Night",
+            shortcut: GlobalShortcut(key: "1", modifiers: [.command, .option])
+        )
+
+        var triggeredID: UUID?
+        manager.onPresetTriggered = { triggeredID = $0 }
+        manager.updateShortcuts(from: [preset])
+
+        let handler = try XCTUnwrap(capturedHandler)
+        let nonMatchingEvent = makeKeyDownEvent(keyCode: UInt16(kVK_ANSI_2), modifierFlags: [.command, .option])
+        let result = handler(nonMatchingEvent)
+
+        XCTAssertNotNil(result, "A non-matching event must pass through so other UI can use it")
+        XCTAssertNil(triggeredID, "No preset should be triggered")
     }
 }

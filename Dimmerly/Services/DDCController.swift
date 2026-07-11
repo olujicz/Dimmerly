@@ -264,28 +264,31 @@
         /// Probes a display to determine which VCP codes it supports.
         ///
         /// Attempts to read each VCP code and collects the ones that return valid responses.
-        /// This is an expensive operation (~50ms * number of codes) and should be called
-        /// once per display connection, with results cached.
+        /// This is an expensive operation (~50ms per code when the display responds) and
+        /// should be called once per display connection, with results cached.
+        ///
+        /// Fails fast on displays with no DDC/CI support at all: if the brightness code
+        /// (the most universally supported VCP code, and the same heuristic `supportsDDC(for:)`
+        /// uses) gets no response, every other code would fail through the same expensive
+        /// multi-transport, multi-retry path for no informational gain, so the remaining
+        /// codes are skipped rather than probed. This keeps a non-responsive display (e.g. a
+        /// DisplayLink adapter or a TV with DDC/CI disabled) from occupying the serial DDC
+        /// queue for several seconds and delaying writes queued behind it for other monitors.
         ///
         /// - Parameter displayID: CoreGraphics display identifier
         /// - Returns: Set of VCP codes that the display responded to successfully
         static func capabilities(for displayID: CGDirectDisplayID) -> Set<VCPCode> {
             var supported = Set<VCPCode>()
-            for code in VCPCode.allCases where read(vcp: code, for: displayID) != nil {
+            for code in VCPCode.allCases {
+                guard read(vcp: code, for: displayID) != nil else {
+                    if code == .brightness {
+                        return supported
+                    }
+                    continue
+                }
                 supported.insert(code)
             }
             return supported
-        }
-
-        /// Checks if a display appears to support DDC/CI by attempting a brightness read.
-        ///
-        /// Brightness (VCP 0x10) is the most universally supported DDC code.
-        /// If a monitor responds to a brightness read, it almost certainly supports DDC/CI.
-        ///
-        /// - Parameter displayID: CoreGraphics display identifier
-        /// - Returns: `true` if the display responded to a DDC brightness read
-        static func supportsDDC(for displayID: CGDirectDisplayID) -> Bool {
-            read(vcp: .brightness, for: displayID) != nil
         }
 
         // MARK: - Apple Silicon Implementation
@@ -560,7 +563,6 @@
                 serialNumber: UInt32
             ) -> Bool {
                 // Walk up the registry to find the parent with EDID/display info
-                var parent: io_registry_entry_t = 0
                 var current = service
 
                 // Walk up a few levels looking for display properties
@@ -573,11 +575,10 @@
                         IOObjectRelease(current)
                     }
                     current = nextParent
-                    parent = nextParent
 
                     var properties: Unmanaged<CFMutableDictionary>?
                     guard IORegistryEntryCreateCFProperties(
-                        parent, &properties, kCFAllocatorDefault, 0
+                        current, &properties, kCFAllocatorDefault, 0
                     ) == KERN_SUCCESS,
                         let dict = properties?.takeRetainedValue() as? [String: Any]
                     else {
@@ -589,7 +590,9 @@
                        let vid = dict["VendorID"] as? UInt32
                     {
                         if productID == modelID, vid == vendorID {
-                            if current != service { IOObjectRelease(current) }
+                            if current != service {
+                                IOObjectRelease(current)
+                            }
                             return true
                         }
                     }
@@ -599,14 +602,18 @@
                        let displayProductID = dict["DisplayProductID"] as? UInt32
                     {
                         if displayVendorID == vendorID, displayProductID == modelID {
-                            if current != service { IOObjectRelease(current) }
+                            if current != service {
+                                IOObjectRelease(current)
+                            }
                             return true
                         }
                     }
 
                     // Check for serial number match
                     if serialNumber != 0, let sn = dict["DisplaySerialNumber"] as? UInt32, sn == serialNumber {
-                        if current != service { IOObjectRelease(current) }
+                        if current != service {
+                            IOObjectRelease(current)
+                        }
                         return true
                     }
                 }
@@ -762,17 +769,23 @@
                 let checksum = UInt8(ddcI2CAddress << 1) ^ hostAddress ^ length ^ getVCPOpcode ^ vcp.rawValue
 
                 for attempt in 0 ..< maxRetryAttempts {
-                    if attempt > 0 { usleep(retryDelayMs * 1000) }
+                    if attempt > 0 {
+                        usleep(retryDelayMs * 1000)
+                    }
 
                     var writeData: [UInt8] = [length, getVCPOpcode, vcp.rawValue, checksum]
                     var writeOK = false
                     for cycle in 0 ..< writeCyclesPerAttempt {
-                        if cycle > 0 { usleep(writeCycleDelayMs * 1000) }
+                        if cycle > 0 {
+                            usleep(writeCycleDelayMs * 1000)
+                        }
                         let r = IOAVServiceWriteI2C(
                             avService, ddcI2CAddress, UInt32(hostAddress),
                             &writeData, UInt32(writeData.count)
                         )
-                        if r == KERN_SUCCESS { writeOK = true }
+                        if r == KERN_SUCCESS {
+                            writeOK = true
+                        }
                     }
                     guard writeOK else { continue }
 
@@ -801,19 +814,27 @@
                     ^ setVCPOpcode ^ vcp.rawValue ^ valueHi ^ valueLo
 
                 for attempt in 0 ..< maxRetryAttempts {
-                    if attempt > 0 { usleep(retryDelayMs * 1000) }
+                    if attempt > 0 {
+                        usleep(retryDelayMs * 1000)
+                    }
 
                     var writeData: [UInt8] = [length, setVCPOpcode, vcp.rawValue, valueHi, valueLo, checksum]
                     var writeOK = false
                     for cycle in 0 ..< writeCyclesPerAttempt {
-                        if cycle > 0 { usleep(writeCycleDelayMs * 1000) }
+                        if cycle > 0 {
+                            usleep(writeCycleDelayMs * 1000)
+                        }
                         let r = IOAVServiceWriteI2C(
                             avService, ddcI2CAddress, UInt32(hostAddress),
                             &writeData, UInt32(writeData.count)
                         )
-                        if r == KERN_SUCCESS { writeOK = true }
+                        if r == KERN_SUCCESS {
+                            writeOK = true
+                        }
                     }
-                    if writeOK { return true }
+                    if writeOK {
+                        return true
+                    }
                 }
                 return false
             }
@@ -830,17 +851,23 @@
                 let checksum = UInt8(ddcI2CAddress << 1) ^ hostAddress ^ length ^ getVCPOpcode ^ vcp.rawValue
 
                 for attempt in 0 ..< maxRetryAttempts {
-                    if attempt > 0 { usleep(retryDelayMs * 1000) }
+                    if attempt > 0 {
+                        usleep(retryDelayMs * 1000)
+                    }
 
                     var writeData: [UInt8] = [length, getVCPOpcode, vcp.rawValue, checksum]
                     var writeOK = false
                     for cycle in 0 ..< writeCyclesPerAttempt {
-                        if cycle > 0 { usleep(writeCycleDelayMs * 1000) }
+                        if cycle > 0 {
+                            usleep(writeCycleDelayMs * 1000)
+                        }
                         let r = writeFn(
                             avDevice, ddcI2CAddress, UInt32(hostAddress),
                             &writeData, UInt32(writeData.count)
                         )
-                        if r == KERN_SUCCESS { writeOK = true }
+                        if r == KERN_SUCCESS {
+                            writeOK = true
+                        }
                     }
                     guard writeOK else { continue }
 
@@ -871,19 +898,27 @@
                     ^ setVCPOpcode ^ vcp.rawValue ^ valueHi ^ valueLo
 
                 for attempt in 0 ..< maxRetryAttempts {
-                    if attempt > 0 { usleep(retryDelayMs * 1000) }
+                    if attempt > 0 {
+                        usleep(retryDelayMs * 1000)
+                    }
 
                     var writeData: [UInt8] = [length, setVCPOpcode, vcp.rawValue, valueHi, valueLo, checksum]
                     var writeOK = false
                     for cycle in 0 ..< writeCyclesPerAttempt {
-                        if cycle > 0 { usleep(writeCycleDelayMs * 1000) }
+                        if cycle > 0 {
+                            usleep(writeCycleDelayMs * 1000)
+                        }
                         let r = writeFn(
                             avDevice, ddcI2CAddress, UInt32(hostAddress),
                             &writeData, UInt32(writeData.count)
                         )
-                        if r == KERN_SUCCESS { writeOK = true }
+                        if r == KERN_SUCCESS {
+                            writeOK = true
+                        }
                     }
-                    if writeOK { return true }
+                    if writeOK {
+                        return true
+                    }
                 }
                 return false
             }
@@ -912,7 +947,9 @@
 
                 for (writeSel, readSel) in selectorPairs {
                     for attempt in 0 ..< maxRetryAttempts {
-                        if attempt > 0 { usleep(retryDelayMs * 1000) }
+                        if attempt > 0 {
+                            usleep(retryDelayMs * 1000)
+                        }
 
                         var writeData: [UInt8] = [length, getVCPOpcode, vcp.rawValue, checksum]
                         var scalarIn: [UInt64] = [UInt64(ddcI2CAddress), UInt64(hostAddress)]
@@ -973,7 +1010,9 @@
 
                 for (writeSel, _) in selectorPairs {
                     for attempt in 0 ..< maxRetryAttempts {
-                        if attempt > 0 { usleep(retryDelayMs * 1000) }
+                        if attempt > 0 {
+                            usleep(retryDelayMs * 1000)
+                        }
 
                         var writeData: [UInt8] = [
                             length, setVCPOpcode, vcp.rawValue, valueHi, valueLo, checksum,
@@ -990,7 +1029,9 @@
                                 )
                             }
                         }
-                        if r == KERN_SUCCESS { return true }
+                        if r == KERN_SUCCESS {
+                            return true
+                        }
                     }
                 }
                 return false

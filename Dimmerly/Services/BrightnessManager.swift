@@ -196,9 +196,13 @@ class BrightnessManager {
             self?.reapplyAll()
         }
 
-        // Provide per-display brightness to ScreenBlanker for fade animation
+        // Provide per-display brightness to ScreenBlanker for fade animation.
+        // Uses the resolved *gamma* brightness (matching `applyDisplayGamma`), not the raw
+        // model brightness — for hardware-controlled displays gamma sits at 1.0 regardless
+        // of the model value, so the fade must start from there to avoid a jump/flash.
         ScreenBlanker.shared.brightnessForDisplay = { [weak self] displayID in
-            self?.brightness(for: displayID) ?? 1.0
+            guard let self, let display = displays.first(where: { $0.id == displayID }) else { return 1.0 }
+            return resolvedGammaBrightness(for: display)
         }
 
         // Provide per-display warmth to ScreenBlanker for fade animation
@@ -295,9 +299,8 @@ class BrightnessManager {
         } else {
             ScreenBlanker.shared.blankDisplay(displayID)
         }
-        // Trigger observation update by re-assigning displays array
-        // (replaces objectWillChange.send() from ObservableObject pattern)
-        displays = displays
+        // No manual observation nudge needed: ScreenBlanker is @Observable, so views
+        // reading its blanked-display state re-render on their own.
     }
 
     /// Returns a snapshot of current brightness values keyed by display ID string
@@ -397,6 +400,17 @@ class BrightnessManager {
             {
                 HardwareBrightnessManager.shared.removeDisplay(cachedID)
             }
+
+            // Probe newly appeared external displays (hot-plug, or a display re-enumerated
+            // under a new CGDirectDisplayID after sleep/wake) so DDC hardware control
+            // becomes available without requiring a relaunch or a Settings toggle.
+            if HardwareBrightnessManager.shared.isEnabled {
+                let unprobedDisplayIDs = externalDisplayIDs
+                    .filter { HardwareBrightnessManager.shared.capability(for: $0) == nil }
+                if !unprobedDisplayIDs.isEmpty {
+                    HardwareBrightnessManager.shared.probeAllDisplays(force: false)
+                }
+            }
         #endif
 
         let savedBrightness = loadPersistedBrightness()
@@ -414,7 +428,14 @@ class BrightnessManager {
             var brightness: Double
             #if !APPSTORE
                 if builtIn, let hw = readBuiltInBrightness(for: displayID) {
-                    brightness = Swift.max(hw, Self.minimumBrightness)
+                    // Do not clamp a live hardware read up to `minimumBrightness`: this value
+                    // gets written straight back to the backlight by the `reapplyAll()` call
+                    // below, so clamping here would silently brighten a display the user (or
+                    // the system) intentionally set below the app's floor — e.g. via keyboard
+                    // brightness keys — every time a reconfiguration or wake event fires.
+                    // Gamma safety is unaffected: `resolvedGammaBrightness` pins gamma at 1.0
+                    // for hardware-controlled displays regardless of this model value.
+                    brightness = hw
                 } else {
                     brightness = Swift.max(savedBrightness[String(displayID)] ?? 1.0, Self.minimumBrightness)
                 }
@@ -648,7 +669,12 @@ class BrightnessManager {
                 displayID: display.id,
                 start: (display.brightness, display.warmth, display.contrast),
                 end: (endBrightness, endWarmth, endContrast),
-                useLiveBrightness: false
+                // Hardware-controlled displays (built-in backlight, DDC) keep gamma
+                // pinned at 1.0 throughout via `resolvedGammaBrightness` instead of
+                // interpolating gamma on top of an unchanged hardware brightness level
+                // (which would double-dim mid-animation, then pop when the hardware
+                // write lands at `synchronizeHardwareBrightnessAfterAnimation()`).
+                useLiveBrightness: true
             )
         }
 
@@ -799,11 +825,17 @@ class BrightnessManager {
     // MARK: - Display Enumeration
 
     /// Returns all active display IDs. Shared helper for display enumeration.
+    ///
+    /// Queries the active display count first rather than assuming a fixed upper bound, so
+    /// setups with many displays (docks, KVMs) aren't silently truncated.
     static func activeDisplayIDs() -> [CGDirectDisplayID] {
-        var displayIDs = [CGDirectDisplayID](repeating: 0, count: 16)
         var displayCount: UInt32 = 0
+        guard CGGetActiveDisplayList(0, nil, &displayCount) == .success, displayCount > 0 else {
+            return []
+        }
 
-        guard CGGetActiveDisplayList(UInt32(displayIDs.count), &displayIDs, &displayCount) == .success else {
+        var displayIDs = [CGDirectDisplayID](repeating: 0, count: Int(displayCount))
+        guard CGGetActiveDisplayList(displayCount, &displayIDs, &displayCount) == .success else {
             return []
         }
 
@@ -1004,15 +1036,18 @@ private final class DisplayReconfigurationToken: @unchecked Sendable {
 ///
 /// - Parameters:
 ///   - display: The display that changed (not used, we refresh all displays)
-///   - flags: Change flags (we only care about add/remove, not mode changes)
+///   - flags: Change flags — add/remove (connect/disconnect) and mode changes
+///     (resolution/refresh-rate) all trigger a refresh; other flags are ignored.
 ///   - userInfo: Unmanaged pointer to the DisplayReconfigurationToken
 private func displayReconfigurationCallback(
     _: CGDirectDisplayID,
     _ flags: CGDisplayChangeSummaryFlags,
     _ userInfo: UnsafeMutableRawPointer?
 ) {
-    // Only handle display connection/disconnection (ignore resolution/rotation changes)
-    guard flags.contains(.addFlag) || flags.contains(.removeFlag) else { return }
+    // Handle display connection/disconnection, and mode changes (resolution/refresh-rate),
+    // since some GPU drivers reset the gamma LUT on a mode change — without reacting here,
+    // dimming/warmth would silently revert to native until the next add/remove event or wake.
+    guard flags.contains(.addFlag) || flags.contains(.removeFlag) || flags.contains(.setModeFlag) else { return }
     guard let userInfo else { return }
     let token = Unmanaged<DisplayReconfigurationToken>.fromOpaque(userInfo).takeUnretainedValue()
     token.reconfigured()

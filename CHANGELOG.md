@@ -14,12 +14,28 @@ Semantic Versioning.
 ### Changed
 - Refined Hardware Control settings so unavailable hardware control modes are disabled with clearer fallback guidance.
 - Clarified per-display DDC/CI support status and tightened the advanced polling and write-delay controls.
+- Control-click on the menu bar icon now also opens the quick actions menu, matching right-click.
+- The "Apply Brightness Preset" Shortcuts action now uses a preset picker instead of a typed preset name, so it keeps working after a preset is renamed.
 
 ### Fixed
 - Fixed the menu bar icon staying visually highlighted after using "Turn Displays Off" to close the panel.
 - Fixed hardware brightness control fallback so DDC/CI control is only used when hardware control is enabled and available.
 - Fixed display schedules so missed events between app checks are applied in chronological order.
 - Fixed keyboard shortcut recording so the recorder reliably receives focus before capturing keys.
+- Fixed auto-dim after inactivity so it correctly measures real user inactivity instead of triggering almost immediately.
+- Fixed hardware (DDC/CI) brightness control so newly connected or hot-plugged displays are detected without needing a relaunch or a Settings toggle.
+- Fixed preset transitions so hardware-controlled displays (built-in backlight, DDC/CI) no longer flash dark partway through applying a preset.
+- Fixed the menu bar panel so per-display dim/blank state stays in sync when dismissed by keyboard or mouse input, instead of showing stale state.
+- Fixed hardware control so an unreliable volume or input-source control no longer disables hardware brightness for the whole display.
+- Fixed a rare case where a display that doesn't support DDC/CI could delay brightness updates on other connected displays.
+- Fixed the dim/blank fade so it starts from the display's actual current brightness and warmth instead of flashing to the wrong value.
+- Fixed sunrise/sunset schedules and automatic color temperature so times are correct on daylight saving time transition days.
+- Fixed built-in display brightness so it no longer jumps up unexpectedly after waking or connecting an external display.
+- Fixed error alerts so they no longer pause schedules, auto-dim, or color temperature transitions while shown.
+- Fixed preset keyboard shortcuts so they're checked against reserved system shortcuts, and matched shortcuts no longer also type into a focused field.
+- Fixed the right-click quick actions menu so it keeps working reliably if the menu bar icon is recreated.
+- Reduced unnecessary background work while dragging brightness sliders in the menu bar panel.
+- Fixed the "Save Current" preset field so it's focused and ready to type into immediately, and fixed the launch-at-login alert so its message no longer flashes empty while dismissing.
 
 ## [1.0.2] - 2026-07-01
 

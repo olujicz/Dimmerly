@@ -112,17 +112,22 @@ class PresetShortcutManager {
             let keyCode = event.keyCode
             let modifierFlags = event.modifierFlags
             Task { @MainActor in
-                self?.handleKeyEvent(keyCode: keyCode, modifierFlags: modifierFlags)
+                _ = self?.handleKeyEvent(keyCode: keyCode, modifierFlags: modifierFlags)
             }
         }
 
+        // Matched events are swallowed (return nil) instead of always passing through —
+        // otherwise a preset shortcut both applies the preset and reaches whatever UI
+        // element has focus. The match check runs synchronously via
+        // `MainActor.assumeIsolated`, since NSEvent local monitor callbacks always fire
+        // on the main thread.
         localEventMonitor = localMonitorInstaller { [weak self] event in
             let keyCode = event.keyCode
             let modifierFlags = event.modifierFlags
-            Task { @MainActor in
-                self?.handleKeyEvent(keyCode: keyCode, modifierFlags: modifierFlags)
+            let matched = MainActor.assumeIsolated {
+                self?.handleKeyEvent(keyCode: keyCode, modifierFlags: modifierFlags) ?? false
             }
-            return event
+            return matched ? nil : event
         }
     }
 
@@ -153,12 +158,15 @@ class PresetShortcutManager {
         startMonitoring()
     }
 
-    private func handleKeyEvent(keyCode: UInt16, modifierFlags: NSEvent.ModifierFlags) {
-        guard let pressed = GlobalShortcut.from(keyCode: keyCode, modifierFlags: modifierFlags) else { return }
+    /// - Returns: `true` if the event matched a registered preset shortcut (and the callback fired).
+    @discardableResult
+    private func handleKeyEvent(keyCode: UInt16, modifierFlags: NSEvent.ModifierFlags) -> Bool {
+        guard let pressed = GlobalShortcut.from(keyCode: keyCode, modifierFlags: modifierFlags) else { return false }
         for (id, shortcut) in presetShortcuts where shortcut == pressed {
             onPresetTriggered?(id)
-            return
+            return true
         }
+        return false
     }
 
     // MARK: - Lifecycle

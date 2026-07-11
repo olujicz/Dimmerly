@@ -13,6 +13,12 @@ import SwiftUI
 struct PresetManagementRow: View {
     let preset: BrightnessPreset
     let mainShortcut: GlobalShortcut
+    /// Display name for the main shortcut's action, matching
+    /// `StatusItemQuickActions.turnOffTitle(settings:)` — the same label shown in the menu
+    /// bar panel and quick-actions menu, so this conflict message never disagrees with what
+    /// the user actually sees (e.g. never says "Sleep Displays" in the App Store build, which
+    /// only ever offers "Dim Displays").
+    let mainShortcutName: String
     let allPresets: [BrightnessPreset]
     let onRename: (String) -> Void
     let onDelete: () -> Void
@@ -77,10 +83,7 @@ struct PresetManagementRow: View {
                                     "This shortcut conflicts with %@",
                                     comment: "Shortcut conflict message"
                                 ),
-                                NSLocalizedString(
-                                    "Sleep Displays",
-                                    comment: "Main shortcut name"
-                                )
+                                mainShortcutName
                             )
                             return
                         }
@@ -99,6 +102,9 @@ struct PresetManagementRow: View {
                     }
                     conflictMessage = nil
                     onShortcutChanged(newShortcut)
+                },
+                onConflictDetected: { message in
+                    conflictMessage = message
                 },
                 onRecordingChanged: { _ in
                     conflictMessage = nil
@@ -140,6 +146,7 @@ struct PresetManagementRow: View {
 struct PresetShortcutRecorderButton: View {
     let shortcut: GlobalShortcut?
     let onRecord: (GlobalShortcut?) -> Void
+    var onConflictDetected: ((String) -> Void)?
     var onRecordingChanged: ((Bool) -> Void)?
 
     @State private var isRecording = false
@@ -173,6 +180,10 @@ struct PresetShortcutRecorderButton: View {
                 },
                 onCancel: {
                     isRecording = false
+                },
+                onConflictDetected: { message in
+                    isRecording = false
+                    onConflictDetected?(message)
                 }
             )
             .allowsHitTesting(isRecording)
@@ -197,26 +208,38 @@ private struct PresetShortcutCaptureView: NSViewRepresentable {
     let isActive: Bool
     let onCapture: (GlobalShortcut) -> Void
     let onCancel: () -> Void
+    let onConflictDetected: (String) -> Void
 
     func makeNSView(context _: Context) -> PresetShortcutNSView {
         let view = PresetShortcutNSView()
         view.onCapture = onCapture
         view.onCancel = onCancel
+        view.onConflictDetected = onConflictDetected
         return view
     }
 
     func updateNSView(_ nsView: PresetShortcutNSView, context _: Context) {
         nsView.isActive = isActive
-        if isActive {
-            nsView.window?.makeFirstResponder(nsView)
-        }
     }
 }
 
 private class PresetShortcutNSView: NSView {
     var onCapture: ((GlobalShortcut) -> Void)?
     var onCancel: (() -> Void)?
-    var isActive = false
+    var onConflictDetected: ((String) -> Void)?
+
+    /// Requests first responder only on the false→true transition, deferred to the next
+    /// run loop turn — not synchronously inside `updateNSView`'s SwiftUI update transaction,
+    /// and not on every subsequent SwiftUI re-render while already recording.
+    var isActive = false {
+        didSet {
+            guard isActive, !oldValue else { return }
+            DispatchQueue.main.async { [weak self] in
+                guard let self, isActive else { return }
+                window?.makeFirstResponder(self)
+            }
+        }
+    }
 
     override var acceptsFirstResponder: Bool {
         isActive
@@ -237,7 +260,20 @@ private class PresetShortcutNSView: NSView {
             keyCode: event.keyCode,
             modifierFlags: event.modifierFlags
         ), shortcut.isValid {
-            onCapture?(shortcut)
+            if shortcut.isReservedSystemShortcut {
+                onConflictDetected?(
+                    String(
+                        format: NSLocalizedString(
+                            "%@ is a standard system shortcut."
+                                + " Try a different combination.",
+                            comment: "Shortcut conflict message"
+                        ),
+                        shortcut.displayString
+                    )
+                )
+            } else {
+                onCapture?(shortcut)
+            }
         }
     }
 

@@ -12,15 +12,24 @@ import XCTest
 final class ScheduleManagerTests: XCTestCase {
     private var manager: ScheduleManager!
 
+    /// An isolated UserDefaults suite, unique per test run, so these tests never read or
+    /// overwrite the developer's real saved schedules in `UserDefaults.standard`.
+    private var testSuiteName: String!
+    private var testDefaults: UserDefaults!
+
     override func setUp() async throws {
-        UserDefaults.standard.removeObject(forKey: "dimmerlyDimmingSchedules")
-        manager = ScheduleManager()
+        testSuiteName = "ScheduleManagerTests-\(UUID().uuidString)"
+        testDefaults = UserDefaults(suiteName: testSuiteName)
+        testDefaults.removePersistentDomain(forName: testSuiteName)
+        manager = ScheduleManager(defaults: testDefaults)
         manager.schedules = []
     }
 
     override func tearDown() async throws {
         manager = nil
-        UserDefaults.standard.removeObject(forKey: "dimmerlyDimmingSchedules")
+        testDefaults.removePersistentDomain(forName: testSuiteName)
+        testDefaults = nil
+        testSuiteName = nil
     }
 
     // MARK: - Helpers
@@ -348,7 +357,7 @@ final class ScheduleManagerTests: XCTestCase {
         manager.addSchedule(schedule)
 
         // Create a new manager instance — should load from UserDefaults
-        let newManager = ScheduleManager()
+        let newManager = ScheduleManager(defaults: testDefaults)
         XCTAssertEqual(newManager.schedules.count, 1)
         XCTAssertEqual(newManager.schedules.first?.name, "Persistent")
         XCTAssertEqual(newManager.schedules.first?.id, schedule.id)

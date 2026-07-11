@@ -14,62 +14,30 @@ import XCTest
 @MainActor
 final class AppSettingsTests: XCTestCase {
     var settings: AppSettings!
-    let testSuiteName = "DimmerlyTestSuite"
 
-    /// UserDefaults keys used by AppSettings
-    private let appStorageKeys = [
-        "dimmerlyKeyboardShortcut",
-        "dimmerlyLaunchAtLogin",
-        "dimmerlyPreventScreenLock",
-        "dimmerlyIgnoreMouseMovement",
-        "dimmerlyMenuBarIcon",
-        "dimmerlyIdleTimerEnabled",
-        "dimmerlyIdleTimerMinutes",
-        "dimmerlyFadeTransition",
-        "dimmerlyRequireEscapeToDismiss",
-        AppSettings.scheduleEnabledKey,
-        AppSettings.autoColorTempEnabledKey,
-        "dimmerlyDayTemperature",
-        "dimmerlyNightTemperature",
-        "dimmerlyColorTempTransitionMinutes",
-    ]
-
-    #if !APPSTORE
-        private let ddcSettingsKeys = [
-            "dimmerlyDDCEnabled",
-            "dimmerlyDDCControlMode",
-            "dimmerlyDDCPollingInterval",
-            "dimmerlyDDCWriteDelay",
-        ]
-    #endif
+    /// An isolated UserDefaults suite, unique per test run, so these tests never read or
+    /// overwrite the developer's real app settings in `UserDefaults.standard`.
+    private var testSuiteName: String!
+    private var testDefaults: UserDefaults!
 
     override func setUp() async throws {
-        // Remove all AppSettings keys so UserDefaults sees its declared defaults
-        for key in allSettingsKeys {
-            UserDefaults.standard.removeObject(forKey: key)
-        }
-        settings = AppSettings()
+        testSuiteName = "AppSettingsTests-\(UUID().uuidString)"
+        testDefaults = UserDefaults(suiteName: testSuiteName)
+        testDefaults.removePersistentDomain(forName: testSuiteName)
+        settings = AppSettings(defaults: testDefaults)
     }
 
     override func tearDown() async throws {
         settings = nil
-        for key in allSettingsKeys {
-            UserDefaults.standard.removeObject(forKey: key)
-        }
-    }
-
-    private var allSettingsKeys: [String] {
-        #if !APPSTORE
-            appStorageKeys + ddcSettingsKeys
-        #else
-            appStorageKeys
-        #endif
+        testDefaults.removePersistentDomain(forName: testSuiteName)
+        testDefaults = nil
+        testSuiteName = nil
     }
 
     /// Tests that AppSettings has proper default values
     func testDefaultValues() {
         // Given: A new AppSettings instance
-        let newSettings = AppSettings()
+        let newSettings = AppSettings(defaults: testDefaults)
 
         // Then: It should have default values
         XCTAssertFalse(newSettings.launchAtLogin, "Launch at login should default to false")
