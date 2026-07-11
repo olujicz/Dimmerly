@@ -176,7 +176,11 @@ struct GeneralSettingsTab: View {
     @Environment(AppSettings.self) var settings
     @Environment(KeyboardShortcutManager.self) var shortcutManager
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Alert content, kept separate from whether the alert is presented (below) so dismissing
+    /// doesn't clear the title/message text while the dismiss animation is still fading out —
+    /// only a fresh alert trigger replaces this, never the dismissal itself.
     @State private var launchAtLoginAlert: LaunchAtLoginAlertContent?
+    @State private var isLaunchAtLoginAlertPresented = false
 
     var body: some View {
         Form {
@@ -189,6 +193,7 @@ struct GeneralSettingsTab: View {
                             settings: settings,
                             result: LaunchAtLoginManager.setEnabled(newValue)
                         )
+                        isLaunchAtLoginAlertPresented = launchAtLoginAlert != nil
                     }
                 ))
                 .help(Text("Automatically start Dimmerly when you log in"))
@@ -201,17 +206,11 @@ struct GeneralSettingsTab: View {
         .formStyle(.grouped)
         .alert(
             launchAtLoginAlert?.title ?? "",
-            isPresented: Binding(
-                get: { launchAtLoginAlert != nil },
-                set: { isPresented in
-                    if !isPresented {
-                        launchAtLoginAlert = nil
-                    }
-                }
-            )
+            isPresented: $isLaunchAtLoginAlertPresented
         ) {
-            Button("OK", role: .cancel) {
-                launchAtLoginAlert = nil
+            // A single dismissive button doesn't need a `.cancel` role.
+            Button("OK") {
+                isLaunchAtLoginAlertPresented = false
             }
         } message: {
             Text(launchAtLoginAlert?.message ?? "")
@@ -273,11 +272,6 @@ struct DisplaySettingsTab: View {
         @Environment(HardwareBrightnessManager.self) var hardwareManager
     #endif
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    /// Whether any feature that requires location is currently enabled
-    private var needsLocation: Bool {
-        settings.autoColorTempEnabled
-    }
 
     var body: some View {
         Form {
@@ -859,6 +853,7 @@ struct ShortcutsSettingsTab: View {
                 PresetManagementRow(
                     preset: preset,
                     mainShortcut: settings.keyboardShortcut,
+                    mainShortcutName: StatusItemQuickActions.turnOffTitle(settings: settings),
                     allPresets: presetManager.presets,
                     onRename: { newName in
                         presetManager.renamePreset(id: preset.id, to: newName)

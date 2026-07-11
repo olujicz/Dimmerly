@@ -29,19 +29,21 @@ struct ApplyPresetIntent: AppIntent {
     static let title: LocalizedStringResource = "Apply Brightness Preset"
     static let description: IntentDescription = .init("Applies a saved brightness preset to connected displays.")
 
-    @Parameter(title: "Preset Name")
-    var presetName: String
+    @Parameter(title: "Preset")
+    var preset: PresetEntity
 
     @MainActor
     func perform() async throws -> some IntentResult {
         let presetManager = PresetManager.shared
         let brightnessManager = BrightnessManager.shared
 
-        guard let preset = presetManager.presets.first(where: { $0.name == presetName }) else {
+        guard let uuid = UUID(uuidString: preset.id),
+              let resolvedPreset = presetManager.presets.first(where: { $0.id == uuid })
+        else {
             throw IntentError.presetNotFound
         }
 
-        presetManager.applyPreset(preset, to: brightnessManager, animated: true)
+        presetManager.applyPreset(resolvedPreset, to: brightnessManager, animated: true)
         return .result()
     }
 
@@ -50,7 +52,7 @@ struct ApplyPresetIntent: AppIntent {
 
         var localizedStringResource: LocalizedStringResource {
             switch self {
-            case .presetNotFound: "No preset found with that name."
+            case .presetNotFound: "That preset no longer exists."
             }
         }
     }

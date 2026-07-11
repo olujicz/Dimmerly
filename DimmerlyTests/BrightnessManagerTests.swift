@@ -365,6 +365,8 @@ final class BrightnessManagerTests: XCTestCase {
 
             let backlightSynced = expectation(description: "Built-in backlight is updated after animation")
             let finalGammaApplied = expectation(description: "Built-in gamma is restored without brightness dimming")
+            finalGammaApplied.assertForOverFulfill = false
+            var observedBrightnessValues: [Double] = []
             bm.setBuiltInBacklightHook = { displayID, value in
                 XCTAssertEqual(displayID, 1)
                 XCTAssertEqual(value, 0.4, accuracy: 0.001)
@@ -372,13 +374,9 @@ final class BrightnessManagerTests: XCTestCase {
                 return true
             }
             bm.applyGammaHook = { displayID, brightness, warmth, contrast in
-                guard displayID == 1,
-                      abs(brightness - 1.0) < 0.001,
-                      abs(warmth - 0.2) < 0.001,
-                      abs(contrast - 0.7) < 0.001
-                else {
-                    return
-                }
+                guard displayID == 1 else { return }
+                observedBrightnessValues.append(brightness)
+                guard abs(warmth - 0.2) < 0.001, abs(contrast - 0.7) < 0.001 else { return }
                 finalGammaApplied.fulfill()
             }
 
@@ -392,6 +390,14 @@ final class BrightnessManagerTests: XCTestCase {
             XCTAssertTrue(bm.animateToPreset(preset))
             await fulfillment(of: [backlightSynced, finalGammaApplied], timeout: 1.0)
             XCTAssertEqual(bm.displays[0].brightness, 0.4, accuracy: 0.001)
+
+            // Regression test for the double-dim bug: gamma brightness must stay pinned at
+            // 1.0 for the entire hardware-controlled animation, never dipping toward the
+            // interpolated model brightness (which would visibly darken the screen mid-preset).
+            XCTAssertFalse(observedBrightnessValues.isEmpty)
+            for value in observedBrightnessValues {
+                XCTAssertEqual(value, 1.0, accuracy: 0.001)
+            }
         }
 
         func testAnimateToPresetSyncsDDCBrightnessAndRestoresNeutralGammaBrightness() async {
@@ -415,19 +421,17 @@ final class BrightnessManagerTests: XCTestCase {
             let finalGammaApplied = expectation(
                 description: "External gamma keeps warmth and contrast without software dimming"
             )
+            finalGammaApplied.assertForOverFulfill = false
+            var observedBrightnessValues: [Double] = []
             bm.setExternalHardwareBrightnessHook = { displayID, value in
                 XCTAssertEqual(displayID, 2)
                 XCTAssertEqual(value, 0.35, accuracy: 0.001)
                 hardwareSynced.fulfill()
             }
             bm.applyGammaHook = { displayID, brightness, warmth, contrast in
-                guard displayID == 2,
-                      abs(brightness - 1.0) < 0.001,
-                      abs(warmth - 0.3) < 0.001,
-                      abs(contrast - 0.65) < 0.001
-                else {
-                    return
-                }
+                guard displayID == 2 else { return }
+                observedBrightnessValues.append(brightness)
+                guard abs(warmth - 0.3) < 0.001, abs(contrast - 0.65) < 0.001 else { return }
                 finalGammaApplied.fulfill()
             }
 
@@ -441,6 +445,14 @@ final class BrightnessManagerTests: XCTestCase {
             XCTAssertTrue(bm.animateToPreset(preset))
             await fulfillment(of: [hardwareSynced, finalGammaApplied], timeout: 1.0)
             XCTAssertEqual(bm.displays[0].brightness, 0.35, accuracy: 0.001)
+
+            // Regression test for the double-dim bug: gamma brightness must stay pinned at
+            // 1.0 for the entire hardware-controlled animation, never dipping toward the
+            // interpolated model brightness (which would visibly darken the screen mid-preset).
+            XCTAssertFalse(observedBrightnessValues.isEmpty)
+            for value in observedBrightnessValues {
+                XCTAssertEqual(value, 1.0, accuracy: 0.001)
+            }
         }
 
         func testSetWarmthOnDDCDisplayKeepsGammaBrightnessNeutral() {

@@ -283,6 +283,13 @@ struct MenuBarPanel: View {
 // MARK: - Scroll Style
 
 final class MenuBarPanelScrollStyleConfiguratorView: NSView {
+    /// Set once the SwiftUI-created `NSScrollView` has been found and styled. Guards
+    /// `scheduleApply` against restarting its retry chain on every subsequent SwiftUI
+    /// update — `updateNSView` calls `scheduleApply()` with its default `attemptsRemaining`
+    /// on every body re-evaluation (dozens per second while dragging a slider), and without
+    /// this flag each of those would kick off a fresh 8-step `DispatchQueue.main.async` chain.
+    private var hasAppliedStyle = false
+
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         scheduleApply()
@@ -294,9 +301,11 @@ final class MenuBarPanelScrollStyleConfiguratorView: NSView {
     }
 
     func scheduleApply(attemptsRemaining: Int = 8) {
+        guard !hasAppliedStyle else { return }
+
         applyStyleWhenReady()
 
-        guard attemptsRemaining > 0 else { return }
+        guard !hasAppliedStyle, attemptsRemaining > 0 else { return }
 
         DispatchQueue.main.async { [weak self] in
             self?.scheduleApply(attemptsRemaining: attemptsRemaining - 1)
@@ -309,6 +318,7 @@ final class MenuBarPanelScrollStyleConfiguratorView: NSView {
         }
 
         MenuBarPanelScrollStyle.apply(to: scrollView)
+        hasAppliedStyle = true
     }
 
     private func nearestScrollView() -> NSScrollView? {
@@ -434,16 +444,42 @@ enum MenuBarPanelHostGlass {
     }
 }
 
+/// Backing view for `MenuBarPanelHostRefreshConfigurator`. Coalesces repeated
+/// `updateNSView` calls (SwiftUI fires one on every body re-evaluation — dozens per
+/// second while dragging a brightness slider) into at most one actual hierarchy walk
+/// per run-loop turn, instead of re-walking the full content view tree on every single call.
+///
+/// Internal (not `private`) so tests can exercise the coalescing behavior directly,
+/// matching `MenuBarPanelScrollStyleConfiguratorView`'s testing approach.
+final class MenuBarPanelHostRefreshConfiguratorView: NSView {
+    private var isRefreshScheduled = false
+
+    /// Number of times the hierarchy walk has actually run. Test-only observability into
+    /// the coalescing behavior; unused in production beyond incrementing.
+    private(set) var refreshCount = 0
+
+    func scheduleRefresh() {
+        guard !isRefreshScheduled else { return }
+        isRefreshScheduled = true
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            isRefreshScheduled = false
+            refreshCount += 1
+            guard let window else { return }
+            MenuBarPanelHostGlass.refreshContentBackgrounds(in: window)
+        }
+    }
+}
+
 /// Re-applies glass background clearing as SwiftUI's content view hierarchy changes.
 /// Window-level setup (transparency, effect view) happens once via `introspectMenuBarExtraWindow`.
 private struct MenuBarPanelHostRefreshConfigurator: NSViewRepresentable {
     func makeNSView(context _: Context) -> NSView {
-        NSView()
+        MenuBarPanelHostRefreshConfiguratorView()
     }
 
     func updateNSView(_ nsView: NSView, context _: Context) {
-        guard let window = nsView.window else { return }
-        MenuBarPanelHostGlass.refreshContentBackgrounds(in: window)
+        (nsView as? MenuBarPanelHostRefreshConfiguratorView)?.scheduleRefresh()
     }
 }
 
@@ -465,6 +501,7 @@ private struct PresetsSectionView: View {
     @State private var isAddingPreset = false
     @State private var newPresetName = ""
     @State private var hoveredPresetID: UUID?
+    @FocusState private var isPresetNameFieldFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -482,6 +519,7 @@ private struct PresetsSectionView: View {
                     TextField("Preset name", text: $newPresetName)
                         .textFieldStyle(.roundedBorder)
                         .font(.callout)
+                        .focused($isPresetNameFieldFocused)
                         .onSubmit { savePreset() }
                         .onExitCommand { cancelAddPreset() }
                     Button {
@@ -498,6 +536,7 @@ private struct PresetsSectionView: View {
             } else if presetManager.presets.count < PresetManager.maxPresets {
                 Button {
                     isAddingPreset = true
+                    isPresetNameFieldFocused = true
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "plus")
@@ -548,7 +587,14 @@ private struct PresetsSectionView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.borderless)
-        .keyboardShortcut(KeyEquivalent(Character("\((index + 1) % 10)")), modifiers: .command)
+        // Only bind the ⌘N shortcut when the row is actually showing that hint (no custom
+        // shortcut assigned) — otherwise a preset with a custom shortcut like ⌥⌘B would still
+        // silently respond to ⌘N too, with no visible affordance explaining why.
+        .keyboardShortcut(
+            preset.shortcut == nil
+                ? KeyboardShortcut(KeyEquivalent(Character("\((index + 1) % 10)")), modifiers: .command)
+                : nil
+        )
         .onHover { isHovered in
             hoveredPresetID = isHovered ? preset.id : nil
         }
@@ -702,7 +748,11 @@ struct DisplayBrightnessRow: View {
         _warmthValue = State(initialValue: display.warmth)
         _contrastValue = State(initialValue: display.contrast)
         #if !APPSTORE
-            _volumeValue = State(initialValue: hardwareVolume ?? 0.5)
+            // `hardwareVolume` is always nil at this point: `.ddcControls(...)` sets it by
+            // mutating a *copy* of this view's properties after construction, not during this
+            // initializer. The real value is applied by `syncVolumeFromHardware()` in
+            // `onAppear`, once `hardwareVolume` has actually been set.
+            _volumeValue = State(initialValue: 0.5)
         #endif
     }
 

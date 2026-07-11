@@ -22,12 +22,18 @@ class LocationProvider: NSObject {
 
     private let locationManager = CLLocationManager()
 
+    /// The `UserDefaults` suite to read from and persist to. Defaults to `.standard` for
+    /// production use; tests should inject an isolated suite so they don't read or overwrite
+    /// the developer's real saved location.
+    private let defaults: UserDefaults
+
     private static let latitudeKey = "dimmerlyLatitude"
     private static let longitudeKey = "dimmerlyLongitude"
     /// Sentinel value indicating a saved coordinate (0.0 is valid, so we use key existence)
     private static let hasSavedKey = "dimmerlyLocationSaved"
 
-    override init() {
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
         super.init()
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyKilometer
@@ -93,21 +99,18 @@ class LocationProvider: NSObject {
     func clearLocation() {
         latitude = nil
         longitude = nil
-        let defaults = UserDefaults.standard
         defaults.removeObject(forKey: Self.latitudeKey)
         defaults.removeObject(forKey: Self.longitudeKey)
         defaults.removeObject(forKey: Self.hasSavedKey)
     }
 
     private func loadSavedLocation() {
-        let defaults = UserDefaults.standard
         guard defaults.bool(forKey: Self.hasSavedKey) else { return }
         latitude = defaults.double(forKey: Self.latitudeKey)
         longitude = defaults.double(forKey: Self.longitudeKey)
     }
 
     private func saveLocation() {
-        let defaults = UserDefaults.standard
         if let lat = latitude, let lon = longitude {
             defaults.set(lat, forKey: Self.latitudeKey)
             defaults.set(lon, forKey: Self.longitudeKey)
@@ -131,7 +134,14 @@ extension LocationProvider: CLLocationManagerDelegate {
         }
     }
 
-    nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError _: Error) {
+    nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        // Per Apple's CLLocationManagerDelegate documentation, `.locationUnknown` means the
+        // location is temporarily unavailable but the manager will keep trying — stopping
+        // here would kill the one-shot request and silently leave sunrise/sunset schedules
+        // without a location, even though a location may have arrived moments later.
+        if let clError = error as? CLError, clError.code == .locationUnknown {
+            return
+        }
         manager.stopUpdatingLocation()
     }
 

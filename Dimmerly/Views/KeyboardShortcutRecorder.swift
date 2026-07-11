@@ -56,6 +56,10 @@ struct KeyboardShortcutRecorder: View {
                             conflictMessage = message
                         }
                     )
+                    // Matches PresetShortcutRecorderButton's overlay: only eligible for
+                    // AppKit hit-testing while actually recording, so the invisible capture
+                    // view can't swallow clicks meant for the button underneath at other times.
+                    .allowsHitTesting(isRecording)
                     .opacity(0) // Invisible overlay to capture key events
                 )
                 .accessibilityLabel(
@@ -122,15 +126,24 @@ private struct ShortcutRecorderView: NSViewRepresentable {
         if let captureView = nsView as? ShortcutCaptureView {
             captureView.isActive = isRecording
         }
-        if isRecording {
-            nsView.window?.makeFirstResponder(nsView)
-        }
     }
 }
 
 /// NSView subclass that captures keyboard events
 private class ShortcutCaptureView: NSView {
-    var isActive = false
+    /// Requests first responder only on the false→true transition, deferred to the next
+    /// run loop turn — not synchronously inside `updateNSView`'s SwiftUI update transaction,
+    /// and not on every subsequent SwiftUI re-render while already recording.
+    var isActive = false {
+        didSet {
+            guard isActive, !oldValue else { return }
+            DispatchQueue.main.async { [weak self] in
+                guard let self, isActive else { return }
+                window?.makeFirstResponder(self)
+            }
+        }
+    }
+
     var onShortcutCaptured: ((GlobalShortcut) -> Void)?
     var onRecordingCancelled: (() -> Void)?
     var onConflictDetected: ((String) -> Void)?

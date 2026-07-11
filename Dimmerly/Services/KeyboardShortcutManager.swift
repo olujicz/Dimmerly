@@ -96,18 +96,24 @@ class KeyboardShortcutManager {
             let keyCode = event.keyCode
             let modifierFlags = event.modifierFlags
             Task { @MainActor in
-                self?.handleKeyEvent(keyCode: keyCode, modifierFlags: modifierFlags)
+                _ = self?.handleKeyEvent(keyCode: keyCode, modifierFlags: modifierFlags)
             }
         }
 
-        // Local monitor for when Dimmerly is frontmost
+        // Local monitor for when Dimmerly is frontmost. Matched events are swallowed
+        // (return nil) instead of always passing through — otherwise the shortcut both
+        // triggers its action and reaches whatever UI element has focus (e.g. typing/
+        // beeping into a focused text field in Settings). The match check runs
+        // synchronously via `MainActor.assumeIsolated`, since NSEvent local monitor
+        // callbacks always fire on the main thread, so the return value can reflect
+        // the outcome instead of always passing the event through.
         localEventMonitor = localMonitorInstaller { [weak self] event in
             let keyCode = event.keyCode
             let modifierFlags = event.modifierFlags
-            Task { @MainActor in
-                self?.handleKeyEvent(keyCode: keyCode, modifierFlags: modifierFlags)
+            let matched = MainActor.assumeIsolated {
+                self?.handleKeyEvent(keyCode: keyCode, modifierFlags: modifierFlags) ?? false
             }
-            return event
+            return matched ? nil : event
         }
     }
 
@@ -168,13 +174,16 @@ class KeyboardShortcutManager {
     /// - Parameters:
     ///   - keyCode: Raw keyboard key code from NSEvent
     ///   - modifierFlags: Modifier keys (⌘⌥⌃⇧) from NSEvent
-    private func handleKeyEvent(keyCode: UInt16, modifierFlags: NSEvent.ModifierFlags) {
+    /// - Returns: `true` if the event matched the configured shortcut (and the callback fired).
+    @discardableResult
+    private func handleKeyEvent(keyCode: UInt16, modifierFlags: NSEvent.ModifierFlags) -> Bool {
         guard let shortcut = GlobalShortcut.from(keyCode: keyCode, modifierFlags: modifierFlags),
               currentShortcut == shortcut
         else {
-            return
+            return false
         }
         onShortcutTriggered?()
+        return true
     }
 
     // MARK: - Lifecycle

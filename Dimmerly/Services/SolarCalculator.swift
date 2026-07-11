@@ -46,6 +46,7 @@ enum SolarCalculator {
     ) -> (sunrise: Date?, sunset: Date?) {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
+        let startOfDay = calendar.startOfDay(for: date)
 
         let year = calendar.component(.year, from: date)
         let month = calendar.component(.month, from: date)
@@ -113,8 +114,12 @@ enum SolarCalculator {
 
         let hourAngle = acos(cosHourAngle) * 180.0 / .pi
 
-        // Time zone offset in hours
-        let tzOffset = Double(timeZone.secondsFromGMT(for: date)) / 3600.0
+        // Time zone offset in hours. Sampled at `startOfDay`, not `date`, so the offset
+        // used to compute `solarNoon` always matches the offset used to anchor the result
+        // below — otherwise, on a DST-transition day, passing a `date` from later in the
+        // day (e.g. noon) computes an offset that no longer matches the offset at
+        // midnight, shifting the returned sunrise/sunset by the DST delta (typically 1h).
+        let tzOffset = Double(timeZone.secondsFromGMT(for: startOfDay)) / 3600.0
 
         // Solar noon (minutes from midnight UTC)
         let solarNoon = (720.0 - 4.0 * longitude - eqOfTime + tzOffset * 60.0)
@@ -124,7 +129,6 @@ enum SolarCalculator {
         let sunsetMinutes = solarNoon + hourAngle * 4.0
 
         // Convert to Date objects
-        let startOfDay = calendar.startOfDay(for: date)
         let sunrise = startOfDay.addingTimeInterval(sunriseMinutes * 60.0)
         let sunset = startOfDay.addingTimeInterval(sunsetMinutes * 60.0)
 

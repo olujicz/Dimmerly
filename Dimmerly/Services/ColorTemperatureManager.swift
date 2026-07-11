@@ -117,11 +117,15 @@ class ColorTemperatureManager {
 
     private func startPolling() {
         stopPolling()
-        timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+        // Added to `.common` run loop modes so warmth transitions keep progressing during a
+        // modal alert or menu tracking/slider dragging, not just the run loop's default mode.
+        let newTimer = Timer(timeInterval: 60, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.updateColorTemperature()
             }
         }
+        RunLoop.main.add(newTimer, forMode: .common)
+        timer = newTimer
 
         // Re-evaluate immediately on system wake — the Mac may have slept for hours
         // and the time-of-day state could be completely different.
@@ -172,8 +176,7 @@ class ColorTemperatureManager {
         }
 
         let settings = AppSettings.shared
-        let transitionDuration = Double(settings.colorTempTransitionMinutes) * 60.0
-        let halfTransition = transitionDuration / 2.0
+        let halfTransition = Self.halfTransitionSeconds(forTransitionMinutes: settings.colorTempTransitionMinutes)
 
         let state = Self.determineState(
             now: now,
@@ -232,6 +235,12 @@ class ColorTemperatureManager {
 
     /// Determines the color temperature state for a given time relative to sunrise/sunset.
     ///
+    /// Converts the user-facing transition duration (minutes) to the half-duration (seconds)
+    /// `determineState` needs, so callers don't each re-derive `minutes * 30.0` independently.
+    static func halfTransitionSeconds(forTransitionMinutes minutes: Int) -> Double {
+        Double(minutes) * 60.0 / 2.0
+    }
+
     /// - Parameters:
     ///   - now: Current time
     ///   - sunrise: Today's sunrise time
@@ -305,7 +314,9 @@ class ColorTemperatureManager {
             )
             if let sunrise = solar.sunrise, let sunset = solar.sunset {
                 let settings = AppSettings.shared
-                let halfTransition = Double(settings.colorTempTransitionMinutes) * 30.0
+                let halfTransition = Self.halfTransitionSeconds(
+                    forTransitionMinutes: settings.colorTempTransitionMinutes
+                )
                 overrideState = Self.determineState(
                     now: now,
                     sunrise: sunrise,

@@ -331,10 +331,28 @@ final class StatusItemQuickActions: NSObject {
         self.performSleep = performSleep
         self.openSettings = openSettings
 
-        guard rightClickMonitor == nil, let button = statusItem.button else { return }
+        guard rightClickMonitor == nil, statusItem.button != nil else { return }
 
-        rightClickMonitor = NSEvent.addLocalMonitorForEvents(matching: .rightMouseDown) { [weak self] event in
-            guard let self, event.window === button.window else { return event }
+        // Resolve the button from `self.statusItem` (updated every `configure()` call)
+        // inside the closure, rather than capturing today's button in a local — if
+        // MenuBarExtraAccess ever hands over a recreated NSStatusItem/button, the
+        // `rightClickMonitor == nil` guard above skips re-registering the monitor, so a
+        // captured button would go stale and right-click quick actions would silently
+        // stop matching the real (new) button's window.
+        //
+        // Also matches Control-click (a `.leftMouseDown` with the `.control` modifier) —
+        // the canonical secondary-click alternative on macOS, and the only option for
+        // users with right-click/secondary-click disabled. A plain left-click (no
+        // Control) passes through unmodified so the normal panel toggle still runs.
+        rightClickMonitor = NSEvent.addLocalMonitorForEvents(
+            matching: [.rightMouseDown, .leftMouseDown]
+        ) { [weak self] event in
+            guard let self, let currentButton = self.statusItem?.button, event.window === currentButton.window
+            else { return event }
+
+            let isControlClick = event.type == .leftMouseDown && event.modifierFlags.contains(.control)
+            guard event.type == .rightMouseDown || isControlClick else { return event }
+
             showQuickActionsMenu()
             return nil
         }

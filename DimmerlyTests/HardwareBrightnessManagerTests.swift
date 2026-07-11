@@ -530,6 +530,45 @@ import XCTest
             )
         }
 
+        func testRepeatedVolumeWriteFailuresDowngradeOnlyVolumeNotBrightness() async throws {
+            let volumeWriteFailed = expectation(description: "Volume write failed 3 times")
+            volumeWriteFailed.expectedFulfillmentCount = 3
+
+            var mock = MockDDCInterface()
+            mock.writeHandler = { vcp, _, _ in
+                guard vcp == .volume else { return true }
+                volumeWriteFailed.fulfill()
+                return false
+            }
+
+            let manager = HardwareBrightnessManager(forTesting: true, ddcInterface: mock)
+            let displayID: CGDirectDisplayID = 1
+            manager.capabilities[displayID] = HardwareDisplayCapability(
+                displayID: displayID,
+                supportsDDC: true,
+                supportedCodes: [.brightness, .volume],
+                maxBrightness: 100,
+                maxContrast: 100,
+                maxVolume: 100
+            )
+
+            // Space writes well past the debounce window (100ms) so each one completes
+            // before the next is scheduled, rather than cancelling and replacing it.
+            for step in 0 ..< 3 {
+                manager.setHardwareVolume(for: displayID, to: 0.3 + Double(step) * 0.1)
+                try? await Task.sleep(for: .milliseconds(250))
+            }
+
+            await fulfillment(of: [volumeWriteFailed], timeout: 2.0)
+            // Let the third failure's completion hop onto the main actor and update capabilities.
+            try? await Task.sleep(for: .milliseconds(100))
+
+            let cap = try XCTUnwrap(manager.capabilities[displayID])
+            XCTAssertFalse(cap.supportsVolume, "Volume should be dropped after repeated failures")
+            XCTAssertTrue(cap.supportsBrightness, "Brightness must survive an unrelated control's failures")
+            XCTAssertTrue(cap.supportsDDC, "Display should remain DDC-capable via its other working codes")
+        }
+
         // MARK: - HardwareDisplayCapability Tests
 
         /// Tests notSupported factory method

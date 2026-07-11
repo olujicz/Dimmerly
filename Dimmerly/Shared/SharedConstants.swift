@@ -14,6 +14,14 @@ enum SharedConstants {
     static let widgetDimCommandKey = "widgetDimCommand"
     static let widgetPresetCommandKey = "widgetPresetCommand"
 
+    /// Last-resort app-group ID used only when the app-group entitlement can't be read
+    /// (unsigned/ad-hoc dev builds) and no `teamIdentifierPrefix` was supplied. Must be a
+    /// fixed value identical across the main app and widget-extension processes — falling
+    /// back to each process's own `Bundle.main.bundleIdentifier` resolves to a *different*
+    /// UserDefaults suite per process (the widget extension's bundle ID differs from the
+    /// main app's), silently breaking preset sync and widget dim/preset commands.
+    private static let unsignedBuildFallbackAppGroupID = "rs.in.olujic.dimmerly.unsigned-fallback"
+
     /// Distributed notification posted by the widget to dim displays
     static let dimNotification = Notification.Name("rs.in.olujic.dimmerly.dim")
     /// Distributed notification posted by the widget to apply a preset
@@ -34,7 +42,7 @@ enum SharedConstants {
             return entitledAppGroupID
         }
 
-        return bundleIdentifier
+        return unsignedBuildFallbackAppGroupID
     }
 
     nonisolated(unsafe) static let sharedDefaults: UserDefaults? = {

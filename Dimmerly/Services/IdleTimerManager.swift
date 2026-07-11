@@ -29,6 +29,8 @@ import Foundation
 /// Thread safety: All methods must be called from the main actor.
 @MainActor
 class IdleTimerManager {
+    typealias IdleSecondsProvider = @MainActor () -> TimeInterval
+
     /// Callback invoked once when the idle threshold is reached
     var onIdleThresholdReached: (() -> Void)?
 
@@ -47,18 +49,40 @@ class IdleTimerManager {
     private var lastEnabled: Bool?
     private var lastMinutes: Int?
 
+    /// Reads current system idle time. Injectable so tests can simulate idle/active
+    /// states without depending on real HID hardware state.
+    private let idleSecondsProvider: IdleSecondsProvider
+
+    init(idleSecondsProvider: @escaping IdleSecondsProvider = IdleTimerManager.systemIdleSeconds) {
+        self.idleSecondsProvider = idleSecondsProvider
+    }
+
+    /// Seconds since the last HID input event (keyboard, mouse, trackpad).
+    ///
+    /// Uses `kCGAnyInputEventType` (represented here as `CGEventType(rawValue: ~0)`) rather
+    /// than `.null`, which reports seconds since the last *null-type* event — effectively
+    /// always a stale, enormous value unrelated to real user activity.
+    static func systemIdleSeconds() -> TimeInterval {
+        let anyInputEventType = CGEventType(rawValue: ~UInt32(0))!
+        return CGEventSource.secondsSinceLastEventType(.hidSystemState, eventType: anyInputEventType)
+    }
+
     /// Starts monitoring idle time
     func start(thresholdMinutes: Int) {
         stop()
         thresholdSeconds = TimeInterval(thresholdMinutes * 60)
         hasFiredForCurrentIdle = false
 
-        // Poll every 10 seconds
-        timer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { [weak self] _ in
+        // Poll every 10 seconds. Added to `.common` run loop modes so idle checks (and the
+        // auto-dim they trigger) keep firing during a modal alert or menu tracking/slider
+        // dragging, not just while the run loop is in its default mode.
+        let newTimer = Timer(timeInterval: 10, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.checkIdleTime()
             }
         }
+        RunLoop.main.add(newTimer, forMode: .common)
+        timer = newTimer
     }
 
     /// Stops monitoring idle time
@@ -93,9 +117,9 @@ class IdleTimerManager {
     /// This ensures the callback fires exactly once per idle period, even if the user
     /// remains idle for hours. Once activity is detected, the flag resets and the callback
     /// can fire again after the next idle period.
-    private func checkIdleTime() {
+    func checkIdleTime() {
         // Query system for seconds since last HID event (keyboard, mouse, trackpad)
-        let idleSeconds = CGEventSource.secondsSinceLastEventType(.hidSystemState, eventType: .null)
+        let idleSeconds = idleSecondsProvider()
 
         if idleSeconds >= thresholdSeconds {
             if !hasFiredForCurrentIdle {

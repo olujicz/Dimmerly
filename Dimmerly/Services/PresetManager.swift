@@ -51,7 +51,13 @@ class PresetManager {
     /// UserDefaults flag to track whether default presets have been seeded
     private let defaultsSeededKey = "dimmerlyDefaultPresetsSeeded"
 
-    init() {
+    /// The `UserDefaults` suite to read from and persist to. Defaults to `.standard` for
+    /// production use; tests should inject an isolated suite so they don't read or overwrite
+    /// the developer's real saved presets.
+    private let defaults: UserDefaults
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
         loadPresets()
         seedDefaultPresetsIfNeeded()
         syncPresetsToWidget()
@@ -211,8 +217,8 @@ class PresetManager {
     }
 
     private func seedDefaultPresetsIfNeeded() {
-        guard !UserDefaults.standard.bool(forKey: defaultsSeededKey) else { return }
-        UserDefaults.standard.set(true, forKey: defaultsSeededKey)
+        guard !defaults.bool(forKey: defaultsSeededKey) else { return }
+        defaults.set(true, forKey: defaultsSeededKey)
 
         guard presets.isEmpty else { return }
 
@@ -223,7 +229,7 @@ class PresetManager {
     // MARK: - Persistence
 
     private func loadPresets() {
-        guard let data = UserDefaults.standard.data(forKey: persistenceKey) else { return }
+        guard let data = defaults.data(forKey: persistenceKey) else { return }
 
         do {
             presets = try JSONDecoder().decode([BrightnessPreset].self, from: data)
@@ -237,7 +243,7 @@ class PresetManager {
     private func persistPresets() {
         do {
             let data = try JSONEncoder().encode(presets)
-            UserDefaults.standard.set(data, forKey: persistenceKey)
+            defaults.set(data, forKey: persistenceKey)
             syncPresetsToWidget()
         } catch {
             presetManagerLogger.error(

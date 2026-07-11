@@ -189,6 +189,49 @@ final class SolarCalculatorTests: XCTestCase {
                              "Sydney December day should be longer than June day")
     }
 
+    // MARK: - DST Transition
+
+    /// Berlin — 2026-03-29 (EU spring-forward DST transition day, clocks jump 02:00→03:00
+    /// CET→CEST). Regression test: the UTC offset used to compute solar noon must reflect
+    /// the offset for the whole civil day (sampled at local midnight), not whatever time of
+    /// day `date` happens to represent — otherwise a noon `date` on this exact day computes
+    /// using the pre-transition (CET) offset while the day's actual offset is CEST, shifting
+    /// the result by the 1-hour DST delta.
+    func testBerlinDSTTransitionDayOffsetConsistency() throws {
+        let tz = try XCTUnwrap(TimeZone(identifier: "Europe/Berlin"))
+        let midnightDate = makeDate(year: 2026, month: 3, day: 29, hour: 0, timeZone: tz)
+        let noonDate = makeDate(year: 2026, month: 3, day: 29, hour: 12, timeZone: tz)
+
+        let fromMidnight = SolarCalculator.sunriseSunset(
+            latitude: 52.5200, longitude: 13.4050, date: midnightDate, timeZone: tz
+        )
+        let fromNoon = SolarCalculator.sunriseSunset(
+            latitude: 52.5200, longitude: 13.4050, date: noonDate, timeZone: tz
+        )
+
+        let srMidnight = try hourMinute(XCTUnwrap(fromMidnight.sunrise), in: tz)
+        let srNoon = try hourMinute(XCTUnwrap(fromNoon.sunrise), in: tz)
+        let ssMidnight = try hourMinute(XCTUnwrap(fromMidnight.sunset), in: tz)
+        let ssNoon = try hourMinute(XCTUnwrap(fromNoon.sunset), in: tz)
+
+        XCTAssertEqual(
+            totalMinutes(srMidnight.hour, srMidnight.minute),
+            totalMinutes(srNoon.hour, srNoon.minute),
+            "Sunrise must not depend on what time of day `date` represents on a DST-transition day"
+        )
+        XCTAssertEqual(
+            totalMinutes(ssMidnight.hour, ssMidnight.minute),
+            totalMinutes(ssNoon.hour, ssNoon.minute),
+            "Sunset must not depend on what time of day `date` represents on a DST-transition day"
+        )
+
+        // Cross-check against the known post-transition (CEST, UTC+2) reference sunrise ~06:48.
+        XCTAssertEqual(
+            totalMinutes(srNoon.hour, srNoon.minute), totalMinutes(6, 48), accuracy: 3,
+            "Berlin DST-transition-day sunrise ~06:48 CEST, got \(srNoon.hour):\(String(format: "%02d", srNoon.minute))"
+        )
+    }
+
     // MARK: - Sunrise Before Sunset
 
     /// For any normal (non-polar) location, sunrise should always be before sunset.
