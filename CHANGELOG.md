@@ -7,6 +7,8 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-07-12
+
 ### Added
 - Added a right-click quick actions menu on the menu bar icon (Turn Displays Off / Dim Displays, Settings, Quit) for one-step access without opening the full panel.
 - Added an Acknowledgements section to Settings > About crediting third-party open-source software used by Dimmerly.
