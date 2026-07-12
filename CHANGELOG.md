@@ -12,8 +12,10 @@ Semantic Versioning.
 ### Added
 - Added a right-click quick actions menu on the menu bar icon (Turn Displays Off / Dim Displays, Settings, Quit) for one-step access without opening the full panel.
 - Added an Acknowledgements section to Settings > About crediting third-party open-source software used by Dimmerly.
+- Added a "Classic" menu bar icon style that keeps the previous monitor glyph, so the earlier look stays available alongside the new default (six styles total).
 
 ### Changed
+- Redesigned the app icon and the default menu bar icon around a clearer brightness mark.
 - Refined Hardware Control settings so unavailable hardware control modes are disabled with clearer fallback guidance.
 - Clarified per-display DDC/CI support status and tightened the advanced polling and write-delay controls.
 - Control-click on the menu bar icon now also opens the quick actions menu, matching right-click.

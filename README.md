@@ -88,6 +88,8 @@ the sandboxed build when App Store distribution or sandboxing matters more.
 
 ![Dimmerly display settings window](images/image2.png)
 
+![Dimmerly right-click quick actions menu](images/image4.png)
+
 ## Usage
 
 ### Menu Bar Controls

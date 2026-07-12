@@ -167,7 +167,7 @@ struct DimmerlyApp: App {
             Image(systemName: systemImage)
                 .accessibilityLabel("Dimmerly")
         } else {
-            Image("MenuBarIcon")
+            Image(settings.menuBarIcon.assetName ?? "MenuBarIcon")
                 .accessibilityLabel("Dimmerly")
         }
     }

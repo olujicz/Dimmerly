@@ -1,0 +1,46 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="96" y1="96" x2="912" y2="928" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#324B6B"/>
+      <stop offset="0.52" stop-color="#294464"/>
+      <stop offset="1" stop-color="#1A2F4B"/>
+    </linearGradient>
+    <radialGradient id="aurora" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(482 360) rotate(77) scale(680 600)">
+      <stop stop-color="#8ED8FF" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="#8ED8FF" stop-opacity="0"/>
+    </radialGradient>
+    <!-- disc split: bright (left) to dark (right) = dimming -->
+    <linearGradient id="disc" x1="330" y1="380" x2="694" y2="644" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EAF7FF"/>
+      <stop offset="0.42" stop-color="#7FC6FF"/>
+      <stop offset="0.72" stop-color="#2C63A0"/>
+      <stop offset="1" stop-color="#16304F"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(512 512) rotate(90) scale(300)">
+      <stop stop-color="#9DE0FF" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#9DE0FF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect x="14" y="14" width="996" height="996" rx="222" fill="url(#bg)"/>
+  <rect x="14" y="14" width="996" height="996" rx="222" fill="url(#aurora)"/>
+
+  <circle cx="512" cy="512" r="250" fill="url(#glow)"/>
+
+  <!-- rays: bright, fading toward the dim (lower-right) side -->
+  <g stroke="#EAF7FF" stroke-linecap="round" stroke-width="26">
+    <line x1="512" y1="150" x2="512" y2="232" stroke-opacity="0.95"/>
+    <line x1="286" y1="286" x2="344" y2="344" stroke-opacity="0.9"/>
+    <line x1="150" y1="512" x2="232" y2="512" stroke-opacity="0.9"/>
+    <line x1="286" y1="738" x2="344" y2="680" stroke-opacity="0.42"/>
+    <line x1="512" y1="874" x2="512" y2="792" stroke-opacity="0.28"/>
+    <line x1="738" y1="738" x2="680" y2="680" stroke-opacity="0.2"/>
+    <line x1="874" y1="512" x2="792" y2="512" stroke-opacity="0.3"/>
+    <line x1="738" y1="286" x2="680" y2="344" stroke-opacity="0.6"/>
+  </g>
+
+  <circle cx="512" cy="512" r="182" fill="url(#disc)"/>
+  <circle cx="512" cy="512" r="182" stroke="#E2F6FF" stroke-opacity="0.5" stroke-width="4"/>
+
+  <rect x="14" y="14" width="996" height="996" rx="222" stroke="#F5FBFF" stroke-opacity="0.2" stroke-width="4"/>
+</svg>

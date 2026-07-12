@@ -17,6 +17,7 @@ import SwiftUI
 /// Available menu bar icon styles
 enum MenuBarIconStyle: String, CaseIterable, Identifiable {
     case defaultIcon = "default"
+    case classic
     case monitor
     case moonFilled
     case moonOutline
@@ -26,10 +27,11 @@ enum MenuBarIconStyle: String, CaseIterable, Identifiable {
         rawValue
     }
 
-    /// SF Symbol name, or nil for the custom asset
+    /// SF Symbol name, or nil for a custom asset (see `assetName`)
     var systemImageName: String? {
         switch self {
         case .defaultIcon: nil
+        case .classic: nil
         case .monitor: "display"
         case .moonFilled: "moon.fill"
         case .moonOutline: "moon"
@@ -37,9 +39,19 @@ enum MenuBarIconStyle: String, CaseIterable, Identifiable {
         }
     }
 
+    /// Asset catalog name for styles backed by a custom template image, or nil for SF Symbol styles
+    var assetName: String? {
+        switch self {
+        case .defaultIcon: "MenuBarIcon"
+        case .classic: "MenuBarIconClassic"
+        default: nil
+        }
+    }
+
     var displayName: LocalizedStringKey {
         switch self {
         case .defaultIcon: "Default"
+        case .classic: "Classic"
         case .monitor: "Monitor"
         case .moonFilled: "Moon (Filled)"
         case .moonOutline: "Moon (Outline)"

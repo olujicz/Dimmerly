@@ -237,7 +237,7 @@ struct GeneralSettingsTab: View {
                             if let systemImage = style.systemImageName {
                                 Image(systemName: systemImage)
                             } else {
-                                Image("MenuBarIcon")
+                                Image(style.assetName ?? "MenuBarIcon")
                             }
                         }
                         .frame(width: 32, height: 32)
