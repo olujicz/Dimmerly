@@ -17,7 +17,7 @@ final class BrightnessManagerTests: XCTestCase {
         bm = BrightnessManager(forTesting: true)
         #if !APPSTORE
             HardwareBrightnessManager.shared.capabilities.removeAll()
-            HardwareBrightnessManager.shared.controlMode = .combined
+            HardwareBrightnessManager.shared.controlMode = .hardware
             HardwareBrightnessManager.shared.isEnabled = true
         #endif
     }
@@ -25,13 +25,76 @@ final class BrightnessManagerTests: XCTestCase {
     override func tearDown() async throws {
         #if !APPSTORE
             HardwareBrightnessManager.shared.capabilities.removeAll()
-            HardwareBrightnessManager.shared.controlMode = .combined
+            HardwareBrightnessManager.shared.controlMode = .hardware
             HardwareBrightnessManager.shared.isEnabled = false
         #endif
         bm = nil
     }
 
     // MARK: - channelMultipliers
+
+    #if !APPSTORE
+        func testDisplayOutputPolicyUsesSoftwareGammaBrightness() {
+            let policy = DisplayOutputPolicy.resolve(
+                mode: .softwareOnly,
+                isBuiltIn: false,
+                isDDCEnabled: true,
+                supportsDDCBrightness: true,
+                requestedBrightness: 0.35
+            )
+
+            XCTAssertEqual(policy, DisplayOutputPolicy(
+                usesBuiltInBacklight: false,
+                usesDDCBrightness: false,
+                gammaBrightness: 0.35,
+                appliesGammaColorAdjustments: true
+            ))
+        }
+
+        func testDisplayOutputPolicyUsesDDCWithGammaColorAdjustments() {
+            let policy = DisplayOutputPolicy.resolve(
+                mode: .hardware,
+                isBuiltIn: false,
+                isDDCEnabled: true,
+                supportsDDCBrightness: true,
+                requestedBrightness: 0.35
+            )
+
+            XCTAssertEqual(policy, DisplayOutputPolicy(
+                usesBuiltInBacklight: false,
+                usesDDCBrightness: true,
+                gammaBrightness: 1.0,
+                appliesGammaColorAdjustments: true
+            ))
+        }
+
+        func testDisplayOutputPolicyFallsBackWhenDDCIsUnavailable() {
+            let policy = DisplayOutputPolicy.resolve(
+                mode: .hardware,
+                isBuiltIn: false,
+                isDDCEnabled: true,
+                supportsDDCBrightness: false,
+                requestedBrightness: 0.35
+            )
+
+            XCTAssertFalse(policy.usesDDCBrightness)
+            XCTAssertEqual(policy.gammaBrightness, 0.35)
+        }
+
+        func testDisplayOutputPolicyUsesBuiltInBacklight() {
+            let policy = DisplayOutputPolicy.resolve(
+                mode: .hardware,
+                isBuiltIn: true,
+                isDDCEnabled: true,
+                supportsDDCBrightness: false,
+                requestedBrightness: 0.35
+            )
+
+            XCTAssertTrue(policy.usesBuiltInBacklight)
+            XCTAssertFalse(policy.usesDDCBrightness)
+            XCTAssertEqual(policy.gammaBrightness, 1.0)
+        }
+    #endif
 
     func testChannelMultipliersNeutral() {
         let m = GammaMath.channelMultipliers(for: 0.0)
@@ -414,7 +477,7 @@ final class BrightnessManagerTests: XCTestCase {
                 maxContrast: 100,
                 maxVolume: 0
             )
-            HardwareBrightnessManager.shared.controlMode = .combined
+            HardwareBrightnessManager.shared.controlMode = .hardware
             HardwareBrightnessManager.shared.isEnabled = true
 
             let hardwareSynced = expectation(description: "External DDC brightness is updated after animation")
@@ -468,7 +531,7 @@ final class BrightnessManagerTests: XCTestCase {
                 maxContrast: 100,
                 maxVolume: 0
             )
-            HardwareBrightnessManager.shared.controlMode = .combined
+            HardwareBrightnessManager.shared.controlMode = .hardware
             HardwareBrightnessManager.shared.isEnabled = true
 
             let gammaApplied = expectation(
@@ -500,7 +563,7 @@ final class BrightnessManagerTests: XCTestCase {
                 maxContrast: 100,
                 maxVolume: 0
             )
-            HardwareBrightnessManager.shared.controlMode = .combined
+            HardwareBrightnessManager.shared.controlMode = .hardware
             HardwareBrightnessManager.shared.isEnabled = false
 
             var hardwareWriteCount = 0

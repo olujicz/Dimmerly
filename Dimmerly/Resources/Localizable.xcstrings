@@ -8503,74 +8503,88 @@
         }
       }
     },
-    "Hardware Only" : {
+    "Hardware mode requires a DDC-capable display with brightness control." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Der Hardwaremodus erfordert ein DDC-fähiges Display mit Helligkeitssteuerung." } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Hardware mode requires a DDC-capable display with brightness control." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "El modo Hardware requiere una pantalla compatible con DDC y control de brillo." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Le mode Matériel nécessite un écran compatible DDC avec contrôle de la luminosité." } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "La modalità Hardware richiede uno schermo compatibile con DDC e controllo della luminosità." } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ハードウェアモードには、輝度制御に対応したDDC対応ディスプレイが必要です。" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "하드웨어 모드에는 밝기 제어를 지원하는 DDC 호환 디스플레이가 필요합니다." } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "De hardwaremodus vereist een DDC-compatibel beeldscherm met helderheidsregeling." } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "O modo Hardware requer uma tela compatível com DDC e controle de brilho." } },
+        "sr" : { "stringUnit" : { "state" : "translated", "value" : "Hardverski režim zahteva DDC-kompatibilan ekran sa kontrolom osvetljenosti." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "硬件模式需要支持亮度控制的 DDC 兼容显示器。" } }
+      }
+    },
+    "Hardware" : {
       "comment" : "DDC control mode name",
-      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nur Hardware"
+            "value" : "Hardware"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hardware Only"
+            "value" : "Hardware"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Solo hardware"
+            "value" : "Hardware"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Matériel uniquement"
+            "value" : "Matériel"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Solo hardware"
+            "value" : "Hardware"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ハードウェアのみ"
+            "value" : "ハードウェア"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "하드웨어만"
+            "value" : "하드웨어"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Alleen hardware"
+            "value" : "Hardware"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Apenas hardware"
+            "value" : "Hardware"
           }
         },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Samo hardverski"
+            "value" : "Hardverski"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "仅硬件"
+            "value" : "硬件"
           }
         }
       }
@@ -14778,74 +14792,73 @@
         }
       }
     },
-    "Software Only" : {
+    "Software" : {
       "comment" : "DDC control mode name",
-      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nur Software"
+            "value" : "Software"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Software Only"
+            "value" : "Software"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Solo software"
+            "value" : "Software"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Logiciel uniquement"
+            "value" : "Logiciel"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Solo software"
+            "value" : "Software"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ソフトウェアのみ"
+            "value" : "ソフトウェア"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "소프트웨어만"
+            "value" : "소프트웨어"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Alleen software"
+            "value" : "Software"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Apenas software"
+            "value" : "Software"
           }
         },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Samo softverski"
+            "value" : "Softverski"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "仅软件"
+            "value" : "软件"
           }
         }
       }
@@ -16861,8 +16874,7 @@
       }
     },
     "Uses DDC for brightness and gamma tables for warmth and contrast. Automatically uses software brightness if DDC is not available." : {
-      "comment" : "Description of combined DDC control mode",
-      "extractionState" : "stale",
+      "comment" : "Description of hardware DDC control mode",
       "localizations" : {
         "de" : {
           "stringUnit" : {

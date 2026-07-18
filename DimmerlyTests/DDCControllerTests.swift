@@ -132,13 +132,12 @@ import XCTest
         /// Tests DDCControlMode raw values
         func testDDCControlModeRawValues() {
             XCTAssertEqual(DDCControlMode.softwareOnly.rawValue, "software")
-            XCTAssertEqual(DDCControlMode.hardwareOnly.rawValue, "hardware")
-            XCTAssertEqual(DDCControlMode.combined.rawValue, "combined")
+            XCTAssertEqual(DDCControlMode.hardware.rawValue, "combined")
         }
 
-        /// Tests DDCControlMode allCases contains all 3 modes
+        /// Tests DDCControlMode exposes only the two user-facing modes.
         func testDDCControlModeAllCases() {
-            XCTAssertEqual(DDCControlMode.allCases.count, 3)
+            XCTAssertEqual(DDCControlMode.allCases, [.softwareOnly, .hardware])
         }
 
         /// Tests DDCControlMode display names are non-empty
@@ -158,8 +157,8 @@ import XCTest
         /// Tests DDCControlMode can be created from raw value
         func testDDCControlModeFromRawValue() {
             XCTAssertEqual(DDCControlMode(rawValue: "software"), .softwareOnly)
-            XCTAssertEqual(DDCControlMode(rawValue: "hardware"), .hardwareOnly)
-            XCTAssertEqual(DDCControlMode(rawValue: "combined"), .combined)
+            XCTAssertEqual(DDCControlMode(rawValue: "combined"), .hardware)
+            XCTAssertNil(DDCControlMode(rawValue: "hardware"))
             XCTAssertNil(DDCControlMode(rawValue: "invalid"))
         }
 

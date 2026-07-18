@@ -127,18 +127,15 @@
     /// The hardware control mode for a display.
     ///
     /// Determines how Dimmerly adjusts display output:
-    /// - Software only: Uses CoreGraphics gamma tables (existing behavior, works everywhere)
-    /// - Hardware only: Uses DDC/CI to control the monitor's backlight directly
-    /// - Combined: DDC for backlight + gamma for fine color tuning (warmth/contrast)
+    /// - Software: Uses CoreGraphics gamma tables (works everywhere)
+    /// - Hardware: Uses DDC/CI for brightness when supported and gamma for color adjustments
     enum DDCControlMode: String, CaseIterable, Identifiable {
-        /// Use only software gamma tables (default, App Store safe)
+        /// Use software gamma tables for brightness and color adjustments.
         case softwareOnly = "software"
 
-        /// Use only DDC/CI hardware commands (requires DDC support)
-        case hardwareOnly = "hardware"
-
-        /// Use DDC for brightness + software gamma for warmth/contrast
-        case combined
+        /// Use DDC for brightness when supported, with automatic software fallback.
+        /// The existing raw value preserves settings written by previous releases.
+        case hardware = "combined"
 
         var id: String {
             rawValue
@@ -146,9 +143,8 @@
 
         var displayName: String {
             switch self {
-            case .softwareOnly: String(localized: "Software Only", comment: "DDC control mode name")
-            case .hardwareOnly: String(localized: "Hardware Only", comment: "DDC control mode name")
-            case .combined: String(localized: "Combined", comment: "DDC control mode name")
+            case .softwareOnly: String(localized: "Software", comment: "DDC control mode name")
+            case .hardware: String(localized: "Hardware", comment: "DDC control mode name")
             }
         }
 
@@ -160,15 +156,10 @@
                     localized: "Uses gamma tables to adjust display output. Works with all displays but does not change the actual backlight.",
                     comment: "Description of software-only DDC control mode"
                 )
-            case .hardwareOnly:
-                String(
-                    localized: "Controls the monitor's backlight directly via DDC/CI. Falls back to software brightness if DDC is not available.",
-                    comment: "Description of hardware-only DDC control mode"
-                )
-            case .combined:
+            case .hardware:
                 String(
                     localized: "Uses DDC for brightness and gamma tables for warmth and contrast. Automatically uses software brightness if DDC is not available.",
-                    comment: "Description of combined DDC control mode"
+                    comment: "Description of hardware DDC control mode"
                 )
             }
         }

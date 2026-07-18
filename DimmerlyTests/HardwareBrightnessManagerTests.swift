@@ -140,7 +140,7 @@ import XCTest
             XCTAssertTrue(manager.hardwareMute.isEmpty)
             XCTAssertTrue(manager.activeInputSource.isEmpty)
             XCTAssertFalse(manager.isEnabled)
-            XCTAssertEqual(manager.controlMode, .combined)
+            XCTAssertEqual(manager.controlMode, .hardware)
         }
 
         // MARK: - Capability Queries

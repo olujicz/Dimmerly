@@ -103,8 +103,8 @@
         /// Controlled by AppSettings.ddcEnabled.
         var isEnabled: Bool = false
 
-        /// The active control mode (software, hardware, or combined).
-        var controlMode: DDCControlMode = .combined
+        /// The active control mode.
+        var controlMode: DDCControlMode = .hardware
 
         // MARK: - Private State
 

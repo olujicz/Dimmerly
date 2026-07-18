@@ -55,7 +55,7 @@ final class AppSettingsTests: XCTestCase {
     #if !APPSTORE
         func testApplyDDCEnabledChangeAppliesRuntimeSettingsWhenTurningOn() {
             settings.ddcEnabled = false
-            settings.ddcControlMode = .hardwareOnly
+            settings.ddcControlMode = .hardware
             settings.ddcPollingInterval = 13
             settings.ddcWriteDelay = 120
             let manager = HardwareBrightnessManager(forTesting: true, ddcInterface: MockDDCInterface())
@@ -73,7 +73,7 @@ final class AppSettingsTests: XCTestCase {
 
             XCTAssertTrue(settings.ddcEnabled)
             XCTAssertTrue(manager.isEnabled)
-            XCTAssertEqual(manager.controlMode, .hardwareOnly)
+            XCTAssertEqual(manager.controlMode, .hardware)
             XCTAssertEqual(manager.pollingInterval, 13)
             XCTAssertEqual(manager.minimumWriteInterval, 0.12, accuracy: 0.001)
         }
@@ -87,7 +87,7 @@ final class AppSettingsTests: XCTestCase {
 
             XCTAssertTrue(
                 source.contains(".disabled(!isDDCControlModeAvailable(mode, hardwareManager: hardwareManager))"),
-                "Hardware and Combined DDC mode picker rows should be disabled when hardware brightness is unavailable"
+                "The Hardware DDC mode picker row should be disabled when hardware brightness is unavailable"
             )
         }
 
@@ -99,8 +99,8 @@ final class AppSettingsTests: XCTestCase {
             let source = try String(contentsOf: settingsViewSourceURL, encoding: .utf8)
 
             XCTAssertTrue(
-                source.contains("Hardware modes require a DDC-capable display with brightness control."),
-                "Unavailable Hardware and Combined picker rows should have a nearby explanation"
+                source.contains("Hardware mode requires a DDC-capable display with brightness control."),
+                "The unavailable Hardware picker row should have a nearby explanation"
             )
         }
 
@@ -189,8 +189,7 @@ final class AppSettingsTests: XCTestCase {
             let manager = HardwareBrightnessManager(forTesting: true, ddcInterface: MockDDCInterface())
 
             XCTAssertTrue(isDDCControlModeAvailable(.softwareOnly, hardwareManager: manager))
-            XCTAssertFalse(isDDCControlModeAvailable(.hardwareOnly, hardwareManager: manager))
-            XCTAssertFalse(isDDCControlModeAvailable(.combined, hardwareManager: manager))
+            XCTAssertFalse(isDDCControlModeAvailable(.hardware, hardwareManager: manager))
 
             manager.isEnabled = true
             manager.capabilities[25] = HardwareDisplayCapability(
@@ -202,8 +201,7 @@ final class AppSettingsTests: XCTestCase {
                 maxVolume: 100
             )
 
-            XCTAssertFalse(isDDCControlModeAvailable(.hardwareOnly, hardwareManager: manager))
-            XCTAssertFalse(isDDCControlModeAvailable(.combined, hardwareManager: manager))
+            XCTAssertFalse(isDDCControlModeAvailable(.hardware, hardwareManager: manager))
 
             manager.capabilities[25] = HardwareDisplayCapability(
                 displayID: 25,
@@ -214,12 +212,37 @@ final class AppSettingsTests: XCTestCase {
                 maxVolume: 0
             )
 
-            XCTAssertTrue(isDDCControlModeAvailable(.hardwareOnly, hardwareManager: manager))
-            XCTAssertTrue(isDDCControlModeAvailable(.combined, hardwareManager: manager))
+            XCTAssertTrue(isDDCControlModeAvailable(.hardware, hardwareManager: manager))
 
             manager.isEnabled = false
-            XCTAssertFalse(isDDCControlModeAvailable(.hardwareOnly, hardwareManager: manager))
-            XCTAssertFalse(isDDCControlModeAvailable(.combined, hardwareManager: manager))
+            XCTAssertFalse(isDDCControlModeAvailable(.hardware, hardwareManager: manager))
+        }
+
+        func testDDCControlModeMigrationPreservesCombinedAsHardware() {
+            testDefaults.set("combined", forKey: "dimmerlyDDCControlMode")
+
+            let migrated = AppSettings(defaults: testDefaults)
+
+            XCTAssertEqual(migrated.ddcControlMode, .hardware)
+            XCTAssertEqual(migrated.ddcControlModeRaw, "combined")
+        }
+
+        func testDDCControlModeMigrationCoalescesOrphanedHardwareValue() {
+            testDefaults.set("hardware", forKey: "dimmerlyDDCControlMode")
+
+            let migrated = AppSettings(defaults: testDefaults)
+
+            XCTAssertEqual(migrated.ddcControlMode, .hardware)
+            XCTAssertEqual(migrated.ddcControlModeRaw, "combined")
+        }
+
+        func testDDCControlModeMigrationPreservesSoftware() {
+            testDefaults.set("software", forKey: "dimmerlyDDCControlMode")
+
+            let migrated = AppSettings(defaults: testDefaults)
+
+            XCTAssertEqual(migrated.ddcControlMode, .softwareOnly)
+            XCTAssertEqual(migrated.ddcControlModeRaw, "software")
         }
 
         func testApplyDDCEnabledChangeReappliesSoftwareGammaWhenTurningOff() {

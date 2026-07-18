@@ -36,6 +36,7 @@
 		BA0000000000000000000001 /* BrightnessManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0000000000000000000002 /* BrightnessManager.swift */; };
 		BA0000000000000000000003 /* MenuBarPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0000000000000000000004 /* MenuBarPanel.swift */; };
 		BI0000000000000000000011 /* BlankingInputMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BI0000000000000000000001 /* BlankingInputMonitor.swift */; };
+		DP0000000000000000000011 /* DisplayOutputPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = DP0000000000000000000001 /* DisplayOutputPolicy.swift */; };
 		BS0000000000000000000011 /* BlankingSystemControllers.swift in Sources */ = {isa = PBXBuildFile; fileRef = BS0000000000000000000001 /* BlankingSystemControllers.swift */; };
 		C1B2C3D4E5F6A7B8C9D0E1F1 /* DimmerlyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B2C3D4E5F6A7B8C9D0E1F1 /* DimmerlyApp.swift */; };
 		C1B2C3D4E5F6A7B8C9D0E1F2 /* DisplayController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B2C3D4E5F6A7B8C9D0E1F2 /* DisplayController.swift */; };
@@ -128,6 +129,7 @@
 		SC00000000000000000004 /* ScheduleManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleManager.swift; sourceTree = "<group>"; };
 		SC00000000000000000005 /* ScheduleViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleViews.swift; sourceTree = "<group>"; };
 		BI0000000000000000000001 /* BlankingInputMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlankingInputMonitor.swift; sourceTree = "<group>"; };
+		DP0000000000000000000001 /* DisplayOutputPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayOutputPolicy.swift; sourceTree = "<group>"; };
 		BS0000000000000000000001 /* BlankingSystemControllers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlankingSystemControllers.swift; sourceTree = "<group>"; };
 		15EF8DD088138249EA3B9ED2 /* LaunchAtLoginManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginManager.swift; sourceTree = "<group>"; };
 		473CD46DB2D77DD4EB8463DA /* AlertPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertPresenter.swift; sourceTree = "<group>"; };
@@ -334,6 +336,7 @@
 				SC00000000000000000001 /* DimmingSchedule.swift */,
 				E37863164B2170781448D5DC /* DisplayError.swift */,
 				HW00000000000000000002 /* HardwareDisplayCapability.swift */,
+				DP0000000000000000000001 /* DisplayOutputPolicy.swift */,
 				D1B045C3D2AA639266BC0483 /* KeyboardShortcut.swift */,
 				FE7B95B7556B68B59FE0DC7B /* AppSettings.swift */,
 			);
@@ -616,6 +619,7 @@
 				CT00000000000000000011 /* ColorTemperatureManager.swift in Sources */,
 				HW00000000000000000011 /* DDCController.swift in Sources */,
 				HW00000000000000000012 /* HardwareDisplayCapability.swift in Sources */,
+				DP0000000000000000000011 /* DisplayOutputPolicy.swift in Sources */,
 				HW00000000000000000013 /* HardwareBrightnessManager.swift in Sources */,
 				EX00000000000000000011 /* PresetManagementRow.swift in Sources */,
 				EX00000000000000000012 /* LocationPickerRow.swift in Sources */,

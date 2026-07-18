@@ -45,7 +45,7 @@ func applyLaunchAtLoginChange(
         switch mode {
         case .softwareOnly:
             true
-        case .hardwareOnly, .combined:
+        case .hardware:
             hardwareManager.isEnabled
                 && hardwareManager.capabilities.values.contains { $0.supportsDDC && $0.supportsBrightness }
         }
@@ -541,7 +541,7 @@ struct DisplaySettingsTab: View {
                         hardwareManager: hardwareManager
                     ) ? settings.ddcControlMode : .softwareOnly
                     let hardwareControlModesAvailable = isDDCControlModeAvailable(
-                        .hardwareOnly,
+                        .hardware,
                         hardwareManager: hardwareManager
                     )
 
@@ -567,7 +567,7 @@ struct DisplaySettingsTab: View {
                         .foregroundStyle(.secondary)
 
                     if !hardwareControlModesAvailable {
-                        Text("Hardware modes require a DDC-capable display with brightness control.")
+                        Text("Hardware mode requires a DDC-capable display with brightness control.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
