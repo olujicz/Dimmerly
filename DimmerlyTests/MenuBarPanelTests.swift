@@ -161,7 +161,6 @@ final class MenuBarPanelTests: XCTestCase {
         func testDDCControlsAreHiddenWhenHardwareManagerIsDisabled() {
             let displayID: CGDirectDisplayID = 42
             let manager = HardwareBrightnessManager(forTesting: true)
-            manager.isEnabled = false
             manager.capabilities[displayID] = HardwareDisplayCapability(
                 displayID: displayID,
                 supportsDDC: true,

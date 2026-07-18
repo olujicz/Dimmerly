@@ -126,17 +126,16 @@ func applyLaunchAtLoginChange(
         settings: AppSettings,
         hardwareManager: HardwareBrightnessManager,
         brightnessManager: BrightnessManager = .shared
-    ) {
+    ) async {
         settings.ddcEnabled = newValue
 
         if newValue {
-            hardwareManager.isEnabled = true
+            hardwareManager.enable()
             applyDDCRuntimeSettings(settings: settings, hardwareManager: hardwareManager)
             hardwareManager.probeAllDisplays()
             hardwareManager.startPolling()
         } else {
-            hardwareManager.isEnabled = false
-            hardwareManager.stopPolling()
+            await hardwareManager.disable()
             brightnessManager.reapplyAll()
         }
     }
@@ -524,11 +523,13 @@ struct DisplaySettingsTab: View {
                 Toggle("Enable DDC/CI hardware control", isOn: Binding(
                     get: { settings.ddcEnabled },
                     set: { newValue in
-                        applyDDCEnabledChange(
-                            newValue,
-                            settings: settings,
-                            hardwareManager: hardwareManager
-                        )
+                        Task {
+                            await applyDDCEnabledChange(
+                                newValue,
+                                settings: settings,
+                                hardwareManager: hardwareManager
+                            )
+                        }
                     }
                 ))
                 .help("DDC/CI controls compatible external displays over the display cable. "

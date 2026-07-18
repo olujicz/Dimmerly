@@ -296,7 +296,7 @@ struct DimmerlyApp: App {
         /// method is only compiled in direct distribution builds.
         private func configureHardwareControl() {
             guard settings.ddcEnabled else { return }
-            hardwareManager.isEnabled = true
+            hardwareManager.enable()
             hardwareManager.applyRuntimeSettings(
                 controlMode: settings.ddcControlMode,
                 pollingInterval: settings.ddcPollingInterval,

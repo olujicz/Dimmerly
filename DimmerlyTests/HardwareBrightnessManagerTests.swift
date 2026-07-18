@@ -105,6 +105,58 @@ import XCTest
         }
     }
 
+    final class BlockingDDCRecorder: @unchecked Sendable {
+        private let lock = NSLock()
+        private let firstCallCanFinish = DispatchSemaphore(value: 0)
+        private var recordedCodes: [VCPCode] = []
+        private let firstCallStarted: XCTestExpectation
+        private let callsCompleted: XCTestExpectation?
+
+        init(firstCallStarted: XCTestExpectation, callsCompleted: XCTestExpectation? = nil) {
+            self.firstCallStarted = firstCallStarted
+            self.callsCompleted = callsCompleted
+        }
+
+        var codes: [VCPCode] {
+            lock.withLock { recordedCodes }
+        }
+
+        func record(_ code: VCPCode) {
+            let isFirst = lock.withLock {
+                recordedCodes.append(code)
+                return recordedCodes.count == 1
+            }
+            if isFirst {
+                firstCallStarted.fulfill()
+                _ = firstCallCanFinish.wait(timeout: .now() + 2)
+            }
+            callsCompleted?.fulfill()
+        }
+
+        func releaseFirstCall() {
+            firstCallCanFinish.signal()
+        }
+    }
+
+    final class BlockingDDCRead: @unchecked Sendable {
+        private let callCanFinish = DispatchSemaphore(value: 0)
+        private let callStarted: XCTestExpectation
+
+        init(callStarted: XCTestExpectation) {
+            self.callStarted = callStarted
+        }
+
+        func read() -> DDCReadResult {
+            callStarted.fulfill()
+            _ = callCanFinish.wait(timeout: .now() + 2)
+            return DDCReadResult(currentValue: 20, maxValue: 100)
+        }
+
+        func release() {
+            callCanFinish.signal()
+        }
+    }
+
     @MainActor
     final class HardwareBrightnessManagerTests: XCTestCase {
         // XCTest lifecycle overrides are nonisolated in Xcode 26.2, so test fixtures
@@ -117,6 +169,7 @@ import XCTest
             let (mockDDC, manager) = MainActor.assumeIsolated {
                 let mockDDC = MockDDCInterface()
                 let manager = HardwareBrightnessManager(forTesting: true, ddcInterface: mockDDC)
+                manager.enable()
                 return (mockDDC, manager)
             }
             self.mockDDC = mockDDC
@@ -133,14 +186,15 @@ import XCTest
 
         /// Tests that a fresh manager has empty state
         func testInitialState() {
-            XCTAssertTrue(manager.capabilities.isEmpty)
-            XCTAssertTrue(manager.hardwareBrightness.isEmpty)
-            XCTAssertTrue(manager.hardwareContrast.isEmpty)
-            XCTAssertTrue(manager.hardwareVolume.isEmpty)
-            XCTAssertTrue(manager.hardwareMute.isEmpty)
-            XCTAssertTrue(manager.activeInputSource.isEmpty)
-            XCTAssertFalse(manager.isEnabled)
-            XCTAssertEqual(manager.controlMode, .hardware)
+            let freshManager = HardwareBrightnessManager(forTesting: true, ddcInterface: MockDDCInterface())
+            XCTAssertTrue(freshManager.capabilities.isEmpty)
+            XCTAssertTrue(freshManager.hardwareBrightness.isEmpty)
+            XCTAssertTrue(freshManager.hardwareContrast.isEmpty)
+            XCTAssertTrue(freshManager.hardwareVolume.isEmpty)
+            XCTAssertTrue(freshManager.hardwareMute.isEmpty)
+            XCTAssertTrue(freshManager.activeInputSource.isEmpty)
+            XCTAssertFalse(freshManager.isEnabled)
+            XCTAssertEqual(freshManager.controlMode, .hardware)
         }
 
         // MARK: - Capability Queries
@@ -227,6 +281,7 @@ import XCTest
                 return false
             }
             let mgr = HardwareBrightnessManager(forTesting: true, ddcInterface: mockWithFailWriter)
+            mgr.enable()
             mgr.setHardwareBrightness(for: 999, to: 0.5)
             XCTAssertNil(mgr.hardwareBrightness[999])
         }
@@ -413,6 +468,157 @@ import XCTest
             XCTAssertEqual(manager.minimumWriteInterval, 0.12, accuracy: 0.001)
         }
 
+        func testSessionGateInvalidatesOnlyTheCapturedGeneration() {
+            let gate = DDCSessionGate()
+            let first = gate.beginEnabledSession()
+            XCTAssertTrue(gate.isCurrent(first))
+
+            gate.invalidate(first)
+            XCTAssertNil(gate.capture())
+
+            let second = gate.beginEnabledSession()
+            gate.invalidate(first)
+            XCTAssertTrue(gate.isCurrent(second))
+        }
+
+        func testDisableCancelsDebouncedWriteBeforeIO() async {
+            let writeAttempted = expectation(description: "No DDC write begins")
+            writeAttempted.isInverted = true
+            var mock = MockDDCInterface()
+            mock.writeHandler = { _, _, _ in
+                writeAttempted.fulfill()
+                return true
+            }
+            let manager = HardwareBrightnessManager(forTesting: true, ddcInterface: mock)
+            manager.enable()
+            manager.capabilities[1] = brightnessAndVolumeCapability(displayID: 1)
+
+            manager.setHardwareBrightness(for: 1, to: 0.5)
+            await manager.disable()
+
+            await fulfillment(of: [writeAttempted], timeout: 0.25)
+            XCTAssertEqual(manager.pendingWorkCountForTesting, 0)
+            XCTAssertFalse(manager.isEnabled)
+        }
+
+        func testDisableLetsExecutingWriteFinishAndRejectsQueuedWrite() async {
+            let firstCallStarted = expectation(description: "First write started")
+            let recorder = BlockingDDCRecorder(firstCallStarted: firstCallStarted)
+            var mock = MockDDCInterface()
+            mock.writeHandler = { code, _, _ in
+                recorder.record(code)
+                return true
+            }
+            let manager = HardwareBrightnessManager(forTesting: true, ddcInterface: mock)
+            manager.enable()
+            manager.capabilities[1] = brightnessAndVolumeCapability(displayID: 1)
+
+            manager.setHardwareBrightness(for: 1, to: 0.5)
+            manager.setHardwareVolume(for: 1, to: 0.5)
+            await fulfillment(of: [firstCallStarted], timeout: 1)
+
+            let disabling = Task { await manager.disable() }
+            while !manager.isDisabling {
+                await Task.yield()
+            }
+            recorder.releaseFirstCall()
+            await disabling.value
+
+            XCTAssertEqual(recorder.codes.count, 1)
+            XCTAssertEqual(manager.pendingWorkCountForTesting, 0)
+        }
+
+        func testReenableWhileDisableBarrierDrainsUsesFreshSession() async {
+            let firstCallStarted = expectation(description: "Old session write started")
+            let twoCallsCompleted = expectation(description: "Old executing write and new session write completed")
+            twoCallsCompleted.expectedFulfillmentCount = 2
+            let recorder = BlockingDDCRecorder(
+                firstCallStarted: firstCallStarted,
+                callsCompleted: twoCallsCompleted
+            )
+            var mock = MockDDCInterface()
+            mock.writeHandler = { code, _, _ in
+                recorder.record(code)
+                return true
+            }
+            let manager = HardwareBrightnessManager(forTesting: true, ddcInterface: mock)
+            manager.enable()
+            manager.capabilities[1] = brightnessVolumeAndInputCapability(displayID: 1)
+
+            manager.setHardwareBrightness(for: 1, to: 0.5)
+            manager.setHardwareVolume(for: 1, to: 0.5)
+            await fulfillment(of: [firstCallStarted], timeout: 1)
+
+            let disabling = Task { await manager.disable() }
+            while !manager.isDisabling {
+                await Task.yield()
+            }
+            manager.enable()
+            manager.setInputSource(for: 1, to: .hdmi1)
+            recorder.releaseFirstCall()
+
+            await disabling.value
+            await fulfillment(of: [twoCallsCompleted], timeout: 1)
+            XCTAssertTrue(manager.isEnabled)
+            XCTAssertEqual(recorder.codes.count, 2)
+            XCTAssertTrue(recorder.codes.contains(.inputSource))
+        }
+
+        func testDisableRejectsStaleReadPublication() async {
+            let readStarted = expectation(description: "Read started")
+            let blockingRead = BlockingDDCRead(callStarted: readStarted)
+            var mock = MockDDCInterface()
+            mock.readHandler = { _, _ in blockingRead.read() }
+            let manager = HardwareBrightnessManager(forTesting: true, ddcInterface: mock)
+            manager.enable()
+            manager.pollingInterval = 0.01
+            manager.capabilities[1] = HardwareDisplayCapability(
+                displayID: 1,
+                supportsDDC: true,
+                supportedCodes: [.volume],
+                maxBrightness: 0,
+                maxContrast: 0,
+                maxVolume: 100
+            )
+            manager.hardwareVolume[1] = 0.8
+
+            manager.startPolling()
+            await fulfillment(of: [readStarted], timeout: 1)
+            let disabling = Task { await manager.disable() }
+            while !manager.isDisabling {
+                await Task.yield()
+            }
+            blockingRead.release()
+            await disabling.value
+            await Task.yield()
+
+            XCTAssertEqual(manager.hardwareVolume[1], 0.8)
+        }
+
+        private func brightnessAndVolumeCapability(displayID: CGDirectDisplayID) -> HardwareDisplayCapability {
+            HardwareDisplayCapability(
+                displayID: displayID,
+                supportsDDC: true,
+                supportedCodes: [.brightness, .volume],
+                maxBrightness: 100,
+                maxContrast: 0,
+                maxVolume: 100
+            )
+        }
+
+        private func brightnessVolumeAndInputCapability(
+            displayID: CGDirectDisplayID
+        ) -> HardwareDisplayCapability {
+            HardwareDisplayCapability(
+                displayID: displayID,
+                supportsDDC: true,
+                supportedCodes: [.brightness, .volume, .inputSource],
+                maxBrightness: 100,
+                maxContrast: 0,
+                maxVolume: 100
+            )
+        }
+
         func testDDCWritesAreSerialized() async {
             let writesCompleted = expectation(description: "DDC writes completed")
             writesCompleted.expectedFulfillmentCount = 2
@@ -425,6 +631,7 @@ import XCTest
             }
 
             let manager = HardwareBrightnessManager(forTesting: true, ddcInterface: mock)
+            manager.enable()
             let displayID: CGDirectDisplayID = 1
             manager.capabilities[displayID] = HardwareDisplayCapability(
                 displayID: displayID,
@@ -464,6 +671,7 @@ import XCTest
             }
 
             let manager = HardwareBrightnessManager(forTesting: true, ddcInterface: mock)
+            manager.enable()
             let displayID: CGDirectDisplayID = 1
             manager.minimumWriteInterval = 0.12
             manager.pollingInterval = 0.01
@@ -503,6 +711,7 @@ import XCTest
             }
 
             let manager = HardwareBrightnessManager(forTesting: true, ddcInterface: mock)
+            manager.enable()
             let displayID: CGDirectDisplayID = 1
             manager.pollingInterval = 0.01
             manager.capabilities[displayID] = HardwareDisplayCapability(
@@ -542,6 +751,7 @@ import XCTest
             }
 
             let manager = HardwareBrightnessManager(forTesting: true, ddcInterface: mock)
+            manager.enable()
             let displayID: CGDirectDisplayID = 1
             manager.capabilities[displayID] = HardwareDisplayCapability(
                 displayID: displayID,

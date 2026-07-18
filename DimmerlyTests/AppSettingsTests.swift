@@ -53,7 +53,7 @@ final class AppSettingsTests: XCTestCase {
     }
 
     #if !APPSTORE
-        func testApplyDDCEnabledChangeAppliesRuntimeSettingsWhenTurningOn() {
+        func testApplyDDCEnabledChangeAppliesRuntimeSettingsWhenTurningOn() async {
             settings.ddcEnabled = false
             settings.ddcControlMode = .hardware
             settings.ddcPollingInterval = 13
@@ -68,7 +68,7 @@ final class AppSettingsTests: XCTestCase {
                 maxVolume: 0
             )
 
-            applyDDCEnabledChange(true, settings: settings, hardwareManager: manager)
+            await applyDDCEnabledChange(true, settings: settings, hardwareManager: manager)
             manager.stopPolling()
 
             XCTAssertTrue(settings.ddcEnabled)
@@ -185,13 +185,13 @@ final class AppSettingsTests: XCTestCase {
             XCTAssertEqual(ddcDisplayAccessibilityStatus(for: unsupported), "using software brightness")
         }
 
-        func testDDCControlModeAvailabilityRequiresEnabledHardwareBrightness() {
+        func testDDCControlModeAvailabilityRequiresEnabledHardwareBrightness() async {
             let manager = HardwareBrightnessManager(forTesting: true, ddcInterface: MockDDCInterface())
 
             XCTAssertTrue(isDDCControlModeAvailable(.softwareOnly, hardwareManager: manager))
             XCTAssertFalse(isDDCControlModeAvailable(.hardware, hardwareManager: manager))
 
-            manager.isEnabled = true
+            manager.enable()
             manager.capabilities[25] = HardwareDisplayCapability(
                 displayID: 25,
                 supportsDDC: true,
@@ -214,7 +214,7 @@ final class AppSettingsTests: XCTestCase {
 
             XCTAssertTrue(isDDCControlModeAvailable(.hardware, hardwareManager: manager))
 
-            manager.isEnabled = false
+            await manager.disable()
             XCTAssertFalse(isDDCControlModeAvailable(.hardware, hardwareManager: manager))
         }
 
@@ -245,11 +245,11 @@ final class AppSettingsTests: XCTestCase {
             XCTAssertEqual(migrated.ddcControlModeRaw, "software")
         }
 
-        func testApplyDDCEnabledChangeReappliesSoftwareGammaWhenTurningOff() {
+        func testApplyDDCEnabledChangeReappliesSoftwareGammaWhenTurningOff() async {
             let hardwareManager = HardwareBrightnessManager(forTesting: true)
             let brightnessManager = BrightnessManager(forTesting: true)
             settings.ddcEnabled = true
-            hardwareManager.isEnabled = true
+            hardwareManager.enable()
             brightnessManager.displays = [
                 ExternalDisplay(id: 91, name: "External", brightness: 0.42, warmth: 0.0, contrast: 0.5),
             ]
@@ -260,7 +260,7 @@ final class AppSettingsTests: XCTestCase {
                 XCTAssertEqual(brightness, 0.42, accuracy: 0.001)
             }
 
-            applyDDCEnabledChange(
+            await applyDDCEnabledChange(
                 false,
                 settings: settings,
                 hardwareManager: hardwareManager,
