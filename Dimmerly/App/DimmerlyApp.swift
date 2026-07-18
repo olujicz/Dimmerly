@@ -95,7 +95,6 @@ struct DimmerlyApp: App {
                     configureIdleTimer()
                     configurePresetShortcuts()
                     configureScheduleManager()
-                    configureColorTemperature()
                     observeWidgetNotifications()
                     processPendingWidgetCommands()
                     // Initial sync for settings-driven managers. `.onChange` below
@@ -251,12 +250,6 @@ struct DimmerlyApp: App {
             guard let preset = presetManager.presets.first(where: { $0.id == presetID }) else { return }
             presetManager.applyPreset(preset, to: brightnessManager, animated: true)
         }
-    }
-
-    /// Color-temperature start/stop is driven entirely by `.onChange` on
-    /// `settings.autoColorTempEnabled` and the one-time sync at launch.
-    private func configureColorTemperature() {
-        // No wiring needed — manager is self-contained once enabled.
     }
 
     /// Wires the preset-shortcut-triggered callback. `.onChange` on `presetManager.presets`

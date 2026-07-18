@@ -22,7 +22,7 @@ struct PresetManagementRow: View {
     let allPresets: [BrightnessPreset]
     let onRename: (String) -> Void
     let onDelete: () -> Void
-    let onShortcutChanged: (GlobalShortcut?) -> Void
+    let onShortcutChanged: (GlobalShortcut?) throws -> Void
 
     @State private var isEditing = false
     @State private var editedName: String = ""
@@ -100,8 +100,12 @@ struct PresetManagementRow: View {
                             }
                         }
                     }
-                    conflictMessage = nil
-                    onShortcutChanged(newShortcut)
+                    do {
+                        try onShortcutChanged(newShortcut)
+                        conflictMessage = nil
+                    } catch {
+                        conflictMessage = error.localizedDescription
+                    }
                 },
                 onConflictDetected: { message in
                     conflictMessage = message

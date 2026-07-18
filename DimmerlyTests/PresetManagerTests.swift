@@ -22,7 +22,10 @@ final class PresetManagerTests: XCTestCase {
         testSuiteName = "PresetManagerTests-\(UUID().uuidString)"
         testDefaults = UserDefaults(suiteName: testSuiteName)
         testDefaults.removePersistentDomain(forName: testSuiteName)
-        manager = PresetManager(defaults: testDefaults)
+        manager = PresetManager(
+            defaults: testDefaults,
+            mainShortcutProvider: { GlobalShortcut.default }
+        )
         bm = BrightnessManager(forTesting: true)
         // Clear presets for a clean slate
         while !manager.presets.isEmpty {
@@ -196,7 +199,7 @@ final class PresetManagerTests: XCTestCase {
 
     // MARK: - updateShortcut
 
-    func testUpdateShortcutSet() {
+    func testUpdateShortcutSet() throws {
         bm.displays = []
         manager.saveCurrentAsPreset(name: "Shortcut Test", brightnessManager: bm)
         guard let id = manager.presets.last?.id else {
@@ -204,13 +207,13 @@ final class PresetManagerTests: XCTestCase {
         }
 
         let shortcut = GlobalShortcut(key: "1", modifiers: [.command, .option])
-        manager.updateShortcut(for: id, shortcut: shortcut)
+        try manager.updateShortcut(for: id, shortcut: shortcut)
 
         XCTAssertEqual(manager.presets.last?.shortcut?.key, "1")
         XCTAssertEqual(manager.presets.last?.shortcut?.modifiers, [.command, .option])
     }
 
-    func testUpdateShortcutClear() {
+    func testUpdateShortcutClear() throws {
         bm.displays = []
         manager.saveCurrentAsPreset(name: "Shortcut Test", brightnessManager: bm)
         guard let id = manager.presets.last?.id else {
@@ -218,10 +221,40 @@ final class PresetManagerTests: XCTestCase {
         }
 
         // Set then clear
-        manager.updateShortcut(for: id, shortcut: GlobalShortcut(key: "1", modifiers: [.command]))
-        manager.updateShortcut(for: id, shortcut: nil)
+        try manager.updateShortcut(for: id, shortcut: GlobalShortcut(key: "1", modifiers: [.command]))
+        try manager.updateShortcut(for: id, shortcut: nil)
 
         XCTAssertNil(manager.presets.last?.shortcut, "Shortcut should be cleared")
+    }
+
+    func testUpdateShortcutRejectsMainShortcutAndPreservesPreviousValue() throws {
+        bm.displays = []
+        manager.saveCurrentAsPreset(name: "Focus", brightnessManager: bm)
+        let presetID = try XCTUnwrap(manager.presets.last?.id)
+        let previous = GlobalShortcut(key: "1", modifiers: [.command, .option])
+        try manager.updateShortcut(for: presetID, shortcut: previous)
+
+        XCTAssertThrowsError(try manager.updateShortcut(for: presetID, shortcut: .default)) { error in
+            XCTAssertEqual(error as? PresetShortcutError, .conflictsWithMainShortcut)
+        }
+        XCTAssertEqual(manager.presets.last?.shortcut, previous)
+    }
+
+    func testUpdateShortcutRejectsAnotherPresetShortcutWithItsName() throws {
+        bm.displays = []
+        manager.saveCurrentAsPreset(name: "Evening", brightnessManager: bm)
+        manager.saveCurrentAsPreset(name: "Night", brightnessManager: bm)
+        let evening = manager.presets[0]
+        let night = manager.presets[1]
+        let conflict = GlobalShortcut(key: "1", modifiers: [.command, .option])
+        let previous = GlobalShortcut(key: "2", modifiers: [.command, .option])
+        try manager.updateShortcut(for: evening.id, shortcut: conflict)
+        try manager.updateShortcut(for: night.id, shortcut: previous)
+
+        XCTAssertThrowsError(try manager.updateShortcut(for: night.id, shortcut: conflict)) { error in
+            XCTAssertEqual(error as? PresetShortcutError, .conflictsWithPreset(name: "Evening"))
+        }
+        XCTAssertEqual(manager.presets[1].shortcut, previous)
     }
 
     func testWidgetPresetsAreClearedWhenAllPresetsAreDeleted() throws {

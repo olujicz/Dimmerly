@@ -872,7 +872,7 @@ struct ShortcutsSettingsTab: View {
                         presetManager.deletePreset(id: preset.id, undoManager: undoManager)
                     },
                     onShortcutChanged: { shortcut in
-                        presetManager.updateShortcut(for: preset.id, shortcut: shortcut)
+                        try presetManager.updateShortcut(for: preset.id, shortcut: shortcut)
                     }
                 )
             }

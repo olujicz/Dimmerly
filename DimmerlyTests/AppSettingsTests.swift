@@ -308,26 +308,6 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(settings.launchAtLogin, initialValue, "Should toggle back to original value")
     }
 
-    /// Tests that resetToDefaults works correctly
-    func testResetToDefaults() {
-        // Given: Modified settings
-        settings.launchAtLogin = true
-        settings.keyboardShortcut = GlobalShortcut(key: "x", modifiers: [.command])
-
-        // When: We reset to defaults
-        settings.resetToDefaults()
-
-        // Then: Settings should be back to defaults
-        XCTAssertFalse(settings.launchAtLogin, "Launch at login should be reset to false")
-
-        let defaultShortcut = GlobalShortcut.default
-        XCTAssertEqual(settings.keyboardShortcut.key, defaultShortcut.key, "Shortcut key should be reset")
-        XCTAssertEqual(
-            settings.keyboardShortcut.modifiers, defaultShortcut.modifiers,
-            "Shortcut modifiers should be reset"
-        )
-    }
-
     /// Tests that AppSettings is Observable
     func testObservableConformance() {
         /// Compile-time conformance check via type constraint
@@ -409,38 +389,5 @@ final class AppSettingsTests: XCTestCase {
         settings.menuBarIconRaw = "nonexistent_style"
         XCTAssertEqual(settings.menuBarIcon, .defaultIcon,
                        "Invalid raw value should fall back to .defaultIcon")
-    }
-
-    // MARK: - Comprehensive resetToDefaults
-
-    func testResetToDefaultsComprehensive() {
-        // Modify all settings
-        settings.keyboardShortcut = GlobalShortcut(key: "x", modifiers: [.command])
-        settings.launchAtLogin = true
-        settings.preventScreenLock = true
-        settings.ignoreMouseMovement = true
-        settings.menuBarIcon = .moonOutline
-        settings.idleTimerEnabled = true
-        settings.idleTimerMinutes = 15
-        settings.fadeTransition = false
-        settings.requireEscapeToDismiss = true
-        settings.scheduleEnabled = true
-
-        // Reset
-        settings.resetToDefaults()
-
-        // Verify all properties
-        let defaultShortcut = GlobalShortcut.default
-        XCTAssertEqual(settings.keyboardShortcut.key, defaultShortcut.key)
-        XCTAssertEqual(settings.keyboardShortcut.modifiers, defaultShortcut.modifiers)
-        XCTAssertFalse(settings.launchAtLogin)
-        XCTAssertFalse(settings.preventScreenLock)
-        XCTAssertFalse(settings.ignoreMouseMovement)
-        XCTAssertEqual(settings.menuBarIcon, .defaultIcon)
-        XCTAssertFalse(settings.idleTimerEnabled)
-        XCTAssertEqual(settings.idleTimerMinutes, 5)
-        XCTAssertTrue(settings.fadeTransition)
-        XCTAssertFalse(settings.requireEscapeToDismiss)
-        XCTAssertFalse(settings.scheduleEnabled)
     }
 }

@@ -254,28 +254,4 @@ class AppSettings {
                 ? d.integer(forKey: "dimmerlyDDCWriteDelay") : 50
         #endif
     }
-
-    /// Resets all settings to their default values
-    func resetToDefaults() {
-        keyboardShortcut = .default
-        launchAtLogin = false
-        preventScreenLock = false
-        ignoreMouseMovement = false
-        menuBarIconRaw = MenuBarIconStyle.defaultIcon.rawValue
-        idleTimerEnabled = false
-        idleTimerMinutes = 5
-        fadeTransition = true
-        requireEscapeToDismiss = false
-        scheduleEnabled = false
-        autoColorTempEnabled = false
-        dayTemperature = 6500
-        nightTemperature = 2700
-        colorTempTransitionMinutes = 40
-        #if !APPSTORE
-            ddcEnabled = true
-            ddcControlModeRaw = DDCControlMode.hardware.rawValue
-            ddcPollingInterval = 5
-            ddcWriteDelay = 50
-        #endif
-    }
 }

@@ -9,9 +9,7 @@
 //  - KeyboardShortcutManager: Single global shortcut for display sleep
 //  - PresetShortcutManager: Multiple shortcuts, one per preset (up to 10)
 //
-//  Conflict detection: Currently no conflict detection between preset shortcuts.
-//  Users can accidentally assign the same shortcut to multiple presets, in which case
-//  the first matching preset in the array will be triggered.
+//  Shortcut uniqueness is enforced by PresetManager before this service receives bindings.
 //
 
 import AppKit
