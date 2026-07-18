@@ -7,6 +7,19 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+### Changed
+- Simplified display control to Software and Hardware modes. Hardware mode now uses DDC/CI where supported and automatically falls back to software brightness for unsupported displays while preserving software warmth and contrast adjustments.
+- Clarified Hardware Control settings and availability messages so unsupported displays and software fallback behavior are easier to understand.
+- Improved the contrast of the automatic color-temperature badge across warm and cool display temperatures.
+
+### Fixed
+- Fixed display blanking so wake input is captured reliably, does not leak through to the foreground application, and remains recoverable if input monitoring becomes unavailable.
+- Fixed App Store builds sometimes removing the black display overlay when the menu-bar panel closed, leaving input capture inactive or inconsistent.
+- Fixed queued DDC/CI work and stale polling results continuing after Hardware Control was disabled.
+- Fixed display automations targeting disconnected displays instead of reporting that the display is unavailable.
+- Fixed duplicate keyboard shortcuts being assigned to multiple presets.
+- Tightened DDC/CI packet validation so malformed or mismatched monitor replies are rejected safely.
+
 ## [1.1.0] - 2026-07-12
 
 ### Added
