@@ -11,6 +11,20 @@ import SwiftUI
 import XCTest
 
 final class MenuBarPanelTests: XCTestCase {
+    func testAutoTemperatureBadgeUsesAdaptiveHighContrastTreatment() throws {
+        let repositoryURL = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let sourceURL = repositoryURL.appendingPathComponent("Dimmerly/Views/MenuBarDisplayControls.swift")
+        let source = try String(contentsOf: sourceURL, encoding: .utf8)
+
+        XCTAssertTrue(source.contains("Text(\"Auto\")"))
+        XCTAssertTrue(source.contains(".fontWeight(.semibold)"))
+        XCTAssertTrue(source.contains(".foregroundStyle(.primary)"))
+        XCTAssertTrue(source.contains("Capsule().fill(.orange.opacity(0.16))"))
+        XCTAssertTrue(source.contains("Capsule().stroke(.orange, lineWidth: 0.75)"))
+    }
+
     func testMenuBarPanelChromeClearsWindowContainerWithoutManualPerimeterStroke() throws {
         let viewsURL = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()

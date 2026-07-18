@@ -248,10 +248,16 @@ struct DisplayBrightnessRow: View {
                         if isAutoColorTemp {
                             Text("Auto")
                                 .font(.caption2)
-                                .foregroundStyle(.background)
-                                .padding(.horizontal, 4)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.primary)
+                                .padding(.horizontal, 5)
                                 .padding(.vertical, 1)
-                                .background(Capsule().fill(.orange.opacity(0.7)))
+                                .background {
+                                    Capsule().fill(.orange.opacity(0.16))
+                                }
+                                .overlay {
+                                    Capsule().stroke(.orange, lineWidth: 0.75)
+                                }
                                 .accessibilityHidden(true)
                         }
 
