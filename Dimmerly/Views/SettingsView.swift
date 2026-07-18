@@ -354,6 +354,15 @@ struct DisplaySettingsTab: View {
                 .pickerStyle(.radioGroup)
                 .help("Choose how to wake displays after dimming")
 
+                #if APPSTORE
+                    Text(
+                        "Dimmerly captures standard keyboard and pointer input while its overlays are active. "
+                            + "macOS system shortcuts and media keys may still be handled by the system."
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                #endif
+
                 if !settings.requireEscapeToDismiss {
                     Toggle("Ignore mouse movement", isOn: $settings.ignoreMouseMovement)
                         .help(Text("Only wake the screen on keyboard input or mouse click, not mouse movement"))
