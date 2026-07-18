@@ -11,8 +11,8 @@ reset='\033[0m'
 pass=0
 fail=0
 
-check_passed() { ((pass++)); printf "${green}✓${reset} %s\n" "$1"; }
-check_failed() { ((fail++)); printf "${red}✗${reset} %b\n" "$1"; }
+check_passed() { pass=$((pass + 1)); printf "${green}✓${reset} %s\n" "$1"; }
+check_failed() { fail=$((fail + 1)); printf "${red}✗${reset} %b\n" "$1"; }
 
 # ── Collect staged Swift files ───────────────────────────────────────
 staged_swift=$(git diff --cached --name-only --diff-filter=ACM -- '*.swift' || true)
@@ -66,47 +66,14 @@ fi
 # ── 3. Sensitive data ────────────────────────────────────────────────
 staged_all=$(git diff --cached --name-only --diff-filter=ACM || true)
 
-if [ -n "$staged_all" ]; then
+if ! command -v gitleaks &>/dev/null; then
+    check_failed "Gitleaks is required — install it with ${yellow}brew install gitleaks${reset}"
+elif [ -n "$staged_all" ]; then
     printf "${bold}Checking for sensitive data…${reset}\n"
-    secrets_found=0
-    diff_content=$(git diff --cached -U0)
-
-    # Patterns checked against added lines in the diff (ERE syntax)
-    patterns=(
-        'BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY'
-        'AKIA[0-9A-Z]{16}'                                              # AWS access key
-        '([Aa][Pp][Ii][_-]?[Kk][Ee][Yy]|[Ss][Ee][Cc][Rr][Ee][Tt][_-]?[Kk][Ee][Yy]|[Aa][Uu][Tt][Hh][_-]?[Tt][Oo][Kk][Ee][Nn]|[Aa][Cc][Cc][Ee][Ss][Ss][_-]?[Tt][Oo][Kk][Ee][Nn]|[Cc][Ll][Ii][Ee][Nn][Tt][_-]?[Ss][Ee][Cc][Rr][Ee][Tt])[[:space:]]*[:=][[:space:]]*["\x27]?[A-Za-z0-9/+=_-]{16,}'
-        '[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd][[:space:]]*[:=][[:space:]]*"[^"]{8,}'
-        'ghp_[A-Za-z0-9_]{36}'                                          # GitHub PAT
-        'gho_[A-Za-z0-9_]{36}'                                          # GitHub OAuth
-        'sk-[A-Za-z0-9]{20,}'                                           # OpenAI / Stripe
-        'xox[bpas]-[A-Za-z0-9-]+'                                       # Slack token
-    )
-
-    joined=$(IFS='|'; echo "${patterns[*]}")
-
-    # Search only added lines (+) in the cached diff
-    matches=$(echo "$diff_content" | grep -E '^\+' | grep -En "$joined" 2>/dev/null || true)
-
-    if [ -n "$matches" ]; then
-        secrets_found=1
-        check_failed "Possible secrets detected in staged changes:"
-        echo "$matches" | head -10
-        if [ "$(echo "$matches" | wc -l)" -gt 10 ]; then
-            printf "  … and more\n"
-        fi
-    fi
-
-    # Also flag known sensitive filenames
-    sensitive_files=$(echo "$staged_all" | grep -iE '\.(pem|p12|key|keystore|jks|pfx|env|env\..*)$|id_rsa|id_ed25519|credentials\.json|service.account\.json' || true)
-    if [ -n "$sensitive_files" ]; then
-        secrets_found=1
-        check_failed "Sensitive file(s) staged for commit:"
-        echo "$sensitive_files" | sed 's/^/  /'
-    fi
-
-    if [ "$secrets_found" -eq 0 ]; then
-        check_passed "No secrets detected"
+    if gitleaks git --pre-commit --redact --staged --verbose; then
+        check_passed "Gitleaks"
+    else
+        check_failed "Gitleaks detected a secret or could not complete the scan"
     fi
 fi
 

@@ -10,6 +10,7 @@ This guide is for developers and contributors building Dimmerly from source.
 - Optional: [just](https://github.com/casey/just)
 - Optional: [SwiftLint](https://github.com/realm/SwiftLint)
 - Optional: [SwiftFormat](https://github.com/nicklockwood/SwiftFormat)
+- Required for commits: [Gitleaks](https://github.com/gitleaks/gitleaks) (`brew install gitleaks`)
 
 ## Build and Run
 
@@ -42,7 +43,7 @@ open Dimmerly.xcodeproj
 A [Justfile](Justfile) provides shortcuts for common tasks:
 
 ```bash
-just setup          # Configure pre-commit hooks (SwiftFormat, SwiftLint, secrets detection)
+just setup          # Configure pre-commit hooks (SwiftFormat, SwiftLint, Gitleaks)
 just build          # Build debug
 just build-release  # Build release
 just build-appstore # Build App Store scheme
@@ -55,6 +56,8 @@ just format         # Format Swift sources (SwiftFormat)
 just format-check   # Check formatting without changes
 just clean          # Clean build artifacts
 ```
+
+The pre-commit hook requires Gitleaks and fails closed if it is unavailable. Install it on macOS with `brew install gitleaks` before committing.
 
 ## Running Tests
 
@@ -72,6 +75,7 @@ xcodebuild test -scheme Dimmerly -destination 'platform=macOS'
 
 GitHub Actions runs on every push and pull request to `main`:
 
+- Secrets: Gitleaks scans repository history
 - Workflow lint: `actionlint`
 - Format: SwiftFormat check
 - Lint: SwiftLint with `--strict`
