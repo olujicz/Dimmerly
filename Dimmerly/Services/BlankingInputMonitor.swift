@@ -180,12 +180,12 @@ protocol BlankingInputMonitoring: AnyObject {
         }
     }
 
-    private final class EventTapContext: @unchecked Sendable {
+    final class EventTapContext: @unchecked Sendable {
         private let policy: BlankingInputPolicy
         private let onWake: @MainActor () -> Void
         private let onFailure: @MainActor (BlankingInputMonitorError) -> Void
         private let lock = NSLock()
-        private var hasSignalledTerminalEvent = false
+        private var hasSignalledFailure = false
 
         init(
             policy: BlankingInputPolicy,
@@ -208,18 +208,18 @@ protocol BlankingInputMonitoring: AnyObject {
             case .suppress:
                 return nil
             case .suppressAndWake:
-                signalOnce { [onWake] in onWake() }
+                DispatchQueue.main.async { [onWake] in onWake() }
                 return nil
             case let .fail(error):
-                signalOnce { [onFailure] in onFailure(error) }
+                signalFailureOnce { [onFailure] in onFailure(error) }
                 return Unmanaged.passUnretained(event)
             }
         }
 
-        private func signalOnce(_ action: @escaping @MainActor () -> Void) {
+        private func signalFailureOnce(_ action: @escaping @MainActor () -> Void) {
             lock.lock()
-            let shouldSignal = !hasSignalledTerminalEvent
-            hasSignalledTerminalEvent = true
+            let shouldSignal = !hasSignalledFailure
+            hasSignalledFailure = true
             lock.unlock()
             guard shouldSignal else { return }
 

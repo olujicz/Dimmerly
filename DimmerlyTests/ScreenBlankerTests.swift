@@ -267,6 +267,31 @@ final class ScreenBlankerTests: XCTestCase {
     }
 
     #if !APPSTORE
+        func testDirectMonitorAllowsAnotherWakeSignalAfterAnEarlyWake() async throws {
+            var wakeCount = 0
+            let wakesDelivered = expectation(description: "Both wake signals are delivered")
+            wakesDelivered.expectedFulfillmentCount = 2
+            let context = EventTapContext(
+                policy: .anyInput(ignorePointerMovement: false),
+                onWake: {
+                    wakeCount += 1
+                    wakesDelivered.fulfill()
+                },
+                onFailure: { _ in XCTFail("Unexpected monitor failure") }
+            )
+            let keyEvent = try XCTUnwrap(CGEvent(
+                keyboardEventSource: nil,
+                virtualKey: 0,
+                keyDown: true
+            ))
+
+            XCTAssertNil(context.handle(type: .keyDown, event: keyEvent))
+            XCTAssertNil(context.handle(type: .keyDown, event: keyEvent))
+            await fulfillment(of: [wakesDelivered], timeout: 1)
+
+            XCTAssertEqual(wakeCount, 2)
+        }
+
         func testAccessibilityFailureLinksToAccessibilityPrivacyPane() {
             XCTAssertEqual(
                 BlankingInputMonitorError.accessibilityPermissionDenied.settingsURL?.absoluteString,
