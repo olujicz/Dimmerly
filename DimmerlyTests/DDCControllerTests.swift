@@ -16,6 +16,74 @@ import XCTest
 #if !APPSTORE
 
     final class DDCControllerTests: XCTestCase {
+        func testPacketCodecBuildsServiceAndIntelGetRequests() {
+            XCTAssertEqual(
+                DDCPacketCodec.getRequest(for: .brightness, includeHostAddress: false),
+                [0x82, 0x01, 0x10, 0xAC]
+            )
+            XCTAssertEqual(
+                DDCPacketCodec.getRequest(for: .brightness, includeHostAddress: true),
+                [0x51, 0x82, 0x01, 0x10, 0xAC]
+            )
+        }
+
+        func testPacketCodecBuildsServiceAndIntelSetRequests() {
+            XCTAssertEqual(
+                DDCPacketCodec.setRequest(for: .brightness, value: 0x1234, includeHostAddress: false),
+                [0x84, 0x03, 0x10, 0x12, 0x34, 0x8E]
+            )
+            XCTAssertEqual(
+                DDCPacketCodec.setRequest(for: .brightness, value: 0x1234, includeHostAddress: true),
+                [0x51, 0x84, 0x03, 0x10, 0x12, 0x34, 0x8E]
+            )
+        }
+
+        func testPacketCodecChecksum() {
+            XCTAssertEqual(DDCPacketCodec.checksum(for: [0x6E, 0x51, 0x82, 0x01, 0x10]), 0xAC)
+        }
+
+        func testPacketCodecParsesValidGetReply() {
+            let reply = makeReply(vcp: .brightness, maximum: 100, current: 42)
+
+            XCTAssertEqual(
+                DDCPacketCodec.parseGetReply(reply, expectedVCP: .brightness),
+                DDCReadResult(currentValue: 42, maxValue: 100)
+            )
+        }
+
+        func testPacketCodecRejectsInvalidReplies() {
+            let valid = makeReply(vcp: .brightness, maximum: 100, current: 42)
+
+            XCTAssertNil(DDCPacketCodec.parseGetReply([], expectedVCP: .brightness))
+            XCTAssertNil(DDCPacketCodec.parseGetReply(Array(valid.dropLast()), expectedVCP: .brightness))
+            XCTAssertNil(DDCPacketCodec.parseGetReply(replacing(valid, at: 0, with: 0x6F), expectedVCP: .brightness))
+            XCTAssertNil(DDCPacketCodec.parseGetReply(replacing(valid, at: 1, with: 0x87), expectedVCP: .brightness))
+            XCTAssertNil(DDCPacketCodec.parseGetReply(replacing(valid, at: 2, with: 0x03), expectedVCP: .brightness))
+            XCTAssertNil(DDCPacketCodec.parseGetReply(replacing(valid, at: 3, with: 0x01), expectedVCP: .brightness))
+            XCTAssertNil(DDCPacketCodec.parseGetReply(replacing(valid, at: 4, with: 0x12), expectedVCP: .brightness))
+            XCTAssertNil(DDCPacketCodec.parseGetReply(replacing(valid, at: 10, with: 0x00), expectedVCP: .brightness))
+        }
+
+        private func makeReply(
+            vcp: VCPCode,
+            maximum: UInt16,
+            current: UInt16
+        ) -> [UInt8] {
+            var reply: [UInt8] = [
+                0x6E, 0x88, 0x02, 0x00, vcp.rawValue, 0x00,
+                UInt8(maximum >> 8), UInt8(maximum & 0xFF),
+                UInt8(current >> 8), UInt8(current & 0xFF),
+            ]
+            reply.append(DDCPacketCodec.checksum(for: [0x50] + reply))
+            return reply
+        }
+
+        private func replacing(_ bytes: [UInt8], at index: Int, with value: UInt8) -> [UInt8] {
+            var copy = bytes
+            copy[index] = value
+            return copy
+        }
+
         // MARK: - VCPCode Tests
 
         /// Tests that all VCP codes have the expected raw values per MCCS v2.2a

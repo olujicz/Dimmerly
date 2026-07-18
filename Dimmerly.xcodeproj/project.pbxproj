@@ -76,6 +76,7 @@
 		CT00000000000000000011 /* ColorTemperatureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CT00000000000000000001 /* ColorTemperatureManager.swift */; };
 		CT00000000000000000012 /* ColorTemperatureManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CT00000000000000000002 /* ColorTemperatureManagerTests.swift */; };
 		HW00000000000000000011 /* DDCController.swift in Sources */ = {isa = PBXBuildFile; fileRef = HW00000000000000000001 /* DDCController.swift */; };
+		DC00000000000000000011 /* DDCPacketCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC00000000000000000001 /* DDCPacketCodec.swift */; };
 		HW00000000000000000012 /* HardwareDisplayCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = HW00000000000000000002 /* HardwareDisplayCapability.swift */; };
 		HW00000000000000000013 /* HardwareBrightnessManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = HW00000000000000000003 /* HardwareBrightnessManager.swift */; };
 		EX00000000000000000011 /* PresetManagementRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = EX00000000000000000001 /* PresetManagementRow.swift */; };
@@ -191,6 +192,7 @@
 		CT00000000000000000001 /* ColorTemperatureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorTemperatureManager.swift; sourceTree = "<group>"; };
 		CT00000000000000000002 /* ColorTemperatureManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorTemperatureManagerTests.swift; sourceTree = "<group>"; };
 		HW00000000000000000001 /* DDCController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DDCController.swift; sourceTree = "<group>"; };
+		DC00000000000000000001 /* DDCPacketCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DDCPacketCodec.swift; sourceTree = "<group>"; };
 		HW00000000000000000002 /* HardwareDisplayCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareDisplayCapability.swift; sourceTree = "<group>"; };
 		HW00000000000000000003 /* HardwareBrightnessManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareBrightnessManager.swift; sourceTree = "<group>"; };
 		HW00000000000000000004 /* DDCControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DDCControllerTests.swift; sourceTree = "<group>"; };
@@ -359,6 +361,7 @@
 				473CD46DB2D77DD4EB8463DA /* AlertPresenter.swift */,
 				BA0000000000000000000002 /* BrightnessManager.swift */,
 				CT00000000000000000001 /* ColorTemperatureManager.swift */,
+				DC00000000000000000001 /* DDCPacketCodec.swift */,
 				HW00000000000000000001 /* DDCController.swift */,
 				HW00000000000000000003 /* HardwareBrightnessManager.swift */,
 				NF00000000000000000003 /* IdleTimerManager.swift */,
@@ -628,6 +631,7 @@
 				SC00000000000000000014 /* ScheduleManager.swift in Sources */,
 				SC00000000000000000015 /* ScheduleViews.swift in Sources */,
 				CT00000000000000000011 /* ColorTemperatureManager.swift in Sources */,
+				DC00000000000000000011 /* DDCPacketCodec.swift in Sources */,
 				HW00000000000000000011 /* DDCController.swift in Sources */,
 				HW00000000000000000012 /* HardwareDisplayCapability.swift in Sources */,
 				DP0000000000000000000011 /* DisplayOutputPolicy.swift in Sources */,
