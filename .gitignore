@@ -63,6 +63,7 @@ playground.xcworkspace
 # .swiftpm
 
 .build/
+.worktrees/
 
 # CocoaPods
 #
