@@ -280,7 +280,7 @@ final class ScreenBlankerTests: XCTestCase {
         let repositoryURL = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-        let settingsURL = repositoryURL.appendingPathComponent("Dimmerly/Views/SettingsView.swift")
+        let settingsURL = repositoryURL.appendingPathComponent("Dimmerly/Views/SettingsDisplayTab.swift")
         let source = try String(contentsOf: settingsURL, encoding: .utf8)
 
         XCTAssertTrue(

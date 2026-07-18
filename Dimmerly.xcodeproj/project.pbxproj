@@ -81,6 +81,15 @@
 		HW00000000000000000013 /* HardwareBrightnessManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = HW00000000000000000003 /* HardwareBrightnessManager.swift */; };
 		EX00000000000000000011 /* PresetManagementRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = EX00000000000000000001 /* PresetManagementRow.swift */; };
 		EX00000000000000000012 /* LocationPickerRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = EX00000000000000000002 /* LocationPickerRow.swift */; };
+		VS00000000000000000011 /* SettingsGeneralTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = VS00000000000000000001 /* SettingsGeneralTab.swift */; };
+		VS00000000000000000012 /* SettingsDisplayTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = VS00000000000000000002 /* SettingsDisplayTab.swift */; };
+		VS00000000000000000013 /* SettingsScheduleTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = VS00000000000000000003 /* SettingsScheduleTab.swift */; };
+		VS00000000000000000014 /* SettingsShortcutsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = VS00000000000000000004 /* SettingsShortcutsTab.swift */; };
+		VS00000000000000000015 /* SettingsAboutTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = VS00000000000000000005 /* SettingsAboutTab.swift */; };
+		VM00000000000000000011 /* MenuBarPanelHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = VM00000000000000000001 /* MenuBarPanelHost.swift */; };
+		VM00000000000000000012 /* MenuBarPresetControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = VM00000000000000000002 /* MenuBarPresetControls.swift */; };
+		VM00000000000000000013 /* MenuBarDisplayControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = VM00000000000000000003 /* MenuBarDisplayControls.swift */; };
+		VM00000000000000000014 /* MenuBarDDCControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = VM00000000000000000004 /* MenuBarDDCControls.swift */; };
 		HW00000000000000000014 /* DDCControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = HW00000000000000000004 /* DDCControllerTests.swift */; };
 		HW00000000000000000015 /* HardwareBrightnessManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = HW00000000000000000005 /* HardwareBrightnessManagerTests.swift */; };
 		MB00000000000000000011 /* MenuBarPanelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = MB00000000000000000001 /* MenuBarPanelTests.swift */; };
@@ -202,6 +211,15 @@
 		SH00000000000000000001 /* SharedConstantsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedConstantsTests.swift; sourceTree = "<group>"; };
 		EX00000000000000000001 /* PresetManagementRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetManagementRow.swift; sourceTree = "<group>"; };
 		EX00000000000000000002 /* LocationPickerRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPickerRow.swift; sourceTree = "<group>"; };
+		VS00000000000000000001 /* SettingsGeneralTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsGeneralTab.swift; sourceTree = "<group>"; };
+		VS00000000000000000002 /* SettingsDisplayTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsDisplayTab.swift; sourceTree = "<group>"; };
+		VS00000000000000000003 /* SettingsScheduleTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScheduleTab.swift; sourceTree = "<group>"; };
+		VS00000000000000000004 /* SettingsShortcutsTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsShortcutsTab.swift; sourceTree = "<group>"; };
+		VS00000000000000000005 /* SettingsAboutTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsAboutTab.swift; sourceTree = "<group>"; };
+		VM00000000000000000001 /* MenuBarPanelHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPanelHost.swift; sourceTree = "<group>"; };
+		VM00000000000000000002 /* MenuBarPresetControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPresetControls.swift; sourceTree = "<group>"; };
+		VM00000000000000000003 /* MenuBarDisplayControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarDisplayControls.swift; sourceTree = "<group>"; };
+		VM00000000000000000004 /* MenuBarDDCControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarDDCControls.swift; sourceTree = "<group>"; };
 		IT00000000000000000001 /* IdleTimerManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleTimerManagerTests.swift; sourceTree = "<group>"; };
 		PE00000000000000000001 /* PresetEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetEntity.swift; sourceTree = "<group>"; };
 		LP00000000000000000001 /* LocationProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationProviderTests.swift; sourceTree = "<group>"; };
@@ -255,8 +273,17 @@
 				C50F163FD03D0874576E9962 /* KeyboardShortcutRecorder.swift */,
 				EX00000000000000000002 /* LocationPickerRow.swift */,
 				BA0000000000000000000004 /* MenuBarPanel.swift */,
+				VM00000000000000000001 /* MenuBarPanelHost.swift */,
+				VM00000000000000000002 /* MenuBarPresetControls.swift */,
+				VM00000000000000000003 /* MenuBarDisplayControls.swift */,
+				VM00000000000000000004 /* MenuBarDDCControls.swift */,
 				EX00000000000000000001 /* PresetManagementRow.swift */,
 				SC00000000000000000005 /* ScheduleViews.swift */,
+				VS00000000000000000001 /* SettingsGeneralTab.swift */,
+				VS00000000000000000002 /* SettingsDisplayTab.swift */,
+				VS00000000000000000003 /* SettingsScheduleTab.swift */,
+				VS00000000000000000004 /* SettingsShortcutsTab.swift */,
+				VS00000000000000000005 /* SettingsAboutTab.swift */,
 				76B136A03B60312AFD4F720E /* SettingsView.swift */,
 			);
 			path = Views;
@@ -606,9 +633,18 @@
 				D4F246BF3A0883989414211C /* KeyboardShortcutManager.swift in Sources */,
 				D020A5D272EBF573C8F22F90 /* KeyboardShortcutRecorder.swift in Sources */,
 				E8A1B2C3D4E5F6A7B8C9D001 /* ScreenBlanker.swift in Sources */,
+				VS00000000000000000011 /* SettingsGeneralTab.swift in Sources */,
+				VS00000000000000000012 /* SettingsDisplayTab.swift in Sources */,
+				VS00000000000000000013 /* SettingsScheduleTab.swift in Sources */,
+				VS00000000000000000014 /* SettingsShortcutsTab.swift in Sources */,
+				VS00000000000000000015 /* SettingsAboutTab.swift in Sources */,
 				4418D8E7C90F85F1A0565B97 /* SettingsView.swift in Sources */,
 				BA0000000000000000000001 /* BrightnessManager.swift in Sources */,
 				BA0000000000000000000003 /* MenuBarPanel.swift in Sources */,
+				VM00000000000000000011 /* MenuBarPanelHost.swift in Sources */,
+				VM00000000000000000012 /* MenuBarPresetControls.swift in Sources */,
+				VM00000000000000000013 /* MenuBarDisplayControls.swift in Sources */,
+				VM00000000000000000014 /* MenuBarDDCControls.swift in Sources */,
 				NF00000000000000000011 /* BrightnessPreset.swift in Sources */,
 				NF00000000000000000012 /* PresetManager.swift in Sources */,
 				NF00000000000000000013 /* IdleTimerManager.swift in Sources */,

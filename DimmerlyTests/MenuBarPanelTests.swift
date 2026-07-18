@@ -12,11 +12,13 @@ import XCTest
 
 final class MenuBarPanelTests: XCTestCase {
     func testMenuBarPanelChromeClearsWindowContainerWithoutManualPerimeterStroke() throws {
-        let sourceURL = URL(fileURLWithPath: #filePath)
+        let viewsURL = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-            .appendingPathComponent("Dimmerly/Views/MenuBarPanel.swift")
-        let source = try String(contentsOf: sourceURL, encoding: .utf8)
+            .appendingPathComponent("Dimmerly/Views")
+        let source = try ["MenuBarPanel.swift", "MenuBarPanelHost.swift"]
+            .map { try String(contentsOf: viewsURL.appendingPathComponent($0), encoding: .utf8) }
+            .joined(separator: "\n")
 
         XCTAssertTrue(source.contains(".menuBarPanelChrome()"))
         XCTAssertTrue(source.contains("containerBackground(.clear, for: .window)"))

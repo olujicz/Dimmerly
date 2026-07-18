@@ -82,7 +82,7 @@ final class AppSettingsTests: XCTestCase {
             let repositoryURL = URL(fileURLWithPath: #filePath)
                 .deletingLastPathComponent()
                 .deletingLastPathComponent()
-            let settingsViewSourceURL = repositoryURL.appendingPathComponent("Dimmerly/Views/SettingsView.swift")
+            let settingsViewSourceURL = repositoryURL.appendingPathComponent("Dimmerly/Views/SettingsDisplayTab.swift")
             let source = try String(contentsOf: settingsViewSourceURL, encoding: .utf8)
 
             XCTAssertTrue(
@@ -95,7 +95,7 @@ final class AppSettingsTests: XCTestCase {
             let repositoryURL = URL(fileURLWithPath: #filePath)
                 .deletingLastPathComponent()
                 .deletingLastPathComponent()
-            let settingsViewSourceURL = repositoryURL.appendingPathComponent("Dimmerly/Views/SettingsView.swift")
+            let settingsViewSourceURL = repositoryURL.appendingPathComponent("Dimmerly/Views/SettingsDisplayTab.swift")
             let source = try String(contentsOf: settingsViewSourceURL, encoding: .utf8)
 
             XCTAssertTrue(
@@ -108,7 +108,7 @@ final class AppSettingsTests: XCTestCase {
             let repositoryURL = URL(fileURLWithPath: #filePath)
                 .deletingLastPathComponent()
                 .deletingLastPathComponent()
-            let settingsViewSourceURL = repositoryURL.appendingPathComponent("Dimmerly/Views/SettingsView.swift")
+            let settingsViewSourceURL = repositoryURL.appendingPathComponent("Dimmerly/Views/SettingsDisplayTab.swift")
             let source = try String(contentsOf: settingsViewSourceURL, encoding: .utf8)
 
             XCTAssertTrue(
@@ -129,7 +129,7 @@ final class AppSettingsTests: XCTestCase {
             let repositoryURL = URL(fileURLWithPath: #filePath)
                 .deletingLastPathComponent()
                 .deletingLastPathComponent()
-            let settingsViewSourceURL = repositoryURL.appendingPathComponent("Dimmerly/Views/SettingsView.swift")
+            let settingsViewSourceURL = repositoryURL.appendingPathComponent("Dimmerly/Views/SettingsDisplayTab.swift")
             let source = try String(contentsOf: settingsViewSourceURL, encoding: .utf8)
 
             XCTAssertTrue(
