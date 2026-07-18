@@ -101,6 +101,9 @@ class BrightnessManager {
     /// Prevents accidentally setting displays to pure black, which would require external controls to recover.
     static let minimumBrightness: Double = 0.10
 
+    /// Product-level percentage range shared with App Intents and other input surfaces.
+    static let brightnessPercentageRange = (minimumBrightness * 100) ... 100.0
+
     /// Currently connected displays (built-in and external) with their visual properties.
     /// Updated automatically when displays are connected/disconnected.
     var displays: [ExternalDisplay] = []

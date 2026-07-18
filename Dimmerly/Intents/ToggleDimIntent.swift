@@ -17,11 +17,16 @@ struct ToggleDimIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult {
-        guard let displayID = CGDirectDisplayID(display.id) else {
-            throw DisplayIntentError.invalidDisplay
-        }
-        BrightnessManager.shared.toggleBlank(for: displayID)
+        try perform(using: LiveDisplayIntentCommand.shared)
         return .result()
+    }
+
+    @MainActor
+    func perform(using command: DisplayIntentCommanding) throws {
+        let displayID = try ConnectedDisplayResolver.resolve(display) {
+            command.connectedDisplayIDs
+        }
+        command.toggleDim(for: displayID)
     }
 }
 
