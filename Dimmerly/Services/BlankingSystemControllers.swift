@@ -52,6 +52,23 @@ protocol ActiveDisplayProviding: AnyObject {
 }
 
 @MainActor
+enum BlankingWindowPresentation {
+    static func prepareForLocalInputCapture(_ window: NSWindow) {
+        window.hidesOnDeactivate = false
+        window.orderFrontRegardless()
+    }
+
+    static func activateForLocalInputCapture(
+        _ window: NSWindow,
+        activation: @MainActor () -> Void
+    ) {
+        activation()
+        window.makeKeyAndOrderFront(nil)
+        window.orderFrontRegardless()
+    }
+}
+
+@MainActor
 final class SystemBlankingWindowController: BlankingWindowControlling {
     private var windows: [CGDirectDisplayID: NSWindow] = [:]
     #if APPSTORE
@@ -64,8 +81,11 @@ final class SystemBlankingWindowController: BlankingWindowControlling {
             if frontmostApplication?.bundleIdentifier != Bundle.main.bundleIdentifier {
                 previouslyFrontmostApplication = frontmostApplication
             }
-            NSApp.activate()
-            windows.values.first?.makeKey()
+            if let window = windows.values.first {
+                BlankingWindowPresentation.activateForLocalInputCapture(window) {
+                    NSApp.activate(ignoringOtherApps: true)
+                }
+            }
         #endif
     }
 
@@ -105,7 +125,7 @@ final class SystemBlankingWindowController: BlankingWindowControlling {
 
         windows[displayID] = window
         #if APPSTORE
-            window.makeKeyAndOrderFront(nil)
+            BlankingWindowPresentation.prepareForLocalInputCapture(window)
         #else
             window.orderFrontRegardless()
         #endif

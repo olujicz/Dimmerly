@@ -103,7 +103,6 @@ final class ScreenBlanker {
 
         activationTime = clock.now
         isBlanking = true
-        windows.beginBlankingSession()
         hideCursorIfNeeded()
 
         let displaySet = Set(displayIDs)
@@ -117,6 +116,7 @@ final class ScreenBlanker {
                 failurePresenter(.unavailable)
                 return
             }
+            windows.beginBlankingSession()
         }
     }
 
@@ -259,6 +259,7 @@ final class ScreenBlanker {
                 failurePresenter(.unavailable)
                 return
             }
+            windows.beginBlankingSession()
             state = .blanked(Set(displayIDs))
             fadeTask = nil
         }

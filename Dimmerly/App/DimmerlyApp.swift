@@ -402,7 +402,11 @@ final class StatusItemQuickActions: NSObject {
     }
 
     @objc private func handleTurnOff() {
-        performSleep?()
+        MenuBarDisplayAction.performAfterDismissal(
+            presentationWindow: nil,
+            closePresentation: {},
+            action: { [weak self] in self?.performSleep?() }
+        )
     }
 
     @objc private func handleOpenSettings() {

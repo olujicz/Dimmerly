@@ -13,6 +13,22 @@ extension EnvironmentValues {
     @Entry var closeMenuBarPanel: @MainActor @Sendable () -> Void = {}
 }
 
+@MainActor
+enum MenuBarDisplayAction {
+    static func performAfterDismissal(
+        presentationWindow: NSWindow? = NSApp.keyWindow,
+        closePresentation: @escaping @MainActor () -> Void,
+        action: @escaping @MainActor () -> Void
+    ) {
+        closePresentation()
+        presentationWindow?.close()
+        Task { @MainActor in
+            await Task.yield()
+            action()
+        }
+    }
+}
+
 enum MenuBarPanelGlassStyle {
     static let windowMaterial: NSVisualEffectView.Material = .menu
     static let blendingMode: NSVisualEffectView.BlendingMode = .behindWindow
@@ -223,8 +239,10 @@ struct MenuBarPanel: View {
 
     private var turnOffButtonContent: some View {
         Button {
-            DisplayAction.performSleep(settings: settings)
-            closeMenuBarPanel()
+            MenuBarDisplayAction.performAfterDismissal(
+                closePresentation: closeMenuBarPanel,
+                action: { DisplayAction.performSleep(settings: settings) }
+            )
         } label: {
             HStack {
                 #if APPSTORE

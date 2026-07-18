@@ -46,6 +46,7 @@ final class ScreenBlankerTests: XCTestCase {
         XCTAssertEqual(harness.input.startPolicies, [.anyInput(ignorePointerMovement: false)])
         XCTAssertEqual(harness.windows.beginSessionCount, 1)
         XCTAssertEqual(harness.windows.shownDisplayIDs, [7, 9])
+        XCTAssertEqual(harness.windows.events, ["show:7", "show:9", "begin"])
         XCTAssertEqual(harness.gamma.blankedDisplayIDs, [7, 9])
         XCTAssertEqual(harness.cursor.hideCount, 1)
     }
@@ -266,6 +267,27 @@ final class ScreenBlankerTests: XCTestCase {
         )
     }
 
+    func testLocalInputOverlayStaysVisibleAndRequestsStrongActivation() {
+        let window = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 200, height: 100),
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: false
+        )
+        window.hidesOnDeactivate = true
+        var activationCount = 0
+
+        BlankingWindowPresentation.prepareForLocalInputCapture(window)
+        BlankingWindowPresentation.activateForLocalInputCapture(window) {
+            activationCount += 1
+        }
+
+        XCTAssertFalse(window.hidesOnDeactivate)
+        XCTAssertEqual(activationCount, 1)
+        XCTAssertTrue(window.isVisible)
+        window.orderOut(nil)
+    }
+
     #if !APPSTORE
         func testDirectMonitorAllowsAnotherWakeSignalAfterAnEarlyWake() async throws {
             var wakeCount = 0
@@ -373,17 +395,20 @@ private final class FakeBlankingInputMonitor: BlankingInputMonitoring {
 private final class FakeBlankingWindowController: BlankingWindowControlling {
     var beginSessionCount = 0
     var shownDisplayIDs: [CGDirectDisplayID] = []
+    var events: [String] = []
     var removeAllCount = 0
     var endSessionCount = 0
     var failingDisplayIDs: Set<CGDirectDisplayID> = []
 
     func beginBlankingSession() {
         beginSessionCount += 1
+        events.append("begin")
     }
 
     func showWindow(for displayID: CGDirectDisplayID, showsEscapeHint _: Bool) -> Bool {
         guard !failingDisplayIDs.contains(displayID) else { return false }
         shownDisplayIDs.append(displayID)
+        events.append("show:\(displayID)")
         return true
     }
 

@@ -10,6 +10,15 @@ import AppKit
 import SwiftUI
 import XCTest
 
+@MainActor
+private final class MenuPresentationWindowSpy: NSWindow {
+    private(set) var didClose = false
+
+    override func close() {
+        didClose = true
+    }
+}
+
 final class MenuBarPanelTests: XCTestCase {
     func testAutoTemperatureBadgeUsesAdaptiveHighContrastTreatment() throws {
         let repositoryURL = URL(fileURLWithPath: #filePath)
@@ -298,6 +307,32 @@ final class MenuBarPanelTests: XCTestCase {
     }
 
     // MARK: - Close Panel Environment Action
+
+    @MainActor
+    func testDisplayActionClosesMenuBeforeRunningOnNextMainActorTurn() async {
+        var events: [String] = []
+        let actionPerformed = expectation(description: "Display action performed")
+        let presentationWindow = MenuPresentationWindowSpy(
+            contentRect: NSRect(x: 0, y: 0, width: 200, height: 100),
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: false
+        )
+
+        MenuBarDisplayAction.performAfterDismissal(
+            presentationWindow: presentationWindow,
+            closePresentation: { events.append("close") },
+            action: {
+                events.append("action")
+                actionPerformed.fulfill()
+            }
+        )
+
+        XCTAssertEqual(events, ["close"])
+        XCTAssertTrue(presentationWindow.didClose)
+        await fulfillment(of: [actionPerformed], timeout: 1)
+        XCTAssertEqual(events, ["close", "action"])
+    }
 
     @MainActor
     func testCloseMenuBarPanelEnvironmentDefaultIsNoOp() {
