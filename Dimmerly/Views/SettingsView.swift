@@ -80,32 +80,63 @@ func applyLaunchAtLoginChange(
 
     func ddcDisplayStatusText(for cap: HardwareDisplayCapability) -> String {
         guard cap.supportsDDC else {
-            return "Software brightness"
-        }
-
-        let features = ddcFeatureLabels(for: cap)
-        guard cap.supportsBrightness else {
-            return features.isEmpty ? "No hardware brightness" : "No hardware brightness (\(features))"
-        }
-
-        return features.isEmpty ? "Hardware brightness" : features
-    }
-
-    func ddcDisplayAccessibilityStatus(for cap: HardwareDisplayCapability) -> String {
-        guard cap.supportsDDC else {
-            return "using software brightness"
+            return String(localized: "Uses software brightness", comment: "DDC display status: software fallback")
         }
 
         let features = ddcFeatureLabels(for: cap)
         guard cap.supportsBrightness else {
             return features.isEmpty
-                ? "DDC available, no hardware brightness"
-                : "DDC available, no hardware brightness, \(features)"
+                ? String(localized: "Hardware brightness unavailable", comment: "DDC display status: no brightness")
+                : String(
+                    format: String(
+                        localized: "Hardware brightness unavailable · %@",
+                        comment: "DDC display status: no brightness but other features"
+                    ),
+                    features
+                )
         }
 
         return features.isEmpty
-            ? "hardware brightness available"
-            : "hardware brightness available, \(features)"
+            ? String(localized: "Hardware controls available", comment: "DDC display status: hardware available")
+            : String(
+                format: String(
+                    localized: "Hardware controls: %@",
+                    comment: "DDC display status: supported hardware features"
+                ),
+                features
+            )
+    }
+
+    func ddcDisplayAccessibilityStatus(for cap: HardwareDisplayCapability) -> String {
+        guard cap.supportsDDC else {
+            return String(localized: "uses software brightness", comment: "DDC accessibility status: software fallback")
+        }
+
+        let features = ddcFeatureLabels(for: cap)
+        guard cap.supportsBrightness else {
+            return features.isEmpty
+                ? String(
+                    localized: "hardware brightness unavailable",
+                    comment: "DDC accessibility status: no brightness"
+                )
+                : String(
+                    format: String(
+                        localized: "hardware brightness unavailable, %@",
+                        comment: "DDC accessibility status: no brightness but other features"
+                    ),
+                    features
+                )
+        }
+
+        return features.isEmpty
+            ? String(localized: "hardware controls available", comment: "DDC accessibility status: available")
+            : String(
+                format: String(
+                    localized: "hardware controls available, %@",
+                    comment: "DDC accessibility status: available features"
+                ),
+                features
+            )
     }
 
     @MainActor

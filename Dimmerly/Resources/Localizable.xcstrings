@@ -1,6 +1,182 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Brightness control:" : {
+      "comment" : "Label for DDC brightness control picker",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brightness control:"
+          }
+        }
+      }
+    },
+    "Display compatibility" : {
+      "comment" : "Heading for per-display hardware compatibility",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Display compatibility"
+          }
+        }
+      }
+    },
+    "Hardware brightness unavailable" : {
+      "comment" : "DDC display status: no brightness",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardware brightness unavailable"
+          }
+        }
+      }
+    },
+    "Hardware brightness unavailable · %@" : {
+      "comment" : "DDC display status: no brightness but other features",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardware brightness unavailable · %@"
+          }
+        }
+      }
+    },
+    "Hardware controls available" : {
+      "comment" : "DDC display status: hardware available",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardware controls available"
+          }
+        }
+      }
+    },
+    "Hardware controls aren’t available" : {
+      "comment" : "Hardware Control unavailable status title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardware controls aren’t available"
+          }
+        }
+      }
+    },
+    "Hardware controls: %@" : {
+      "comment" : "DDC display status: supported hardware features",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardware controls: %@"
+          }
+        }
+      }
+    },
+    "None of your connected displays supports direct hardware control. Dimmerly is using software brightness and will switch automatically when a compatible display is connected." : {
+      "comment" : "Hardware Control unavailable status explanation",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "None of your connected displays supports direct hardware control. Dimmerly is using software brightness and will switch automatically when a compatible display is connected."
+          }
+        }
+      }
+    },
+    "Use hardware controls when available" : {
+      "comment" : "Hardware Control enable toggle",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use hardware controls when available"
+          }
+        }
+      }
+    },
+    "Uses DDC/CI to control compatible external displays directly. Unsupported displays continue using software brightness." : {
+      "comment" : "Hardware Control toggle help",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uses DDC/CI to control compatible external displays directly. Unsupported displays continue using software brightness."
+          }
+        }
+      }
+    },
+    "Uses software brightness" : {
+      "comment" : "DDC display status: software fallback",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uses software brightness"
+          }
+        }
+      }
+    },
+    "hardware brightness unavailable" : {
+      "comment" : "DDC accessibility status: no brightness",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "hardware brightness unavailable"
+          }
+        }
+      }
+    },
+    "hardware brightness unavailable, %@" : {
+      "comment" : "DDC accessibility status: no brightness but other features",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "hardware brightness unavailable, %@"
+          }
+        }
+      }
+    },
+    "hardware controls available" : {
+      "comment" : "DDC accessibility status: available",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "hardware controls available"
+          }
+        }
+      }
+    },
+    "hardware controls available, %@" : {
+      "comment" : "DDC accessibility status: available features",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "hardware controls available, %@"
+          }
+        }
+      }
+    },
+    "uses software brightness" : {
+      "comment" : "DDC accessibility status: software fallback",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "uses software brightness"
+          }
+        }
+      }
+    },
     "\"%@\" will be permanently deleted." : {
       "localizations" : {
         "de" : {

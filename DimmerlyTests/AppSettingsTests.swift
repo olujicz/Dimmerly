@@ -78,30 +78,19 @@ final class AppSettingsTests: XCTestCase {
             XCTAssertEqual(manager.minimumWriteInterval, 0.12, accuracy: 0.001)
         }
 
-        func testSettingsHardwareModesAreDisabledWhenUnavailable() throws {
+        func testSettingsMakesUnavailableHardwareControlObvious() throws {
             let repositoryURL = URL(fileURLWithPath: #filePath)
                 .deletingLastPathComponent()
                 .deletingLastPathComponent()
             let settingsViewSourceURL = repositoryURL.appendingPathComponent("Dimmerly/Views/SettingsDisplayTab.swift")
             let source = try String(contentsOf: settingsViewSourceURL, encoding: .utf8)
 
-            XCTAssertTrue(
-                source.contains(".disabled(!isDDCControlModeAvailable(mode, hardwareManager: hardwareManager))"),
-                "The Hardware DDC mode picker row should be disabled when hardware brightness is unavailable"
-            )
-        }
-
-        func testSettingsExplainsWhyHardwareModesAreUnavailable() throws {
-            let repositoryURL = URL(fileURLWithPath: #filePath)
-                .deletingLastPathComponent()
-                .deletingLastPathComponent()
-            let settingsViewSourceURL = repositoryURL.appendingPathComponent("Dimmerly/Views/SettingsDisplayTab.swift")
-            let source = try String(contentsOf: settingsViewSourceURL, encoding: .utf8)
-
-            XCTAssertTrue(
-                source.contains("Hardware mode requires a DDC-capable display with brightness control."),
-                "The unavailable Hardware picker row should have a nearby explanation"
-            )
+            XCTAssertTrue(source.contains("Use hardware controls when available"))
+            XCTAssertTrue(source.contains("Hardware controls aren’t available"))
+            XCTAssertTrue(source.contains("Dimmerly is using software brightness"))
+            XCTAssertTrue(source.contains("if hardwareControlModesAvailable"))
+            XCTAssertTrue(source.contains("Brightness control:"))
+            XCTAssertTrue(source.contains("Display compatibility"))
         }
 
         func testSettingsKeepsAdvancedDDCControlsBehindDisclosure() throws {
@@ -116,7 +105,7 @@ final class AppSettingsTests: XCTestCase {
                 "DDC polling and write timing controls should be grouped as advanced settings"
             )
             XCTAssertTrue(
-                source.contains(".help(\"DDC/CI controls"),
+                source.contains("Uses DDC/CI to control compatible external displays directly."),
                 "Detailed DDC compatibility caveats should live in help text instead of always-visible copy"
             )
             XCTAssertFalse(
@@ -167,22 +156,22 @@ final class AppSettingsTests: XCTestCase {
             let unsupported = HardwareDisplayCapability.notSupported(displayID: 27)
 
             XCTAssertEqual(ddcDisplayStatusSymbolName(for: brightnessCapable), "checkmark.circle.fill")
-            XCTAssertEqual(ddcDisplayStatusText(for: brightnessCapable), "Brightness, Volume")
+            XCTAssertEqual(ddcDisplayStatusText(for: brightnessCapable), "Hardware controls: Brightness, Volume")
             XCTAssertEqual(
                 ddcDisplayAccessibilityStatus(for: brightnessCapable),
-                "hardware brightness available, Brightness, Volume"
+                "hardware controls available, Brightness, Volume"
             )
 
             XCTAssertEqual(ddcDisplayStatusSymbolName(for: partialDDC), "exclamationmark.circle")
-            XCTAssertEqual(ddcDisplayStatusText(for: partialDDC), "No hardware brightness (Volume, Input)")
+            XCTAssertEqual(ddcDisplayStatusText(for: partialDDC), "Hardware brightness unavailable · Volume, Input")
             XCTAssertEqual(
                 ddcDisplayAccessibilityStatus(for: partialDDC),
-                "DDC available, no hardware brightness, Volume, Input"
+                "hardware brightness unavailable, Volume, Input"
             )
 
             XCTAssertEqual(ddcDisplayStatusSymbolName(for: unsupported), "tv.and.mediabox")
-            XCTAssertEqual(ddcDisplayStatusText(for: unsupported), "Software brightness")
-            XCTAssertEqual(ddcDisplayAccessibilityStatus(for: unsupported), "using software brightness")
+            XCTAssertEqual(ddcDisplayStatusText(for: unsupported), "Uses software brightness")
+            XCTAssertEqual(ddcDisplayAccessibilityStatus(for: unsupported), "uses software brightness")
         }
 
         func testDDCControlModeAvailabilityRequiresEnabledHardwareBrightness() async {
