@@ -95,7 +95,6 @@ struct DimmerlyApp: App {
                     configureIdleTimer()
                     configurePresetShortcuts()
                     configureScheduleManager()
-                    configureColorTemperature()
                     observeWidgetNotifications()
                     processPendingWidgetCommands()
                     // Initial sync for settings-driven managers. `.onChange` below
@@ -253,12 +252,6 @@ struct DimmerlyApp: App {
         }
     }
 
-    /// Color-temperature start/stop is driven entirely by `.onChange` on
-    /// `settings.autoColorTempEnabled` and the one-time sync at launch.
-    private func configureColorTemperature() {
-        // No wiring needed — manager is self-contained once enabled.
-    }
-
     /// Wires the preset-shortcut-triggered callback. `.onChange` on `presetManager.presets`
     /// handles re-registration whenever presets/shortcuts change.
     private func configurePresetShortcuts() {
@@ -296,7 +289,7 @@ struct DimmerlyApp: App {
         /// method is only compiled in direct distribution builds.
         private func configureHardwareControl() {
             guard settings.ddcEnabled else { return }
-            hardwareManager.isEnabled = true
+            hardwareManager.enable()
             hardwareManager.applyRuntimeSettings(
                 controlMode: settings.ddcControlMode,
                 pollingInterval: settings.ddcPollingInterval,
@@ -409,7 +402,11 @@ final class StatusItemQuickActions: NSObject {
     }
 
     @objc private func handleTurnOff() {
-        performSleep?()
+        MenuBarDisplayAction.performAfterDismissal(
+            presentationWindow: nil,
+            closePresentation: {},
+            action: { [weak self] in self?.performSleep?() }
+        )
     }
 
     @objc private func handleOpenSettings() {

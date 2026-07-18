@@ -10,13 +10,38 @@ import AppKit
 import SwiftUI
 import XCTest
 
+@MainActor
+private final class MenuPresentationWindowSpy: NSWindow {
+    private(set) var didClose = false
+
+    override func close() {
+        didClose = true
+    }
+}
+
 final class MenuBarPanelTests: XCTestCase {
-    func testMenuBarPanelChromeClearsWindowContainerWithoutManualPerimeterStroke() throws {
-        let sourceURL = URL(fileURLWithPath: #filePath)
+    func testAutoTemperatureBadgeUsesAdaptiveHighContrastTreatment() throws {
+        let repositoryURL = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-            .appendingPathComponent("Dimmerly/Views/MenuBarPanel.swift")
+        let sourceURL = repositoryURL.appendingPathComponent("Dimmerly/Views/MenuBarDisplayControls.swift")
         let source = try String(contentsOf: sourceURL, encoding: .utf8)
+
+        XCTAssertTrue(source.contains("Text(\"Auto\")"))
+        XCTAssertTrue(source.contains(".fontWeight(.semibold)"))
+        XCTAssertTrue(source.contains(".foregroundStyle(.primary)"))
+        XCTAssertTrue(source.contains("Capsule().fill(.orange.opacity(0.16))"))
+        XCTAssertTrue(source.contains("Capsule().stroke(.orange, lineWidth: 0.75)"))
+    }
+
+    func testMenuBarPanelChromeClearsWindowContainerWithoutManualPerimeterStroke() throws {
+        let viewsURL = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Dimmerly/Views")
+        let source = try ["MenuBarPanel.swift", "MenuBarPanelHost.swift"]
+            .map { try String(contentsOf: viewsURL.appendingPathComponent($0), encoding: .utf8) }
+            .joined(separator: "\n")
 
         XCTAssertTrue(source.contains(".menuBarPanelChrome()"))
         XCTAssertTrue(source.contains("containerBackground(.clear, for: .window)"))
@@ -161,7 +186,6 @@ final class MenuBarPanelTests: XCTestCase {
         func testDDCControlsAreHiddenWhenHardwareManagerIsDisabled() {
             let displayID: CGDirectDisplayID = 42
             let manager = HardwareBrightnessManager(forTesting: true)
-            manager.isEnabled = false
             manager.capabilities[displayID] = HardwareDisplayCapability(
                 displayID: displayID,
                 supportsDDC: true,
@@ -283,6 +307,32 @@ final class MenuBarPanelTests: XCTestCase {
     }
 
     // MARK: - Close Panel Environment Action
+
+    @MainActor
+    func testDisplayActionClosesMenuBeforeRunningOnNextMainActorTurn() async {
+        var events: [String] = []
+        let actionPerformed = expectation(description: "Display action performed")
+        let presentationWindow = MenuPresentationWindowSpy(
+            contentRect: NSRect(x: 0, y: 0, width: 200, height: 100),
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: false
+        )
+
+        MenuBarDisplayAction.performAfterDismissal(
+            presentationWindow: presentationWindow,
+            closePresentation: { events.append("close") },
+            action: {
+                events.append("action")
+                actionPerformed.fulfill()
+            }
+        )
+
+        XCTAssertEqual(events, ["close"])
+        XCTAssertTrue(presentationWindow.didClose)
+        await fulfillment(of: [actionPerformed], timeout: 1)
+        XCTAssertEqual(events, ["close", "action"])
+    }
 
     @MainActor
     func testCloseMenuBarPanelEnvironmentDefaultIsNoOp() {

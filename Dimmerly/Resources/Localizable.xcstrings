@@ -1,6 +1,182 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Brightness control:" : {
+      "comment" : "Label for DDC brightness control picker",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brightness control:"
+          }
+        }
+      }
+    },
+    "Display compatibility" : {
+      "comment" : "Heading for per-display hardware compatibility",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Display compatibility"
+          }
+        }
+      }
+    },
+    "Hardware brightness unavailable" : {
+      "comment" : "DDC display status: no brightness",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardware brightness unavailable"
+          }
+        }
+      }
+    },
+    "Hardware brightness unavailable · %@" : {
+      "comment" : "DDC display status: no brightness but other features",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardware brightness unavailable · %@"
+          }
+        }
+      }
+    },
+    "Hardware controls available" : {
+      "comment" : "DDC display status: hardware available",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardware controls available"
+          }
+        }
+      }
+    },
+    "Hardware controls aren’t available" : {
+      "comment" : "Hardware Control unavailable status title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardware controls aren’t available"
+          }
+        }
+      }
+    },
+    "Hardware controls: %@" : {
+      "comment" : "DDC display status: supported hardware features",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardware controls: %@"
+          }
+        }
+      }
+    },
+    "None of your connected displays supports direct hardware control. Dimmerly is using software brightness and will switch automatically when a compatible display is connected." : {
+      "comment" : "Hardware Control unavailable status explanation",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "None of your connected displays supports direct hardware control. Dimmerly is using software brightness and will switch automatically when a compatible display is connected."
+          }
+        }
+      }
+    },
+    "Use hardware controls when available" : {
+      "comment" : "Hardware Control enable toggle",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use hardware controls when available"
+          }
+        }
+      }
+    },
+    "Uses DDC/CI to control compatible external displays directly. Unsupported displays continue using software brightness." : {
+      "comment" : "Hardware Control toggle help",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uses DDC/CI to control compatible external displays directly. Unsupported displays continue using software brightness."
+          }
+        }
+      }
+    },
+    "Uses software brightness" : {
+      "comment" : "DDC display status: software fallback",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uses software brightness"
+          }
+        }
+      }
+    },
+    "hardware brightness unavailable" : {
+      "comment" : "DDC accessibility status: no brightness",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "hardware brightness unavailable"
+          }
+        }
+      }
+    },
+    "hardware brightness unavailable, %@" : {
+      "comment" : "DDC accessibility status: no brightness but other features",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "hardware brightness unavailable, %@"
+          }
+        }
+      }
+    },
+    "hardware controls available" : {
+      "comment" : "DDC accessibility status: available",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "hardware controls available"
+          }
+        }
+      }
+    },
+    "hardware controls available, %@" : {
+      "comment" : "DDC accessibility status: available features",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "hardware controls available, %@"
+          }
+        }
+      }
+    },
+    "uses software brightness" : {
+      "comment" : "DDC accessibility status: software fallback",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "uses software brightness"
+          }
+        }
+      }
+    },
     "\"%@\" will be permanently deleted." : {
       "localizations" : {
         "de" : {
@@ -8503,74 +8679,88 @@
         }
       }
     },
-    "Hardware Only" : {
+    "Hardware mode requires a DDC-capable display with brightness control." : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Der Hardwaremodus erfordert ein DDC-fähiges Display mit Helligkeitssteuerung." } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Hardware mode requires a DDC-capable display with brightness control." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "El modo Hardware requiere una pantalla compatible con DDC y control de brillo." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Le mode Matériel nécessite un écran compatible DDC avec contrôle de la luminosité." } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "La modalità Hardware richiede uno schermo compatibile con DDC e controllo della luminosità." } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ハードウェアモードには、輝度制御に対応したDDC対応ディスプレイが必要です。" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "하드웨어 모드에는 밝기 제어를 지원하는 DDC 호환 디스플레이가 필요합니다." } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "De hardwaremodus vereist een DDC-compatibel beeldscherm met helderheidsregeling." } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "O modo Hardware requer uma tela compatível com DDC e controle de brilho." } },
+        "sr" : { "stringUnit" : { "state" : "translated", "value" : "Hardverski režim zahteva DDC-kompatibilan ekran sa kontrolom osvetljenosti." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "硬件模式需要支持亮度控制的 DDC 兼容显示器。" } }
+      }
+    },
+    "Hardware" : {
       "comment" : "DDC control mode name",
-      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nur Hardware"
+            "value" : "Hardware"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hardware Only"
+            "value" : "Hardware"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Solo hardware"
+            "value" : "Hardware"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Matériel uniquement"
+            "value" : "Matériel"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Solo hardware"
+            "value" : "Hardware"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ハードウェアのみ"
+            "value" : "ハードウェア"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "하드웨어만"
+            "value" : "하드웨어"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Alleen hardware"
+            "value" : "Hardware"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Apenas hardware"
+            "value" : "Hardware"
           }
         },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Samo hardverski"
+            "value" : "Hardverski"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "仅硬件"
+            "value" : "硬件"
           }
         }
       }
@@ -14778,74 +14968,73 @@
         }
       }
     },
-    "Software Only" : {
+    "Software" : {
       "comment" : "DDC control mode name",
-      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nur Software"
+            "value" : "Software"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Software Only"
+            "value" : "Software"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Solo software"
+            "value" : "Software"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Logiciel uniquement"
+            "value" : "Logiciel"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Solo software"
+            "value" : "Software"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ソフトウェアのみ"
+            "value" : "ソフトウェア"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "소프트웨어만"
+            "value" : "소프트웨어"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Alleen software"
+            "value" : "Software"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Apenas software"
+            "value" : "Software"
           }
         },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Samo softverski"
+            "value" : "Softverski"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "仅软件"
+            "value" : "软件"
           }
         }
       }
@@ -16861,8 +17050,7 @@
       }
     },
     "Uses DDC for brightness and gamma tables for warmth and contrast. Automatically uses software brightness if DDC is not available." : {
-      "comment" : "Description of combined DDC control mode",
-      "extractionState" : "stale",
+      "comment" : "Description of hardware DDC control mode",
       "localizations" : {
         "de" : {
           "stringUnit" : {

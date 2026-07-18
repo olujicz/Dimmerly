@@ -53,9 +53,9 @@ final class AppSettingsTests: XCTestCase {
     }
 
     #if !APPSTORE
-        func testApplyDDCEnabledChangeAppliesRuntimeSettingsWhenTurningOn() {
+        func testApplyDDCEnabledChangeAppliesRuntimeSettingsWhenTurningOn() async {
             settings.ddcEnabled = false
-            settings.ddcControlMode = .hardwareOnly
+            settings.ddcControlMode = .hardware
             settings.ddcPollingInterval = 13
             settings.ddcWriteDelay = 120
             let manager = HardwareBrightnessManager(forTesting: true, ddcInterface: MockDDCInterface())
@@ -68,47 +68,36 @@ final class AppSettingsTests: XCTestCase {
                 maxVolume: 0
             )
 
-            applyDDCEnabledChange(true, settings: settings, hardwareManager: manager)
+            await applyDDCEnabledChange(true, settings: settings, hardwareManager: manager)
             manager.stopPolling()
 
             XCTAssertTrue(settings.ddcEnabled)
             XCTAssertTrue(manager.isEnabled)
-            XCTAssertEqual(manager.controlMode, .hardwareOnly)
+            XCTAssertEqual(manager.controlMode, .hardware)
             XCTAssertEqual(manager.pollingInterval, 13)
             XCTAssertEqual(manager.minimumWriteInterval, 0.12, accuracy: 0.001)
         }
 
-        func testSettingsHardwareModesAreDisabledWhenUnavailable() throws {
+        func testSettingsMakesUnavailableHardwareControlObvious() throws {
             let repositoryURL = URL(fileURLWithPath: #filePath)
                 .deletingLastPathComponent()
                 .deletingLastPathComponent()
-            let settingsViewSourceURL = repositoryURL.appendingPathComponent("Dimmerly/Views/SettingsView.swift")
+            let settingsViewSourceURL = repositoryURL.appendingPathComponent("Dimmerly/Views/SettingsDisplayTab.swift")
             let source = try String(contentsOf: settingsViewSourceURL, encoding: .utf8)
 
-            XCTAssertTrue(
-                source.contains(".disabled(!isDDCControlModeAvailable(mode, hardwareManager: hardwareManager))"),
-                "Hardware and Combined DDC mode picker rows should be disabled when hardware brightness is unavailable"
-            )
-        }
-
-        func testSettingsExplainsWhyHardwareModesAreUnavailable() throws {
-            let repositoryURL = URL(fileURLWithPath: #filePath)
-                .deletingLastPathComponent()
-                .deletingLastPathComponent()
-            let settingsViewSourceURL = repositoryURL.appendingPathComponent("Dimmerly/Views/SettingsView.swift")
-            let source = try String(contentsOf: settingsViewSourceURL, encoding: .utf8)
-
-            XCTAssertTrue(
-                source.contains("Hardware modes require a DDC-capable display with brightness control."),
-                "Unavailable Hardware and Combined picker rows should have a nearby explanation"
-            )
+            XCTAssertTrue(source.contains("Use hardware controls when available"))
+            XCTAssertTrue(source.contains("Hardware controls aren’t available"))
+            XCTAssertTrue(source.contains("Dimmerly is using software brightness"))
+            XCTAssertTrue(source.contains("if hardwareControlModesAvailable"))
+            XCTAssertTrue(source.contains("Brightness control:"))
+            XCTAssertTrue(source.contains("Display compatibility"))
         }
 
         func testSettingsKeepsAdvancedDDCControlsBehindDisclosure() throws {
             let repositoryURL = URL(fileURLWithPath: #filePath)
                 .deletingLastPathComponent()
                 .deletingLastPathComponent()
-            let settingsViewSourceURL = repositoryURL.appendingPathComponent("Dimmerly/Views/SettingsView.swift")
+            let settingsViewSourceURL = repositoryURL.appendingPathComponent("Dimmerly/Views/SettingsDisplayTab.swift")
             let source = try String(contentsOf: settingsViewSourceURL, encoding: .utf8)
 
             XCTAssertTrue(
@@ -116,7 +105,7 @@ final class AppSettingsTests: XCTestCase {
                 "DDC polling and write timing controls should be grouped as advanced settings"
             )
             XCTAssertTrue(
-                source.contains(".help(\"DDC/CI controls"),
+                source.contains("Uses DDC/CI to control compatible external displays directly."),
                 "Detailed DDC compatibility caveats should live in help text instead of always-visible copy"
             )
             XCTAssertFalse(
@@ -129,7 +118,7 @@ final class AppSettingsTests: XCTestCase {
             let repositoryURL = URL(fileURLWithPath: #filePath)
                 .deletingLastPathComponent()
                 .deletingLastPathComponent()
-            let settingsViewSourceURL = repositoryURL.appendingPathComponent("Dimmerly/Views/SettingsView.swift")
+            let settingsViewSourceURL = repositoryURL.appendingPathComponent("Dimmerly/Views/SettingsDisplayTab.swift")
             let source = try String(contentsOf: settingsViewSourceURL, encoding: .utf8)
 
             XCTAssertTrue(
@@ -167,32 +156,31 @@ final class AppSettingsTests: XCTestCase {
             let unsupported = HardwareDisplayCapability.notSupported(displayID: 27)
 
             XCTAssertEqual(ddcDisplayStatusSymbolName(for: brightnessCapable), "checkmark.circle.fill")
-            XCTAssertEqual(ddcDisplayStatusText(for: brightnessCapable), "Brightness, Volume")
+            XCTAssertEqual(ddcDisplayStatusText(for: brightnessCapable), "Hardware controls: Brightness, Volume")
             XCTAssertEqual(
                 ddcDisplayAccessibilityStatus(for: brightnessCapable),
-                "hardware brightness available, Brightness, Volume"
+                "hardware controls available, Brightness, Volume"
             )
 
             XCTAssertEqual(ddcDisplayStatusSymbolName(for: partialDDC), "exclamationmark.circle")
-            XCTAssertEqual(ddcDisplayStatusText(for: partialDDC), "No hardware brightness (Volume, Input)")
+            XCTAssertEqual(ddcDisplayStatusText(for: partialDDC), "Hardware brightness unavailable · Volume, Input")
             XCTAssertEqual(
                 ddcDisplayAccessibilityStatus(for: partialDDC),
-                "DDC available, no hardware brightness, Volume, Input"
+                "hardware brightness unavailable, Volume, Input"
             )
 
             XCTAssertEqual(ddcDisplayStatusSymbolName(for: unsupported), "tv.and.mediabox")
-            XCTAssertEqual(ddcDisplayStatusText(for: unsupported), "Software brightness")
-            XCTAssertEqual(ddcDisplayAccessibilityStatus(for: unsupported), "using software brightness")
+            XCTAssertEqual(ddcDisplayStatusText(for: unsupported), "Uses software brightness")
+            XCTAssertEqual(ddcDisplayAccessibilityStatus(for: unsupported), "uses software brightness")
         }
 
-        func testDDCControlModeAvailabilityRequiresEnabledHardwareBrightness() {
+        func testDDCControlModeAvailabilityRequiresEnabledHardwareBrightness() async {
             let manager = HardwareBrightnessManager(forTesting: true, ddcInterface: MockDDCInterface())
 
             XCTAssertTrue(isDDCControlModeAvailable(.softwareOnly, hardwareManager: manager))
-            XCTAssertFalse(isDDCControlModeAvailable(.hardwareOnly, hardwareManager: manager))
-            XCTAssertFalse(isDDCControlModeAvailable(.combined, hardwareManager: manager))
+            XCTAssertFalse(isDDCControlModeAvailable(.hardware, hardwareManager: manager))
 
-            manager.isEnabled = true
+            manager.enable()
             manager.capabilities[25] = HardwareDisplayCapability(
                 displayID: 25,
                 supportsDDC: true,
@@ -202,8 +190,7 @@ final class AppSettingsTests: XCTestCase {
                 maxVolume: 100
             )
 
-            XCTAssertFalse(isDDCControlModeAvailable(.hardwareOnly, hardwareManager: manager))
-            XCTAssertFalse(isDDCControlModeAvailable(.combined, hardwareManager: manager))
+            XCTAssertFalse(isDDCControlModeAvailable(.hardware, hardwareManager: manager))
 
             manager.capabilities[25] = HardwareDisplayCapability(
                 displayID: 25,
@@ -214,19 +201,44 @@ final class AppSettingsTests: XCTestCase {
                 maxVolume: 0
             )
 
-            XCTAssertTrue(isDDCControlModeAvailable(.hardwareOnly, hardwareManager: manager))
-            XCTAssertTrue(isDDCControlModeAvailable(.combined, hardwareManager: manager))
+            XCTAssertTrue(isDDCControlModeAvailable(.hardware, hardwareManager: manager))
 
-            manager.isEnabled = false
-            XCTAssertFalse(isDDCControlModeAvailable(.hardwareOnly, hardwareManager: manager))
-            XCTAssertFalse(isDDCControlModeAvailable(.combined, hardwareManager: manager))
+            await manager.disable()
+            XCTAssertFalse(isDDCControlModeAvailable(.hardware, hardwareManager: manager))
         }
 
-        func testApplyDDCEnabledChangeReappliesSoftwareGammaWhenTurningOff() {
+        func testDDCControlModeMigrationPreservesCombinedAsHardware() {
+            testDefaults.set("combined", forKey: "dimmerlyDDCControlMode")
+
+            let migrated = AppSettings(defaults: testDefaults)
+
+            XCTAssertEqual(migrated.ddcControlMode, .hardware)
+            XCTAssertEqual(migrated.ddcControlModeRaw, "combined")
+        }
+
+        func testDDCControlModeMigrationCoalescesOrphanedHardwareValue() {
+            testDefaults.set("hardware", forKey: "dimmerlyDDCControlMode")
+
+            let migrated = AppSettings(defaults: testDefaults)
+
+            XCTAssertEqual(migrated.ddcControlMode, .hardware)
+            XCTAssertEqual(migrated.ddcControlModeRaw, "combined")
+        }
+
+        func testDDCControlModeMigrationPreservesSoftware() {
+            testDefaults.set("software", forKey: "dimmerlyDDCControlMode")
+
+            let migrated = AppSettings(defaults: testDefaults)
+
+            XCTAssertEqual(migrated.ddcControlMode, .softwareOnly)
+            XCTAssertEqual(migrated.ddcControlModeRaw, "software")
+        }
+
+        func testApplyDDCEnabledChangeReappliesSoftwareGammaWhenTurningOff() async {
             let hardwareManager = HardwareBrightnessManager(forTesting: true)
             let brightnessManager = BrightnessManager(forTesting: true)
             settings.ddcEnabled = true
-            hardwareManager.isEnabled = true
+            hardwareManager.enable()
             brightnessManager.displays = [
                 ExternalDisplay(id: 91, name: "External", brightness: 0.42, warmth: 0.0, contrast: 0.5),
             ]
@@ -237,7 +249,7 @@ final class AppSettingsTests: XCTestCase {
                 XCTAssertEqual(brightness, 0.42, accuracy: 0.001)
             }
 
-            applyDDCEnabledChange(
+            await applyDDCEnabledChange(
                 false,
                 settings: settings,
                 hardwareManager: hardwareManager,
@@ -283,26 +295,6 @@ final class AppSettingsTests: XCTestCase {
         // Toggle back
         settings.launchAtLogin.toggle()
         XCTAssertEqual(settings.launchAtLogin, initialValue, "Should toggle back to original value")
-    }
-
-    /// Tests that resetToDefaults works correctly
-    func testResetToDefaults() {
-        // Given: Modified settings
-        settings.launchAtLogin = true
-        settings.keyboardShortcut = GlobalShortcut(key: "x", modifiers: [.command])
-
-        // When: We reset to defaults
-        settings.resetToDefaults()
-
-        // Then: Settings should be back to defaults
-        XCTAssertFalse(settings.launchAtLogin, "Launch at login should be reset to false")
-
-        let defaultShortcut = GlobalShortcut.default
-        XCTAssertEqual(settings.keyboardShortcut.key, defaultShortcut.key, "Shortcut key should be reset")
-        XCTAssertEqual(
-            settings.keyboardShortcut.modifiers, defaultShortcut.modifiers,
-            "Shortcut modifiers should be reset"
-        )
     }
 
     /// Tests that AppSettings is Observable
@@ -386,38 +378,5 @@ final class AppSettingsTests: XCTestCase {
         settings.menuBarIconRaw = "nonexistent_style"
         XCTAssertEqual(settings.menuBarIcon, .defaultIcon,
                        "Invalid raw value should fall back to .defaultIcon")
-    }
-
-    // MARK: - Comprehensive resetToDefaults
-
-    func testResetToDefaultsComprehensive() {
-        // Modify all settings
-        settings.keyboardShortcut = GlobalShortcut(key: "x", modifiers: [.command])
-        settings.launchAtLogin = true
-        settings.preventScreenLock = true
-        settings.ignoreMouseMovement = true
-        settings.menuBarIcon = .moonOutline
-        settings.idleTimerEnabled = true
-        settings.idleTimerMinutes = 15
-        settings.fadeTransition = false
-        settings.requireEscapeToDismiss = true
-        settings.scheduleEnabled = true
-
-        // Reset
-        settings.resetToDefaults()
-
-        // Verify all properties
-        let defaultShortcut = GlobalShortcut.default
-        XCTAssertEqual(settings.keyboardShortcut.key, defaultShortcut.key)
-        XCTAssertEqual(settings.keyboardShortcut.modifiers, defaultShortcut.modifiers)
-        XCTAssertFalse(settings.launchAtLogin)
-        XCTAssertFalse(settings.preventScreenLock)
-        XCTAssertFalse(settings.ignoreMouseMovement)
-        XCTAssertEqual(settings.menuBarIcon, .defaultIcon)
-        XCTAssertFalse(settings.idleTimerEnabled)
-        XCTAssertEqual(settings.idleTimerMinutes, 5)
-        XCTAssertTrue(settings.fadeTransition)
-        XCTAssertFalse(settings.requireEscapeToDismiss)
-        XCTAssertFalse(settings.scheduleEnabled)
     }
 }

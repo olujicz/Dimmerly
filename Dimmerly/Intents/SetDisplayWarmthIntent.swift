@@ -26,11 +26,15 @@ struct SetDisplayWarmthIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult {
-        guard let displayID = CGDirectDisplayID(display.id) else {
-            throw DisplayIntentError.invalidDisplay
-        }
-        let value = warmth / 100.0
-        BrightnessManager.shared.setWarmth(for: displayID, to: value)
+        try perform(using: LiveDisplayIntentCommand.shared)
         return .result()
+    }
+
+    @MainActor
+    func perform(using command: DisplayIntentCommanding) throws {
+        let displayID = try ConnectedDisplayResolver.resolve(display) {
+            command.connectedDisplayIDs
+        }
+        command.setWarmth(warmth / 100, for: displayID)
     }
 }

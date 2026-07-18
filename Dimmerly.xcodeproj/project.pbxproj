@@ -35,6 +35,12 @@
 		AA1234560000000000000001 /* Dimmerly.icns in Resources */ = {isa = PBXBuildFile; fileRef = AA1234560000000000000002 /* Dimmerly.icns */; };
 		BA0000000000000000000001 /* BrightnessManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0000000000000000000002 /* BrightnessManager.swift */; };
 		BA0000000000000000000003 /* MenuBarPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0000000000000000000004 /* MenuBarPanel.swift */; };
+		BI0000000000000000000011 /* BlankingInputMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BI0000000000000000000001 /* BlankingInputMonitor.swift */; };
+		DP0000000000000000000011 /* DisplayOutputPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = DP0000000000000000000001 /* DisplayOutputPolicy.swift */; };
+		DG0000000000000000000011 /* DDCSessionGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = DG0000000000000000000001 /* DDCSessionGate.swift */; };
+		FI0000000000000000000011 /* DisplayIntentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FI0000000000000000000001 /* DisplayIntentTests.swift */; };
+		CR0000000000000000000011 /* ConnectedDisplayResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = CR0000000000000000000001 /* ConnectedDisplayResolver.swift */; };
+		BS0000000000000000000011 /* BlankingSystemControllers.swift in Sources */ = {isa = PBXBuildFile; fileRef = BS0000000000000000000001 /* BlankingSystemControllers.swift */; };
 		C1B2C3D4E5F6A7B8C9D0E1F1 /* DimmerlyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B2C3D4E5F6A7B8C9D0E1F1 /* DimmerlyApp.swift */; };
 		C1B2C3D4E5F6A7B8C9D0E1F2 /* DisplayController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B2C3D4E5F6A7B8C9D0E1F2 /* DisplayController.swift */; };
 		C1B2C3D4E5F6A7B8C9D0E1F3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B1B2C3D4E5F6A7B8C9D0E1F4 /* Assets.xcassets */; };
@@ -70,10 +76,20 @@
 		CT00000000000000000011 /* ColorTemperatureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CT00000000000000000001 /* ColorTemperatureManager.swift */; };
 		CT00000000000000000012 /* ColorTemperatureManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CT00000000000000000002 /* ColorTemperatureManagerTests.swift */; };
 		HW00000000000000000011 /* DDCController.swift in Sources */ = {isa = PBXBuildFile; fileRef = HW00000000000000000001 /* DDCController.swift */; };
+		DC00000000000000000011 /* DDCPacketCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC00000000000000000001 /* DDCPacketCodec.swift */; };
 		HW00000000000000000012 /* HardwareDisplayCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = HW00000000000000000002 /* HardwareDisplayCapability.swift */; };
 		HW00000000000000000013 /* HardwareBrightnessManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = HW00000000000000000003 /* HardwareBrightnessManager.swift */; };
 		EX00000000000000000011 /* PresetManagementRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = EX00000000000000000001 /* PresetManagementRow.swift */; };
 		EX00000000000000000012 /* LocationPickerRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = EX00000000000000000002 /* LocationPickerRow.swift */; };
+		VS00000000000000000011 /* SettingsGeneralTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = VS00000000000000000001 /* SettingsGeneralTab.swift */; };
+		VS00000000000000000012 /* SettingsDisplayTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = VS00000000000000000002 /* SettingsDisplayTab.swift */; };
+		VS00000000000000000013 /* SettingsScheduleTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = VS00000000000000000003 /* SettingsScheduleTab.swift */; };
+		VS00000000000000000014 /* SettingsShortcutsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = VS00000000000000000004 /* SettingsShortcutsTab.swift */; };
+		VS00000000000000000015 /* SettingsAboutTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = VS00000000000000000005 /* SettingsAboutTab.swift */; };
+		VM00000000000000000011 /* MenuBarPanelHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = VM00000000000000000001 /* MenuBarPanelHost.swift */; };
+		VM00000000000000000012 /* MenuBarPresetControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = VM00000000000000000002 /* MenuBarPresetControls.swift */; };
+		VM00000000000000000013 /* MenuBarDisplayControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = VM00000000000000000003 /* MenuBarDisplayControls.swift */; };
+		VM00000000000000000014 /* MenuBarDDCControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = VM00000000000000000004 /* MenuBarDDCControls.swift */; };
 		HW00000000000000000014 /* DDCControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = HW00000000000000000004 /* DDCControllerTests.swift */; };
 		HW00000000000000000015 /* HardwareBrightnessManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = HW00000000000000000005 /* HardwareBrightnessManagerTests.swift */; };
 		MB00000000000000000011 /* MenuBarPanelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = MB00000000000000000001 /* MenuBarPanelTests.swift */; };
@@ -125,6 +141,12 @@
 		SC00000000000000000003 /* LocationProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationProvider.swift; sourceTree = "<group>"; };
 		SC00000000000000000004 /* ScheduleManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleManager.swift; sourceTree = "<group>"; };
 		SC00000000000000000005 /* ScheduleViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleViews.swift; sourceTree = "<group>"; };
+		BI0000000000000000000001 /* BlankingInputMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlankingInputMonitor.swift; sourceTree = "<group>"; };
+		DP0000000000000000000001 /* DisplayOutputPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayOutputPolicy.swift; sourceTree = "<group>"; };
+		DG0000000000000000000001 /* DDCSessionGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DDCSessionGate.swift; sourceTree = "<group>"; };
+		FI0000000000000000000001 /* DisplayIntentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayIntentTests.swift; sourceTree = "<group>"; };
+		CR0000000000000000000001 /* ConnectedDisplayResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectedDisplayResolver.swift; sourceTree = "<group>"; };
+		BS0000000000000000000001 /* BlankingSystemControllers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlankingSystemControllers.swift; sourceTree = "<group>"; };
 		15EF8DD088138249EA3B9ED2 /* LaunchAtLoginManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginManager.swift; sourceTree = "<group>"; };
 		473CD46DB2D77DD4EB8463DA /* AlertPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertPresenter.swift; sourceTree = "<group>"; };
 		4938628BCBDB203349940ACE /* KeyboardShortcutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutManager.swift; sourceTree = "<group>"; };
@@ -179,6 +201,7 @@
 		CT00000000000000000001 /* ColorTemperatureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorTemperatureManager.swift; sourceTree = "<group>"; };
 		CT00000000000000000002 /* ColorTemperatureManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorTemperatureManagerTests.swift; sourceTree = "<group>"; };
 		HW00000000000000000001 /* DDCController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DDCController.swift; sourceTree = "<group>"; };
+		DC00000000000000000001 /* DDCPacketCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DDCPacketCodec.swift; sourceTree = "<group>"; };
 		HW00000000000000000002 /* HardwareDisplayCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareDisplayCapability.swift; sourceTree = "<group>"; };
 		HW00000000000000000003 /* HardwareBrightnessManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareBrightnessManager.swift; sourceTree = "<group>"; };
 		HW00000000000000000004 /* DDCControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DDCControllerTests.swift; sourceTree = "<group>"; };
@@ -188,6 +211,15 @@
 		SH00000000000000000001 /* SharedConstantsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedConstantsTests.swift; sourceTree = "<group>"; };
 		EX00000000000000000001 /* PresetManagementRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetManagementRow.swift; sourceTree = "<group>"; };
 		EX00000000000000000002 /* LocationPickerRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPickerRow.swift; sourceTree = "<group>"; };
+		VS00000000000000000001 /* SettingsGeneralTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsGeneralTab.swift; sourceTree = "<group>"; };
+		VS00000000000000000002 /* SettingsDisplayTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsDisplayTab.swift; sourceTree = "<group>"; };
+		VS00000000000000000003 /* SettingsScheduleTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScheduleTab.swift; sourceTree = "<group>"; };
+		VS00000000000000000004 /* SettingsShortcutsTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsShortcutsTab.swift; sourceTree = "<group>"; };
+		VS00000000000000000005 /* SettingsAboutTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsAboutTab.swift; sourceTree = "<group>"; };
+		VM00000000000000000001 /* MenuBarPanelHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPanelHost.swift; sourceTree = "<group>"; };
+		VM00000000000000000002 /* MenuBarPresetControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPresetControls.swift; sourceTree = "<group>"; };
+		VM00000000000000000003 /* MenuBarDisplayControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarDisplayControls.swift; sourceTree = "<group>"; };
+		VM00000000000000000004 /* MenuBarDDCControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarDDCControls.swift; sourceTree = "<group>"; };
 		IT00000000000000000001 /* IdleTimerManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleTimerManagerTests.swift; sourceTree = "<group>"; };
 		PE00000000000000000001 /* PresetEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetEntity.swift; sourceTree = "<group>"; };
 		LP00000000000000000001 /* LocationProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationProviderTests.swift; sourceTree = "<group>"; };
@@ -241,8 +273,17 @@
 				C50F163FD03D0874576E9962 /* KeyboardShortcutRecorder.swift */,
 				EX00000000000000000002 /* LocationPickerRow.swift */,
 				BA0000000000000000000004 /* MenuBarPanel.swift */,
+				VM00000000000000000001 /* MenuBarPanelHost.swift */,
+				VM00000000000000000002 /* MenuBarPresetControls.swift */,
+				VM00000000000000000003 /* MenuBarDisplayControls.swift */,
+				VM00000000000000000004 /* MenuBarDDCControls.swift */,
 				EX00000000000000000001 /* PresetManagementRow.swift */,
 				SC00000000000000000005 /* ScheduleViews.swift */,
+				VS00000000000000000001 /* SettingsGeneralTab.swift */,
+				VS00000000000000000002 /* SettingsDisplayTab.swift */,
+				VS00000000000000000003 /* SettingsScheduleTab.swift */,
+				VS00000000000000000004 /* SettingsShortcutsTab.swift */,
+				VS00000000000000000005 /* SettingsAboutTab.swift */,
 				76B136A03B60312AFD4F720E /* SettingsView.swift */,
 			);
 			path = Views;
@@ -330,6 +371,7 @@
 				SC00000000000000000001 /* DimmingSchedule.swift */,
 				E37863164B2170781448D5DC /* DisplayError.swift */,
 				HW00000000000000000002 /* HardwareDisplayCapability.swift */,
+				DP0000000000000000000001 /* DisplayOutputPolicy.swift */,
 				D1B045C3D2AA639266BC0483 /* KeyboardShortcut.swift */,
 				FE7B95B7556B68B59FE0DC7B /* AppSettings.swift */,
 			);
@@ -339,10 +381,14 @@
 		BEC7BD475215C49FED39FD34 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				BI0000000000000000000001 /* BlankingInputMonitor.swift */,
+				DG0000000000000000000001 /* DDCSessionGate.swift */,
+				BS0000000000000000000001 /* BlankingSystemControllers.swift */,
 				B1B2C3D4E5F6A7B8C9D0E1F2 /* DisplayController.swift */,
 				473CD46DB2D77DD4EB8463DA /* AlertPresenter.swift */,
 				BA0000000000000000000002 /* BrightnessManager.swift */,
 				CT00000000000000000001 /* ColorTemperatureManager.swift */,
+				DC00000000000000000001 /* DDCPacketCodec.swift */,
 				HW00000000000000000001 /* DDCController.swift */,
 				HW00000000000000000003 /* HardwareBrightnessManager.swift */,
 				NF00000000000000000003 /* IdleTimerManager.swift */,
@@ -364,6 +410,7 @@
 			isa = PBXGroup;
 			children = (
 				NF00000000000000000005 /* DisplayEntity.swift */,
+				CR0000000000000000000001 /* ConnectedDisplayResolver.swift */,
 				PE00000000000000000001 /* PresetEntity.swift */,
 				IE00000000000000000001 /* DisplayIntentError.swift */,
 				NF00000000000000000009 /* DimmerlyShortcuts.swift */,
@@ -381,6 +428,7 @@
 			isa = PBXGroup;
 				children = (
 					T1B2C3D4E5F6A7B8C9D0E310 /* AppSettingsTests.swift */,
+					FI0000000000000000000001 /* DisplayIntentTests.swift */,
 					DA00000000000000000001 /* DimmerlyAppTests.swift */,
 					UT00000000000000000010 /* BrightnessManagerTests.swift */,
 					NF0000000000000000000A /* BrightnessPresetTests.swift */,
@@ -570,6 +618,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BI0000000000000000000011 /* BlankingInputMonitor.swift in Sources */,
+				DG0000000000000000000011 /* DDCSessionGate.swift in Sources */,
+				BS0000000000000000000011 /* BlankingSystemControllers.swift in Sources */,
 				C1B2C3D4E5F6A7B8C9D0E1F1 /* DimmerlyApp.swift in Sources */,
 				C1B2C3D4E5F6A7B8C9D0E1F2 /* DisplayController.swift in Sources */,
 				4CFE3A432F3C931400E8C290 /* WidgetIntents.swift in Sources */,
@@ -582,14 +633,24 @@
 				D4F246BF3A0883989414211C /* KeyboardShortcutManager.swift in Sources */,
 				D020A5D272EBF573C8F22F90 /* KeyboardShortcutRecorder.swift in Sources */,
 				E8A1B2C3D4E5F6A7B8C9D001 /* ScreenBlanker.swift in Sources */,
+				VS00000000000000000011 /* SettingsGeneralTab.swift in Sources */,
+				VS00000000000000000012 /* SettingsDisplayTab.swift in Sources */,
+				VS00000000000000000013 /* SettingsScheduleTab.swift in Sources */,
+				VS00000000000000000014 /* SettingsShortcutsTab.swift in Sources */,
+				VS00000000000000000015 /* SettingsAboutTab.swift in Sources */,
 				4418D8E7C90F85F1A0565B97 /* SettingsView.swift in Sources */,
 				BA0000000000000000000001 /* BrightnessManager.swift in Sources */,
 				BA0000000000000000000003 /* MenuBarPanel.swift in Sources */,
+				VM00000000000000000011 /* MenuBarPanelHost.swift in Sources */,
+				VM00000000000000000012 /* MenuBarPresetControls.swift in Sources */,
+				VM00000000000000000013 /* MenuBarDisplayControls.swift in Sources */,
+				VM00000000000000000014 /* MenuBarDDCControls.swift in Sources */,
 				NF00000000000000000011 /* BrightnessPreset.swift in Sources */,
 				NF00000000000000000012 /* PresetManager.swift in Sources */,
 				NF00000000000000000013 /* IdleTimerManager.swift in Sources */,
 				NF00000000000000000014 /* PresetShortcutManager.swift in Sources */,
 				NF00000000000000000015 /* DisplayEntity.swift in Sources */,
+				CR0000000000000000000011 /* ConnectedDisplayResolver.swift in Sources */,
 				PE00000000000000000011 /* PresetEntity.swift in Sources */,
 				IE00000000000000000011 /* DisplayIntentError.swift in Sources */,
 				NF00000000000000000016 /* SleepDisplaysIntent.swift in Sources */,
@@ -601,13 +662,15 @@
 				SC00000000000000000011 /* DimmingSchedule.swift in Sources */,
 				SC00000000000000000012 /* SolarCalculator.swift in Sources */,
 				GM00000000000000000011 /* GammaMath.swift in Sources */,
-				DN00000000000000000011 /* DisplayNameResolver.swift in Sources */,
+					DN00000000000000000011 /* DisplayNameResolver.swift in Sources */,
 				SC00000000000000000013 /* LocationProvider.swift in Sources */,
 				SC00000000000000000014 /* ScheduleManager.swift in Sources */,
 				SC00000000000000000015 /* ScheduleViews.swift in Sources */,
 				CT00000000000000000011 /* ColorTemperatureManager.swift in Sources */,
+				DC00000000000000000011 /* DDCPacketCodec.swift in Sources */,
 				HW00000000000000000011 /* DDCController.swift in Sources */,
 				HW00000000000000000012 /* HardwareDisplayCapability.swift in Sources */,
+				DP0000000000000000000011 /* DisplayOutputPolicy.swift in Sources */,
 				HW00000000000000000013 /* HardwareBrightnessManager.swift in Sources */,
 				EX00000000000000000011 /* PresetManagementRow.swift in Sources */,
 				EX00000000000000000012 /* LocationPickerRow.swift in Sources */,
@@ -639,6 +702,7 @@
 				SH00000000000000000011 /* SharedConstantsTests.swift in Sources */,
 				IT00000000000000000011 /* IdleTimerManagerTests.swift in Sources */,
 				LP00000000000000000011 /* LocationProviderTests.swift in Sources */,
+				FI0000000000000000000011 /* DisplayIntentTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

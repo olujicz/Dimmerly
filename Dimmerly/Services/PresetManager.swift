@@ -23,6 +23,23 @@ private let presetManagerLogger = Logger(
     category: "PresetManager"
 )
 
+enum PresetShortcutError: LocalizedError, Equatable {
+    case conflictsWithMainShortcut
+    case conflictsWithPreset(name: String)
+
+    var errorDescription: String? {
+        switch self {
+        case .conflictsWithMainShortcut:
+            String(localized: "This shortcut conflicts with the main display shortcut.")
+        case let .conflictsWithPreset(name):
+            String(
+                format: String(localized: "This shortcut conflicts with %@."),
+                name
+            )
+        }
+    }
+}
+
 /// Manages saved brightness presets and coordinates with widgets.
 ///
 /// Design decisions:
@@ -56,8 +73,15 @@ class PresetManager {
     /// the developer's real saved presets.
     private let defaults: UserDefaults
 
-    init(defaults: UserDefaults = .standard) {
+    /// Resolves the current main display shortcut at assignment time.
+    private let mainShortcutProvider: () -> GlobalShortcut
+
+    init(
+        defaults: UserDefaults = .standard,
+        mainShortcutProvider: @escaping () -> GlobalShortcut = { AppSettings.shared.keyboardShortcut }
+    ) {
         self.defaults = defaults
+        self.mainShortcutProvider = mainShortcutProvider
         loadPresets()
         seedDefaultPresetsIfNeeded()
         syncPresetsToWidget()
@@ -175,9 +199,19 @@ class PresetManager {
         persistPresets()
     }
 
-    /// Updates the shortcut for a preset
-    func updateShortcut(for presetID: UUID, shortcut: GlobalShortcut?) {
+    /// Updates the shortcut for a preset after enforcing global uniqueness.
+    func updateShortcut(for presetID: UUID, shortcut: GlobalShortcut?) throws {
         guard let index = presets.firstIndex(where: { $0.id == presetID }) else { return }
+        if let shortcut {
+            guard shortcut != mainShortcutProvider() else {
+                throw PresetShortcutError.conflictsWithMainShortcut
+            }
+            if let conflictingPreset = presets.first(where: {
+                $0.id != presetID && $0.shortcut == shortcut
+            }) {
+                throw PresetShortcutError.conflictsWithPreset(name: conflictingPreset.name)
+            }
+        }
         presets[index].shortcut = shortcut
         persistPresets()
     }

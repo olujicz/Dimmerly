@@ -17,20 +17,27 @@ struct SetDisplayBrightnessIntent: AppIntent {
 
     @Parameter(
         title: "Brightness",
-        description: "Brightness percentage (5–100)",
+        description: "Brightness percentage (10–100)",
         default: 100.0,
         controlStyle: .slider,
-        inclusiveRange: (5.0, 100.0)
+        inclusiveRange: (10.0, 100.0)
     )
     var brightness: Double
 
     @MainActor
     func perform() async throws -> some IntentResult {
-        guard let displayID = CGDirectDisplayID(display.id) else {
-            throw DisplayIntentError.invalidDisplay
-        }
-        let value = brightness / 100.0
-        BrightnessManager.shared.setBrightness(for: displayID, to: value)
+        try perform(using: LiveDisplayIntentCommand.shared)
         return .result()
+    }
+
+    @MainActor
+    func perform(using command: DisplayIntentCommanding) throws {
+        guard BrightnessManager.brightnessPercentageRange.contains(brightness) else {
+            throw DisplayIntentError.brightnessOutOfRange
+        }
+        let displayID = try ConnectedDisplayResolver.resolve(display) {
+            command.connectedDisplayIDs
+        }
+        command.setBrightness(brightness / 100, for: displayID)
     }
 }

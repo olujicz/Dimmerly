@@ -156,7 +156,7 @@ class AppSettings {
             didSet { defaults.set(ddcEnabled, forKey: "dimmerlyDDCEnabled") }
         }
 
-        /// The active DDC control mode raw value (software, hardware, or combined).
+        /// The active DDC control mode raw value.
         /// Only meaningful when ddcEnabled is true.
         var ddcControlModeRaw: String {
             didSet { defaults.set(ddcControlModeRaw, forKey: "dimmerlyDDCControlMode") }
@@ -176,7 +176,7 @@ class AppSettings {
 
         /// Computed property for the DDC control mode
         var ddcControlMode: DDCControlMode {
-            get { DDCControlMode(rawValue: ddcControlModeRaw) ?? .combined }
+            get { DDCControlMode(rawValue: ddcControlModeRaw) ?? .hardware }
             set { ddcControlModeRaw = newValue.rawValue }
         }
     #endif
@@ -244,35 +244,14 @@ class AppSettings {
         #if !APPSTORE
             ddcEnabled = d.object(forKey: "dimmerlyDDCEnabled") != nil
                 ? d.bool(forKey: "dimmerlyDDCEnabled") : true
-            ddcControlModeRaw = d.string(forKey: "dimmerlyDDCControlMode") ?? DDCControlMode.combined.rawValue
+            let storedMode = d.string(forKey: "dimmerlyDDCControlMode")
+            ddcControlModeRaw = storedMode == DDCControlMode.softwareOnly.rawValue
+                ? DDCControlMode.softwareOnly.rawValue
+                : DDCControlMode.hardware.rawValue
             ddcPollingInterval = d.object(forKey: "dimmerlyDDCPollingInterval") != nil
                 ? d.integer(forKey: "dimmerlyDDCPollingInterval") : 5
             ddcWriteDelay = d.object(forKey: "dimmerlyDDCWriteDelay") != nil
                 ? d.integer(forKey: "dimmerlyDDCWriteDelay") : 50
-        #endif
-    }
-
-    /// Resets all settings to their default values
-    func resetToDefaults() {
-        keyboardShortcut = .default
-        launchAtLogin = false
-        preventScreenLock = false
-        ignoreMouseMovement = false
-        menuBarIconRaw = MenuBarIconStyle.defaultIcon.rawValue
-        idleTimerEnabled = false
-        idleTimerMinutes = 5
-        fadeTransition = true
-        requireEscapeToDismiss = false
-        scheduleEnabled = false
-        autoColorTempEnabled = false
-        dayTemperature = 6500
-        nightTemperature = 2700
-        colorTempTransitionMinutes = 40
-        #if !APPSTORE
-            ddcEnabled = true
-            ddcControlModeRaw = DDCControlMode.combined.rawValue
-            ddcPollingInterval = 5
-            ddcWriteDelay = 50
         #endif
     }
 }

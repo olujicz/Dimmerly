@@ -101,6 +101,9 @@ class BrightnessManager {
     /// Prevents accidentally setting displays to pure black, which would require external controls to recover.
     static let minimumBrightness: Double = 0.10
 
+    /// Product-level percentage range shared with App Intents and other input surfaces.
+    static let brightnessPercentageRange = (minimumBrightness * 100) ... 100.0
+
     /// Currently connected displays (built-in and external) with their visual properties.
     /// Updated automatically when displays are connected/disconnected.
     var displays: [ExternalDisplay] = []
@@ -918,14 +921,15 @@ class BrightnessManager {
     }
 
     #if !APPSTORE
-        private func usesHardwareBrightness(for display: ExternalDisplay) -> Bool {
-            if display.isBuiltIn {
-                return true
-            }
-
+        private func displayOutputPolicy(for display: ExternalDisplay) -> DisplayOutputPolicy {
             let hardwareManager = HardwareBrightnessManager.shared
-            let mode = hardwareManager.controlMode
-            return hardwareManager.isEnabled && mode != .softwareOnly && hardwareManager.supportsDDC(for: display.id)
+            return DisplayOutputPolicy.resolve(
+                mode: hardwareManager.controlMode,
+                isBuiltIn: display.isBuiltIn,
+                isDDCEnabled: hardwareManager.isEnabled,
+                supportsDDCBrightness: hardwareManager.supportsDDC(for: display.id),
+                requestedBrightness: display.brightness
+            )
         }
 
         private func setExternalHardwareBrightness(for displayID: CGDirectDisplayID, to value: Double) {
@@ -940,14 +944,22 @@ class BrightnessManager {
 
     private func resolvedGammaBrightness(for display: ExternalDisplay) -> Double {
         #if !APPSTORE
-            usesHardwareBrightness(for: display) ? 1.0 : display.brightness
+            displayOutputPolicy(for: display).gammaBrightness
         #else
-            display.brightness
+            DisplayOutputPolicy.resolve(requestedBrightness: display.brightness).gammaBrightness
         #endif
     }
 
     private func applyDisplayGamma(_ display: ExternalDisplay, allowDuringBlanking: Bool = false) {
         guard allowDuringBlanking || !ScreenBlanker.shared.isBlanking else { return }
+
+        #if !APPSTORE
+            guard displayOutputPolicy(for: display).appliesGammaColorAdjustments else { return }
+        #else
+            guard DisplayOutputPolicy.resolve(
+                requestedBrightness: display.brightness
+            ).appliesGammaColorAdjustments else { return }
+        #endif
 
         applyGamma(
             displayID: display.id,
@@ -959,9 +971,10 @@ class BrightnessManager {
 
     private func applyDisplayOutput(_ display: ExternalDisplay, allowDuringBlanking: Bool = false) {
         #if !APPSTORE
-            if display.isBuiltIn {
+            let policy = displayOutputPolicy(for: display)
+            if policy.usesBuiltInBacklight {
                 setBuiltInBacklight(for: display.id, to: display.brightness)
-            } else if usesHardwareBrightness(for: display) {
+            } else if policy.usesDDCBrightness {
                 setExternalHardwareBrightness(for: display.id, to: display.brightness)
             }
         #endif

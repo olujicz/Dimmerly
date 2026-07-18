@@ -26,11 +26,15 @@ struct SetDisplayContrastIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult {
-        guard let displayID = CGDirectDisplayID(display.id) else {
-            throw DisplayIntentError.invalidDisplay
-        }
-        let value = contrast / 100.0
-        BrightnessManager.shared.setContrast(for: displayID, to: value)
+        try perform(using: LiveDisplayIntentCommand.shared)
         return .result()
+    }
+
+    @MainActor
+    func perform(using command: DisplayIntentCommanding) throws {
+        let displayID = try ConnectedDisplayResolver.resolve(display) {
+            command.connectedDisplayIDs
+        }
+        command.setContrast(contrast / 100, for: displayID)
     }
 }

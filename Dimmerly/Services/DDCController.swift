@@ -185,15 +185,6 @@
         /// and as the I2C register/sub-address byte for Apple Silicon DDC transactions.
         private static let hostAddress: UInt8 = 0x51
 
-        /// DDC/CI "Get VCP Feature" command opcode.
-        private static let getVCPOpcode: UInt8 = 0x01
-
-        /// DDC/CI "Set VCP Feature" command opcode.
-        private static let setVCPOpcode: UInt8 = 0x03
-
-        /// DDC/CI "Get VCP Feature Reply" opcode (expected in read responses).
-        private static let getVCPReplyOpcode: UInt8 = 0x02
-
         /// Delay between write and read in a DDC transaction (milliseconds).
         /// Monitors need time to process the command and prepare the response.
         /// 50ms works reliably across monitors; some fast monitors work with 10ms.
@@ -765,15 +756,12 @@
             /// IOAVServiceWriteI2C transmits 0x51 on the bus as a data byte before the
             /// payload, so it is correctly included in the checksum per DDC/CI spec.
             private static func readViaService(avService: CFTypeRef, vcp: VCPCode) -> DDCReadResult? {
-                let length: UInt8 = 0x82
-                let checksum = UInt8(ddcI2CAddress << 1) ^ hostAddress ^ length ^ getVCPOpcode ^ vcp.rawValue
-
                 for attempt in 0 ..< maxRetryAttempts {
                     if attempt > 0 {
                         usleep(retryDelayMs * 1000)
                     }
 
-                    var writeData: [UInt8] = [length, getVCPOpcode, vcp.rawValue, checksum]
+                    var writeData = DDCPacketCodec.getRequest(for: vcp, includeHostAddress: false)
                     var writeOK = false
                     for cycle in 0 ..< writeCyclesPerAttempt {
                         if cycle > 0 {
@@ -798,7 +786,7 @@
                     )
                     guard r == KERN_SUCCESS else { continue }
 
-                    if let result = parseDDCResponse(readData, expectedVCP: vcp) {
+                    if let result = DDCPacketCodec.parseGetReply(readData, expectedVCP: vcp) {
                         return result
                     }
                 }
@@ -807,18 +795,12 @@
 
             /// Writes a VCP code via IOAVService with retry logic.
             private static func writeViaService(avService: CFTypeRef, vcp: VCPCode, value: UInt16) -> Bool {
-                let valueHi = UInt8((value >> 8) & 0xFF)
-                let valueLo = UInt8(value & 0xFF)
-                let length: UInt8 = 0x84
-                let checksum = UInt8(ddcI2CAddress << 1) ^ hostAddress ^ length
-                    ^ setVCPOpcode ^ vcp.rawValue ^ valueHi ^ valueLo
-
                 for attempt in 0 ..< maxRetryAttempts {
                     if attempt > 0 {
                         usleep(retryDelayMs * 1000)
                     }
 
-                    var writeData: [UInt8] = [length, setVCPOpcode, vcp.rawValue, valueHi, valueLo, checksum]
+                    var writeData = DDCPacketCodec.setRequest(for: vcp, value: value, includeHostAddress: false)
                     var writeOK = false
                     for cycle in 0 ..< writeCyclesPerAttempt {
                         if cycle > 0 {
@@ -847,15 +829,12 @@
                     return nil
                 }
 
-                let length: UInt8 = 0x82
-                let checksum = UInt8(ddcI2CAddress << 1) ^ hostAddress ^ length ^ getVCPOpcode ^ vcp.rawValue
-
                 for attempt in 0 ..< maxRetryAttempts {
                     if attempt > 0 {
                         usleep(retryDelayMs * 1000)
                     }
 
-                    var writeData: [UInt8] = [length, getVCPOpcode, vcp.rawValue, checksum]
+                    var writeData = DDCPacketCodec.getRequest(for: vcp, includeHostAddress: false)
                     var writeOK = false
                     for cycle in 0 ..< writeCyclesPerAttempt {
                         if cycle > 0 {
@@ -880,7 +859,7 @@
                     )
                     guard r == KERN_SUCCESS else { continue }
 
-                    if let result = parseDDCResponse(readData, expectedVCP: vcp) {
+                    if let result = DDCPacketCodec.parseGetReply(readData, expectedVCP: vcp) {
                         return result
                     }
                 }
@@ -891,18 +870,12 @@
             private static func writeViaDevice(avDevice: CFTypeRef, vcp: VCPCode, value: UInt16) -> Bool {
                 guard let writeFn = avDeviceWrite else { return false }
 
-                let valueHi = UInt8((value >> 8) & 0xFF)
-                let valueLo = UInt8(value & 0xFF)
-                let length: UInt8 = 0x84
-                let checksum = UInt8(ddcI2CAddress << 1) ^ hostAddress ^ length
-                    ^ setVCPOpcode ^ vcp.rawValue ^ valueHi ^ valueLo
-
                 for attempt in 0 ..< maxRetryAttempts {
                     if attempt > 0 {
                         usleep(retryDelayMs * 1000)
                     }
 
-                    var writeData: [UInt8] = [length, setVCPOpcode, vcp.rawValue, valueHi, valueLo, checksum]
+                    var writeData = DDCPacketCodec.setRequest(for: vcp, value: value, includeHostAddress: false)
                     var writeOK = false
                     for cycle in 0 ..< writeCyclesPerAttempt {
                         if cycle > 0 {
@@ -940,9 +913,6 @@
                 }
                 defer { IOServiceClose(connect) }
 
-                let length: UInt8 = 0x82
-                let checksum = UInt8(ddcI2CAddress << 1) ^ hostAddress ^ length ^ getVCPOpcode ^ vcp.rawValue
-
                 let selectorPairs: [(write: UInt32, read: UInt32)] = [(24, 25), (6, 7)]
 
                 for (writeSel, readSel) in selectorPairs {
@@ -951,7 +921,7 @@
                             usleep(retryDelayMs * 1000)
                         }
 
-                        var writeData: [UInt8] = [length, getVCPOpcode, vcp.rawValue, checksum]
+                        var writeData = DDCPacketCodec.getRequest(for: vcp, includeHostAddress: false)
                         var scalarIn: [UInt64] = [UInt64(ddcI2CAddress), UInt64(hostAddress)]
 
                         let wr = writeData.withUnsafeMutableBufferPointer { wBuf in
@@ -984,7 +954,7 @@
                         }
                         guard rr == KERN_SUCCESS else { continue }
 
-                        if let result = parseDDCResponse(readData, expectedVCP: vcp) {
+                        if let result = DDCPacketCodec.parseGetReply(readData, expectedVCP: vcp) {
                             return result
                         }
                     }
@@ -1000,12 +970,6 @@
                 }
                 defer { IOServiceClose(connect) }
 
-                let valueHi = UInt8((value >> 8) & 0xFF)
-                let valueLo = UInt8(value & 0xFF)
-                let length: UInt8 = 0x84
-                let checksum = UInt8(ddcI2CAddress << 1) ^ hostAddress ^ length
-                    ^ setVCPOpcode ^ vcp.rawValue ^ valueHi ^ valueLo
-
                 let selectorPairs: [(write: UInt32, read: UInt32)] = [(24, 25), (6, 7)]
 
                 for (writeSel, _) in selectorPairs {
@@ -1014,9 +978,11 @@
                             usleep(retryDelayMs * 1000)
                         }
 
-                        var writeData: [UInt8] = [
-                            length, setVCPOpcode, vcp.rawValue, valueHi, valueLo, checksum,
-                        ]
+                        var writeData = DDCPacketCodec.setRequest(
+                            for: vcp,
+                            value: value,
+                            includeHostAddress: false
+                        )
                         var scalarIn: [UInt64] = [UInt64(ddcI2CAddress), UInt64(hostAddress)]
 
                         let r = writeData.withUnsafeMutableBufferPointer { wBuf in
@@ -1121,9 +1087,7 @@
                 defer { IOI2CInterfaceClose(connect, 0) }
 
                 // Build the DDC "Get VCP" command
-                let length: UInt8 = 0x82
-                let checksum = UInt8(ddcI2CAddress << 1) ^ hostAddress ^ length ^ getVCPOpcode ^ vcp.rawValue
-                var writeData: [UInt8] = [hostAddress, length, getVCPOpcode, vcp.rawValue, checksum]
+                var writeData = DDCPacketCodec.getRequest(for: vcp, includeHostAddress: true)
 
                 // Send write request. Use withUnsafeMutableBufferPointer to guarantee pointer
                 // lifetime — the buffer must remain valid through the IOI2CSendRequest call.
@@ -1158,7 +1122,7 @@
                 }
                 guard readSuccess else { return nil }
 
-                return parseDDCResponse(readData, expectedVCP: vcp)
+                return DDCPacketCodec.parseGetReply(readData, expectedVCP: vcp)
             }
 
             /// Writes a VCP code via IOI2CRequest on Intel Macs.
@@ -1184,14 +1148,7 @@
                 }
                 defer { IOI2CInterfaceClose(connect, 0) }
 
-                let valueHi = UInt8((value >> 8) & 0xFF)
-                let valueLo = UInt8(value & 0xFF)
-                let length: UInt8 = 0x84
-                let checksum = UInt8(ddcI2CAddress << 1) ^ hostAddress ^ length
-                    ^ setVCPOpcode ^ vcp.rawValue ^ valueHi ^ valueLo
-                var writeData: [UInt8] = [
-                    hostAddress, length, setVCPOpcode, vcp.rawValue, valueHi, valueLo, checksum,
-                ]
+                var writeData = DDCPacketCodec.setRequest(for: vcp, value: value, includeHostAddress: true)
 
                 // Use withUnsafeMutableBufferPointer to guarantee pointer lifetime —
                 // the buffer must remain valid through the IOI2CSendRequest call.
@@ -1208,76 +1165,6 @@
             }
 
         #endif
-
-        // MARK: - Response Parsing
-
-        /// Parses a DDC/CI "Get VCP Feature Reply" response packet.
-        ///
-        /// DDC/CI response format (11+ bytes):
-        /// ```
-        /// Byte 0:  Source address (0x6E)
-        /// Byte 1:  Length | 0x80 (should be 0x88 for 8-byte payload)
-        /// Byte 2:  Result code (0x00 = no error)
-        /// Byte 3:  Reply opcode (0x02 = Get VCP Reply)
-        /// Byte 4:  VCP code being replied to
-        /// Byte 5:  VCP type (0x00 = set parameter, 0x01 = momentary)
-        /// Byte 6:  Max value high byte
-        /// Byte 7:  Max value low byte
-        /// Byte 8:  Current value high byte
-        /// Byte 9:  Current value low byte
-        /// Byte 10: Checksum (XOR of all bytes)
-        /// ```
-        ///
-        /// - Parameters:
-        ///   - data: Raw response bytes from I2C read
-        ///   - expectedVCP: The VCP code we expect in the reply
-        /// - Returns: Parsed current and max values, or `nil` if the response is invalid
-        private static func parseDDCResponse(_ data: [UInt8], expectedVCP: VCPCode) -> DDCReadResult? {
-            // DDC/CI "Get VCP Feature Reply" packet layout:
-            //   Byte 0: Source address (0x6E)
-            //   Byte 1: Length (0x88 = 8 bytes following + 0x80 flag)
-            //   Byte 2: Reply opcode (0x02 = Get VCP Feature Reply)
-            //   Byte 3: Result code (0x00 = no error, 0x01 = unsupported VCP code)
-            //   Byte 4: VCP opcode (echoed from request)
-            //   Byte 5: VCP type code (0x00 = set parameter, 0x01 = momentary)
-            //   Bytes 6–7: Maximum value (big-endian)
-            //   Bytes 8–9: Current value (big-endian)
-            //   Byte 10: Checksum
-            guard data.count >= 11 else { return nil }
-
-            // Validate response checksum. The DDC/CI checksum covers all bytes in the
-            // message plus the implicit destination address. For a display-to-host reply,
-            // the destination is the host's write address (0x50), not the host source
-            // address (0x51) used in outgoing commands. XOR of the destination address
-            // with all message bytes (including the checksum byte) must equal zero.
-            let hostWriteAddress: UInt8 = 0x50
-            var xorCheck = hostWriteAddress
-            for i in 0 ... 10 {
-                xorCheck ^= data[i]
-            }
-            guard xorCheck == 0 else { return nil }
-
-            // Verify this is a valid VCP reply (byte 2 = opcode)
-            let replyOpcode = data[2]
-            guard replyOpcode == getVCPReplyOpcode else { return nil }
-
-            // Check result code (byte 3): 0x00 = success
-            let resultCode = data[3]
-            guard resultCode == 0x00 else { return nil }
-
-            // Verify the reply is for the VCP code we asked about
-            let repliedVCP = data[4]
-            guard repliedVCP == expectedVCP.rawValue else { return nil }
-
-            // Extract values (bytes 6-7 = max, bytes 8-9 = current, big-endian)
-            let maxValue = (UInt16(data[6]) << 8) | UInt16(data[7])
-            let currentValue = (UInt16(data[8]) << 8) | UInt16(data[9])
-
-            // Sanity check: max should be > 0
-            guard maxValue > 0 else { return nil }
-
-            return DDCReadResult(currentValue: currentValue, maxValue: maxValue)
-        }
     }
 
     // MARK: - IOAVService Bridging (Apple Silicon)
