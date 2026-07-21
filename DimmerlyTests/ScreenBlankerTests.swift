@@ -335,6 +335,18 @@ final class ScreenBlankerTests: XCTestCase {
             "App Store settings must not promise system-wide input suppression"
         )
     }
+
+    func testWakeHintAnimationUsesXcode16CompatibleSynchronousAPI() throws {
+        let repositoryURL = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let sourceURL = repositoryURL
+            .appendingPathComponent("Dimmerly/Services/BlankingSystemControllers.swift")
+        let source = try String(contentsOf: sourceURL, encoding: .utf8)
+
+        XCTAssertTrue(source.contains("completionHandler: nil"))
+        XCTAssertFalse(source.contains("await NSAnimationContext.runAnimationGroup"))
+    }
 }
 
 @MainActor
