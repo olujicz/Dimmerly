@@ -177,10 +177,10 @@ final class SystemBlankingWindowController: BlankingWindowControlling {
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(4))
             guard label.window != nil else { return }
-            await NSAnimationContext.runAnimationGroup { context in
+            NSAnimationContext.runAnimationGroup({ context in
                 context.duration = 1
                 label.animator().alphaValue = 0
-            }
+            }, completionHandler: nil)
         }
     }
 }
