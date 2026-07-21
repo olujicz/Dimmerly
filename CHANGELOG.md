@@ -7,6 +7,8 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-07-21
+
 ### Changed
 - Simplified display control to Software and Hardware modes. Hardware mode now uses DDC/CI where supported and automatically falls back to software brightness for unsupported displays while preserving software warmth and contrast adjustments.
 - Clarified Hardware Control settings and availability messages so unsupported displays and software fallback behavior are easier to understand.
