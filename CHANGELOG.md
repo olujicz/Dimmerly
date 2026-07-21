@@ -13,6 +13,7 @@ Semantic Versioning.
 - Improved the contrast of the automatic color-temperature badge across warm and cool display temperatures.
 
 ### Fixed
+- Fixed the Settings window appearing behind the active application the first time it was opened.
 - Fixed display blanking so wake input is captured reliably, does not leak through to the foreground application, and remains recoverable if input monitoring becomes unavailable.
 - Fixed App Store builds sometimes removing the black display overlay when the menu-bar panel closed, leaving input capture inactive or inconsistent.
 - Fixed queued DDC/CI work and stale polling results continuing after Hardware Control was disabled.

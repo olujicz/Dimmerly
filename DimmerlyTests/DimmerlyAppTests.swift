@@ -11,6 +11,19 @@ import XCTest
 
 @MainActor
 final class DimmerlyAppTests: XCTestCase {
+    func testSettingsPromotesWindowAfterSwiftUIAttachesIt() throws {
+        let repositoryURL = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let sourceURL = repositoryURL.appendingPathComponent("Dimmerly/Views/SettingsView.swift")
+        let source = try String(contentsOf: sourceURL, encoding: .utf8)
+
+        XCTAssertTrue(source.contains(".settingsWindowPresentation()"))
+        XCTAssertTrue(source.contains("override func viewDidMoveToWindow()"))
+        XCTAssertTrue(source.contains("window.orderFrontRegardless()"))
+        XCTAssertFalse(source.contains(".onAppear {\n            NSApp.activate()\n        }"))
+    }
+
     func testTurnOffTitleReflectsPreventScreenLockSetting() throws {
         // Isolated suite so this test doesn't read or overwrite the developer's real
         // preventScreenLock setting in UserDefaults.standard.

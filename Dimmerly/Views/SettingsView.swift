@@ -8,6 +8,34 @@
 import AppKit
 import SwiftUI
 
+/// Promotes the Settings window only after SwiftUI has attached its content to an
+/// `NSWindow`. Activating from the button action can run before the Settings scene
+/// creates its window on first launch, leaving it ordered behind the current app.
+final class SettingsWindowPresentationView: NSView {
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+
+        guard let window else { return }
+        NSApp.activate()
+        window.makeKeyAndOrderFront(nil)
+        window.orderFrontRegardless()
+    }
+}
+
+private struct SettingsWindowPresentationConfigurator: NSViewRepresentable {
+    func makeNSView(context _: Context) -> NSView {
+        SettingsWindowPresentationView()
+    }
+
+    func updateNSView(_: NSView, context _: Context) {}
+}
+
+private extension View {
+    func settingsWindowPresentation() -> some View {
+        background(SettingsWindowPresentationConfigurator())
+    }
+}
+
 struct LaunchAtLoginAlertContent: Equatable {
     let title: String
     let message: String
@@ -193,9 +221,7 @@ struct SettingsView: View {
                 .tabItem { Label("About", systemImage: "info.circle") }
         }
         .frame(minWidth: 480, maxWidth: 580, minHeight: 480, idealHeight: 520)
-        .onAppear {
-            NSApp.activate()
-        }
+        .settingsWindowPresentation()
     }
 }
 
