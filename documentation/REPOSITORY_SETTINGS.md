@@ -53,20 +53,32 @@ Recommended Actions settings:
 
 ## Pages
 
-GitHub Pages should use **GitHub Actions** as its publishing source. The
-`.github/workflows/pages.yml` workflow publishes only the public static pages
-copied from the tracked `documentation/` folder:
+GitHub Pages must use **GitHub Actions** as its publishing source. The
+`.github/workflows/pages.yml` workflow builds the public static site from:
 
-- `privacy-policy.html`
-- `support.html`
+- `documentation/index.html`
+- `documentation/privacy-policy.html`
+- `documentation/support.html`
+- `images/image1.png`, published as `assets/dimmerly-menu.png`
+- `images/github-social-preview.jpg`, published as
+  `assets/dimmerly-social-preview.jpg`
+- `Dimmerly/Resources/Assets.xcassets/AppIcon.appiconset/icon_256.png`, published
+  as `assets/dimmerly-icon.png`
 
 The rest of `documentation/` remains visible in the repository but is not
 published to GitHub Pages.
 
-These public URLs must resolve before App Store submission:
+These public URLs must resolve:
 
+- `https://olujicz.github.io/Dimmerly/`
 - `https://olujicz.github.io/Dimmerly/privacy-policy.html`
 - `https://olujicz.github.io/Dimmerly/support.html`
+
+Set the repository **Website** field to:
+
+```text
+https://olujicz.github.io/Dimmerly/
+```
 
 ## Security
 
