@@ -5,6 +5,9 @@ on:
     branches: [ "main" ]
     paths:
       - "documentation/**"
+      - "images/image1.png"
+      - "images/github-social-preview.jpg"
+      - "Dimmerly/Resources/Assets.xcassets/AppIcon.appiconset/icon_256.png"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -34,10 +37,20 @@ jobs:
       - name: Prepare public site
         run: |
           set -euo pipefail
-          mkdir -p build/pages
+          mkdir -p build/pages/assets
+          cp documentation/index.html build/pages/index.html
           cp documentation/privacy-policy.html build/pages/privacy-policy.html
           cp documentation/support.html build/pages/support.html
+          cp images/image1.png build/pages/assets/dimmerly-menu.png
+          cp images/github-social-preview.jpg build/pages/assets/dimmerly-social-preview.jpg
+          cp Dimmerly/Resources/Assets.xcassets/AppIcon.appiconset/icon_256.png build/pages/assets/dimmerly-icon.png
           touch build/pages/.nojekyll
+          test -s build/pages/index.html
+          test -s build/pages/privacy-policy.html
+          test -s build/pages/support.html
+          test -s build/pages/assets/dimmerly-menu.png
+          test -s build/pages/assets/dimmerly-social-preview.jpg
+          test -s build/pages/assets/dimmerly-icon.png
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v5

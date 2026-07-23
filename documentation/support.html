@@ -3,96 +3,250 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dimmerly - Support</title>
+    <meta name="description" content="Troubleshooting help and frequently asked questions for Dimmerly, the private macOS menu bar app for display brightness, warmth, presets, and external monitor controls.">
+    <meta name="theme-color" content="#f3f1ec" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#151613" media="(prefers-color-scheme: dark)">
+    <title>Dimmerly — Support</title>
+    <link rel="canonical" href="https://olujicz.github.io/Dimmerly/support.html">
+    <link rel="icon" href="assets/dimmerly-icon.png" type="image/png">
+    <link rel="apple-touch-icon" href="assets/dimmerly-icon.png">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            line-height: 1.6;
-            color: #1d1d1f;
-            background: #fff;
-            padding: 40px 20px;
+        :root {
+            color-scheme: light dark;
+            --paper: #f3f1ec;
+            --ink: #171717;
+            --muted: #686761;
+            --line: #d4d0c8;
+            --blue-dark: #0d5fc8;
+            --panel: #eceae4;
         }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            color: var(--ink);
+            background: var(--paper);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        a {
+            color: var(--blue-dark);
+            transition: color 0.15s ease;
+        }
+
+        .skip-link {
+            position: absolute;
+            left: 8px;
+            top: -56px;
+            z-index: 10;
+            padding: 10px 16px;
+            border-radius: 8px;
+            background: var(--blue-dark);
+            color: var(--paper);
+            font-weight: 650;
+            text-decoration: none;
+            transition: top 0.15s ease;
+        }
+
+        .skip-link:focus { top: 8px; }
+
+        ::selection {
+            background: var(--blue-dark);
+            color: var(--paper);
+        }
+
         .container {
-            max-width: 680px;
+            width: min(720px, calc(100% - 48px));
             margin: 0 auto;
         }
-        h1 {
-            font-size: 2em;
+
+        .site-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 72px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .brand {
+            display: inline-flex;
+            align-items: center;
+            min-height: 44px;
+            font-size: 1rem;
             font-weight: 700;
-            margin-bottom: 8px;
+            text-decoration: none;
+            color: inherit;
         }
-        .tagline {
-            color: #86868b;
-            font-size: 1em;
-            margin-bottom: 32px;
+
+        .nav {
+            display: flex;
+            gap: 22px;
+            font-size: 0.9rem;
         }
-        h2 {
-            font-size: 1.3em;
-            font-weight: 600;
-            margin-top: 32px;
-            margin-bottom: 12px;
-        }
-        p, li {
-            font-size: 1em;
-            margin-bottom: 12px;
-            color: #333;
-        }
-        ul, ol {
-            padding-left: 24px;
-            margin-bottom: 12px;
-        }
-        a {
-            color: #0066cc;
+
+        .nav a,
+        .footer a {
+            color: var(--muted);
             text-decoration: none;
         }
-        a:hover {
-            text-decoration: underline;
+
+        .nav a {
+            display: inline-flex;
+            align-items: center;
+            min-height: 44px;
         }
-        .contact-box {
-            background: #f5f5f7;
-            border-radius: 12px;
-            padding: 20px 24px;
-            margin-top: 24px;
-        }
-        .contact-box p {
-            margin-bottom: 8px;
-        }
-        .contact-box p:last-child {
-            margin-bottom: 0;
-        }
-        .footer {
-            margin-top: 48px;
-            padding-top: 20px;
-            border-top: 1px solid #e5e5e5;
-            color: #86868b;
-            font-size: 0.85em;
-        }
+
         .footer a {
-            color: #86868b;
+            display: inline-flex;
+            align-items: center;
+            min-height: 32px;
+        }
+
+        .nav a:hover,
+        .footer a:hover {
+            color: var(--ink);
+            text-decoration: underline;
+            text-underline-offset: 4px;
+        }
+
+        main { padding: 8px 0 24px; }
+
+        h1 {
+            margin: 40px 0 8px;
+            font-size: clamp(2rem, 4vw, 2.6rem);
+            font-weight: 720;
+            line-height: 1.05;
+            letter-spacing: -0.03em;
+            text-wrap: balance;
+        }
+
+        .tagline {
+            margin: 0 0 36px;
+            color: var(--muted);
+            font-size: 1.05rem;
+        }
+
+        h2 {
+            margin: 40px 0 12px;
+            font-size: 1.35rem;
+            font-weight: 650;
+            letter-spacing: -0.012em;
+        }
+
+        h3 {
+            margin: 26px 0 8px;
+            font-size: 1.02rem;
+            font-weight: 650;
+        }
+
+        p, li {
+            margin: 0 0 12px;
+            font-size: 1rem;
+            text-wrap: pretty;
+        }
+
+        ul, ol {
+            padding-left: 24px;
+            margin: 0 0 12px;
+        }
+
+        main a {
+            text-decoration: none;
+        }
+
+        main a:hover {
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+
+        .contact-box {
+            margin-top: 24px;
+            padding: 20px 24px;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+        }
+
+        .contact-box p:last-child,
+        .contact-box ul:last-child { margin-bottom: 0; }
+
+        .footer {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 20px;
+            margin-top: 48px;
+            padding: 24px 0 42px;
+            border-top: 1px solid var(--line);
+            color: var(--muted);
+            font-size: 0.84rem;
+        }
+
+        .footer-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        :focus-visible {
+            outline: 3px solid var(--blue-dark);
+            outline-offset: 3px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, ::before, ::after { transition-duration: 0.01ms !important; }
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --paper: #151613;
+                --ink: #f2f0ea;
+                --muted: #aaa8a1;
+                --line: #373832;
+                --blue-dark: #91c0ff;
+                --panel: #1d1e1a;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container { width: min(100% - 32px, 720px); }
+            .nav a:first-child { display: none; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header container">
+        <a class="brand" href="./" aria-label="Dimmerly home">Dimmerly</a>
+        <nav class="nav" aria-label="Primary navigation">
+            <a href="https://github.com/olujicz/Dimmerly/releases">Releases</a>
+            <a href="privacy-policy.html">Privacy</a>
+            <a href="https://github.com/olujicz/Dimmerly">Source</a>
+        </nav>
+    </header>
+
+    <main id="main" class="container">
         <h1>Dimmerly Support</h1>
-        <p class="tagline">Control display brightness from the menu bar.</p>
+        <p class="tagline">Per-display brightness, warmth, presets, and external monitor controls from the menu bar.</p>
 
         <h2>Troubleshooting</h2>
 
-        <h3>Displays don't dim</h3>
+        <h3>Displays don&rsquo;t dim</h3>
         <ul>
             <li>If using the App Store version, Dimmerly uses software dimming and screen blanking. Move your mouse, press a key, or press Escape depending on your wake setting.</li>
             <li>Some displays and display modes do not respond equally to software gamma changes. Try changing brightness, warmth, or contrast separately to confirm which controls affect your display.</li>
             <li>If using the direct download or source version with DDC/CI enabled, ensure your external display supports DDC/CI brightness control and try connecting the display directly to your Mac.</li>
         </ul>
 
-        <h3>Keyboard shortcut doesn't work</h3>
+        <h3>Keyboard shortcut doesn&rsquo;t work</h3>
         <ol>
-            <li>Open System Settings > Privacy & Security > Accessibility.</li>
+            <li>Open System Settings &rsaquo; Privacy &amp; Security &rsaquo; Accessibility.</li>
             <li>Make sure Dimmerly is listed and enabled.</li>
             <li>Restart Dimmerly after granting permission.</li>
-            <li>If the shortcut still doesn't work, try changing it in Settings > Shortcuts to avoid conflicts with other apps.</li>
+            <li>If the shortcut still doesn&rsquo;t work, try changing it in Settings &rsaquo; Shortcuts to avoid conflicts with other apps.</li>
         </ol>
 
         <h3>Brightness slider has no effect</h3>
@@ -113,13 +267,13 @@
         <p>Dimmerly shows connected displays, including the built-in display where supported. The App Store version uses software dimming. The direct download or source version may use additional hardware brightness controls where macOS and the display support them.</p>
 
         <h3>How many presets can I save?</h3>
-        <p>You can save up to 10 brightness presets. Each preset can have its own keyboard shortcut for quick access.</p>
+        <p>You can save up to 10 presets. Each preset can have its own keyboard shortcut for quick access.</p>
 
         <h3>Does Dimmerly collect any data?</h3>
-        <p>No. Dimmerly does not collect, store, or transmit your data, and it does not use analytics or tracking. The app does not send data to developer-operated servers. All settings are stored locally on your Mac. If you choose "Use Current Location" for sunrise/sunset schedules, macOS Location Services may use Apple-provided location infrastructure. See our <a href="privacy-policy.html">Privacy Policy</a>.</p>
+        <p>No. Dimmerly does not collect or transmit personal data, and it does not use analytics or tracking. The app does not send data to developer-operated servers. Settings are stored locally on your Mac. If you choose &ldquo;Use Current Location&rdquo; for sunrise/sunset schedules, macOS Location Services may use Apple-provided location infrastructure. See our <a href="privacy-policy.html">Privacy Policy</a>.</p>
 
-        <h3>What's the difference between the App Store and source versions?</h3>
-        <p>The App Store version runs in Apple's sandbox and dims/screens blanks displays using gamma tables. The source version can put displays to sleep using macOS system commands and includes DDC/CI hardware monitor control features (when supported by your display/connection). Feature differences are documented in the README and release notes.</p>
+        <h3>What&rsquo;s the difference between the App Store and source versions?</h3>
+        <p>The App Store version runs in Apple&rsquo;s sandbox and dims and screen-blanks displays using gamma tables. The source version can put displays to sleep using macOS system commands and includes DDC/CI hardware monitor control features when supported by your display and connection. Feature differences are documented in the README and release notes.</p>
 
         <h2>Contact</h2>
 
@@ -128,15 +282,20 @@
             <p>When reporting a bug, please include:</p>
             <ul>
                 <li>Your macOS version</li>
-                <li>Dimmerly version (from Settings > About)</li>
+                <li>Dimmerly version (from Settings &rsaquo; About)</li>
                 <li>Your display model and connection type</li>
                 <li>Steps to reproduce the issue</li>
             </ul>
         </div>
+    </main>
 
-        <div class="footer">
-            <p><a href="privacy-policy.html">Privacy Policy</a> · <a href="https://github.com/olujicz/Dimmerly">GitHub</a> · Copyright &copy; 2026 Zoran Olujic</p>
+    <footer class="footer container">
+        <span>Dimmerly · Open source under the MIT License</span>
+        <div class="footer-links">
+            <a href="https://github.com/olujicz/Dimmerly/releases">Releases</a>
+            <a href="privacy-policy.html">Privacy</a>
+            <a href="https://github.com/olujicz/Dimmerly">Source</a>
         </div>
-    </div>
+    </footer>
 </body>
 </html>
