@@ -79,8 +79,8 @@ GitHub Actions runs on every push and pull request to `main`:
 - Workflow lint: `actionlint`
 - Format: SwiftFormat check
 - Lint: SwiftLint with `--strict`
-- Test: Full test suite on macOS 26 with the runner default Xcode
-- Build: App Store scheme smoke build on macOS 26 with signing disabled
+- Test: Full test suite on GitHub's macOS 26 runner with Xcode 26.6
+- Build: App Store scheme smoke build on GitHub's macOS 26 runner with Xcode 26.6 and signing disabled
 
 ## Release Packaging
 
