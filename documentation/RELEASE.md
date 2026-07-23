@@ -134,6 +134,8 @@ Do not mix feature work into the release-prep PR. Merge it only after CI passes 
 
 Use the manual workflow first to prove signing, notarization, and packaging before creating a public tag. Run it from the release-prep commit after it is on `main`:
 
+The Release workflow uses GitHub's `macos-26` runner and explicitly selects Xcode 26.6 for both the quality gate and signed DMG build. Keep these versions aligned with `.github/workflows/release.yml` when upgrading the release environment.
+
 1. Open GitHub Actions.
 2. Run the `Release` workflow manually.
 3. Enter the intended stable SemVer version, for example `1.0.0`.
