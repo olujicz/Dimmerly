@@ -3,60 +3,215 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dimmerly - Privacy Policy</title>
+    <meta name="description" content="How Dimmerly handles your information: no analytics, no tracking, no ads. All settings are stored locally on your Mac.">
+    <meta name="theme-color" content="#f3f1ec" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#151613" media="(prefers-color-scheme: dark)">
+    <title>Dimmerly — Privacy Policy</title>
+    <link rel="canonical" href="https://olujicz.github.io/Dimmerly/privacy-policy.html">
+    <link rel="icon" href="assets/dimmerly-icon.png" type="image/png">
+    <link rel="apple-touch-icon" href="assets/dimmerly-icon.png">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            line-height: 1.6;
-            color: #1d1d1f;
-            background: #fff;
-            padding: 40px 20px;
+        :root {
+            color-scheme: light dark;
+            --paper: #f3f1ec;
+            --ink: #171717;
+            --muted: #686761;
+            --line: #d4d0c8;
+            --blue-dark: #0d5fc8;
         }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            color: var(--ink);
+            background: var(--paper);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        a {
+            color: var(--blue-dark);
+            transition: color 0.15s ease;
+        }
+
+        .skip-link {
+            position: absolute;
+            left: 8px;
+            top: -56px;
+            z-index: 10;
+            padding: 10px 16px;
+            border-radius: 8px;
+            background: var(--blue-dark);
+            color: var(--paper);
+            font-weight: 650;
+            text-decoration: none;
+            transition: top 0.15s ease;
+        }
+
+        .skip-link:focus { top: 8px; }
+
+        ::selection {
+            background: var(--blue-dark);
+            color: var(--paper);
+        }
+
         .container {
-            max-width: 680px;
+            width: min(720px, calc(100% - 48px));
             margin: 0 auto;
         }
-        h1 {
-            font-size: 2em;
+
+        .site-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 72px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .brand {
+            display: inline-flex;
+            align-items: center;
+            min-height: 44px;
+            font-size: 1rem;
             font-weight: 700;
-            margin-bottom: 8px;
+            text-decoration: none;
+            color: inherit;
         }
-        .last-updated {
-            color: #86868b;
-            font-size: 0.9em;
-            margin-bottom: 32px;
+
+        .nav {
+            display: flex;
+            gap: 22px;
+            font-size: 0.9rem;
         }
-        h2 {
-            font-size: 1.3em;
-            font-weight: 600;
-            margin-top: 32px;
-            margin-bottom: 12px;
-        }
-        p, li {
-            font-size: 1em;
-            margin-bottom: 12px;
-            color: #333;
-        }
-        ul {
-            padding-left: 24px;
-            margin-bottom: 12px;
-        }
-        a {
-            color: #0066cc;
+
+        .nav a,
+        .footer a {
+            color: var(--muted);
             text-decoration: none;
         }
-        a:hover {
+
+        .nav a {
+            display: inline-flex;
+            align-items: center;
+            min-height: 44px;
+        }
+
+        .footer a {
+            display: inline-flex;
+            align-items: center;
+            min-height: 32px;
+        }
+
+        .nav a:hover,
+        .footer a:hover {
+            color: var(--ink);
             text-decoration: underline;
+            text-underline-offset: 4px;
+        }
+
+        main { padding: 8px 0 24px; }
+
+        h1 {
+            margin: 40px 0 8px;
+            font-size: clamp(2rem, 4vw, 2.6rem);
+            font-weight: 720;
+            line-height: 1.05;
+            letter-spacing: -0.03em;
+            text-wrap: balance;
+        }
+
+        .last-updated {
+            margin: 0 0 36px;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        h2 {
+            margin: 40px 0 12px;
+            font-size: 1.35rem;
+            font-weight: 650;
+            letter-spacing: -0.012em;
+        }
+
+        p, li {
+            margin: 0 0 12px;
+            font-size: 1rem;
+            text-wrap: pretty;
+        }
+
+        ul {
+            padding-left: 24px;
+            margin: 0 0 12px;
+        }
+
+        main a { text-decoration: none; }
+
+        main a:hover {
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+
+        .footer {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 20px;
+            margin-top: 48px;
+            padding: 24px 0 42px;
+            border-top: 1px solid var(--line);
+            color: var(--muted);
+            font-size: 0.84rem;
+        }
+
+        .footer-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        :focus-visible {
+            outline: 3px solid var(--blue-dark);
+            outline-offset: 3px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, ::before, ::after { transition-duration: 0.01ms !important; }
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --paper: #151613;
+                --ink: #f2f0ea;
+                --muted: #aaa8a1;
+                --line: #373832;
+                --blue-dark: #91c0ff;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container { width: min(100% - 32px, 720px); }
+            .nav a:first-child { display: none; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header container">
+        <a class="brand" href="./" aria-label="Dimmerly home">Dimmerly</a>
+        <nav class="nav" aria-label="Primary navigation">
+            <a href="https://github.com/olujicz/Dimmerly/releases">Releases</a>
+            <a href="support.html">Support</a>
+            <a href="https://github.com/olujicz/Dimmerly">Source</a>
+        </nav>
+    </header>
+
+    <main id="main" class="container">
         <h1>Privacy Policy</h1>
         <p class="last-updated">Last updated: February 11, 2026</p>
 
-        <p>Dimmerly ("the App") is developed by Zoran Olujic. This privacy policy explains how the App handles your information.</p>
+        <p>Dimmerly (&ldquo;the App&rdquo;) is developed by Zoran Olujic. This privacy policy explains how the App handles your information.</p>
 
         <h2>Data Collection</h2>
         <p>Dimmerly does not collect or transmit personal data to the developer or to developer-operated servers. The App operates entirely on your device.</p>
@@ -74,7 +229,7 @@
 
         <h2>Network Access</h2>
         <p>Dimmerly does not send data to developer-operated servers and does not use analytics, advertising, AI, or tracking SDKs. The App does not require an internet connection for core display control features.</p>
-        <p>If you choose "Use Current Location" for sunrise/sunset schedules, macOS Location Services may use Apple-provided location infrastructure to determine your location.</p>
+        <p>If you choose &ldquo;Use Current Location&rdquo; for sunrise/sunset schedules, macOS Location Services may use Apple-provided location infrastructure to determine your location.</p>
 
         <h2>Third-Party Services</h2>
         <p>Dimmerly does not use any third-party analytics, advertising, AI, or tracking services.</p>
@@ -82,7 +237,7 @@
         <h2>Permissions</h2>
         <p>Dimmerly may request Accessibility permission to enable global keyboard shortcuts. This permission is used solely for detecting keyboard shortcuts and is not used to monitor or record any user activity.</p>
 
-        <h2>Children's Privacy</h2>
+        <h2>Children&rsquo;s Privacy</h2>
         <p>The App does not knowingly collect any information from children.</p>
 
         <h2>Changes to This Policy</h2>
@@ -90,6 +245,15 @@
 
         <h2>Contact</h2>
         <p>If you have questions about this privacy policy, you can reach out via <a href="https://github.com/olujicz/Dimmerly/issues">GitHub Issues</a>.</p>
-    </div>
+    </main>
+
+    <footer class="footer container">
+        <span>Dimmerly · Open source under the MIT License</span>
+        <div class="footer-links">
+            <a href="https://github.com/olujicz/Dimmerly/releases">Releases</a>
+            <a href="support.html">Support</a>
+            <a href="https://github.com/olujicz/Dimmerly">Source</a>
+        </div>
+    </footer>
 </body>
 </html>
