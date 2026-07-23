@@ -12,6 +12,10 @@ controls. When DDC/CI is not available, it falls back to software dimming.
 ![Swift 6](https://img.shields.io/badge/Swift-6-orange)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green)
 
+**[Download latest release](https://github.com/olujicz/Dimmerly/releases/latest)**
+· **[Install with Homebrew](#homebrew)**
+· **[View screenshots](#screenshots)**
+
 ![Dimmerly menu bar panel on macOS](images/image1.png)
 
 ## Features
