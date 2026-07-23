@@ -222,7 +222,8 @@ jobs:
             -destination "generic/platform=macOS" \
             -archivePath "$ARCHIVE_PATH" \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-            CODE_SIGN_STYLE=Automatic \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="$DEVELOPER_ID_SIGNING_IDENTITY" \
             -allowProvisioningUpdates \
             -authenticationKeyPath "$PWD/private_keys/AuthKey_${{ secrets.APPSTORE_CONNECT_API_KEY_ID }}.p8" \
             -authenticationKeyID "${{ secrets.APPSTORE_CONNECT_API_KEY_ID }}" \
