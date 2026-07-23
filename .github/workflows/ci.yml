@@ -9,7 +9,52 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      full_ci: ${{ steps.scope.outputs.full_ci }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Test CI Scope Classifier
+        run: .github/scripts/test-ci-scope.sh
+
+      - name: Determine CI Scope
+        id: scope
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_BASE_SHA: ${{ github.event.before }}
+          PUSH_HEAD_SHA: ${{ github.sha }}
+        run: |
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            base_sha="$PR_BASE_SHA"
+            head_sha="$PR_HEAD_SHA"
+          else
+            base_sha="$PUSH_BASE_SHA"
+            head_sha="$PUSH_HEAD_SHA"
+          fi
+
+          if [[ -z "$base_sha" || "$base_sha" =~ ^0+$ ]] ||
+             ! git cat-file -e "$base_sha^{commit}" ||
+             ! git cat-file -e "$head_sha^{commit}"; then
+            echo "full_ci=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git diff --name-only -z "$base_sha" "$head_sha" |
+            .github/scripts/ci-scope.sh >> "$GITHUB_OUTPUT"
+
   gitleaks:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -25,6 +70,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   workflow-lint:
+    needs: changes
+    if: needs.changes.outputs.full_ci == 'true'
     runs-on: macos-26
     timeout-minutes: 10
     steps:
@@ -38,6 +85,8 @@ jobs:
         run: actionlint
 
   format:
+    needs: changes
+    if: needs.changes.outputs.full_ci == 'true'
     runs-on: macos-26
     timeout-minutes: 15
     steps:
@@ -51,6 +100,8 @@ jobs:
         run: swiftformat Dimmerly DimmerlyTests DimmerlyWidget --config .swiftformat --lint
 
   lint:
+    needs: changes
+    if: needs.changes.outputs.full_ci == 'true'
     runs-on: macos-26
     timeout-minutes: 15
     steps:
@@ -64,6 +115,8 @@ jobs:
         run: swiftlint lint --quiet --strict
 
   test:
+    needs: changes
+    if: needs.changes.outputs.full_ci == 'true'
     runs-on: macos-26
     timeout-minutes: 30
     steps:
@@ -80,6 +133,8 @@ jobs:
         run: xcodebuild test -scheme Dimmerly -destination 'platform=macOS' CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
 
   build-appstore:
+    needs: changes
+    if: needs.changes.outputs.full_ci == 'true'
     runs-on: macos-26
     timeout-minutes: 30
     steps:
