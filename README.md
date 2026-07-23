@@ -1,22 +1,35 @@
 # Dimmerly
 
-Dimmerly is a native macOS menu bar app for display brightness, warmth,
-contrast, presets, schedules, and display sleep.
+Native macOS menu bar control for external-monitor brightness, warmth, contrast,
+volume, input source, presets, and schedules—with DDC/CI hardware control and
+software fallback.
 
-It is mainly built for external-monitor setups where the useful controls are
-either buried in the monitor OSD or split across System Settings. On supported
-external displays, Dimmerly can use DDC/CI for hardware brightness and monitor
-controls. When DDC/CI is not available, it falls back to software dimming.
+Dimmerly brings controls that are usually buried in the monitor OSD or split
+across System Settings into one native menu bar app.
 
-![macOS 15.0+](https://img.shields.io/badge/macOS-15.0%2B-blue)
-![Swift 6](https://img.shields.io/badge/Swift-6-orange)
-![License: MIT](https://img.shields.io/badge/License-MIT-green)
+[![macOS 15.0+](https://img.shields.io/badge/macOS-15.0%2B-blue)](#requirements)
+[![Latest release](https://img.shields.io/github/v/release/olujicz/Dimmerly?display_name=tag&sort=semver)](https://github.com/olujicz/Dimmerly/releases/latest)
+[![CI](https://github.com/olujicz/Dimmerly/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/olujicz/Dimmerly/actions/workflows/ci.yml)
+[![Homebrew](https://img.shields.io/badge/Homebrew-cask-FBB040?logo=homebrew&logoColor=black)](#homebrew)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 **[Download latest release](https://github.com/olujicz/Dimmerly/releases/latest)**
 · **[Install with Homebrew](#homebrew)**
 · **[View screenshots](#screenshots)**
+· **[Changelog](CHANGELOG.md)**
+
+```bash
+brew tap olujicz/dimmerly
+brew install --cask dimmerly
+```
 
 ![Dimmerly menu bar panel on macOS](images/image1.png)
+
+## Why Dimmerly?
+
+- Control multiple displays from a single menu bar panel
+- Use real DDC/CI hardware controls where the monitor and connection support them
+- Keep settings private and local, with no analytics or tracking
 
 ## Features
 
@@ -28,11 +41,7 @@ controls. When DDC/CI is not available, it falls back to software dimming.
 - Desktop widgets and Shortcuts actions
 - Optional automatic color temperature changes
 - Optional auto-dim after inactivity
-- Direct-download build: display sleep through macOS tools
-- Direct-download build: DDC/CI hardware brightness, contrast, volume, mute, and input switching
-- App Store build: sandbox-compatible software dimming and screen blanking
 - VoiceOver labels and Reduce Motion support
-- Local settings only; no analytics, tracking, or app-managed network requests
 
 ## Requirements
 
@@ -58,15 +67,13 @@ the full feature set.
 Download the latest signed and notarized DMG from
 [GitHub Releases](https://github.com/olujicz/Dimmerly/releases/latest).
 
-This build has the full feature set, including display sleep, DDC/CI hardware
-control, monitor input switching, and hardware volume controls where the display
-and connection support them.
+This is the recommended build when you want DDC/CI hardware controls and display
+sleep.
 
 ### App Store Build
 
-The repository also includes a sandboxed App Store configuration. Because that
-build runs inside Apple's sandbox, it uses software dimming and screen blanking
-instead of DDC/CI or system display sleep.
+The repository also includes a sandboxed App Store configuration. See
+[Build Differences](#build-differences) for its capabilities.
 
 ### Build From Source
 
@@ -145,9 +152,6 @@ access.
 - Monitor support varies by manufacturer and model. Some displays expose only
   brightness, while others also expose contrast, volume, mute, or input
   switching.
-- The direct-download and Homebrew builds include display sleep and DDC/CI
-  hardware controls. The App Store build is sandboxed, so it uses software
-  dimming and screen blanking instead.
 - Global keyboard shortcuts require Accessibility permission from macOS.
 - Sunrise and sunset schedules need Location permission unless you enter a
   manual coordinate.
@@ -199,6 +203,12 @@ work, choose a shortcut that is not already reserved by macOS or another app.
 Open Settings and adjust the dimming wake behavior. Enable "Ignore mouse
 movement" if small pointer movement wakes the displays, or enable Escape-only
 dismissal for stricter control.
+
+### Get Help
+
+- [Report a bug](https://github.com/olujicz/Dimmerly/issues/new?template=bug_report.yml)
+- [Report a monitor compatibility issue](https://github.com/olujicz/Dimmerly/issues/new?template=monitor_compatibility.yml)
+- [Review recent changes](CHANGELOG.md)
 
 ## Development
 
