@@ -7,6 +7,11 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-07-23
+
+### Changed
+- Rebuilt the direct-download release with the macOS 26 and Xcode 26.6 toolchain.
+
 ## [1.1.1] - 2026-07-21
 
 ### Changed
