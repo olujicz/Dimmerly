@@ -813,6 +813,65 @@ import XCTest
             XCTAssertTrue(cap.supportsDDC, "Display should remain DDC-capable via its other working codes")
         }
 
+        func testCapabilityAutomaticallyRecoversAfterTemporaryWriteFailures() async throws {
+            let displayID: CGDirectDisplayID = 42
+            let writesFailed = expectation(description: "Brightness write failed 3 times")
+            writesFailed.expectedFulfillmentCount = 3
+            let recoveryProbeCompleted = expectation(description: "Capability was re-probed after fallback")
+
+            var mock = MockDDCInterface()
+            mock.writeHandler = { vcp, _, probedDisplayID in
+                guard vcp == .brightness, probedDisplayID == displayID else { return true }
+                writesFailed.fulfill()
+                return false
+            }
+            mock.probeHandler = { probedDisplayID in
+                recoveryProbeCompleted.fulfill()
+                return HardwareDisplayCapability(
+                    displayID: probedDisplayID,
+                    supportsDDC: true,
+                    supportedCodes: [.brightness],
+                    maxBrightness: 100,
+                    maxContrast: 0,
+                    maxVolume: 0
+                )
+            }
+
+            let manager = HardwareBrightnessManager(
+                forTesting: true,
+                ddcInterface: mock,
+                connectedExternalDisplayIDsProvider: { [displayID] },
+                displayRefreshHandler: {}
+            )
+            manager.enable()
+            manager.capabilities[displayID] = HardwareDisplayCapability(
+                displayID: displayID,
+                supportsDDC: true,
+                supportedCodes: [.brightness],
+                maxBrightness: 100,
+                maxContrast: 0,
+                maxVolume: 0
+            )
+
+            for step in 0 ..< 3 {
+                manager.setHardwareBrightness(for: displayID, to: 0.3 + Double(step) * 0.1)
+                try? await Task.sleep(for: .milliseconds(250))
+            }
+
+            await fulfillment(of: [writesFailed], timeout: 2)
+            try? await Task.sleep(for: .milliseconds(100))
+            XCTAssertFalse(
+                try XCTUnwrap(manager.capability(for: displayID)).supportsBrightness,
+                "The failed control should temporarily fall back while DDC is unavailable"
+            )
+
+            await fulfillment(of: [recoveryProbeCompleted], timeout: 3)
+            XCTAssertTrue(
+                try XCTUnwrap(manager.capability(for: displayID)).supportsBrightness,
+                "A successful recovery probe should restore hardware control automatically"
+            )
+        }
+
         // MARK: - HardwareDisplayCapability Tests
 
         /// Tests notSupported factory method

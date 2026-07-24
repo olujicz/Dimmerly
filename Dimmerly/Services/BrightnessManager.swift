@@ -136,12 +136,19 @@ class BrightnessManager {
         /// Test seam for observing built-in backlight writes without invoking private APIs.
         var setBuiltInBacklightHook: ((CGDirectDisplayID, Double) -> Bool)?
 
+        /// Test seam for simulating built-in backlight reads.
+        var readBuiltInBrightnessHook: ((CGDirectDisplayID) -> Double?)?
+
         /// Test seam for observing external DDC brightness writes without hitting hardware.
         var setExternalHardwareBrightnessHook: ((CGDirectDisplayID, Double) -> Void)?
     #endif
 
     /// Test seam for observing gamma applications without modifying the real display state.
     var applyGammaHook: ((CGDirectDisplayID, Double, Double, Double) -> Void)?
+
+    /// Test seams for deterministic display-reconfiguration coverage.
+    var activeDisplayIDsHook: (() -> [CGDirectDisplayID])?
+    var isBuiltInDisplayHook: ((CGDirectDisplayID) -> Bool)?
 
     /// Test seam for forcing transition eligibility independent of process-wide accessibility state.
     var canAnimateTransitionsHook: (() -> Bool)?
@@ -247,7 +254,10 @@ class BrightnessManager {
         /// Reads the current hardware backlight brightness of the built-in display.
         /// Returns nil if the display is not built-in or the API call fails.
         func readBuiltInBrightness(for displayID: CGDirectDisplayID) -> Double? {
-            guard CGDisplayIsBuiltin(displayID) != 0,
+            if let readBuiltInBrightnessHook {
+                return readBuiltInBrightnessHook(displayID)
+            }
+            guard isBuiltInDisplay(displayID),
                   DisplayServicesAPI.isAvailable else { return nil }
             var brightness: Float = 0
             let result = DisplayServicesAPI.getBrightness(displayID, &brightness)
@@ -393,11 +403,11 @@ class BrightnessManager {
     ///
     /// - Note: If screen blanking is active, gamma reapplication is deferred to avoid flicker.
     func refreshDisplays() {
-        let displayIDs = Self.activeDisplayIDs()
+        let displayIDs = activeDisplayIDsHook?() ?? Self.activeDisplayIDs()
 
         #if !APPSTORE
             // Clean up HardwareBrightnessManager state for displays that disappeared
-            let externalDisplayIDs = Set(displayIDs.filter { CGDisplayIsBuiltin($0) == 0 })
+            let externalDisplayIDs = Set(displayIDs.filter { !isBuiltInDisplay($0) })
             for cachedID in HardwareBrightnessManager.shared.capabilities.keys
                 where !externalDisplayIDs.contains(cachedID)
             {
@@ -419,39 +429,30 @@ class BrightnessManager {
         let savedBrightness = loadPersistedBrightness()
         let savedWarmth = loadPersistedWarmth()
         let savedContrast = loadPersistedContrast()
+        let previousBrightnessByID = Dictionary(uniqueKeysWithValues: displays.map { ($0.id, $0.brightness) })
+        let previousBuiltInBrightness = displays.first(where: \.isBuiltIn)?.brightness
         var newDisplays: [ExternalDisplay] = []
+        var builtInDisplaysWithFailedReads: Set<CGDirectDisplayID> = []
 
         for displayID in displayIDs {
-            let builtIn = CGDisplayIsBuiltin(displayID) != 0
+            let builtIn = isBuiltInDisplay(displayID)
 
             let name = displayName(for: displayID)
-
-            // For built-in displays (non-App Store), read the actual backlight level
-            // so the slider matches Control Center on launch.
-            var brightness: Double
-            #if !APPSTORE
-                if builtIn, let hw = readBuiltInBrightness(for: displayID) {
-                    // Do not clamp a live hardware read up to `minimumBrightness`: this value
-                    // gets written straight back to the backlight by the `reapplyAll()` call
-                    // below, so clamping here would silently brighten a display the user (or
-                    // the system) intentionally set below the app's floor — e.g. via keyboard
-                    // brightness keys — every time a reconfiguration or wake event fires.
-                    // Gamma safety is unaffected: `resolvedGammaBrightness` pins gamma at 1.0
-                    // for hardware-controlled displays regardless of this model value.
-                    brightness = hw
-                } else {
-                    brightness = Swift.max(savedBrightness[String(displayID)] ?? 1.0, Self.minimumBrightness)
-                }
-            #else
-                // Ensure brightness meets minimum threshold for visibility
-                brightness = Swift.max(savedBrightness[String(displayID)] ?? 1.0, Self.minimumBrightness)
-            #endif
+            let refreshedBrightness = refreshedBrightness(
+                for: displayID,
+                isBuiltIn: builtIn,
+                savedBrightness: savedBrightness[String(displayID)],
+                previousBrightness: previousBrightnessByID[displayID] ?? previousBuiltInBrightness
+            )
+            if refreshedBrightness.suppressBuiltInBacklight {
+                builtInDisplaysWithFailedReads.insert(displayID)
+            }
             // Clamp warmth and contrast to valid ranges
             let warmth = min(max(savedWarmth[String(displayID)] ?? 0.0, 0.0), 1.0)
             let contrast = min(max(savedContrast[String(displayID)] ?? 0.5, 0.0), 1.0)
 
             var display = ExternalDisplay(
-                id: displayID, name: name, brightness: brightness,
+                id: displayID, name: name, brightness: refreshedBrightness.value,
                 warmth: warmth, contrast: contrast
             )
             display.isBuiltIn = builtIn
@@ -495,10 +496,38 @@ class BrightnessManager {
         }
 
         displays = newDisplays
-        // Don't reapply gamma if blanking is active (would cause visible flicker)
-        if !ScreenBlanker.shared.isBlanking {
-            reapplyAll()
+        reapplyAfterRefresh(suppressingBuiltInBacklightFor: builtInDisplaysWithFailedReads)
+    }
+
+    private func reapplyAfterRefresh(suppressingBuiltInBacklightFor displayIDs: Set<CGDirectDisplayID>) {
+        guard !ScreenBlanker.shared.isBlanking else { return }
+        for display in displays {
+            applyDisplayOutput(display, suppressBuiltInBacklight: displayIDs.contains(display.id))
         }
+    }
+
+    private func refreshedBrightness(
+        for displayID: CGDirectDisplayID,
+        isBuiltIn: Bool,
+        savedBrightness: Double?,
+        previousBrightness: Double?
+    ) -> (value: Double, suppressBuiltInBacklight: Bool) {
+        #if !APPSTORE
+            if isBuiltIn, let hardwareBrightness = readBuiltInBrightness(for: displayID) {
+                // Keep a live read exact: clamping it here and writing it back during the
+                // refresh would silently brighten a panel set below the app's gamma floor.
+                return (hardwareBrightness, false)
+            }
+            if isBuiltIn {
+                // DisplayServices can be briefly unavailable during reconfiguration.
+                // Preserve the live model and do not write fallback state to the panel.
+                let fallback = previousBrightness
+                    ?? Swift.max(savedBrightness ?? 1.0, Self.minimumBrightness)
+                return (fallback, true)
+            }
+        #endif
+
+        return (Swift.max(savedBrightness ?? 1.0, Self.minimumBrightness), false)
     }
 
     /// Sets the brightness for a specific display.
@@ -969,10 +998,14 @@ class BrightnessManager {
         )
     }
 
-    private func applyDisplayOutput(_ display: ExternalDisplay, allowDuringBlanking: Bool = false) {
+    private func applyDisplayOutput(
+        _ display: ExternalDisplay,
+        allowDuringBlanking: Bool = false,
+        suppressBuiltInBacklight: Bool = false
+    ) {
         #if !APPSTORE
             let policy = displayOutputPolicy(for: display)
-            if policy.usesBuiltInBacklight {
+            if policy.usesBuiltInBacklight, !suppressBuiltInBacklight {
                 setBuiltInBacklight(for: display.id, to: display.brightness)
             } else if policy.usesDDCBrightness {
                 setExternalHardwareBrightness(for: display.id, to: display.brightness)
@@ -980,6 +1013,10 @@ class BrightnessManager {
         #endif
 
         applyDisplayGamma(display, allowDuringBlanking: allowDuringBlanking)
+    }
+
+    private func isBuiltInDisplay(_ displayID: CGDirectDisplayID) -> Bool {
+        isBuiltInDisplayHook?(displayID) ?? (CGDisplayIsBuiltin(displayID) != 0)
     }
 
     #if !APPSTORE

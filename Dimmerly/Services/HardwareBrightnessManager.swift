@@ -143,6 +143,9 @@
         /// auto-downgrading that code to software/no control.
         private let maxWriteFailuresBeforeFallback = 3
 
+        /// Backoff window for restoring a VCP code after a temporary write-failure fallback.
+        private let writeFailureRecoveryDelays: [Duration] = [.seconds(1), .seconds(5), .seconds(30)]
+
         /// Minimum interval between DDC writes to the same display.
         /// Updated from AppSettings.ddcWriteDelay via SettingsView's `.onChange`.
         var minimumWriteInterval: TimeInterval = 0.05 // 50ms
@@ -195,6 +198,10 @@
         /// `clearPendingWriteSlotIfCurrent`) rather than left to sit as completed/cancelled
         /// `Task` objects until the next write to the same key happens to replace them.
         private var pendingWrites: [WriteKey: Task<Void, Never>] = [:]
+
+        /// Recovery probes scheduled after repeated write failures, keyed per display+VCP
+        /// so multiple failures cannot create duplicate probes for the same control.
+        private var recoveryProbeTasks: [WriteKey: Task<Void, Never>] = [:]
 
         /// Monotonic per-key counter so a debounced write's own completion can tell whether
         /// it's still the current pending attempt for its key before clearing `pendingWrites`
@@ -340,7 +347,9 @@
         private func probe(
             displayIDs: [CGDirectDisplayID],
             session: DDCSession,
-            retryDelays: [Duration]
+            retryDelays: [Duration],
+            recoveryWriteKey: WriteKey? = nil,
+            remainingRecoveryDelays: [Duration] = []
         ) {
             let ddcIO = ddcInterface
             let ddcQueue = ddcQueue
@@ -359,6 +368,7 @@
                     let stillConnected = Set(connectedExternalDisplayIDsProvider())
                     for (displayID, cap) in results where stillConnected.contains(displayID) {
                         capabilities[displayID] = cap
+                        cancelRecoveryProbes(for: displayID)
                         // A fresh probe gets a fresh failure budget — otherwise a display that
                         // previously hit the fallback threshold on some VCP code stays primed
                         // to re-downgrade after a single transient failure post-reprobe,
@@ -374,6 +384,16 @@
                             for: displayID,
                             session: session,
                             retryDelays: retryDelays
+                        )
+                    }
+                    if let recoveryWriteKey,
+                       let capability = results[recoveryWriteKey.displayID],
+                       !capability.supportedCodes.contains(recoveryWriteKey.vcp)
+                    {
+                        scheduleWriteFailureRecovery(
+                            for: recoveryWriteKey,
+                            session: session,
+                            retryDelays: remainingRecoveryDelays
                         )
                     }
                     // Refresh BrightnessManager so display.supportsDDC flags
@@ -561,6 +581,7 @@
             lastLocalWriteTime = lastLocalWriteTime.filter { $0.key.displayID != displayID }
             writeTiming.removeDisplay(displayID)
             consecutiveWriteFailures = consecutiveWriteFailures.filter { $0.key.displayID != displayID }
+            cancelRecoveryProbes(for: displayID)
         }
 
         private func cancelPendingWrites() {
@@ -572,6 +593,10 @@
             pendingHardwareWrites.removeAll()
             lastLocalWriteTime.removeAll()
             consecutiveWriteFailures.removeAll()
+            for task in recoveryProbeTasks.values {
+                task.cancel()
+            }
+            recoveryProbeTasks.removeAll()
         }
 
         // MARK: - Private: DDC Read
@@ -782,10 +807,51 @@
                                 maxContrast: cap.maxContrast,
                                 maxVolume: cap.maxVolume
                             )
+                            scheduleWriteFailureRecovery(
+                                for: writeKey,
+                                session: session,
+                                retryDelays: writeFailureRecoveryDelays
+                            )
                             BrightnessManager.shared.applyCurrentBrightness(for: displayID)
                         }
                     }
                 }
+            }
+        }
+
+        private func scheduleWriteFailureRecovery(
+            for writeKey: WriteKey,
+            session: DDCSession,
+            retryDelays: [Duration]
+        ) {
+            guard let delay = retryDelays.first else { return }
+            guard recoveryProbeTasks[writeKey] == nil else { return }
+
+            recoveryProbeTasks[writeKey] = Task { [weak self] in
+                do {
+                    guard let self else { return }
+                    try await Task.sleep(for: delay)
+                    guard sessionGate.isCurrent(session) else { return }
+                    guard connectedExternalDisplayIDsProvider().contains(writeKey.displayID) else { return }
+
+                    recoveryProbeTasks.removeValue(forKey: writeKey)
+                    probe(
+                        displayIDs: [writeKey.displayID],
+                        session: session,
+                        retryDelays: [],
+                        recoveryWriteKey: writeKey,
+                        remainingRecoveryDelays: Array(retryDelays.dropFirst())
+                    )
+                } catch {
+                    self?.recoveryProbeTasks.removeValue(forKey: writeKey)
+                }
+            }
+        }
+
+        private func cancelRecoveryProbes(for displayID: CGDirectDisplayID) {
+            for key in recoveryProbeTasks.keys where key.displayID == displayID {
+                recoveryProbeTasks[key]?.cancel()
+                recoveryProbeTasks.removeValue(forKey: key)
             }
         }
 

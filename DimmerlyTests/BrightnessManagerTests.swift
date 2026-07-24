@@ -34,6 +34,38 @@ final class BrightnessManagerTests: XCTestCase {
     // MARK: - channelMultipliers
 
     #if !APPSTORE
+        func testRefreshPreservesBuiltInBrightnessAndSkipsBacklightWriteWhenReadFails() {
+            let displayID: CGDirectDisplayID = 42
+            var builtIn = ExternalDisplay(
+                id: displayID,
+                name: "Built-in",
+                brightness: 0.37,
+                warmth: 0.2,
+                contrast: 0.6
+            )
+            builtIn.isBuiltIn = true
+            bm.displays = [builtIn]
+            bm.activeDisplayIDsHook = { [displayID] }
+            bm.isBuiltInDisplayHook = { $0 == displayID }
+            bm.readBuiltInBrightnessHook = { _ in nil }
+            bm.applyGammaHook = { _, _, _, _ in }
+
+            var backlightWrites: [(CGDirectDisplayID, Double)] = []
+            bm.setBuiltInBacklightHook = { displayID, value in
+                backlightWrites.append((displayID, value))
+                return true
+            }
+
+            bm.refreshDisplays()
+
+            XCTAssertEqual(bm.displays.count, 1)
+            XCTAssertEqual(bm.displays[0].brightness, 0.37, accuracy: 0.001)
+            XCTAssertTrue(
+                backlightWrites.isEmpty,
+                "A failed live read must not cause a persisted/default value to be written to the panel"
+            )
+        }
+
         func testDisplayOutputPolicyUsesSoftwareGammaBrightness() {
             let policy = DisplayOutputPolicy.resolve(
                 mode: .softwareOnly,
