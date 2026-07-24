@@ -232,6 +232,40 @@ import XCTest
             XCTAssertFalse(manager.supportsDDC(for: displayID))
         }
 
+        func testAutomaticProbeRetriesTransientUnsupportedResult() async throws {
+            let displayID: CGDirectDisplayID = 42
+            let retryCompleted = expectation(description: "Transient capability probe retried")
+            let firstCall = FirstCallGate()
+            var mock = MockDDCInterface()
+            mock.probeHandler = { probedDisplayID in
+                guard firstCall.consume() else {
+                    retryCompleted.fulfill()
+                    return HardwareDisplayCapability(
+                        displayID: probedDisplayID,
+                        supportsDDC: true,
+                        supportedCodes: [.brightness],
+                        maxBrightness: 100,
+                        maxContrast: 0,
+                        maxVolume: 0
+                    )
+                }
+                return .notSupported(displayID: probedDisplayID)
+            }
+            let manager = HardwareBrightnessManager(
+                forTesting: true,
+                ddcInterface: mock,
+                connectedExternalDisplayIDsProvider: { [displayID] },
+                displayRefreshHandler: {}
+            )
+            manager.enable()
+
+            manager.probeAllDisplays(force: false)
+
+            await fulfillment(of: [retryCompleted], timeout: 2)
+            let capability = try XCTUnwrap(manager.capability(for: displayID))
+            XCTAssertTrue(capability.supportsBrightness)
+        }
+
         // MARK: - Hardware Brightness
 
         /// Tests setHardwareBrightness updates published state

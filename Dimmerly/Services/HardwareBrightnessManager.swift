@@ -220,15 +220,47 @@
         /// Injected at init for testability; defaults to `DefaultDDCInterface`.
         let ddcInterface: DDCInterface
 
+        /// Supplies the currently connected external displays.
+        /// Injected in tests so capability probing does not depend on live hardware.
+        private let connectedExternalDisplayIDsProvider: () -> [CGDirectDisplayID]
+
+        /// Refreshes display models after capability changes.
+        /// Injected in tests to avoid touching live display gamma state.
+        private let displayRefreshHandler: () -> Void
+
+        /// Short retry window for a newly connected display whose DDC service is still starting.
+        private let automaticProbeRetryDelays: [Duration] = [.milliseconds(250), .seconds(1)]
+
         // MARK: - Initialization
 
-        init(ddcInterface: DDCInterface = DefaultDDCInterface()) {
+        init(
+            ddcInterface: DDCInterface = DefaultDDCInterface(),
+            connectedExternalDisplayIDsProvider: @escaping () -> [CGDirectDisplayID] = {
+                BrightnessManager.activeDisplayIDs().filter { CGDisplayIsBuiltin($0) == 0 }
+            },
+            displayRefreshHandler: @escaping () -> Void = {
+                BrightnessManager.shared.refreshDisplays()
+            }
+        ) {
             self.ddcInterface = ddcInterface
+            self.connectedExternalDisplayIDsProvider = connectedExternalDisplayIDsProvider
+            self.displayRefreshHandler = displayRefreshHandler
         }
 
         /// Test-only initializer that accepts a mock DDC interface.
-        init(forTesting _: Bool, ddcInterface: DDCInterface = DefaultDDCInterface()) {
+        init(
+            forTesting _: Bool,
+            ddcInterface: DDCInterface = DefaultDDCInterface(),
+            connectedExternalDisplayIDsProvider: @escaping () -> [CGDirectDisplayID] = {
+                BrightnessManager.activeDisplayIDs().filter { CGDisplayIsBuiltin($0) == 0 }
+            },
+            displayRefreshHandler: @escaping () -> Void = {
+                BrightnessManager.shared.refreshDisplays()
+            }
+        ) {
             self.ddcInterface = ddcInterface
+            self.connectedExternalDisplayIDsProvider = connectedExternalDisplayIDsProvider
+            self.displayRefreshHandler = displayRefreshHandler
         }
 
         // MARK: - Public API
@@ -294,17 +326,29 @@
         /// dropped instead of being resurrected.
         func probeAllDisplays(force: Bool = true) {
             guard let session = sessionGate.capture() else { return }
-            let connectedDisplayIDs = BrightnessManager.activeDisplayIDs().filter { CGDisplayIsBuiltin($0) == 0 }
+            let connectedDisplayIDs = connectedExternalDisplayIDsProvider()
             let idsToProbe = force ? connectedDisplayIDs : connectedDisplayIDs.filter { capabilities[$0] == nil }
             guard !idsToProbe.isEmpty else { return }
 
+            probe(
+                displayIDs: idsToProbe,
+                session: session,
+                retryDelays: force ? [] : automaticProbeRetryDelays
+            )
+        }
+
+        private func probe(
+            displayIDs: [CGDirectDisplayID],
+            session: DDCSession,
+            retryDelays: [Duration]
+        ) {
             let ddcIO = ddcInterface
             let ddcQueue = ddcQueue
 
             ddcQueue.async {
                 var results: [CGDirectDisplayID: HardwareDisplayCapability] = [:]
 
-                for displayID in idsToProbe {
+                for displayID in displayIDs {
                     guard self.sessionGate.isCurrent(session) else { return }
                     let capability = ddcIO.probeCapabilities(for: displayID)
                     results[displayID] = capability
@@ -312,7 +356,7 @@
 
                 Task { @MainActor [weak self] in
                     guard let self, sessionGate.isCurrent(session) else { return }
-                    let stillConnected = Set(BrightnessManager.activeDisplayIDs())
+                    let stillConnected = Set(connectedExternalDisplayIDsProvider())
                     for (displayID, cap) in results where stillConnected.contains(displayID) {
                         capabilities[displayID] = cap
                         // A fresh probe gets a fresh failure budget — otherwise a display that
@@ -325,10 +369,43 @@
                     for (displayID, cap) in results where cap.supportsDDC && stillConnected.contains(displayID) {
                         self.readAllValues(for: displayID)
                     }
+                    for (displayID, cap) in results where !cap.supportsDDC && stillConnected.contains(displayID) {
+                        scheduleAutomaticProbeRetry(
+                            for: displayID,
+                            session: session,
+                            retryDelays: retryDelays
+                        )
+                    }
                     // Refresh BrightnessManager so display.supportsDDC flags
                     // reflect the newly-probed capabilities
-                    BrightnessManager.shared.refreshDisplays()
+                    displayRefreshHandler()
                 }
+            }
+        }
+
+        private func scheduleAutomaticProbeRetry(
+            for displayID: CGDirectDisplayID,
+            session: DDCSession,
+            retryDelays: [Duration]
+        ) {
+            guard let delay = retryDelays.first else { return }
+
+            Task { [weak self] in
+                do {
+                    try await Task.sleep(for: delay)
+                } catch {
+                    return
+                }
+
+                guard let self, sessionGate.isCurrent(session) else { return }
+                guard connectedExternalDisplayIDsProvider().contains(displayID) else { return }
+                guard capabilities[displayID]?.supportsDDC != true else { return }
+
+                probe(
+                    displayIDs: [displayID],
+                    session: session,
+                    retryDelays: Array(retryDelays.dropFirst())
+                )
             }
         }
 
