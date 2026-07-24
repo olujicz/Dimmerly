@@ -116,17 +116,14 @@ class BrightnessManager {
     /// Manages the CoreGraphics display reconfiguration callback registration
     private var reconfigurationToken: DisplayReconfigurationToken?
 
-    /// Task for delayed gamma reapplication after system wake (allows macOS to stabilize)
-    private var wakeTask: Task<Void, Never>?
-
     /// Task for debounced persistence to UserDefaults (prevents excessive writes during slider drags)
     private var persistTask: Task<Void, Never>?
 
     /// Active preset transition animation task (cancelled when a new transition starts)
     private var transitionTask: Task<Void, Never>?
 
-    /// Notification observer for system wake events (re-apply gamma after wake)
-    private var wakeObserver: NSObjectProtocol?
+    /// Coalesces system and screen wake events before reapplying display output.
+    private var wakeMonitor: WorkspaceWakeMonitor?
 
     #if !APPSTORE
         /// Polling task that reads the built-in display backlight to detect external changes
@@ -176,16 +173,19 @@ class BrightnessManager {
     private func setupHardwareMonitoring() {
         refreshDisplays()
 
-        // Re-apply gamma after wake (macOS resets gamma during wake)
-        wakeObserver = NotificationCenter.default.addObserver(
-            forName: NSWorkspace.didWakeNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in
-                self?.handleWake()
+        // macOS can reset gamma when either the Mac or only its displays wake.
+        // Clear app-managed blanking immediately, then wait for display stabilization.
+        let monitor = WorkspaceWakeMonitor(
+            delay: .seconds(1),
+            onWakeDetected: {
+                ScreenBlanker.shared.dismiss(force: true)
+            },
+            onWakeReady: { [weak self] in
+                self?.reapplyAll()
             }
-        }
+        )
+        monitor.start()
+        wakeMonitor = monitor
 
         // Detect display plug/unplug
         reconfigurationToken = DisplayReconfigurationToken { [weak self] in
@@ -831,26 +831,6 @@ class BrightnessManager {
             try? await Task.sleep(for: .milliseconds(500))
             guard !Task.isCancelled else { return }
             self.persistAll()
-        }
-    }
-
-    /// Handles system wake events by reapplying gamma tables after a stabilization delay.
-    ///
-    /// macOS resets display gamma tables during wake, so we must reapply our settings.
-    /// The 1-second delay allows the system to complete its display reconfiguration
-    /// before we make changes (prevents race conditions and flicker).
-    ///
-    /// Multiple wake events (rare but possible) are coalesced by canceling previous tasks.
-    private func handleWake() {
-        // Ensure full-screen blanking never persists across a system wake.
-        ScreenBlanker.shared.dismiss(force: true)
-
-        // Cancel any previous wake task to avoid stacking delayed reapplications
-        wakeTask?.cancel()
-        wakeTask = Task { @MainActor in
-            try? await Task.sleep(for: .seconds(1))
-            guard !Task.isCancelled else { return }
-            reapplyAll()
         }
     }
 
