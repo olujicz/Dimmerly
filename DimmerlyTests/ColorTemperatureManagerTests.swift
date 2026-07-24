@@ -6,6 +6,7 @@
 //  and manual override lifecycle.
 //
 
+import AppKit
 @testable import Dimmerly
 import XCTest
 
@@ -273,5 +274,80 @@ final class ColorTemperatureManagerTests: XCTestCase {
             halfTransition: halfTransition
         )
         XCTAssertEqual(afterSunrise, .day)
+    }
+
+    // MARK: - Wake Monitoring
+
+    func testWorkspaceWakeMonitorHandlesScreenWake() async {
+        let notificationCenter = NotificationCenter()
+        var updateCount = 0
+        let monitor = WorkspaceWakeMonitor(
+            notificationCenter: notificationCenter,
+            delay: .milliseconds(10)
+        ) {
+            updateCount += 1
+        }
+        monitor.start()
+
+        notificationCenter.post(name: NSWorkspace.screensDidWakeNotification, object: nil)
+        try? await Task.sleep(for: .milliseconds(50))
+
+        XCTAssertEqual(updateCount, 1)
+        monitor.stop()
+    }
+
+    func testWorkspaceWakeMonitorHandlesSystemWake() async {
+        let notificationCenter = NotificationCenter()
+        var updateCount = 0
+        let monitor = WorkspaceWakeMonitor(
+            notificationCenter: notificationCenter,
+            delay: .milliseconds(10)
+        ) {
+            updateCount += 1
+        }
+        monitor.start()
+
+        notificationCenter.post(name: NSWorkspace.didWakeNotification, object: nil)
+        try? await Task.sleep(for: .milliseconds(50))
+
+        XCTAssertEqual(updateCount, 1)
+        monitor.stop()
+    }
+
+    func testWorkspaceWakeMonitorCoalescesDuplicateWakeEvents() async {
+        let notificationCenter = NotificationCenter()
+        var updateCount = 0
+        let monitor = WorkspaceWakeMonitor(
+            notificationCenter: notificationCenter,
+            delay: .milliseconds(10)
+        ) {
+            updateCount += 1
+        }
+        monitor.start()
+
+        notificationCenter.post(name: NSWorkspace.screensDidWakeNotification, object: nil)
+        notificationCenter.post(name: NSWorkspace.didWakeNotification, object: nil)
+        try? await Task.sleep(for: .milliseconds(50))
+
+        XCTAssertEqual(updateCount, 1)
+        monitor.stop()
+    }
+
+    func testWorkspaceWakeMonitorStopCancelsPendingUpdate() async {
+        let notificationCenter = NotificationCenter()
+        var updateCount = 0
+        let monitor = WorkspaceWakeMonitor(
+            notificationCenter: notificationCenter,
+            delay: .milliseconds(30)
+        ) {
+            updateCount += 1
+        }
+        monitor.start()
+
+        notificationCenter.post(name: NSWorkspace.screensDidWakeNotification, object: nil)
+        monitor.stop()
+        try? await Task.sleep(for: .milliseconds(60))
+
+        XCTAssertEqual(updateCount, 0)
     }
 }

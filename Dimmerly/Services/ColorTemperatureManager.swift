@@ -54,8 +54,8 @@ class ColorTemperatureManager {
     /// Timer for periodic color temperature checks (fires every 60 seconds).
     private var timer: Timer?
 
-    /// Notification observer for system wake events.
-    private var wakeObserver: NSObjectProtocol?
+    /// Coalesces system and screen wake events before recalculating warmth.
+    private var wakeMonitor: WorkspaceWakeMonitor?
 
     /// Whether auto color temperature is currently enabled (mirrors AppSettings).
     /// Used by `notifyManualWarmthChange` to decide whether a manual override applies.
@@ -127,19 +127,14 @@ class ColorTemperatureManager {
         RunLoop.main.add(newTimer, forMode: .common)
         timer = newTimer
 
-        // Re-evaluate immediately on system wake — the Mac may have slept for hours
-        // and the time-of-day state could be completely different.
-        // Uses a 1.5s delay so BrightnessManager's wake handler (1s) finishes first.
-        wakeObserver = NotificationCenter.default.addObserver(
-            forName: NSWorkspace.didWakeNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in
-                try? await Task.sleep(for: .seconds(1.5))
-                self?.updateColorTemperature()
-            }
+        // Re-evaluate after either the Mac or only its screens wake. The delay lets
+        // BrightnessManager finish display stabilization and gamma restoration first.
+        let monitor = WorkspaceWakeMonitor(delay: .seconds(1.5)) { [weak self] in
+            guard let self, isEnabled else { return }
+            updateColorTemperature()
         }
+        monitor.start()
+        wakeMonitor = monitor
 
         updateColorTemperature()
     }
@@ -147,10 +142,8 @@ class ColorTemperatureManager {
     private func stopPolling() {
         timer?.invalidate()
         timer = nil
-        if let wakeObserver {
-            NotificationCenter.default.removeObserver(wakeObserver)
-            self.wakeObserver = nil
-        }
+        wakeMonitor?.stop()
+        wakeMonitor = nil
     }
 
     // MARK: - Core Logic
