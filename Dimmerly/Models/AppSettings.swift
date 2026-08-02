@@ -72,8 +72,8 @@ class AppSettings {
     nonisolated static let scheduleEnabledKey = "dimmerlyScheduleEnabled"
     nonisolated static let autoColorTempEnabledKey = "dimmerlyAutoColorTempEnabled"
 
-    // swiftlint:disable:next force_try
-    private static let defaultShortcutData = try! JSONEncoder().encode(GlobalShortcut.default)
+    private static let defaultShortcutData =
+        (try? JSONEncoder().encode(GlobalShortcut.default)) ?? Data()
 
     private let defaults: UserDefaults
 

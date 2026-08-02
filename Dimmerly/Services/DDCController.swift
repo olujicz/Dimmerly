@@ -664,7 +664,7 @@
                 {
                     let length = CFDataGetLength(data)
                     guard length >= 128 else { return nil }
-                    let ptr = CFDataGetBytePtr(data)!
+                    guard let ptr = CFDataGetBytePtr(data) else { return nil }
                     var edid = [UInt8](repeating: 0, count: 128)
                     for i in 0 ..< 128 {
                         edid[i] = ptr[i]

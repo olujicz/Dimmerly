@@ -52,7 +52,11 @@ enum SharedConstants {
         if FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupID) == nil {
             let url = FileManager.default.homeDirectoryForCurrentUser
                 .appendingPathComponent("Library/Group Containers/\(appGroupID)")
-            try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+            do {
+                try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+            } catch {
+                return nil
+            }
         }
         return UserDefaults(suiteName: appGroupID)
     }()

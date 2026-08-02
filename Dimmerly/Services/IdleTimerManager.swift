@@ -63,7 +63,9 @@ class IdleTimerManager {
     /// than `.null`, which reports seconds since the last *null-type* event — effectively
     /// always a stale, enormous value unrelated to real user activity.
     static func systemIdleSeconds() -> TimeInterval {
-        let anyInputEventType = CGEventType(rawValue: ~UInt32(0))!
+        guard let anyInputEventType = CGEventType(rawValue: UInt32.max) else {
+            return 0
+        }
         return CGEventSource.secondsSinceLastEventType(.hidSystemState, eventType: anyInputEventType)
     }
 
