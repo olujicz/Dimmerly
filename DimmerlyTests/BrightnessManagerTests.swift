@@ -660,4 +660,103 @@ final class BrightnessManagerTests: XCTestCase {
         // Entry at 75% (index 192) should be higher with high contrast
         XCTAssertGreaterThan(high[192], neutral[192], "High contrast should push high values higher")
     }
+
+    // MARK: - Per-Display Persistence Identity
+
+    /// `CGDirectDisplayID` is ephemeral — macOS re-enumerates a display under a new ID after
+    /// sleep/wake — so the persistence key must not depend on it, or saved values are lost.
+    func testPersistenceIdentityIsStableAcrossDisplayIDChangeWhenSerialIsAvailable() {
+        let before = BrightnessManager.persistenceIdentity(
+            vendor: 0x10AC, model: 0xD0A1, serial: 0x1234_5678, unitNumber: 1, displayID: 2
+        )
+        let after = BrightnessManager.persistenceIdentity(
+            vendor: 0x10AC, model: 0xD0A1, serial: 0x1234_5678, unitNumber: 1, displayID: 11
+        )
+
+        XCTAssertEqual(before, after, "One physical display must map to one key across re-enumeration")
+    }
+
+    /// Many monitors report serial 0. Unit number identifies the physical connection, so it
+    /// keeps two identical models apart without reintroducing the ephemeral display ID.
+    func testPersistenceIdentityUsesUnitNumberWhenSerialIsMissing() {
+        let before = BrightnessManager.persistenceIdentity(
+            vendor: 0x10AC, model: 0xD0A1, serial: 0, unitNumber: 3, displayID: 2
+        )
+        let after = BrightnessManager.persistenceIdentity(
+            vendor: 0x10AC, model: 0xD0A1, serial: 0, unitNumber: 3, displayID: 11
+        )
+        let identicalModelOnAnotherPort = BrightnessManager.persistenceIdentity(
+            vendor: 0x10AC, model: 0xD0A1, serial: 0, unitNumber: 4, displayID: 12
+        )
+
+        XCTAssertEqual(before, after, "Same physical display must survive re-enumeration")
+        XCTAssertNotEqual(before, identicalModelOnAnotherPort, "Two identical models must not collide")
+    }
+
+    /// With no usable EDID metadata there is nothing stable to key on, so fall back to the
+    /// legacy display-ID key rather than collapsing every such display onto one key.
+    func testPersistenceIdentityFallsBackToDisplayIDWhenMetadataUnavailable() {
+        let key = BrightnessManager.persistenceIdentity(
+            vendor: 0, model: 0, serial: 0, unitNumber: 0, displayID: 7
+        )
+
+        XCTAssertEqual(key, "7")
+    }
+
+    /// The reported bug: after a display re-enumerates under a new `CGDirectDisplayID`, its
+    /// saved warmth and contrast were looked up under the new ID, found nothing, and silently
+    /// reset to the 0.0 / 0.5 defaults. Auto color temperature papers over warmth on its next
+    /// tick; nothing restores contrast.
+    func testRefreshRestoresSavedWarmthAndContrastAfterDisplayIsReEnumeratedUnderNewID() throws {
+        let suiteName = "BrightnessManagerTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let manager = BrightnessManager(forTesting: true, defaults: defaults)
+        manager.applyGammaHook = { _, _, _, _ in }
+        manager.isBuiltInDisplayHook = { _ in false }
+        // One physical monitor, so both display IDs resolve to the same stable identity.
+        manager.displayIdentityHook = { _ in "v4268m53409s305419896" }
+
+        // Session one: the user's values are saved while the display is enumerated as ID 2.
+        manager.activeDisplayIDsHook = { [2] }
+        manager.displays = [
+            ExternalDisplay(id: 2, name: "DELL S2723HC", brightness: 1.0, warmth: 0.47, contrast: 0.8),
+        ]
+        manager.persistAll()
+
+        // After sleep/wake the same monitor comes back as ID 11.
+        manager.displays = []
+        manager.activeDisplayIDsHook = { [11] }
+        manager.refreshDisplays()
+
+        XCTAssertEqual(manager.displays.count, 1)
+        XCTAssertEqual(manager.displays[0].id, 11)
+        XCTAssertEqual(manager.displays[0].warmth, 0.47, accuracy: 0.0001, "Warmth must survive re-enumeration")
+        XCTAssertEqual(manager.displays[0].contrast, 0.8, accuracy: 0.0001, "Contrast must survive re-enumeration")
+    }
+
+    /// Values written by earlier versions are keyed by raw display ID. Those users must not
+    /// lose their settings the first time they launch a build that keys by stable identity.
+    func testRefreshReadsLegacyDisplayIDKeyedValuesWhenNoIdentityKeyExists() throws {
+        let suiteName = "BrightnessManagerTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        // Exactly what a pre-fix release left behind.
+        defaults.set(["4": 0.31], forKey: "dimmerlyDisplayWarmth")
+        defaults.set(["4": 0.72], forKey: "dimmerlyDisplayContrast")
+
+        let manager = BrightnessManager(forTesting: true, defaults: defaults)
+        manager.applyGammaHook = { _, _, _, _ in }
+        manager.isBuiltInDisplayHook = { _ in false }
+        manager.displayIdentityHook = { _ in "v4268m53409s999" }
+        manager.activeDisplayIDsHook = { [4] }
+        manager.displays = []
+
+        manager.refreshDisplays()
+
+        XCTAssertEqual(manager.displays[0].warmth, 0.31, accuracy: 0.0001, "Legacy warmth must migrate")
+        XCTAssertEqual(manager.displays[0].contrast, 0.72, accuracy: 0.0001, "Legacy contrast must migrate")
+    }
 }
