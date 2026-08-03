@@ -203,27 +203,64 @@ final class ColorTemperatureManagerTests: XCTestCase {
 
     // MARK: - Manual Override
 
+    /// Drives an injected BrightnessManager rather than the shared one. Using the singleton meant
+    /// `apply(enabled:)` ran `restoreSavedWarmth()` against real displays, so the suite rewrote
+    /// the developer's live gamma and persisted warmth just by running.
+    private func isolatedManager() -> (ColorTemperatureManager, BrightnessManager) {
+        let brightnessManager = BrightnessManager(forTesting: true)
+        brightnessManager.applyGammaHook = { _, _, _, _ in }
+        // Enabling auto warmth animates its first update, which applies gamma from a detached
+        // task. Forcing the non-animated path keeps these assertions synchronous.
+        brightnessManager.canAnimateTransitionsHook = { false }
+        // Pin identity so the key doesn't depend on whatever EDID the host reports for this ID.
+        brightnessManager.displayIdentityHook = { "identity-\($0)" }
+        brightnessManager.displays = [
+            ExternalDisplay(id: 1, name: "Test", brightness: 1.0, warmth: 0.3, contrast: 0.5),
+        ]
+        return (ColorTemperatureManager(brightnessManager: brightnessManager), brightnessManager)
+    }
+
     func testManualOverrideDeactivatesAutoMode() {
-        let manager = ColorTemperatureManager.shared
-        // Reset then enable so the apply() guard doesn't short-circuit from prior-test state.
-        manager.apply(enabled: false)
+        let (manager, _) = isolatedManager()
         manager.apply(enabled: true)
         manager.isActive = true
 
         manager.notifyManualWarmthChange()
 
         XCTAssertFalse(manager.isActive, "Manual change should deactivate auto mode")
+        manager.apply(enabled: false)
     }
 
     func testPresetAppliedTriggersOverride() {
-        let manager = ColorTemperatureManager.shared
-        manager.apply(enabled: false)
+        let (manager, _) = isolatedManager()
         manager.apply(enabled: true)
         manager.isActive = true
 
         manager.notifyPresetApplied()
 
         XCTAssertFalse(manager.isActive, "Preset with warmth should trigger manual override")
+        manager.apply(enabled: false)
+    }
+
+    /// The isolation itself is the point: enabling auto warmth must apply through the injected
+    /// manager. Deliberately never references `BrightnessManager.shared` — merely reading it from
+    /// a test instantiates the singleton, which enumerates displays and persists, and that is the
+    /// very pollution this change removes. Isolation from the shared instance is structural:
+    /// ColorTemperatureManager holds no reference to it.
+    func testAutoWarmthAppliesThroughTheInjectedManager() {
+        let (manager, injected) = isolatedManager()
+        var gammaApplications = 0
+        injected.applyGammaHook = { _, _, _, _ in gammaApplications += 1 }
+
+        // Enable snapshots the current warmth, disable restores it — both through the injected
+        // manager, and neither needing a location. Asserting on the enable path alone would
+        // depend on a saved location, since without one the recalculation returns early: that
+        // passed on a developer machine and failed on CI.
+        manager.apply(enabled: true)
+        manager.apply(enabled: false)
+
+        XCTAssertGreaterThan(gammaApplications, 0, "Warmth must be applied via the injected manager")
+        XCTAssertEqual(injected.displays.count, 1, "Effects belong to the injected manager")
     }
 
     // MARK: - Zero Transition Duration

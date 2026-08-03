@@ -100,6 +100,15 @@ class ColorTemperatureManager {
     /// Set to true when auto mode is first enabled; cleared after the first update.
     private var animateNextUpdate = false
 
+    /// The manager warmth is applied through. Defaults to the app-wide instance; tests inject an
+    /// isolated one so enabling or disabling auto warmth doesn't rewrite real display state.
+    private let brightnessManager: BrightnessManager
+
+    /// - Parameter brightnessManager: Where warmth is applied. Pass an isolated instance in tests.
+    init(brightnessManager: BrightnessManager = .shared) {
+        self.brightnessManager = brightnessManager
+    }
+
     // MARK: - Enable/Disable
 
     /// Applies the current auto-color-temperature setting. Called by the app on launch
@@ -113,7 +122,7 @@ class ColorTemperatureManager {
         isEnabled = enabled
         colorTemperatureLogger.info("Auto color temperature \(enabled ? "enabled" : "disabled", privacy: .public)")
         if enabled {
-            savedWarmthSnapshot = BrightnessManager.shared.currentWarmthSnapshot()
+            savedWarmthSnapshot = brightnessManager.currentWarmthSnapshot()
             manualOverrideActive = false
             overrideState = nil
             animateNextUpdate = true
@@ -131,7 +140,7 @@ class ColorTemperatureManager {
         guard let snapshot = savedWarmthSnapshot else { return }
         let summary = "\(snapshot.count) displays, max warmth \(snapshot.values.max() ?? 0)"
         colorTemperatureLogger.info("Restoring pre-auto warmth snapshot: \(summary, privacy: .public)")
-        let bm = BrightnessManager.shared
+        let bm = brightnessManager
         bm.isAutoColorTempUpdate = true
         if !bm.animateWarmthValues(snapshot) {
             bm.applyWarmthValues(snapshot)
@@ -273,7 +282,7 @@ class ColorTemperatureManager {
             colorTemperatureLogger.debug("Re-asserting \(summary, privacy: .public)")
         }
 
-        let bm = BrightnessManager.shared
+        let bm = brightnessManager
         bm.isAutoColorTempUpdate = true
         if animateNextUpdate {
             animateNextUpdate = false
