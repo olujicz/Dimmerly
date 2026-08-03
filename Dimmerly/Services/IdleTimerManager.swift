@@ -37,6 +37,11 @@ class IdleTimerManager {
     /// Polling timer (fires every 10 seconds to check idle time)
     private var timer: Timer?
 
+    /// Incremented by `stop()`, so each timer's callbacks carry the generation they were
+    /// scheduled under. `Timer` isn't `Sendable` and so can't be compared across the hop to the
+    /// main actor; an `Int` can. Readable for tests, writable only here.
+    private(set) var timerGeneration = 0
+
     /// Idle threshold in seconds (converted from user setting in minutes)
     private var thresholdSeconds: TimeInterval = 300 // 5 minutes default
 
@@ -59,11 +64,18 @@ class IdleTimerManager {
 
     /// Seconds since the last HID input event (keyboard, mouse, trackpad).
     ///
-    /// Uses `kCGAnyInputEventType` (represented here as `CGEventType(rawValue: ~0)`) rather
+    /// Uses `kCGAnyInputEventType` (represented here as `CGEventType(rawValue: UInt32.max)`) rather
     /// than `.null`, which reports seconds since the last *null-type* event — effectively
     /// always a stale, enormous value unrelated to real user activity.
     static func systemIdleSeconds() -> TimeInterval {
-        let anyInputEventType = CGEventType(rawValue: ~UInt32(0))!
+        // The `else` branch is unreachable today: `UInt32.max` is a defined case
+        // (`kCGEventTapDisabledByUserInput`), so the failable init always succeeds. It exists
+        // only so a future SDK that drops that raw value degrades instead of trapping. Zero is
+        // the safe direction to fail in — it reads as "user is active", so auto-dim stays put
+        // rather than blanking the screen out from under someone.
+        guard let anyInputEventType = CGEventType(rawValue: UInt32.max) else {
+            return 0
+        }
         return CGEventSource.secondsSinceLastEventType(.hidSystemState, eventType: anyInputEventType)
     }
 
@@ -76,19 +88,37 @@ class IdleTimerManager {
         // Poll every 10 seconds. Added to `.common` run loop modes so idle checks (and the
         // auto-dim they trigger) keep firing during a modal alert or menu tracking/slider
         // dragging, not just while the run loop is in its default mode.
+        // The inner `[weak self]` matters: without it the hop would hold a strong reference
+        // to this manager for the hop's duration. `generation` is captured immutably, so the
+        // callback carries the identity of the timer that scheduled it.
+        let generation = timerGeneration
         let newTimer = Timer(timeInterval: 10, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                self?.checkIdleTime()
+            Task { @MainActor [weak self] in
+                self?.handleTimerFired(generation: generation)
             }
         }
         RunLoop.main.add(newTimer, forMode: .common)
         timer = newTimer
     }
 
+    /// Runs an idle check on behalf of the polling timer, after the hop to the main actor.
+    ///
+    /// Comparing generations discards callbacks from a timer that `stop()` invalidated, or that
+    /// `start()` has since replaced: a restart repopulates `timer`, so a plain `!= nil` check
+    /// would let a stale callback measure idle time against a freshly reset threshold. Callbacks
+    /// already in flight when `stop()` runs are the reachable case — the timer fires on the main
+    /// thread and enqueues a hop, which `stop()` can beat to the main actor.
+    func handleTimerFired(generation: Int) {
+        guard generation == timerGeneration else { return }
+        checkIdleTime()
+    }
+
     /// Stops monitoring idle time
     func stop() {
         timer?.invalidate()
         timer = nil
+        // Retires the outgoing timer's generation so any callback still in flight is discarded.
+        timerGeneration += 1
         hasFiredForCurrentIdle = false
     }
 

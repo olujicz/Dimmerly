@@ -40,7 +40,7 @@ jobs:
         run: swiftformat Dimmerly DimmerlyTests DimmerlyWidget --config .swiftformat --lint
 
       - name: Lint
-        run: swiftlint lint --quiet --strict
+        run: swiftlint lint --config .swiftlint.yml --quiet --strict Dimmerly DimmerlyTests DimmerlyWidget
 
       - name: Run Tests
         run: xcodebuild test -scheme Dimmerly -destination 'platform=macOS' CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO

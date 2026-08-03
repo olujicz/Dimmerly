@@ -37,11 +37,11 @@ run: build
 
 # Lint Swift sources
 lint:
-    swiftlint lint --config {{swiftlint_config}} --quiet
+    swiftlint lint --config {{swiftlint_config}} --quiet --strict {{source_paths}}
 
 # Lint and auto-fix Swift sources
 lint-fix:
-    swiftlint lint --fix --quiet
+    swiftlint lint --fix --config {{swiftlint_config}} --quiet {{source_paths}}
 
 # Format Swift sources
 format:
