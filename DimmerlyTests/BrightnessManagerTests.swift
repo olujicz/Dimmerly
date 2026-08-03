@@ -29,6 +29,7 @@ final class BrightnessManagerTests: XCTestCase {
             await HardwareBrightnessManager.shared.disable()
         #endif
         bm = nil
+        BrightnessManager.resetTestingDefaults()
     }
 
     // MARK: - channelMultipliers

@@ -176,11 +176,24 @@ class BrightnessManager {
     ///
     /// - Parameters:
     ///   - forTesting: Pass `true` to create an isolated test instance
-    ///   - defaults: Suite to persist per-display values to. Pass an isolated suite so the test
-    ///     neither reads nor overwrites the developer's real display settings.
-    init(forTesting _: Bool, defaults: UserDefaults = .standard) {
+    ///   - defaults: Suite to persist per-display values to. Defaults to a dedicated testing
+    ///     suite — *not* `.standard` — because setters debounce a persist, so a test that merely
+    ///     adjusts brightness would otherwise overwrite the developer's real display settings.
+    init(forTesting _: Bool, defaults: UserDefaults? = nil) {
         self.defaults = defaults
+            ?? UserDefaults(suiteName: Self.testingDefaultsSuiteName)
+            ?? .standard
         // Skip hardware setup — no gamma changes, no observers
+    }
+
+    /// Suite backing `init(forTesting:)` when no explicit one is given. Keeps test writes off the
+    /// real settings domain without each test having to remember to inject a suite.
+    static let testingDefaultsSuiteName = "rs.in.olujic.dimmerly.testing"
+
+    /// Clears the shared testing suite. Call from test teardown to stop values leaking between
+    /// tests through the default suite.
+    static func resetTestingDefaults() {
+        UserDefaults().removePersistentDomain(forName: testingDefaultsSuiteName)
     }
 
     private func setupHardwareMonitoring() {
