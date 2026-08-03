@@ -306,13 +306,16 @@ final class BrightnessManagerTests: XCTestCase {
     // MARK: - Snapshots
 
     func testBrightnessSnapshotMultiDisplay() {
+        // Snapshots are keyed by stable identity. The hook keeps that deterministic — without it
+        // the key depends on whatever EDID the host machine reports for these display IDs.
+        bm.displayIdentityHook = { "identity-\($0)" }
         bm.displays = [
             ExternalDisplay(id: 1, name: "A", brightness: 0.5),
             ExternalDisplay(id: 2, name: "B", brightness: 0.8),
         ]
         let snap = bm.currentBrightnessSnapshot()
-        XCTAssertEqual(snap["1"], 0.5)
-        XCTAssertEqual(snap["2"], 0.8)
+        XCTAssertEqual(snap["identity-1"], 0.5)
+        XCTAssertEqual(snap["identity-2"], 0.8)
         XCTAssertEqual(snap.count, 2)
     }
 
@@ -322,23 +325,25 @@ final class BrightnessManagerTests: XCTestCase {
     }
 
     func testWarmthSnapshotMultiDisplay() {
+        bm.displayIdentityHook = { "identity-\($0)" }
         bm.displays = [
             ExternalDisplay(id: 1, name: "A", brightness: 1.0, warmth: 0.2),
             ExternalDisplay(id: 2, name: "B", brightness: 1.0, warmth: 0.9),
         ]
         let snap = bm.currentWarmthSnapshot()
-        XCTAssertEqual(snap["1"], 0.2)
-        XCTAssertEqual(snap["2"], 0.9)
+        XCTAssertEqual(snap["identity-1"], 0.2)
+        XCTAssertEqual(snap["identity-2"], 0.9)
     }
 
     func testContrastSnapshotMultiDisplay() {
+        bm.displayIdentityHook = { "identity-\($0)" }
         bm.displays = [
             ExternalDisplay(id: 1, name: "A", brightness: 1.0, warmth: 0.0, contrast: 0.3),
             ExternalDisplay(id: 2, name: "B", brightness: 1.0, warmth: 0.0, contrast: 0.7),
         ]
         let snap = bm.currentContrastSnapshot()
-        XCTAssertEqual(snap["1"], 0.3)
-        XCTAssertEqual(snap["2"], 0.7)
+        XCTAssertEqual(snap["identity-1"], 0.3)
+        XCTAssertEqual(snap["identity-2"], 0.7)
     }
 
     // MARK: - Set all
@@ -758,5 +763,108 @@ final class BrightnessManagerTests: XCTestCase {
 
         XCTAssertEqual(manager.displays[0].warmth, 0.31, accuracy: 0.0001, "Legacy warmth must migrate")
         XCTAssertEqual(manager.displays[0].contrast, 0.72, accuracy: 0.0001, "Legacy contrast must migrate")
+    }
+
+    // MARK: - Preset Values Across Display Re-Enumeration
+
+    /// One physical monitor whose `CGDirectDisplayID` differs from the one a preset was saved
+    /// under — the state after macOS re-enumerates a display on sleep/wake.
+    private func managerWithReEnumeratedDisplay(
+        identity: String,
+        currentID: CGDirectDisplayID
+    ) -> BrightnessManager {
+        let manager = BrightnessManager(forTesting: true)
+        manager.applyGammaHook = { _, _, _, _ in }
+        manager.isBuiltInDisplayHook = { _ in false }
+        manager.displayIdentityHook = { _ in identity }
+        manager.displays = [
+            ExternalDisplay(id: currentID, name: "DELL S2723HC", brightness: 1.0, warmth: 0.0, contrast: 0.5),
+        ]
+        return manager
+    }
+
+    /// Snapshots feed saved presets, so they must record the stable identity. Keyed by display ID
+    /// they go stale the moment macOS re-enumerates the display.
+    func testSnapshotsAreKeyedByStableIdentity() {
+        let identity = "v16652m49551s3212"
+        let manager = managerWithReEnumeratedDisplay(identity: identity, currentID: 2)
+        manager.displays[0].warmth = 0.42
+        manager.displays[0].contrast = 0.7
+
+        XCTAssertEqual(Array(manager.currentBrightnessSnapshot().keys), [identity])
+        XCTAssertEqual(Array(manager.currentWarmthSnapshot().keys), [identity])
+        XCTAssertEqual(Array(manager.currentContrastSnapshot().keys), [identity])
+    }
+
+    /// A preset saved before re-enumeration must still apply afterwards. Previously the lookup
+    /// keyed on the old display ID, so the display was silently skipped and the preset did nothing.
+    func testApplyBrightnessValuesResolvesPresetSavedUnderIdentity() {
+        let identity = "v16652m49551s3212"
+        let manager = managerWithReEnumeratedDisplay(identity: identity, currentID: 11)
+
+        manager.applyBrightnessValues([identity: 0.35])
+
+        XCTAssertEqual(manager.displays[0].brightness, 0.35, accuracy: 0.0001)
+    }
+
+    func testApplyWarmthValuesResolvesPresetSavedUnderIdentity() {
+        let identity = "v16652m49551s3212"
+        let manager = managerWithReEnumeratedDisplay(identity: identity, currentID: 11)
+
+        manager.applyWarmthValues([identity: 0.62])
+
+        XCTAssertEqual(manager.displays[0].warmth, 0.62, accuracy: 0.0001)
+    }
+
+    func testApplyContrastValuesResolvesPresetSavedUnderIdentity() {
+        let identity = "v16652m49551s3212"
+        let manager = managerWithReEnumeratedDisplay(identity: identity, currentID: 11)
+
+        manager.applyContrastValues([identity: 0.8])
+
+        XCTAssertEqual(manager.displays[0].contrast, 0.8, accuracy: 0.0001)
+    }
+
+    /// Presets saved by earlier versions hold raw display-ID keys. Those must keep working, so
+    /// nobody's existing presets break on upgrade.
+    func testApplyValuesStillHonoursLegacyDisplayIDKeyedPresets() {
+        let manager = managerWithReEnumeratedDisplay(identity: "v16652m49551s3212", currentID: 11)
+
+        manager.applyBrightnessValues(["11": 0.4])
+        manager.applyWarmthValues(["11": 0.55])
+        manager.applyContrastValues(["11": 0.65])
+
+        XCTAssertEqual(manager.displays[0].brightness, 0.4, accuracy: 0.0001)
+        XCTAssertEqual(manager.displays[0].warmth, 0.55, accuracy: 0.0001)
+        XCTAssertEqual(manager.displays[0].contrast, 0.65, accuracy: 0.0001)
+    }
+
+    /// The animated path builds its own per-display targets, so it needs the same resolution —
+    /// applying a preset from the menu animates by default.
+    func testAnimateToPresetResolvesPerDisplayValuesByIdentity() {
+        let identity = "v16652m49551s3212"
+        let manager = managerWithReEnumeratedDisplay(identity: identity, currentID: 11)
+        manager.canAnimateTransitionsHook = { true }
+
+        let preset = BrightnessPreset(
+            name: "Evening",
+            displayBrightness: [identity: 0.5],
+            displayWarmth: [identity: 0.42],
+            displayContrast: [identity: 0.6]
+        )
+        XCTAssertTrue(manager.animateToPreset(preset), "Animation should start")
+
+        let settled = expectation(description: "animation reached the preset values")
+        Task { @MainActor in
+            for _ in 0 ..< 300 where abs(manager.displays[0].warmth - 0.42) > 0.001 {
+                try? await Task.sleep(for: .milliseconds(10))
+            }
+            settled.fulfill()
+        }
+        wait(for: [settled], timeout: 5.0)
+
+        XCTAssertEqual(manager.displays[0].brightness, 0.5, accuracy: 0.001)
+        XCTAssertEqual(manager.displays[0].warmth, 0.42, accuracy: 0.001)
+        XCTAssertEqual(manager.displays[0].contrast, 0.6, accuracy: 0.001)
     }
 }
