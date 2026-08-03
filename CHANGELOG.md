@@ -16,6 +16,7 @@ Semantic Versioning.
 - Fixed brightness, warmth, and dimming not being restored when only the displays woke rather than the whole Mac.
 - Fixed automatic color temperature keeping the warmth from before the screen went dark instead of recalculating for the current time after the display wakes.
 - Fixed a queued idle, schedule, or color-temperature check occasionally running just after its feature had been turned off.
+- Fixed saved brightness, warmth, and contrast being lost when macOS reconnects a display under a new identifier after waking or being replugged. Values are now stored against the monitor itself, so they are restored instead of snapping back to defaults. Contrast was affected worst, because nothing restored it afterwards.
 
 ## [1.1.2] - 2026-07-23
 
