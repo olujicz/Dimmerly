@@ -765,6 +765,33 @@ final class BrightnessManagerTests: XCTestCase {
         XCTAssertEqual(manager.displays[0].contrast, 0.72, accuracy: 0.0001, "Legacy contrast must migrate")
     }
 
+    // MARK: - Re-Asserting Gamma After an External Reset
+
+    /// macOS wipes the gamma table late in a display wake, after the app's wake handler has run.
+    /// The model still holds the right warmth, so auto colour temperature's 60-second tick asks
+    /// for the same value it already believes is applied. Previously `setWarmth` returned early on
+    /// an unchanged value *before* touching gamma, so the hardware and the model could never
+    /// reconcile and the display stayed un-warmed until the app was relaunched.
+    func testSetWarmthReappliesGammaWhenTheValueIsUnchanged() {
+        bm.displays = [ExternalDisplay(id: 7, name: "A", brightness: 1.0, warmth: 0.5, contrast: 0.5)]
+        var appliedWarmth: [Double] = []
+        bm.applyGammaHook = { _, _, warmth, _ in appliedWarmth.append(warmth) }
+
+        bm.setWarmth(for: 7, to: 0.5)
+
+        XCTAssertEqual(appliedWarmth, [0.5], "An unchanged value must still re-assert gamma")
+    }
+
+    /// Guards the other half: re-asserting must not disturb the stored value.
+    func testSetWarmthWithUnchangedValueKeepsTheStoredWarmth() {
+        bm.displays = [ExternalDisplay(id: 7, name: "A", brightness: 1.0, warmth: 0.5, contrast: 0.5)]
+        bm.applyGammaHook = { _, _, _, _ in }
+
+        bm.setWarmth(for: 7, to: 0.5)
+
+        XCTAssertEqual(bm.displays[0].warmth, 0.5, accuracy: 0.0001)
+    }
+
     // MARK: - Preset Values Across Display Re-Enumeration
 
     /// One physical monitor whose `CGDirectDisplayID` differs from the one a preset was saved
