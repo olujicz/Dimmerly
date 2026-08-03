@@ -338,7 +338,7 @@ class BrightnessManager {
     func currentBrightnessSnapshot() -> [String: Double] {
         var snapshot: [String: Double] = [:]
         for display in displays {
-            snapshot[String(display.id)] = display.brightness
+            snapshot[displayIdentity(for: display.id)] = display.brightness
         }
         return snapshot
     }
@@ -352,9 +352,13 @@ class BrightnessManager {
 
     /// Applies saved brightness values from a preset (skips missing displays)
     func applyBrightnessValues(_ values: [String: Double]) {
-        for (idString, brightness) in values {
-            guard let displayID = CGDirectDisplayID(idString) else { continue }
-            setBrightness(for: displayID, to: brightness)
+        // Iterate displays rather than the dictionary: keys are stable identities, which can't
+        // be parsed back into a display ID. Resolving per display also picks up legacy
+        // display-ID-keyed presets written before values were keyed by identity.
+        for display in displays {
+            let identity = displayIdentity(for: display.id)
+            guard let brightness = savedValue(values, for: display.id, identity: identity) else { continue }
+            setBrightness(for: display.id, to: brightness)
         }
     }
 
@@ -362,7 +366,7 @@ class BrightnessManager {
     func currentWarmthSnapshot() -> [String: Double] {
         var snapshot: [String: Double] = [:]
         for display in displays {
-            snapshot[String(display.id)] = display.warmth
+            snapshot[displayIdentity(for: display.id)] = display.warmth
         }
         return snapshot
     }
@@ -376,9 +380,13 @@ class BrightnessManager {
 
     /// Applies saved warmth values from a preset (skips missing displays)
     func applyWarmthValues(_ values: [String: Double]) {
-        for (idString, warmth) in values {
-            guard let displayID = CGDirectDisplayID(idString) else { continue }
-            setWarmth(for: displayID, to: warmth)
+        // Iterate displays rather than the dictionary: keys are stable identities, which can't
+        // be parsed back into a display ID. Resolving per display also picks up legacy
+        // display-ID-keyed presets written before values were keyed by identity.
+        for display in displays {
+            let identity = displayIdentity(for: display.id)
+            guard let warmth = savedValue(values, for: display.id, identity: identity) else { continue }
+            setWarmth(for: display.id, to: warmth)
         }
     }
 
@@ -386,7 +394,7 @@ class BrightnessManager {
     func currentContrastSnapshot() -> [String: Double] {
         var snapshot: [String: Double] = [:]
         for display in displays {
-            snapshot[String(display.id)] = display.contrast
+            snapshot[displayIdentity(for: display.id)] = display.contrast
         }
         return snapshot
     }
@@ -400,9 +408,13 @@ class BrightnessManager {
 
     /// Applies saved contrast values from a preset (skips missing displays)
     func applyContrastValues(_ values: [String: Double]) {
-        for (idString, contrast) in values {
-            guard let displayID = CGDirectDisplayID(idString) else { continue }
-            setContrast(for: displayID, to: contrast)
+        // Iterate displays rather than the dictionary: keys are stable identities, which can't
+        // be parsed back into a display ID. Resolving per display also picks up legacy
+        // display-ID-keyed presets written before values were keyed by identity.
+        for display in displays {
+            let identity = displayIdentity(for: display.id)
+            guard let contrast = savedValue(values, for: display.id, identity: identity) else { continue }
+            setContrast(for: display.id, to: contrast)
         }
     }
 
@@ -692,11 +704,13 @@ class BrightnessManager {
     @discardableResult
     func animateToPreset(_ preset: BrightnessPreset) -> Bool {
         let targets: [TransitionTarget] = displays.map { display in
-            let idString = String(display.id)
+            // Per-display preset values are keyed by stable identity, with a fallback to the
+            // legacy display-ID key so presets saved by earlier versions still resolve.
+            let identity = displayIdentity(for: display.id)
 
             let endBrightness: Double = if let universal = preset.universalBrightness {
                 max(universal, Self.minimumBrightness)
-            } else if let value = preset.displayBrightness[idString] {
+            } else if let value = savedValue(preset.displayBrightness, for: display.id, identity: identity) {
                 max(value, Self.minimumBrightness)
             } else {
                 display.brightness
@@ -704,7 +718,9 @@ class BrightnessManager {
 
             let endWarmth: Double = if let universal = preset.universalWarmth {
                 min(max(universal, 0), 1)
-            } else if let values = preset.displayWarmth, let value = values[idString] {
+            } else if let values = preset.displayWarmth,
+                      let value = savedValue(values, for: display.id, identity: identity)
+            {
                 min(max(value, 0), 1)
             } else {
                 display.warmth
@@ -712,7 +728,9 @@ class BrightnessManager {
 
             let endContrast: Double = if let universal = preset.universalContrast {
                 min(max(universal, 0), 1)
-            } else if let values = preset.displayContrast, let value = values[idString] {
+            } else if let values = preset.displayContrast,
+                      let value = savedValue(values, for: display.id, identity: identity)
+            {
                 min(max(value, 0), 1)
             } else {
                 display.contrast
@@ -764,7 +782,8 @@ class BrightnessManager {
     @discardableResult
     func animateWarmthValues(_ targetValues: [String: Double]) -> Bool {
         let targets: [TransitionTarget] = displays.compactMap { display in
-            guard let raw = targetValues[String(display.id)] else { return nil }
+            let identity = displayIdentity(for: display.id)
+            guard let raw = savedValue(targetValues, for: display.id, identity: identity) else { return nil }
             return TransitionTarget(
                 displayID: display.id,
                 start: (display.brightness, display.warmth, display.contrast),
