@@ -7,6 +7,16 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-08-03
+
+### Fixed
+- Fixed hardware control not becoming available after connecting a display, which previously needed the Hardware Control setting toggled off and on before the display was recognized.
+- Fixed hardware display controls staying unavailable after a temporary DDC/CI failure instead of recovering on their own once the failure cleared.
+- Fixed built-in display brightness jumping to a stale or default value when a brightness reading failed while displays were being reconfigured.
+- Fixed brightness, warmth, and dimming not being restored when only the displays woke rather than the whole Mac.
+- Fixed automatic color temperature keeping the warmth from before the screen went dark instead of recalculating for the current time after the display wakes.
+- Fixed a queued idle, schedule, or color-temperature check occasionally running just after its feature had been turned off.
+
 ## [1.1.2] - 2026-07-23
 
 ### Changed
