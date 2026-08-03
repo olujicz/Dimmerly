@@ -41,6 +41,22 @@ class LocationProvider: NSObject {
         authorizationStatus = locationManager.authorizationStatus
     }
 
+    /// Test-only initializer that skips CoreLocation wiring.
+    ///
+    /// The production initializer registers as `CLLocationManager`'s delegate and seeds
+    /// `authorizationStatus` from it, after which the system keeps writing that property
+    /// asynchronously. A test asserting on the property needs an instance the system never
+    /// touches, or it races real authorization changes.
+    ///
+    /// - Parameters:
+    ///   - forTesting: Pass `true` to skip delegate registration and status seeding.
+    ///   - defaults: Isolated suite so the test doesn't touch the developer's saved location.
+    init(forTesting _: Bool, defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        super.init()
+        loadSavedLocation()
+    }
+
     /// Whether a location is available
     var hasLocation: Bool {
         latitude != nil && longitude != nil
@@ -146,7 +162,16 @@ extension LocationProvider: CLLocationManagerDelegate {
     }
 
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        let status = manager.authorizationStatus
+        applyAuthorizationStatus(manager.authorizationStatus)
+    }
+
+    /// Publishes an authorization status on the main actor.
+    ///
+    /// Separated from the delegate callback so tests can drive a known status. Asserting against
+    /// `CLLocationManager.authorizationStatus` instead races the system: the delegate snapshots
+    /// the value, and the live property can change again before the assertion re-reads it — a
+    /// fresh CI runner resolves `notDetermined` to `denied` — which made the test flaky.
+    nonisolated func applyAuthorizationStatus(_ status: CLAuthorizationStatus) {
         Task { @MainActor in
             self.authorizationStatus = status
         }

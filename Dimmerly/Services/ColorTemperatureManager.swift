@@ -14,6 +14,12 @@
 import AppKit
 import Foundation
 import Observation
+import OSLog
+
+private let colorTemperatureLogger = Logger(
+    subsystem: "rs.in.olujic.dimmerly",
+    category: "ColorTemperatureManager"
+)
 
 /// Time-of-day state for color temperature determination.
 enum ColorTempState: Equatable {
@@ -25,6 +31,16 @@ enum ColorTempState: Equatable {
     case sunriseTransition(progress: Double)
     /// Transitioning during sunset (0.0 = day, 1.0 = night)
     case sunsetTransition(progress: Double)
+
+    /// Compact description for log output, including transition progress.
+    var logDescription: String {
+        switch self {
+        case .day: "day"
+        case .night: "night"
+        case let .sunriseTransition(progress): "sunrise \(Int(progress * 100))%"
+        case let .sunsetTransition(progress): "sunset \(Int(progress * 100))%"
+        }
+    }
 }
 
 /// Manages automatic color temperature adjustment based on sunrise/sunset times.
@@ -77,6 +93,9 @@ class ColorTemperatureManager {
     /// Restored when the user disables auto mode so their manual warmth isn't lost.
     private var savedWarmthSnapshot: [String: Double]?
 
+    /// Last warmth value written to the log, so routine 60-second ticks don't flood it.
+    private var lastLoggedWarmth: Double?
+
     /// Whether the next update should animate the warmth transition.
     /// Set to true when auto mode is first enabled; cleared after the first update.
     private var animateNextUpdate = false
@@ -92,6 +111,7 @@ class ColorTemperatureManager {
     func apply(enabled: Bool) {
         guard enabled != isEnabled else { return }
         isEnabled = enabled
+        colorTemperatureLogger.info("Auto color temperature \(enabled ? "enabled" : "disabled", privacy: .public)")
         if enabled {
             savedWarmthSnapshot = BrightnessManager.shared.currentWarmthSnapshot()
             manualOverrideActive = false
@@ -109,6 +129,8 @@ class ColorTemperatureManager {
     /// using a smooth animation matching the preset transition timing.
     private func restoreSavedWarmth() {
         guard let snapshot = savedWarmthSnapshot else { return }
+        let summary = "\(snapshot.count) displays, max warmth \(snapshot.values.max() ?? 0)"
+        colorTemperatureLogger.info("Restoring pre-auto warmth snapshot: \(summary, privacy: .public)")
         let bm = BrightnessManager.shared
         bm.isAutoColorTempUpdate = true
         if !bm.animateWarmthValues(snapshot) {
@@ -209,6 +231,7 @@ class ColorTemperatureManager {
             if currentBaseState != overrideBaseState {
                 manualOverrideActive = false
                 self.overrideState = nil
+                colorTemperatureLogger.info("Manual warmth override cleared at a day/night boundary")
             }
         }
 
@@ -236,6 +259,14 @@ class ColorTemperatureManager {
         currentKelvin = targetKelvin
         let warmth = GammaMath.warmthForKelvin(targetKelvin)
         let clamped = min(max(warmth, 0.0), 1.0)
+
+        // Logged only when the target moves materially: this runs every 60 seconds, and the
+        // point is a usable trail for "warmth looked wrong at time X", not a per-tick firehose.
+        if lastLoggedWarmth == nil || abs((lastLoggedWarmth ?? 0) - clamped) > 0.01 {
+            lastLoggedWarmth = clamped
+            let summary = "\(state.logDescription) kelvin=\(Int(targetKelvin)) warmth=\(clamped)"
+            colorTemperatureLogger.info("Applying \(summary, privacy: .public)")
+        }
 
         let bm = BrightnessManager.shared
         bm.isAutoColorTempUpdate = true
@@ -320,6 +351,7 @@ class ColorTemperatureManager {
 
         manualOverrideActive = true
         isActive = false
+        colorTemperatureLogger.info("Manual warmth change: auto warmth paused until the next boundary")
 
         // Capture current state for boundary detection
         if let location = locationCoordinates() {
