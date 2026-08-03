@@ -94,19 +94,25 @@ final class LocationProviderTests: XCTestCase {
         XCTAssertEqual(provider.longitude ?? 0, 2.3522, accuracy: 0.0001)
     }
 
+    /// Drives a known status rather than comparing against `CLLocationManager`'s live value.
+    /// The old version read `manager.authorizationStatus` again at assertion time, so when the
+    /// system resolved authorization mid-test — `notDetermined` to `denied` on a fresh CI
+    /// runner — the assertion compared the delegate's snapshot against a newer value and failed.
     func testDidChangeAuthorizationUpdatesStatus() {
-        let provider = LocationProvider(defaults: testDefaults)
-        let manager = CLLocationManager()
+        // `forTesting` skips CoreLocation wiring, so the system never writes this instance's
+        // authorization status and the assertion below can't race a real authorization change.
+        let provider = LocationProvider(forTesting: true, defaults: testDefaults)
+        XCTAssertEqual(provider.authorizationStatus, .notDetermined, "Precondition for observing a change")
 
-        provider.locationManagerDidChangeAuthorization(manager)
+        provider.applyAuthorizationStatus(.denied)
 
-        let expectation = expectation(description: "status applied")
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(50))
-            expectation.fulfill()
-        }
-        wait(for: [expectation], timeout: 1.0)
+        // Propagation hops to the main actor. Main-actor tasks run FIFO, so enqueueing a second
+        // hop and waiting for it proves the assignment already ran — no arbitrary sleep, and no
+        // dependence on how long the hop takes.
+        let propagated = expectation(description: "authorization status propagated to the main actor")
+        Task { @MainActor in propagated.fulfill() }
+        wait(for: [propagated], timeout: 2.0)
 
-        XCTAssertEqual(provider.authorizationStatus, manager.authorizationStatus)
+        XCTAssertEqual(provider.authorizationStatus, .denied)
     }
 }
