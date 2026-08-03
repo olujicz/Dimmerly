@@ -296,6 +296,47 @@ final class ColorTemperatureManagerTests: XCTestCase {
         monitor.stop()
     }
 
+    /// A single re-apply one second after wake fires too early on real hardware: display
+    /// re-enumeration can still be in progress, and macOS wiped the gamma table ~8 seconds after
+    /// the display came back. A second settle pass closes that window.
+    func testWorkspaceWakeMonitorFiresAgainAfterTheSettleDelay() async {
+        let notificationCenter = NotificationCenter()
+        var updateCount = 0
+        let monitor = WorkspaceWakeMonitor(
+            notificationCenter: notificationCenter,
+            delay: .milliseconds(10),
+            settleDelay: .milliseconds(30)
+        ) {
+            updateCount += 1
+        }
+        monitor.start()
+
+        notificationCenter.post(name: NSWorkspace.screensDidWakeNotification, object: nil)
+        try? await Task.sleep(for: .milliseconds(120))
+
+        XCTAssertEqual(updateCount, 2, "Once after the initial delay, once after the settle delay")
+        monitor.stop()
+    }
+
+    /// Without a settle delay the behaviour is unchanged — one callback per coalesced wake.
+    func testWorkspaceWakeMonitorFiresOnceWithoutASettleDelay() async {
+        let notificationCenter = NotificationCenter()
+        var updateCount = 0
+        let monitor = WorkspaceWakeMonitor(
+            notificationCenter: notificationCenter,
+            delay: .milliseconds(10)
+        ) {
+            updateCount += 1
+        }
+        monitor.start()
+
+        notificationCenter.post(name: NSWorkspace.screensDidWakeNotification, object: nil)
+        try? await Task.sleep(for: .milliseconds(120))
+
+        XCTAssertEqual(updateCount, 1)
+        monitor.stop()
+    }
+
     func testWorkspaceWakeMonitorHandlesSystemWake() async {
         let notificationCenter = NotificationCenter()
         var updateCount = 0

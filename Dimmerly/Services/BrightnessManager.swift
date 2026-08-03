@@ -188,8 +188,13 @@ class BrightnessManager {
 
         // macOS can reset gamma when either the Mac or only its displays wake.
         // Clear app-managed blanking immediately, then wait for display stabilization.
+        // Two passes: one as soon as the displays are usable, then a settle pass. Display
+        // re-enumeration can still be in flight at one second — macOS was observed wiping the
+        // gamma table roughly eight seconds after a display came back, long after a single
+        // early re-apply had run and left the screen unadjusted.
         let monitor = WorkspaceWakeMonitor(
             delay: .seconds(1),
+            settleDelay: .seconds(9),
             onWakeDetected: {
                 ScreenBlanker.shared.dismiss(force: true)
             },
@@ -596,20 +601,26 @@ class BrightnessManager {
         let clamped = min(max(value, 0.0), 1.0)
 
         guard let index = displays.firstIndex(where: { $0.id == displayID }) else { return }
-        // Skip if value hasn't changed — prevents SwiftUI onChange bounce-back from
-        // falsely triggering a manual override when auto color temp updates warmth.
-        guard displays[index].warmth != clamped else { return }
+        // The change check gates the *side effects* only — it still prevents SwiftUI onChange
+        // bounce-back from being mistaken for a manual override. Gamma is re-asserted either
+        // way, because macOS wipes the gamma table during display wake and re-enumeration,
+        // often after this app's wake handling has already finished. Skipping the write when
+        // the value matches left the model believing warmth was applied while the panel sat
+        // neutral, with no path back: auto colour temperature re-requests the same value every
+        // 60 seconds, so every one of those repair opportunities became a no-op.
+        let isChange = displays[index].warmth != clamped
         displays[index].warmth = clamped
 
-        if !isAutoColorTempUpdate {
-            ColorTemperatureManager.shared.notifyManualWarmthChange()
-            // Only cancel running transitions when the user is driving the change.
-            // Auto-warmth updates call this for every display inside their own
-            // animation loop; cancelling here would kill that animation.
-            cancelActiveTransition()
+        if isChange {
+            if !isAutoColorTempUpdate {
+                ColorTemperatureManager.shared.notifyManualWarmthChange()
+                // Only cancel running transitions when the user is driving the change.
+                // Auto-warmth updates call this for every display inside their own
+                // animation loop; cancelling here would kill that animation.
+                cancelActiveTransition()
+            }
+            debouncePersist()
         }
-
-        debouncePersist()
 
         applyDisplayGamma(displays[index])
     }
