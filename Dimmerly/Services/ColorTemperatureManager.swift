@@ -54,6 +54,11 @@ class ColorTemperatureManager {
     /// Timer for periodic color temperature checks (fires every 60 seconds).
     private var timer: Timer?
 
+    /// Incremented by `stopPolling()`, so each timer's callbacks carry the generation they were
+    /// scheduled under. `Timer` isn't `Sendable` and so can't be compared across the hop to the
+    /// main actor; an `Int` can. Readable for tests, writable only here.
+    private(set) var timerGeneration = 0
+
     /// Coalesces system and screen wake events before recalculating warmth.
     private var wakeMonitor: WorkspaceWakeMonitor?
 
@@ -119,10 +124,13 @@ class ColorTemperatureManager {
         stopPolling()
         // Added to `.common` run loop modes so warmth transitions keep progressing during a
         // modal alert or menu tracking/slider dragging, not just the run loop's default mode.
+        // The inner `[weak self]` matters: without it the hop would hold a strong reference
+        // to this manager for the hop's duration. `generation` is captured immutably, so the
+        // callback carries the identity of the timer that scheduled it.
+        let generation = timerGeneration
         let newTimer = Timer(timeInterval: 60, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
-                guard let self, isEnabled else { return }
-                updateColorTemperature()
+                self?.handleTimerFired(generation: generation)
             }
         }
         RunLoop.main.add(newTimer, forMode: .common)
@@ -140,9 +148,24 @@ class ColorTemperatureManager {
         updateColorTemperature()
     }
 
+    /// Recalculates warmth on behalf of the polling timer, after the hop to the main actor.
+    ///
+    /// Comparing generations discards callbacks from a timer that `stopPolling()` invalidated or
+    /// that a restart has since replaced, matching the idiom in ScheduleManager/IdleTimerManager.
+    /// This also covers the disabled case: `apply(enabled:)` routes every transition to `false`
+    /// through `stopPolling()`, which retires the generation.
+    ///
+    /// - Parameter generation: The `timerGeneration` in effect when the firing timer was scheduled.
+    func handleTimerFired(generation: Int) {
+        guard generation == timerGeneration else { return }
+        updateColorTemperature()
+    }
+
     private func stopPolling() {
         timer?.invalidate()
         timer = nil
+        // Retires the outgoing timer's generation so any callback still in flight is discarded.
+        timerGeneration += 1
         wakeMonitor?.stop()
         wakeMonitor = nil
     }

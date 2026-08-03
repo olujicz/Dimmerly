@@ -536,6 +536,11 @@
         func startPolling() {
             guard sessionGate.capture() != nil else { return }
             stopPolling()
+            // The two-step weak unwrap is deliberate, not redundant: the interval is read
+            // through `self?` *before* the sleep, and `self` is only bound strongly *after*
+            // it. A strong reference held across the `await` would keep this manager alive
+            // for a full poll interval after its last real owner released it. Reading the
+            // interval each iteration also lets `applyRuntimeSettings` retune the cadence.
             pollingTask = Task { @MainActor [weak self] in
                 while !Task.isCancelled {
                     guard let pollingInterval = self?.pollingInterval else { return }

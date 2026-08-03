@@ -6,7 +6,13 @@
 //
 
 import Foundation
+import OSLog
 import Security
+
+private let sharedConstantsLogger = Logger(
+    subsystem: "rs.in.olujic.dimmerly",
+    category: "SharedConstants"
+)
 
 enum SharedConstants {
     static let appGroupID = resolvedAppGroupID()
@@ -55,7 +61,17 @@ enum SharedConstants {
             do {
                 try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
             } catch {
-                return nil
+                // Best-effort only, so log and keep going rather than hard-failing: `cfprefsd`
+                // owns the suite's plist and may serve it even when this manual `mkdir` can't
+                // run. Returning nil here would cache the failure for the whole process
+                // lifetime (this is a `static let`), permanently disabling widget sync for a
+                // failure that `UserDefaults(suiteName:)` may not even care about.
+                sharedConstantsLogger.error(
+                    """
+                    Could not create app-group container at \(url.path, privacy: .public): \
+                    \(error.localizedDescription, privacy: .public)
+                    """
+                )
             }
         }
         return UserDefaults(suiteName: appGroupID)
@@ -76,8 +92,24 @@ enum SharedConstants {
         return groups?.first
     }
 
+    /// Flushes a just-written widget command to `cfprefsd` before the caller signals the main app.
+    ///
+    /// `synchronize()` is documented as unnecessary for ordinary use, and it is — but this is the
+    /// one case where it still earns its keep: the widget writes a command here and *immediately*
+    /// posts a distributed notification, so the main app reads the suite from another process
+    /// microseconds later. Without an explicit flush, the read can lose the race against the
+    /// asynchronous transfer to `cfprefsd`; the tap then silently does nothing and the orphaned
+    /// key sits in the suite until `processPendingWidgetCommands()` replays it at the next
+    /// launch, dimming displays the user never asked to dim.
+    ///
+    /// Keep this until the command channel stops depending on cross-process read-after-write.
+    private static func flushWidgetCommand(_ defaults: UserDefaults?) {
+        defaults?.synchronize()
+    }
+
     static func storeWidgetDimCommand(in defaults: UserDefaults? = sharedDefaults) {
         defaults?.set(true, forKey: widgetDimCommandKey)
+        flushWidgetCommand(defaults)
     }
 
     static func consumeWidgetDimCommand(from defaults: UserDefaults? = sharedDefaults) -> Bool {
@@ -88,6 +120,7 @@ enum SharedConstants {
 
     static func storeWidgetPresetCommand(_ presetID: String, in defaults: UserDefaults? = sharedDefaults) {
         defaults?.set(presetID, forKey: widgetPresetCommandKey)
+        flushWidgetCommand(defaults)
     }
 
     static func consumeWidgetPresetCommand(from defaults: UserDefaults? = sharedDefaults) -> UUID? {

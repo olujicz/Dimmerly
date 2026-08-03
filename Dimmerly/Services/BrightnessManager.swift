@@ -295,6 +295,10 @@ class BrightnessManager {
         /// Starts polling the built-in display backlight every ~1 second.
         private func startBacklightPolling() {
             backlightPollTask?.cancel()
+            // `guard let self` must stay *inside* the loop body, after the sleep: a strong
+            // reference bound across the `await` would keep this manager alive for a full
+            // poll interval after its last real owner released it. Binding per iteration
+            // means the strong reference dies before the next suspension point.
             backlightPollTask = Task { @MainActor [weak self] in
                 while !Task.isCancelled {
                     try? await Task.sleep(for: .seconds(1))

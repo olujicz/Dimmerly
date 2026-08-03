@@ -142,6 +142,33 @@ final class ScheduleManagerTests: XCTestCase {
         XCTAssertEqual(triggerCount, 1, "Should fire once after gap crossing trigger time")
     }
 
+    /// A timer callback that reaches the main actor after `stopPolling()` — or after a restart
+    /// swapped in a replacement timer — must be discarded rather than run against the reset
+    /// `lastCheckDate`. `handleTimerFired` compares generations to enforce that.
+    ///
+    /// Uses the same schedule and dates as `testCheckSchedulesCatchesUpAfterLongGap`, which fires
+    /// once, so a regression here surfaces as a trigger rather than as a silent pass.
+    func testIgnoresCallbackFromATimerThatIsNoLongerCurrent() {
+        var triggerCount = 0
+        manager.onScheduleTriggered = { _ in triggerCount += 1 }
+
+        // Installs a live polling timer, then retires it — the state a stale callback races.
+        manager.apply(enabled: true)
+        let retiredGeneration = manager.timerGeneration
+        manager.apply(enabled: false)
+
+        manager.addSchedule(makeSchedule(hour: 10, minute: 0))
+        manager.checkSchedules(now: makeDate(hour: 9, minute: 58, second: 30))
+        XCTAssertEqual(triggerCount, 0)
+
+        manager.handleTimerFired(generation: retiredGeneration, now: makeDate(hour: 10, minute: 5))
+        XCTAssertEqual(triggerCount, 0, "A retired timer's callback must not run a schedule check")
+
+        // The live generation still fires, so the guard isn't passing vacuously.
+        manager.handleTimerFired(generation: manager.timerGeneration, now: makeDate(hour: 10, minute: 5))
+        XCTAssertEqual(triggerCount, 1)
+    }
+
     func testCheckSchedulesCatchesUpAcrossMidnight() {
         var firedPresets: [UUID] = []
         manager.onScheduleTriggered = { firedPresets.append($0) }

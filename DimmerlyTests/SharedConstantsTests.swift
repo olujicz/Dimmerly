@@ -81,6 +81,17 @@ final class SharedConstantsTests: XCTestCase {
         XCTAssertEqual(sleepCallCount, 1)
     }
 
+    /// `sharedDefaults` is nil when the app-group suite can't be opened at all. Every widget
+    /// command helper takes `UserDefaults?` so that degrades to a no-op instead of trapping —
+    /// the widget buttons stop working, but neither process crashes.
+    func testWidgetCommandHelpersDegradeToNoOpWithoutSharedDefaults() {
+        SharedConstants.storeWidgetDimCommand(in: nil)
+        XCTAssertFalse(SharedConstants.consumeWidgetDimCommand(from: nil))
+
+        SharedConstants.storeWidgetPresetCommand(UUID().uuidString, in: nil)
+        XCTAssertNil(SharedConstants.consumeWidgetPresetCommand(from: nil))
+    }
+
     func testConsumeWidgetPresetCommandReturnsUUIDOnceAndClearsCommand() {
         let id = UUID()
         SharedConstants.storeWidgetPresetCommand(id.uuidString, in: defaults)
