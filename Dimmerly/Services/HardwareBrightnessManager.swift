@@ -536,12 +536,13 @@
         func startPolling() {
             guard sessionGate.capture() != nil else { return }
             stopPolling()
-            pollingTask = Task { [weak self] in
+            pollingTask = Task { @MainActor [weak self] in
                 while !Task.isCancelled {
-                    try? await Task.sleep(for: .seconds(self?.pollingInterval ?? 5.0))
+                    guard let pollingInterval = self?.pollingInterval else { return }
+                    try? await Task.sleep(for: .seconds(pollingInterval))
                     guard !Task.isCancelled else { return }
-                    guard self?.sessionGate.capture() != nil else { return }
-                    self?.pollAllDisplays()
+                    guard let self, sessionGate.capture() != nil else { return }
+                    pollAllDisplays()
                 }
             }
         }

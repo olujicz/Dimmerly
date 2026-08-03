@@ -116,8 +116,9 @@ class ScheduleManager {
         // run loop is in a different mode — e.g. a modal alert (`.modalPanel`) or menu
         // tracking/slider dragging (`.eventTracking`) — instead of silently pausing.
         let newTimer = Timer(timeInterval: 30, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                self?.checkSchedules()
+            Task { @MainActor [weak self] in
+                guard let self, timer != nil else { return }
+                checkSchedules()
             }
         }
         RunLoop.main.add(newTimer, forMode: .common)

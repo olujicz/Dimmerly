@@ -59,7 +59,7 @@ class IdleTimerManager {
 
     /// Seconds since the last HID input event (keyboard, mouse, trackpad).
     ///
-    /// Uses `kCGAnyInputEventType` (represented here as `CGEventType(rawValue: ~0)`) rather
+    /// Uses `kCGAnyInputEventType` (represented here as `CGEventType(rawValue: UInt32.max)`) rather
     /// than `.null`, which reports seconds since the last *null-type* event — effectively
     /// always a stale, enormous value unrelated to real user activity.
     static func systemIdleSeconds() -> TimeInterval {
@@ -79,8 +79,9 @@ class IdleTimerManager {
         // auto-dim they trigger) keep firing during a modal alert or menu tracking/slider
         // dragging, not just while the run loop is in its default mode.
         let newTimer = Timer(timeInterval: 10, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                self?.checkIdleTime()
+            Task { @MainActor [weak self] in
+                guard let self, timer != nil else { return }
+                checkIdleTime()
             }
         }
         RunLoop.main.add(newTimer, forMode: .common)

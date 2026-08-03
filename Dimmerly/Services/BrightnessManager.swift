@@ -295,11 +295,12 @@ class BrightnessManager {
         /// Starts polling the built-in display backlight every ~1 second.
         private func startBacklightPolling() {
             backlightPollTask?.cancel()
-            backlightPollTask = Task { [weak self] in
+            backlightPollTask = Task { @MainActor [weak self] in
                 while !Task.isCancelled {
                     try? await Task.sleep(for: .seconds(1))
-                    guard !Task.isCancelled else { break }
-                    self?.syncBuiltInBrightness()
+                    guard !Task.isCancelled else { return }
+                    guard let self else { return }
+                    syncBuiltInBrightness()
                 }
             }
         }

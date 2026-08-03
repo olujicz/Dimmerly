@@ -120,8 +120,9 @@ class ColorTemperatureManager {
         // Added to `.common` run loop modes so warmth transitions keep progressing during a
         // modal alert or menu tracking/slider dragging, not just the run loop's default mode.
         let newTimer = Timer(timeInterval: 60, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                self?.updateColorTemperature()
+            Task { @MainActor [weak self] in
+                guard let self, isEnabled else { return }
+                updateColorTemperature()
             }
         }
         RunLoop.main.add(newTimer, forMode: .common)
