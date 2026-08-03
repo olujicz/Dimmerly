@@ -113,6 +113,10 @@ class BrightnessManager {
     private let warmthPersistenceKey = "dimmerlyDisplayWarmth"
     private let contrastPersistenceKey = "dimmerlyDisplayContrast"
 
+    /// The `UserDefaults` suite per-display values are persisted to. Defaults to `.standard`;
+    /// tests inject an isolated suite so they neither read nor overwrite real user settings.
+    private let defaults: UserDefaults
+
     /// Manages the CoreGraphics display reconfiguration callback registration
     private var reconfigurationToken: DisplayReconfigurationToken?
 
@@ -150,9 +154,14 @@ class BrightnessManager {
     /// Test seam for forcing transition eligibility independent of process-wide accessibility state.
     var canAnimateTransitionsHook: (() -> Bool)?
 
+    /// Test seam for the stable per-display persistence key. The real implementation reads EDID
+    /// metadata through CoreGraphics, which unit tests can't synthesize.
+    var displayIdentityHook: ((CGDirectDisplayID) -> String)?
+
     /// Standard initializer that sets up full hardware monitoring and system integration.
     /// Registers observers for display changes, wake events, and ScreenBlanker coordination.
     init() {
+        defaults = .standard
         setupHardwareMonitoring()
     }
 
@@ -165,8 +174,12 @@ class BrightnessManager {
     ///
     /// Use this for unit tests that need to verify business logic without side effects.
     ///
-    /// - Parameter forTesting: Pass `true` to create an isolated test instance
-    init(forTesting _: Bool) {
+    /// - Parameters:
+    ///   - forTesting: Pass `true` to create an isolated test instance
+    ///   - defaults: Suite to persist per-display values to. Pass an isolated suite so the test
+    ///     neither reads nor overwrites the developer's real display settings.
+    init(forTesting _: Bool, defaults: UserDefaults = .standard) {
+        self.defaults = defaults
         // Skip hardware setup — no gamma changes, no observers
     }
 
@@ -443,18 +456,21 @@ class BrightnessManager {
             let builtIn = isBuiltInDisplay(displayID)
 
             let name = displayName(for: displayID)
+            // Look saved values up by stable identity: this display may have just been
+            // re-enumerated under a new CGDirectDisplayID after sleep/wake or a hot-plug.
+            let identity = displayIdentity(for: displayID)
             let refreshedBrightness = refreshedBrightness(
                 for: displayID,
                 isBuiltIn: builtIn,
-                savedBrightness: savedBrightness[String(displayID)],
+                savedBrightness: savedValue(savedBrightness, for: displayID, identity: identity),
                 previousBrightness: previousBrightnessByID[displayID] ?? previousBuiltInBrightness
             )
             if refreshedBrightness.suppressBuiltInBacklight {
                 builtInDisplaysWithFailedReads.insert(displayID)
             }
             // Clamp warmth and contrast to valid ranges
-            let warmth = min(max(savedWarmth[String(displayID)] ?? 0.0, 0.0), 1.0)
-            let contrast = min(max(savedContrast[String(displayID)] ?? 0.5, 0.0), 1.0)
+            let warmth = min(max(savedValue(savedWarmth, for: displayID, identity: identity) ?? 0.0, 0.0), 1.0)
+            let contrast = min(max(savedValue(savedContrast, for: displayID, identity: identity) ?? 0.5, 0.0), 1.0)
 
             var display = ExternalDisplay(
                 id: displayID, name: name, brightness: refreshedBrightness.value,
@@ -908,30 +924,92 @@ class BrightnessManager {
 
     // MARK: - Persistence
 
+    /// Builds the stable key a display's saved brightness, warmth, and contrast are stored under.
+    ///
+    /// `CGDirectDisplayID` cannot be used for this. macOS re-enumerates displays under a *new*
+    /// ID after sleep/wake and after hot-plug, so an ID-keyed lookup misses on the way back and
+    /// silently resets the display to defaults. Auto color temperature hides that for warmth on
+    /// its next recalculation; nothing restores contrast, so it would stay reset.
+    ///
+    /// Vendor, model, and serial come from the monitor's EDID and survive re-enumeration and
+    /// reboots. Serial is frequently unreported (0), so the unit number — which tracks the
+    /// physical connection — stands in to keep two identical monitors apart.
+    ///
+    /// - Returns: A key derived from EDID metadata, or the legacy display-ID string when no
+    ///   usable metadata exists.
+    static func persistenceIdentity(
+        vendor: UInt32,
+        model: UInt32,
+        serial: UInt32,
+        unitNumber: UInt32,
+        displayID: CGDirectDisplayID
+    ) -> String {
+        guard isUsableDisplayMetadata(vendor), isUsableDisplayMetadata(model) else {
+            // Nothing stable to key on. Fall back to the legacy display-ID key rather than
+            // collapsing every metadata-less display onto one shared key.
+            return String(displayID)
+        }
+        if isUsableDisplayMetadata(serial) {
+            return "v\(vendor)m\(model)s\(serial)"
+        }
+        return "v\(vendor)m\(model)u\(unitNumber)"
+    }
+
+    /// CoreGraphics reports 0 for "not provided" and all-ones for "unknown".
+    private static func isUsableDisplayMetadata(_ value: UInt32) -> Bool {
+        value != 0 && value != UInt32.max
+    }
+
+    private func displayIdentity(for displayID: CGDirectDisplayID) -> String {
+        if let displayIdentityHook {
+            return displayIdentityHook(displayID)
+        }
+        return Self.persistenceIdentity(
+            vendor: CGDisplayVendorNumber(displayID),
+            model: CGDisplayModelNumber(displayID),
+            serial: CGDisplaySerialNumber(displayID),
+            unitNumber: CGDisplayUnitNumber(displayID),
+            displayID: displayID
+        )
+    }
+
+    /// Reads a saved value for a display, preferring its stable identity and falling back to the
+    /// legacy display-ID key so settings written by earlier versions still load once.
+    private func savedValue(
+        _ saved: [String: Double],
+        for displayID: CGDirectDisplayID,
+        identity: String
+    ) -> Double? {
+        saved[identity] ?? saved[String(displayID)]
+    }
+
     private func loadPersistedBrightness() -> [String: Double] {
-        UserDefaults.standard.dictionary(forKey: persistenceKey) as? [String: Double] ?? [:]
+        defaults.dictionary(forKey: persistenceKey) as? [String: Double] ?? [:]
     }
 
     private func loadPersistedWarmth() -> [String: Double] {
-        UserDefaults.standard.dictionary(forKey: warmthPersistenceKey) as? [String: Double] ?? [:]
+        defaults.dictionary(forKey: warmthPersistenceKey) as? [String: Double] ?? [:]
     }
 
     private func loadPersistedContrast() -> [String: Double] {
-        UserDefaults.standard.dictionary(forKey: contrastPersistenceKey) as? [String: Double] ?? [:]
+        defaults.dictionary(forKey: contrastPersistenceKey) as? [String: Double] ?? [:]
     }
 
-    private func persistAll() {
+    func persistAll() {
         var brightnessDict: [String: Double] = [:]
         var warmthDict: [String: Double] = [:]
         var contrastDict: [String: Double] = [:]
         for display in displays {
-            brightnessDict[String(display.id)] = display.brightness
-            warmthDict[String(display.id)] = display.warmth
-            contrastDict[String(display.id)] = display.contrast
+            // Keyed by stable identity, so the values are still found after the display is
+            // re-enumerated under a different CGDirectDisplayID.
+            let key = displayIdentity(for: display.id)
+            brightnessDict[key] = display.brightness
+            warmthDict[key] = display.warmth
+            contrastDict[key] = display.contrast
         }
-        UserDefaults.standard.set(brightnessDict, forKey: persistenceKey)
-        UserDefaults.standard.set(warmthDict, forKey: warmthPersistenceKey)
-        UserDefaults.standard.set(contrastDict, forKey: contrastPersistenceKey)
+        defaults.set(brightnessDict, forKey: persistenceKey)
+        defaults.set(warmthDict, forKey: warmthPersistenceKey)
+        defaults.set(contrastDict, forKey: contrastPersistenceKey)
     }
 
     #if !APPSTORE
