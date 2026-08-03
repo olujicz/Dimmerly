@@ -262,10 +262,15 @@ class ColorTemperatureManager {
 
         // Logged only when the target moves materially: this runs every 60 seconds, and the
         // point is a usable trail for "warmth looked wrong at time X", not a per-tick firehose.
+        let summary = "\(state.logDescription) kelvin=\(Int(targetKelvin)) warmth=\(clamped)"
         if lastLoggedWarmth == nil || abs((lastLoggedWarmth ?? 0) - clamped) > 0.01 {
             lastLoggedWarmth = clamped
-            let summary = "\(state.logDescription) kelvin=\(Int(targetKelvin)) warmth=\(clamped)"
             colorTemperatureLogger.info("Applying \(summary, privacy: .public)")
+        } else {
+            // Every tick, at debug level. The info-level filter above hides a steady target,
+            // which meant a stretch where warmth was being re-requested unchanged looked
+            // identical to auto warmth not running at all.
+            colorTemperatureLogger.debug("Re-asserting \(summary, privacy: .public)")
         }
 
         let bm = BrightnessManager.shared
