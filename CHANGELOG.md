@@ -18,6 +18,7 @@ Semantic Versioning.
 - Fixed a queued idle, schedule, or color-temperature check occasionally running just after its feature had been turned off.
 - Fixed saved brightness, warmth, and contrast being lost when macOS reconnects a display under a new identifier after waking or being replugged. Values are now stored against the monitor itself, so they are restored instead of snapping back to defaults. Contrast was affected worst, because nothing restored it afterwards.
 - Fixed presets saved with per-display values silently skipping a display after macOS reconnected it under a new identifier, so the preset appeared to do nothing for that monitor. Presets that apply one value to all displays were never affected.
+- Fixed a display being left completely unadjusted after waking, with brightness, warmth, and contrast staying off until Dimmerly was restarted. macOS clears display adjustments part-way through waking, after Dimmerly had already restored them, and Dimmerly then believed they were still applied. Adjustments are now re-applied once the display has finished waking, and re-asserted periodically so they recover on their own if anything clears them again.
 
 ## [1.1.2] - 2026-07-23
 
