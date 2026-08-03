@@ -212,6 +212,8 @@ final class ColorTemperatureManagerTests: XCTestCase {
         // Enabling auto warmth animates its first update, which applies gamma from a detached
         // task. Forcing the non-animated path keeps these assertions synchronous.
         brightnessManager.canAnimateTransitionsHook = { false }
+        // Pin identity so the key doesn't depend on whatever EDID the host reports for this ID.
+        brightnessManager.displayIdentityHook = { "identity-\($0)" }
         brightnessManager.displays = [
             ExternalDisplay(id: 1, name: "Test", brightness: 1.0, warmth: 0.3, contrast: 0.5),
         ]
@@ -245,16 +247,20 @@ final class ColorTemperatureManagerTests: XCTestCase {
     /// a test instantiates the singleton, which enumerates displays and persists, and that is the
     /// very pollution this change removes. Isolation from the shared instance is structural:
     /// ColorTemperatureManager holds no reference to it.
-    func testEnablingAutoWarmthAppliesThroughTheInjectedManager() {
+    func testAutoWarmthAppliesThroughTheInjectedManager() {
         let (manager, injected) = isolatedManager()
         var gammaApplications = 0
         injected.applyGammaHook = { _, _, _, _ in gammaApplications += 1 }
 
+        // Enable snapshots the current warmth, disable restores it — both through the injected
+        // manager, and neither needing a location. Asserting on the enable path alone would
+        // depend on a saved location, since without one the recalculation returns early: that
+        // passed on a developer machine and failed on CI.
         manager.apply(enabled: true)
+        manager.apply(enabled: false)
 
         XCTAssertGreaterThan(gammaApplications, 0, "Warmth must be applied via the injected manager")
         XCTAssertEqual(injected.displays.count, 1, "Effects belong to the injected manager")
-        manager.apply(enabled: false)
     }
 
     // MARK: - Zero Transition Duration
