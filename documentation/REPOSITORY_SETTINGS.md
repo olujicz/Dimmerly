@@ -59,9 +59,11 @@ GitHub Pages must use **GitHub Actions** as its publishing source. The
 - `documentation/index.html`
 - `documentation/external-monitor-brightness.html`
 - `documentation/multi-monitor-control.html`
-- `documentation/guides.css`
-- `documentation/privacy-policy.html`
 - `documentation/support.html`
+- `documentation/privacy-policy.html`
+- `documentation/404.html`
+- `documentation/site.css`
+- `documentation/site.js`
 - `documentation/robots.txt`
 - `documentation/sitemap.xml`
 - `images/image1.png`, published as `assets/dimmerly-menu.png`

@@ -41,9 +41,11 @@ jobs:
           cp documentation/index.html build/pages/index.html
           cp documentation/external-monitor-brightness.html build/pages/external-monitor-brightness.html
           cp documentation/multi-monitor-control.html build/pages/multi-monitor-control.html
-          cp documentation/guides.css build/pages/guides.css
-          cp documentation/privacy-policy.html build/pages/privacy-policy.html
           cp documentation/support.html build/pages/support.html
+          cp documentation/privacy-policy.html build/pages/privacy-policy.html
+          cp documentation/404.html build/pages/404.html
+          cp documentation/site.css build/pages/site.css
+          cp documentation/site.js build/pages/site.js
           cp documentation/robots.txt build/pages/robots.txt
           cp documentation/sitemap.xml build/pages/sitemap.xml
           cp images/image1.png build/pages/assets/dimmerly-menu.png
@@ -53,9 +55,11 @@ jobs:
           test -s build/pages/index.html
           test -s build/pages/external-monitor-brightness.html
           test -s build/pages/multi-monitor-control.html
-          test -s build/pages/guides.css
-          test -s build/pages/privacy-policy.html
           test -s build/pages/support.html
+          test -s build/pages/privacy-policy.html
+          test -s build/pages/404.html
+          test -s build/pages/site.css
+          test -s build/pages/site.js
           test -s build/pages/robots.txt
           test -s build/pages/sitemap.xml
           test -s build/pages/assets/dimmerly-menu.png
