@@ -9,6 +9,15 @@ import Foundation
 
 #if !APPSTORE
 
+    /// IOAVService read parameters used by Apple Silicon DDC transports.
+    ///
+    /// DDC writes use the host source address (`0x51`) as their data address,
+    /// while reads use offset zero and return the 11-byte Get VCP reply.
+    enum DDCAppleSiliconReadContract {
+        static let dataAddress: UInt32 = 0
+        static let replyLength = 11
+    }
+
     enum DDCPacketCodec {
         private static let displayWriteAddress: UInt8 = 0x6E
         private static let hostSourceAddress: UInt8 = 0x51
