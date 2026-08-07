@@ -59,12 +59,17 @@ GitHub Pages must use **GitHub Actions** as its publishing source. The
 - `documentation/index.html`
 - `documentation/external-monitor-brightness.html`
 - `documentation/multi-monitor-control.html`
-- `documentation/guides.css`
-- `documentation/privacy-policy.html`
 - `documentation/support.html`
+- `documentation/privacy-policy.html`
+- `documentation/404.html`
+- `documentation/site.css`
+- `documentation/site.js`
 - `documentation/robots.txt`
 - `documentation/sitemap.xml`
 - `images/image1.png`, published as `assets/dimmerly-menu.png`
+- `images/image1@2x.png`, published as `assets/dimmerly-menu@2x.png`. This file
+  is optional; when it is missing the workflow publishes the 1x capture under
+  the 2x name so the hero `srcset` always resolves.
 - `images/github-social-preview.jpg`, published as
   `assets/dimmerly-social-preview.jpg`
 - `Dimmerly/Resources/Assets.xcassets/AppIcon.appiconset/icon_256.png`, published

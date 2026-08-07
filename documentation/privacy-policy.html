@@ -10,199 +10,22 @@
     <link rel="canonical" href="https://dimmerly.olujic.in.rs/privacy-policy.html">
     <link rel="icon" href="assets/dimmerly-icon.png" type="image/png">
     <link rel="apple-touch-icon" href="assets/dimmerly-icon.png">
-    <style>
-        :root {
-            color-scheme: light dark;
-            --paper: #f3f1ec;
-            --ink: #171717;
-            --muted: #686761;
-            --line: #d4d0c8;
-            --blue-dark: #0d5fc8;
-        }
-
-        * { box-sizing: border-box; }
-
-        body {
-            margin: 0;
-            color: var(--ink);
-            background: var(--paper);
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
-            line-height: 1.6;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        a {
-            color: var(--blue-dark);
-            transition: color 0.15s ease;
-        }
-
-        .skip-link {
-            position: absolute;
-            left: 8px;
-            top: -56px;
-            z-index: 10;
-            padding: 10px 16px;
-            border-radius: 8px;
-            background: var(--blue-dark);
-            color: var(--paper);
-            font-weight: 650;
-            text-decoration: none;
-            transition: top 0.15s ease;
-        }
-
-        .skip-link:focus { top: 8px; }
-
-        ::selection {
-            background: var(--blue-dark);
-            color: var(--paper);
-        }
-
-        .container {
-            width: min(720px, calc(100% - 48px));
-            margin: 0 auto;
-        }
-
-        .site-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            min-height: 72px;
-            border-bottom: 1px solid var(--line);
-        }
-
-        .brand {
-            display: inline-flex;
-            align-items: center;
-            min-height: 44px;
-            font-size: 1rem;
-            font-weight: 700;
-            text-decoration: none;
-            color: inherit;
-        }
-
-        .nav {
-            display: flex;
-            gap: 22px;
-            font-size: 0.9rem;
-        }
-
-        .nav a,
-        .footer a {
-            color: var(--muted);
-            text-decoration: none;
-        }
-
-        .nav a {
-            display: inline-flex;
-            align-items: center;
-            min-height: 44px;
-        }
-
-        .footer a {
-            display: inline-flex;
-            align-items: center;
-            min-height: 32px;
-        }
-
-        .nav a:hover,
-        .footer a:hover {
-            color: var(--ink);
-            text-decoration: underline;
-            text-underline-offset: 4px;
-        }
-
-        main { padding: 8px 0 24px; }
-
-        h1 {
-            margin: 40px 0 8px;
-            font-size: clamp(2rem, 4vw, 2.6rem);
-            font-weight: 720;
-            line-height: 1.05;
-            letter-spacing: -0.03em;
-            text-wrap: balance;
-        }
-
-        .last-updated {
-            margin: 0 0 36px;
-            color: var(--muted);
-            font-size: 0.9rem;
-        }
-
-        h2 {
-            margin: 40px 0 12px;
-            font-size: 1.35rem;
-            font-weight: 650;
-            letter-spacing: -0.012em;
-        }
-
-        p, li {
-            margin: 0 0 12px;
-            font-size: 1rem;
-            text-wrap: pretty;
-        }
-
-        ul {
-            padding-left: 24px;
-            margin: 0 0 12px;
-        }
-
-        main a { text-decoration: none; }
-
-        main a:hover {
-            text-decoration: underline;
-            text-underline-offset: 3px;
-        }
-
-        .footer {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            gap: 20px;
-            margin-top: 48px;
-            padding: 24px 0 42px;
-            border-top: 1px solid var(--line);
-            color: var(--muted);
-            font-size: 0.84rem;
-        }
-
-        .footer-links {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
-
-        :focus-visible {
-            outline: 3px solid var(--blue-dark);
-            outline-offset: 3px;
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            *, ::before, ::after { transition-duration: 0.01ms !important; }
-        }
-
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --paper: #151613;
-                --ink: #f2f0ea;
-                --muted: #aaa8a1;
-                --line: #373832;
-                --blue-dark: #91c0ff;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .container { width: min(100% - 32px, 720px); }
-            .nav a:first-child { display: none; }
-        }
-    </style>
+    <link rel="stylesheet" href="site.css">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Dimmerly">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:title" content="Dimmerly — Privacy Policy">
+    <meta property="og:description" content="How Dimmerly handles your information: no analytics, no tracking, no ads. All settings are stored locally on your Mac.">
+    <meta property="og:url" content="https://dimmerly.olujic.in.rs/privacy-policy.html">
 </head>
-<body>
+<body class="page-doc">
     <a class="skip-link" href="#main">Skip to content</a>
     <header class="site-header container">
         <a class="brand" href="./" aria-label="Dimmerly home">Dimmerly</a>
         <nav class="nav" aria-label="Primary navigation">
-            <a href="https://github.com/olujicz/Dimmerly/releases">Releases</a>
+            <a href="external-monitor-brightness.html">Guides</a>
             <a href="support.html">Support</a>
+            <a href="https://github.com/olujicz/Dimmerly/releases" data-analytics-event="view_releases">Releases</a>
             <a href="https://github.com/olujicz/Dimmerly">Source</a>
         </nav>
     </header>
@@ -250,8 +73,12 @@
     <footer class="footer container">
         <span>Dimmerly · Open source under the MIT License</span>
         <div class="footer-links">
-            <a href="https://github.com/olujicz/Dimmerly/releases">Releases</a>
+            <a href="./">Home</a>
+            <a href="external-monitor-brightness.html">External monitor guide</a>
+            <a href="multi-monitor-control.html">Multi-monitor guide</a>
             <a href="support.html">Support</a>
+            <a href="privacy-policy.html">Privacy</a>
+            <a href="https://github.com/olujicz/Dimmerly/releases" data-analytics-event="view_releases">Releases</a>
             <a href="https://github.com/olujicz/Dimmerly">Source</a>
         </div>
     </footer>

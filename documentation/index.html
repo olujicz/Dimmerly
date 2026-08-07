@@ -3,17 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Control external monitor brightness on macOS with Dimmerly, a private open-source menu bar app for DDC/CI hardware controls, software dimming, per-display settings, presets, and schedules.">
+    <meta name="description" content="Dimmerly is a private, open-source macOS menu bar app for per-display brightness, warmth, and contrast, with presets, schedules, and DDC/CI hardware controls for external monitors.">
     <meta name="theme-color" content="#f3f1ec" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#151613" media="(prefers-color-scheme: dark)">
-    <title>Dimmerly — External monitor brightness for macOS</title>
+    <title>Dimmerly — Menu bar display controls for macOS</title>
     <link rel="canonical" href="https://dimmerly.olujic.in.rs/">
     <link rel="icon" href="assets/dimmerly-icon.png" type="image/png">
     <link rel="apple-touch-icon" href="assets/dimmerly-icon.png">
+    <link rel="stylesheet" href="site.css">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Dimmerly">
-    <meta property="og:title" content="Dimmerly — External monitor brightness for macOS">
-    <meta property="og:description" content="Control external monitor brightness on macOS with DDC/CI hardware controls, software dimming, per-display settings, presets, and schedules.">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:title" content="Dimmerly — Menu bar display controls for macOS">
+    <meta property="og:description" content="Per-display brightness, warmth, and contrast from the macOS menu bar, with presets, schedules, and DDC/CI hardware controls for external monitors.">
     <meta property="og:url" content="https://dimmerly.olujic.in.rs/">
     <meta property="og:image" content="https://dimmerly.olujic.in.rs/assets/dimmerly-social-preview.jpg">
     <meta property="og:image:width" content="1280">
@@ -21,8 +23,8 @@
     <meta property="og:image:type" content="image/jpeg">
     <meta property="og:image:alt" content="Dimmerly app icon and menu bar display controls">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Dimmerly — External monitor brightness for macOS">
-    <meta name="twitter:description" content="Control external monitor brightness on macOS with DDC/CI hardware controls, software dimming, per-display settings, presets, and schedules.">
+    <meta name="twitter:title" content="Dimmerly — Menu bar display controls for macOS">
+    <meta name="twitter:description" content="Per-display brightness, warmth, and contrast from the macOS menu bar, with presets, schedules, and DDC/CI hardware controls for external monitors.">
     <meta name="twitter:image" content="https://dimmerly.olujic.in.rs/assets/dimmerly-social-preview.jpg">
     <meta name="twitter:image:alt" content="Dimmerly app icon and menu bar display controls">
     <script type="application/ld+json">
@@ -30,7 +32,7 @@
             "@context": "https://schema.org",
             "@type": "SoftwareApplication",
             "name": "Dimmerly",
-            "description": "Control external monitor brightness on macOS with DDC/CI hardware controls, software dimming, per-display settings, presets, and schedules.",
+            "description": "Per-display brightness, warmth, and contrast from the macOS menu bar, with presets, schedules, and DDC/CI hardware controls for external monitors.",
             "url": "https://dimmerly.olujic.in.rs/",
             "downloadUrl": "https://github.com/olujicz/Dimmerly/releases/latest",
             "sameAs": "https://github.com/olujicz/Dimmerly",
@@ -45,491 +47,15 @@
             "license": "https://github.com/olujicz/Dimmerly/blob/main/LICENSE"
         }
     </script>
-    <style>
-        :root {
-            color-scheme: light dark;
-            --paper: #f3f1ec;
-            --ink: #171717;
-            --muted: #686761;
-            --line: #d4d0c8;
-            --blue: #1672e8;
-            --blue-dark: #0d5fc8;
-            --button-text: #fff;
-            --console: #17191d;
-            --console-ink: #f7f7f5;
-            --console-text: #d8e8ff;
-            --console-line: #42464d;
-            --panel-shadow: rgb(23 23 23 / 16%);
-        }
-
-        * { box-sizing: border-box; }
-
-        body {
-            margin: 0;
-            color: var(--ink);
-            background: var(--paper);
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
-            line-height: 1.5;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        a {
-            color: inherit;
-            transition: color 0.15s ease;
-        }
-
-        .skip-link {
-            position: absolute;
-            left: 8px;
-            top: -56px;
-            z-index: 10;
-            padding: 10px 16px;
-            border-radius: 8px;
-            background: var(--blue);
-            color: var(--button-text);
-            font-weight: 650;
-            text-decoration: none;
-            transition: top 0.15s ease;
-        }
-
-        .skip-link:focus { top: 8px; }
-
-        ::selection {
-            background: var(--blue);
-            color: var(--button-text);
-        }
-
-        .container {
-            width: min(1160px, calc(100% - 48px));
-            margin: 0 auto;
-        }
-
-        .site-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            min-height: 72px;
-            border-bottom: 1px solid var(--line);
-        }
-
-        .brand {
-            display: inline-flex;
-            align-items: center;
-            min-height: 44px;
-            font-size: 1rem;
-            font-weight: 700;
-            text-decoration: none;
-        }
-
-        .nav {
-            display: flex;
-            gap: 22px;
-            font-size: 0.9rem;
-        }
-
-        .nav a,
-        .footer a {
-            color: var(--muted);
-            text-decoration: none;
-        }
-
-        .nav a {
-            display: inline-flex;
-            align-items: center;
-            min-height: 44px;
-        }
-
-        .footer a {
-            display: inline-flex;
-            align-items: center;
-            min-height: 32px;
-        }
-
-        .nav a:hover,
-        .footer a:hover {
-            color: var(--ink);
-            text-decoration: underline;
-            text-underline-offset: 4px;
-        }
-
-        .hero {
-            display: grid;
-            grid-template-columns: repeat(12, 1fr);
-            gap: 24px;
-            align-items: center;
-            min-height: 650px;
-            padding: 78px 0 88px;
-        }
-
-        .hero-copy-block { grid-column: 1 / span 6; }
-
-        .product-label {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin: 0 0 18px;
-            color: var(--blue-dark);
-            font-size: 0.92rem;
-            font-weight: 650;
-        }
-
-        .app-icon {
-            width: 48px;
-            height: 48px;
-        }
-
-        h1,
-        h2,
-        h3 { text-wrap: balance; }
-
-        p { text-wrap: pretty; }
-
-        h1 {
-            max-width: 650px;
-            margin: 0;
-            font-size: clamp(2.75rem, 5.7vw, 4.9rem);
-            font-weight: 720;
-            line-height: 1.01;
-            letter-spacing: -0.052em;
-        }
-
-        .hero-description {
-            max-width: 580px;
-            margin: 24px 0 0;
-            color: var(--muted);
-            font-size: clamp(1.05rem, 1.7vw, 1.22rem);
-        }
-
-        .actions {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 16px;
-            margin-top: 30px;
-        }
-
-        .button {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 48px;
-            padding: 0 20px;
-            border-radius: 8px;
-            background: var(--blue);
-            color: var(--button-text);
-            font-weight: 650;
-            text-decoration: none;
-            transition: background-color 0.15s ease;
-        }
-
-        .button:hover { background: var(--blue-dark); }
-
-        .requirement {
-            color: var(--muted);
-            font-size: 0.88rem;
-        }
-
-        .product-figure {
-            grid-column: 8 / -1;
-            width: min(100%, 420px);
-            margin: 0;
-            justify-self: end;
-        }
-
-        .product-stage {
-            line-height: 0;
-        }
-
-        .screenshot {
-            display: block;
-            width: 100%;
-            height: auto;
-            filter: drop-shadow(0 18px 26px var(--panel-shadow));
-        }
-
-        .install {
-            display: grid;
-            grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
-            gap: 40px;
-            align-items: center;
-            padding: 34px 38px;
-            background: var(--console);
-            color: var(--console-ink);
-        }
-
-        h2 {
-            margin: 0;
-            font-size: clamp(1.9rem, 3.7vw, 3rem);
-            line-height: 1.08;
-            letter-spacing: -0.036em;
-        }
-
-        .install h2 {
-            max-width: 360px;
-            font-size: clamp(1.45rem, 2.8vw, 2.2rem);
-        }
-
-        pre {
-            overflow-x: auto;
-            margin: 0;
-            padding: 20px 0 20px 28px;
-            border-left: 1px solid var(--console-line);
-            color: var(--console-text);
-            font: 0.92rem/1.8 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        }
-
-        .benefits {
-            display: grid;
-            grid-template-columns: repeat(12, 1fr);
-            gap: 24px;
-            padding: 112px 0 120px;
-        }
-
-        .benefits-heading { grid-column: 1 / span 4; }
-
-        .benefits-heading p {
-            max-width: 300px;
-            margin: 18px 0 0;
-            color: var(--muted);
-        }
-
-        .benefit-list {
-            grid-column: 6 / -1;
-            border-top: 1px solid var(--line);
-        }
-
-        .benefit {
-            display: grid;
-            grid-template-columns: 44px minmax(150px, 0.75fr) minmax(220px, 1.25fr);
-            gap: 20px;
-            padding: 25px 0;
-            border-bottom: 1px solid var(--line);
-        }
-
-        .benefit-number {
-            color: var(--blue-dark);
-            font: 0.78rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
-        }
-
-        .benefit h3,
-        .benefit p { margin: 0; }
-
-        .benefit h3 {
-            font-size: 1rem;
-            line-height: 1.45;
-        }
-
-        .benefit p {
-            color: var(--muted);
-            font-size: 0.92rem;
-        }
-
-        .guides {
-            display: grid;
-            grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
-            gap: 40px;
-            padding: 0 0 112px;
-        }
-
-        .guides-heading p {
-            max-width: 330px;
-            margin: 18px 0 0;
-            color: var(--muted);
-        }
-
-        .guide-list {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 16px;
-        }
-
-        .guide-card {
-            display: flex;
-            flex-direction: column;
-            min-height: 240px;
-            padding: 24px;
-            border: 1px solid var(--line);
-            color: var(--ink);
-            text-decoration: none;
-            transition: border-color 0.15s ease, background-color 0.15s ease;
-        }
-
-        .guide-card:hover {
-            border-color: var(--blue);
-            background: color-mix(in srgb, var(--blue) 7%, transparent);
-        }
-
-        .guide-kicker {
-            color: var(--blue-dark);
-            font: 0.78rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
-        }
-
-        .guide-card h3 {
-            margin: 22px 0 10px;
-            font-size: 1.05rem;
-            line-height: 1.3;
-        }
-
-        .guide-card p {
-            margin: 0;
-            color: var(--muted);
-            font-size: 0.92rem;
-        }
-
-        .guide-arrow {
-            margin-top: auto;
-            padding-top: 24px;
-            color: var(--blue-dark);
-            font-size: 0.88rem;
-            font-weight: 650;
-        }
-
-        .trust {
-            display: grid;
-            grid-template-columns: 1fr 2fr auto;
-            gap: 32px;
-            align-items: center;
-            padding: 38px 0;
-            border-top: 1px solid var(--line);
-            border-bottom: 1px solid var(--line);
-        }
-
-        .trust h2 { font-size: clamp(1.5rem, 2.8vw, 2.2rem); }
-
-        .trust p {
-            margin: 0;
-            color: var(--muted);
-            font-size: 0.95rem;
-        }
-
-        .text-link {
-            color: var(--blue-dark);
-            font-size: 0.9rem;
-            font-weight: 650;
-            padding: 8px 0;
-            text-decoration: none;
-        }
-
-        .text-link:hover {
-            text-decoration: underline;
-            text-underline-offset: 4px;
-        }
-
-        .footer {
-            display: flex;
-            justify-content: space-between;
-            gap: 24px;
-            padding: 34px 0 42px;
-            color: var(--muted);
-            font-size: 0.84rem;
-        }
-
-        .footer-links {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
-
-        :focus-visible {
-            outline: 3px solid var(--blue);
-            outline-offset: 3px;
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            *, ::before, ::after { transition-duration: 0.01ms !important; }
-        }
-
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --paper: #151613;
-                --ink: #f2f0ea;
-                --muted: #aaa8a1;
-                --line: #373832;
-                --blue: #6daaff;
-                --blue-dark: #91c0ff;
-                --button-text: #0b1726;
-                --console: #0d0f12;
-                --console-ink: #f7f7f5;
-                --console-text: #d8e8ff;
-                --console-line: #42464d;
-                --panel-shadow: rgb(0 0 0 / 38%);
-            }
-        }
-
-        @media (max-width: 860px) {
-            .hero-copy-block { grid-column: 1 / span 7; }
-            .product-figure { grid-column: 8 / -1; }
-            .benefits-heading { grid-column: 1 / span 5; }
-            .benefit-list { grid-column: 6 / -1; }
-            .guides { grid-template-columns: 1fr 2fr; }
-            .trust { grid-template-columns: 1fr 2fr; }
-            .trust .text-link { grid-column: 2; }
-        }
-
-        @media (max-width: 700px) {
-            .container { width: min(100% - 32px, 1160px); }
-            .nav a:nth-child(1) { display: none; }
-
-            .hero {
-                display: block;
-                min-height: auto;
-                padding: 60px 0 76px;
-            }
-
-            .product-figure {
-                width: min(100%, 380px);
-                margin: 54px auto 0;
-            }
-
-            .install {
-                grid-template-columns: 1fr;
-                gap: 24px;
-                padding: 28px 24px;
-            }
-
-            pre {
-                padding: 20px 0 0;
-                border-top: 1px solid var(--console-line);
-                border-left: 0;
-            }
-
-            .benefits {
-                display: block;
-                padding: 84px 0;
-            }
-
-            .benefits-heading { margin-bottom: 38px; }
-            .benefit { grid-template-columns: 34px 1fr; }
-            .benefit p { grid-column: 2; }
-
-            .guides {
-                display: block;
-                padding-bottom: 84px;
-            }
-
-            .guides-heading { margin-bottom: 38px; }
-            .guide-list { grid-template-columns: 1fr; }
-
-            .trust {
-                grid-template-columns: 1fr;
-                gap: 16px;
-            }
-
-            .trust .text-link { grid-column: 1; }
-            .footer { flex-direction: column; }
-        }
-    </style>
 </head>
-<body>
+<body class="page-home">
     <a class="skip-link" href="#main">Skip to content</a>
     <header class="site-header container">
         <a class="brand" href="./" aria-label="Dimmerly home">Dimmerly</a>
         <nav class="nav" aria-label="Primary navigation">
-            <a href="https://github.com/olujicz/Dimmerly/releases" data-analytics-event="view_releases">Releases</a>
             <a href="external-monitor-brightness.html">Guides</a>
             <a href="support.html">Support</a>
+            <a href="https://github.com/olujicz/Dimmerly/releases" data-analytics-event="view_releases">Releases</a>
             <a href="https://github.com/olujicz/Dimmerly">Source</a>
         </nav>
     </header>
@@ -541,8 +67,8 @@
                     <img class="app-icon" src="assets/dimmerly-icon.png" width="48" height="48" alt="">
                     <span>Dimmerly for macOS</span>
                 </div>
-                <h1>Control external monitor brightness on macOS.</h1>
-                <p class="hero-description">Dimmerly puts per-display brightness, warmth, contrast, and DDC/CI controls in the macOS menu bar. Save presets and schedules, with software dimming when hardware control is unavailable.</p>
+                <h1>Every display on your Mac, tuned from the menu bar.</h1>
+                <p class="hero-description">Dimmerly puts per-display brightness, warmth, contrast, and external monitor hardware controls in the macOS menu bar. Save presets and schedules, with software dimming when hardware control is unavailable.</p>
                 <div class="actions">
                     <a class="button" href="https://github.com/olujicz/Dimmerly/releases/latest" data-analytics-event="download_direct">Download for macOS</a>
                     <span class="requirement">Requires macOS 15 Sequoia or later</span>
@@ -550,15 +76,20 @@
             </div>
             <figure class="product-figure">
                 <div class="product-stage">
-                    <img class="screenshot" src="assets/dimmerly-menu.png" width="600" height="570" fetchpriority="high" decoding="async" alt="Dimmerly menu bar panel showing display brightness, automatic warmth, presets, and display sleep controls">
+                    <img class="screenshot" src="assets/dimmerly-menu.png" srcset="assets/dimmerly-menu.png 1x, assets/dimmerly-menu@2x.png 2x" width="600" height="570" fetchpriority="high" decoding="async" alt="Dimmerly menu bar panel showing display brightness, automatic warmth, presets, and display sleep controls">
                 </div>
             </figure>
         </section>
 
         <section class="install container" aria-labelledby="install-title">
-            <h2 id="install-title">Install the full build with Homebrew.</h2>
-            <pre aria-label="Homebrew installation commands" data-analytics-event="view_homebrew_install"><code>brew tap olujicz/dimmerly
+            <div>
+                <h2 id="install-title">Install with Homebrew.</h2>
+                <p class="install-note">This installs the direct build, which includes the DDC/CI hardware controls.</p>
+            </div>
+            <div class="code-block" role="group" aria-label="Homebrew installation commands" data-analytics-event="view_homebrew_install">
+                <pre tabindex="0"><code>brew tap olujicz/dimmerly
 brew install --cask dimmerly</code></pre>
+            </div>
         </section>
 
         <section class="benefits container" aria-labelledby="benefits-title">
@@ -621,12 +152,14 @@ brew install --cask dimmerly</code></pre>
     <footer class="footer container">
         <span>Dimmerly · Open source under the MIT License</span>
         <div class="footer-links">
-            <a href="https://github.com/olujicz/Dimmerly/releases" data-analytics-event="view_releases">Releases</a>
-            <a href="external-monitor-brightness.html">Guides</a>
+            <a href="external-monitor-brightness.html">External monitor guide</a>
+            <a href="multi-monitor-control.html">Multi-monitor guide</a>
             <a href="support.html">Support</a>
             <a href="privacy-policy.html">Privacy</a>
+            <a href="https://github.com/olujicz/Dimmerly/releases" data-analytics-event="view_releases">Releases</a>
             <a href="https://github.com/olujicz/Dimmerly">Source</a>
         </div>
     </footer>
+    <script src="site.js" defer></script>
 </body>
 </html>
