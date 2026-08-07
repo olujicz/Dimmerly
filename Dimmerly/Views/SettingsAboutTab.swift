@@ -39,7 +39,7 @@ struct AboutSettingsTab: View {
 
                 ExternalLinkButton(
                     title: String(localized: "Privacy Policy", comment: "About link title"),
-                    urlString: "https://olujicz.github.io/Dimmerly/privacy-policy.html",
+                    urlString: "https://dimmerly.olujic.in.rs/privacy-policy.html",
                     helpText: String(localized: "Open the Dimmerly privacy policy", comment: "About link help text")
                 )
 

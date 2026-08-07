@@ -3,28 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Dimmerly is a private, open-source macOS menu bar app for brightness, warmth, presets, schedules, and external monitor controls.">
+    <meta name="description" content="Control external monitor brightness on macOS with Dimmerly, a private open-source menu bar app for DDC/CI hardware controls, software dimming, per-display settings, presets, and schedules.">
     <meta name="theme-color" content="#f3f1ec" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#151613" media="(prefers-color-scheme: dark)">
-    <title>Dimmerly — Better display controls for macOS</title>
-    <link rel="canonical" href="https://olujicz.github.io/Dimmerly/">
+    <title>Dimmerly — External monitor brightness for macOS</title>
+    <link rel="canonical" href="https://dimmerly.olujic.in.rs/">
     <link rel="icon" href="assets/dimmerly-icon.png" type="image/png">
     <link rel="apple-touch-icon" href="assets/dimmerly-icon.png">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Dimmerly">
-    <meta property="og:title" content="Dimmerly — Better display controls for macOS">
-    <meta property="og:description" content="A private, open-source macOS menu bar app for per-display brightness, warmth, contrast, presets, schedules, and external monitor controls.">
-    <meta property="og:url" content="https://olujicz.github.io/Dimmerly/">
-    <meta property="og:image" content="https://olujicz.github.io/Dimmerly/assets/dimmerly-social-preview.jpg">
+    <meta property="og:title" content="Dimmerly — External monitor brightness for macOS">
+    <meta property="og:description" content="Control external monitor brightness on macOS with DDC/CI hardware controls, software dimming, per-display settings, presets, and schedules.">
+    <meta property="og:url" content="https://dimmerly.olujic.in.rs/">
+    <meta property="og:image" content="https://dimmerly.olujic.in.rs/assets/dimmerly-social-preview.jpg">
     <meta property="og:image:width" content="1280">
     <meta property="og:image:height" content="640">
     <meta property="og:image:type" content="image/jpeg">
     <meta property="og:image:alt" content="Dimmerly app icon and menu bar display controls">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Dimmerly — Better display controls for macOS">
-    <meta name="twitter:description" content="A private, open-source macOS menu bar app for per-display brightness, warmth, contrast, presets, schedules, and external monitor controls.">
-    <meta name="twitter:image" content="https://olujicz.github.io/Dimmerly/assets/dimmerly-social-preview.jpg">
+    <meta name="twitter:title" content="Dimmerly — External monitor brightness for macOS">
+    <meta name="twitter:description" content="Control external monitor brightness on macOS with DDC/CI hardware controls, software dimming, per-display settings, presets, and schedules.">
+    <meta name="twitter:image" content="https://dimmerly.olujic.in.rs/assets/dimmerly-social-preview.jpg">
     <meta name="twitter:image:alt" content="Dimmerly app icon and menu bar display controls">
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            "name": "Dimmerly",
+            "description": "Control external monitor brightness on macOS with DDC/CI hardware controls, software dimming, per-display settings, presets, and schedules.",
+            "url": "https://dimmerly.olujic.in.rs/",
+            "downloadUrl": "https://github.com/olujicz/Dimmerly/releases/latest",
+            "sameAs": "https://github.com/olujicz/Dimmerly",
+            "applicationCategory": "DesktopEnhancementApplication",
+            "operatingSystem": "macOS 15 Sequoia or later",
+            "isAccessibleForFree": true,
+            "offers": {
+                "@type": "Offer",
+                "price": 0,
+                "priceCurrency": "USD"
+            },
+            "license": "https://github.com/olujicz/Dimmerly/blob/main/LICENSE"
+        }
+    </script>
     <style>
         :root {
             color-scheme: light dark;
@@ -304,6 +324,68 @@
             font-size: 0.92rem;
         }
 
+        .guides {
+            display: grid;
+            grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
+            gap: 40px;
+            padding: 0 0 112px;
+        }
+
+        .guides-heading p {
+            max-width: 330px;
+            margin: 18px 0 0;
+            color: var(--muted);
+        }
+
+        .guide-list {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .guide-card {
+            display: flex;
+            flex-direction: column;
+            min-height: 240px;
+            padding: 24px;
+            border: 1px solid var(--line);
+            color: var(--ink);
+            text-decoration: none;
+            transition: border-color 0.15s ease, background-color 0.15s ease;
+        }
+
+        .guide-card:hover {
+            border-color: var(--blue);
+            background: color-mix(in srgb, var(--blue) 7%, transparent);
+        }
+
+        .guide-kicker {
+            color: var(--blue-dark);
+            font: 0.78rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .guide-card h3 {
+            margin: 22px 0 10px;
+            font-size: 1.05rem;
+            line-height: 1.3;
+        }
+
+        .guide-card p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .guide-arrow {
+            margin-top: auto;
+            padding-top: 24px;
+            color: var(--blue-dark);
+            font-size: 0.88rem;
+            font-weight: 650;
+        }
+
         .trust {
             display: grid;
             grid-template-columns: 1fr 2fr auto;
@@ -381,6 +463,7 @@
             .product-figure { grid-column: 8 / -1; }
             .benefits-heading { grid-column: 1 / span 5; }
             .benefit-list { grid-column: 6 / -1; }
+            .guides { grid-template-columns: 1fr 2fr; }
             .trust { grid-template-columns: 1fr 2fr; }
             .trust .text-link { grid-column: 2; }
         }
@@ -421,6 +504,14 @@
             .benefit { grid-template-columns: 34px 1fr; }
             .benefit p { grid-column: 2; }
 
+            .guides {
+                display: block;
+                padding-bottom: 84px;
+            }
+
+            .guides-heading { margin-bottom: 38px; }
+            .guide-list { grid-template-columns: 1fr; }
+
             .trust {
                 grid-template-columns: 1fr;
                 gap: 16px;
@@ -436,7 +527,8 @@
     <header class="site-header container">
         <a class="brand" href="./" aria-label="Dimmerly home">Dimmerly</a>
         <nav class="nav" aria-label="Primary navigation">
-            <a href="https://github.com/olujicz/Dimmerly/releases">Releases</a>
+            <a href="https://github.com/olujicz/Dimmerly/releases" data-analytics-event="view_releases">Releases</a>
+            <a href="external-monitor-brightness.html">Guides</a>
             <a href="support.html">Support</a>
             <a href="https://github.com/olujicz/Dimmerly">Source</a>
         </nav>
@@ -449,10 +541,10 @@
                     <img class="app-icon" src="assets/dimmerly-icon.png" width="48" height="48" alt="">
                     <span>Dimmerly for macOS</span>
                 </div>
-                <h1>Display controls that belong in the menu bar.</h1>
-                <p class="hero-description">Dimmerly gives each screen its own brightness, warmth, contrast, presets, schedules, and sleep controls—without digging through monitor menus.</p>
+                <h1>Control external monitor brightness on macOS.</h1>
+                <p class="hero-description">Dimmerly puts per-display brightness, warmth, contrast, and DDC/CI controls in the macOS menu bar. Save presets and schedules, with software dimming when hardware control is unavailable.</p>
                 <div class="actions">
-                    <a class="button" href="https://github.com/olujicz/Dimmerly/releases/latest">Download for macOS</a>
+                    <a class="button" href="https://github.com/olujicz/Dimmerly/releases/latest" data-analytics-event="download_direct">Download for macOS</a>
                     <span class="requirement">Requires macOS 15 Sequoia or later</span>
                 </div>
             </div>
@@ -465,7 +557,7 @@
 
         <section class="install container" aria-labelledby="install-title">
             <h2 id="install-title">Install the full build with Homebrew.</h2>
-            <pre aria-label="Homebrew installation commands"><code>brew tap olujicz/dimmerly
+            <pre aria-label="Homebrew installation commands" data-analytics-event="view_homebrew_install"><code>brew tap olujicz/dimmerly
 brew install --cask dimmerly</code></pre>
         </section>
 
@@ -498,6 +590,27 @@ brew install --cask dimmerly</code></pre>
             </div>
         </section>
 
+        <section class="guides container" aria-labelledby="guides-title">
+            <div class="guides-heading">
+                <h2 id="guides-title">Make your display setup easier to manage.</h2>
+                <p>Learn how hardware control works, what the App Store build supports, and how to set up multiple monitors.</p>
+            </div>
+            <div class="guide-list">
+                <a class="guide-card" href="external-monitor-brightness.html">
+                    <span class="guide-kicker">DDC/CI guide</span>
+                    <h3>Control an external monitor&rsquo;s brightness</h3>
+                    <p>Understand hardware control, software fallback, and the connection issues that can block DDC/CI.</p>
+                    <span class="guide-arrow">Read the guide <span aria-hidden="true">→</span></span>
+                </a>
+                <a class="guide-card" href="multi-monitor-control.html">
+                    <span class="guide-kicker">Setup guide</span>
+                    <h3>Manage multiple monitors from one Mac</h3>
+                    <p>Set up independent display controls, presets, schedules, and shortcuts for a multi-monitor desk.</p>
+                    <span class="guide-arrow">Read the guide <span aria-hidden="true">→</span></span>
+                </a>
+            </div>
+        </section>
+
         <section class="trust container" aria-labelledby="trust-title">
             <h2 id="trust-title">Local settings. Public source.</h2>
             <p>Dimmerly has no analytics, tracking, ads, or app-managed network requests. It is open source under the MIT License.</p>
@@ -508,7 +621,8 @@ brew install --cask dimmerly</code></pre>
     <footer class="footer container">
         <span>Dimmerly · Open source under the MIT License</span>
         <div class="footer-links">
-            <a href="https://github.com/olujicz/Dimmerly/releases">Releases</a>
+            <a href="https://github.com/olujicz/Dimmerly/releases" data-analytics-event="view_releases">Releases</a>
+            <a href="external-monitor-brightness.html">Guides</a>
             <a href="support.html">Support</a>
             <a href="privacy-policy.html">Privacy</a>
             <a href="https://github.com/olujicz/Dimmerly">Source</a>

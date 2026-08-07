@@ -167,7 +167,7 @@ sunrise and sunset schedules, macOS Location Services provides the coordinate
 used for the calculation. Dimmerly does not send that coordinate to a
 developer-owned service.
 
-Read the full [Privacy Policy](https://olujicz.github.io/Dimmerly/privacy-policy.html).
+Read the full [Privacy Policy](https://dimmerly.olujic.in.rs/privacy-policy.html).
 
 ## Troubleshooting
 
