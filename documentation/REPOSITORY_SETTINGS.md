@@ -57,8 +57,13 @@ GitHub Pages must use **GitHub Actions** as its publishing source. The
 `.github/workflows/pages.yml` workflow builds the public static site from:
 
 - `documentation/index.html`
+- `documentation/external-monitor-brightness.html`
+- `documentation/multi-monitor-control.html`
+- `documentation/guides.css`
 - `documentation/privacy-policy.html`
 - `documentation/support.html`
+- `documentation/robots.txt`
+- `documentation/sitemap.xml`
 - `images/image1.png`, published as `assets/dimmerly-menu.png`
 - `images/github-social-preview.jpg`, published as
   `assets/dimmerly-social-preview.jpg`
@@ -70,14 +75,18 @@ published to GitHub Pages.
 
 These public URLs must resolve:
 
-- `https://olujicz.github.io/Dimmerly/`
-- `https://olujicz.github.io/Dimmerly/privacy-policy.html`
-- `https://olujicz.github.io/Dimmerly/support.html`
+- `https://dimmerly.olujic.in.rs/`
+- `https://dimmerly.olujic.in.rs/external-monitor-brightness.html`
+- `https://dimmerly.olujic.in.rs/multi-monitor-control.html`
+- `https://dimmerly.olujic.in.rs/privacy-policy.html`
+- `https://dimmerly.olujic.in.rs/support.html`
+- `https://dimmerly.olujic.in.rs/robots.txt`
+- `https://dimmerly.olujic.in.rs/sitemap.xml`
 
 Set the repository **Website** field to:
 
 ```text
-https://olujicz.github.io/Dimmerly/
+https://dimmerly.olujic.in.rs/
 ```
 
 ## Security
