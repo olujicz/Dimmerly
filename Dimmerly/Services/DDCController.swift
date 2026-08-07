@@ -40,6 +40,7 @@
     import CoreGraphics
     import Foundation
     import IOKit
+    import OSLog
 
     // MARK: - VCP Code Definitions
 
@@ -175,6 +176,11 @@
     /// All operations are synchronous (~50ms per transaction). Callers should dispatch
     /// off the main thread and rate-limit writes. Thread-safe but serialize per display.
     enum DDCController {
+        private static let logger = Logger(
+            subsystem: Bundle.main.bundleIdentifier ?? "rs.in.olujic.dimmerly",
+            category: "DDCController"
+        )
+
         // MARK: - DDC I2C Protocol Constants
 
         /// Standard DDC/CI I2C slave address (0x37 << 1 = 0x6E for write, 0x6F for read).
@@ -751,11 +757,12 @@
 
             /// Reads a VCP code via IOAVService with retry logic.
             ///
-            /// The `hostAddress` (0x51) is passed as the I2C register/sub-address parameter,
-            /// matching the behavior of MonitorControl, m1ddc, and AppleSiliconDDC.
+            /// Writes use `hostAddress` (0x51) as the I2C register/sub-address. Reads use
+            /// offset zero, matching MonitorControl's Apple Silicon transport contract.
             /// IOAVServiceWriteI2C transmits 0x51 on the bus as a data byte before the
-            /// payload, so it is correctly included in the checksum per DDC/CI spec.
+            /// payload, so it remains included in the checksum per DDC/CI spec.
             private static func readViaService(avService: CFTypeRef, vcp: VCPCode) -> DDCReadResult? {
+                let vcpHex = String(format: "%02X", vcp.rawValue)
                 for attempt in 0 ..< maxRetryAttempts {
                     if attempt > 0 {
                         usleep(retryDelayMs * 1000)
@@ -763,32 +770,45 @@
 
                     var writeData = DDCPacketCodec.getRequest(for: vcp, includeHostAddress: false)
                     var writeOK = false
+                    var lastWriteResult = IOReturn(kIOReturnError)
                     for cycle in 0 ..< writeCyclesPerAttempt {
                         if cycle > 0 {
                             usleep(writeCycleDelayMs * 1000)
                         }
-                        let r = IOAVServiceWriteI2C(
+                        lastWriteResult = IOAVServiceWriteI2C(
                             avService, ddcI2CAddress, UInt32(hostAddress),
                             &writeData, UInt32(writeData.count)
                         )
-                        if r == KERN_SUCCESS {
+                        if lastWriteResult == KERN_SUCCESS {
                             writeOK = true
                         }
                     }
-                    guard writeOK else { continue }
+                    guard writeOK else {
+                        logger.debug("DDC write 0x\(vcpHex, privacy: .public) failed: \(lastWriteResult)")
+                        continue
+                    }
 
                     usleep(transactionDelayMs * 1000)
 
-                    var readData = [UInt8](repeating: 0, count: 12)
+                    var readData = [UInt8](
+                        repeating: 0,
+                        count: DDCAppleSiliconReadContract.replyLength
+                    )
                     let r = IOAVServiceReadI2C(
-                        avService, ddcI2CAddress, UInt32(hostAddress),
+                        avService, ddcI2CAddress, DDCAppleSiliconReadContract.dataAddress,
                         &readData, UInt32(readData.count)
                     )
-                    guard r == KERN_SUCCESS else { continue }
+                    guard r == KERN_SUCCESS else {
+                        logger.debug("DDC read 0x\(vcpHex, privacy: .public) attempt \(attempt + 1) failed: \(r)")
+                        continue
+                    }
 
                     if let result = DDCPacketCodec.parseGetReply(readData, expectedVCP: vcp) {
                         return result
                     }
+
+                    let replyHex = readData.map { String(format: "%02X", $0) }.joined(separator: " ")
+                    logger.debug("Invalid DDC reply 0x\(vcpHex, privacy: .public): \(replyHex, privacy: .public)")
                 }
                 return nil
             }
@@ -852,9 +872,12 @@
 
                     usleep(transactionDelayMs * 1000)
 
-                    var readData = [UInt8](repeating: 0, count: 12)
+                    var readData = [UInt8](
+                        repeating: 0,
+                        count: DDCAppleSiliconReadContract.replyLength
+                    )
                     let r = readFn(
-                        avDevice, ddcI2CAddress, UInt32(hostAddress),
+                        avDevice, ddcI2CAddress, DDCAppleSiliconReadContract.dataAddress,
                         &readData, UInt32(readData.count)
                     )
                     guard r == KERN_SUCCESS else { continue }
@@ -938,11 +961,18 @@
 
                         usleep(transactionDelayMs * 1000)
 
-                        var readData = [UInt8](repeating: 0, count: 12)
+                        var readData = [UInt8](
+                            repeating: 0,
+                            count: DDCAppleSiliconReadContract.replyLength
+                        )
                         var outSize = readData.count
+                        var readScalarIn: [UInt64] = [
+                            UInt64(ddcI2CAddress),
+                            UInt64(DDCAppleSiliconReadContract.dataAddress),
+                        ]
 
                         let rr = readData.withUnsafeMutableBufferPointer { rBuf in
-                            scalarIn.withUnsafeMutableBufferPointer { sBuf in
+                            readScalarIn.withUnsafeMutableBufferPointer { sBuf in
                                 IOConnectCallMethod(
                                     connect, readSel,
                                     sBuf.baseAddress, UInt32(sBuf.count),
