@@ -16,6 +16,11 @@ import XCTest
 #if !APPSTORE
 
     final class DDCControllerTests: XCTestCase {
+        func testAppleSiliconReadContractUsesZeroOffsetAndElevenByteReply() {
+            XCTAssertEqual(DDCAppleSiliconReadContract.dataAddress, 0)
+            XCTAssertEqual(DDCAppleSiliconReadContract.replyLength, 11)
+        }
+
         func testPacketCodecBuildsServiceAndIntelGetRequests() {
             XCTAssertEqual(
                 DDCPacketCodec.getRequest(for: .brightness, includeHostAddress: false),
