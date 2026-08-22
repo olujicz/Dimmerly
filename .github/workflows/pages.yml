@@ -52,6 +52,17 @@ jobs:
           cp images/github-social-preview.jpg build/pages/assets/dimmerly-social-preview.jpg
           cp Dimmerly/Resources/Assets.xcassets/AppIcon.appiconset/icon_256.png build/pages/assets/dimmerly-icon.png
           touch build/pages/.nojekyll
+
+      - name: Inject Cloudflare Web Analytics token
+        env:
+          CLOUDFLARE_WEB_ANALYTICS_TOKEN: ${{ secrets.CLOUDFLARE_WEB_ANALYTICS_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_WEB_ANALYTICS_TOKEN"
+          for page in build/pages/*.html; do
+            sed -i "s|__CLOUDFLARE_WEB_ANALYTICS_TOKEN__|$CLOUDFLARE_WEB_ANALYTICS_TOKEN|g" "$page"
+          done
+
           test -s build/pages/index.html
           test -s build/pages/external-monitor-brightness.html
           test -s build/pages/multi-monitor-control.html
@@ -65,6 +76,10 @@ jobs:
           test -s build/pages/assets/dimmerly-menu.png
           test -s build/pages/assets/dimmerly-social-preview.jpg
           test -s build/pages/assets/dimmerly-icon.png
+          for page in build/pages/*.html; do
+            test "$(grep -c 'https://static.cloudflareinsights.com/beacon.min.js' "$page")" -eq 1
+            grep -q 'data-cf-beacon' "$page"
+          done
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v5
