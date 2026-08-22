@@ -1,3 +1,7 @@
+// Cloudflare Web Analytics currently reports page views and performance, but
+// does not support custom events. The data-analytics-event attributes in the
+// markup stay reserved for a future event-capable analytics integration.
+//
 // Adds a copy button to each code block. The button is created here rather
 // than in the markup so pages without JavaScript never show a dead control.
 (function () {
