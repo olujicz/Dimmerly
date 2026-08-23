@@ -1039,16 +1039,24 @@ class BrightnessManager {
     }
 
     func persistAll() {
-        var brightnessDict: [String: Double] = [:]
-        var warmthDict: [String: Double] = [:]
-        var contrastDict: [String: Double] = [:]
+        var brightnessDict = loadPersistedBrightness()
+        var warmthDict = loadPersistedWarmth()
+        var contrastDict = loadPersistedContrast()
         for display in displays {
             // Keyed by stable identity, so the values are still found after the display is
             // re-enumerated under a different CGDirectDisplayID.
             let key = displayIdentity(for: display.id)
+            let legacyKey = String(display.id)
             brightnessDict[key] = display.brightness
             warmthDict[key] = display.warmth
             contrastDict[key] = display.contrast
+            if key != legacyKey {
+                // Migrate this connected display away from the old ephemeral ID key. Keep
+                // unrelated legacy entries so disconnected displays can recover their settings.
+                brightnessDict.removeValue(forKey: legacyKey)
+                warmthDict.removeValue(forKey: legacyKey)
+                contrastDict.removeValue(forKey: legacyKey)
+            }
         }
         defaults.set(brightnessDict, forKey: persistenceKey)
         defaults.set(warmthDict, forKey: warmthPersistenceKey)
