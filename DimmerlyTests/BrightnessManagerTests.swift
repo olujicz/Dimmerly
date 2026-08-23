@@ -766,6 +766,70 @@ final class BrightnessManagerTests: XCTestCase {
         XCTAssertEqual(manager.displays[0].contrast, 0.72, accuracy: 0.0001, "Legacy contrast must migrate")
     }
 
+    func testPersistAllPreservesSettingsForDisconnectedDisplays() throws {
+        let suiteName = "BrightnessManagerTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        defaults.set(["disconnected": 0.31], forKey: "dimmerlyDisplayBrightness")
+        defaults.set(["disconnected": 0.42], forKey: "dimmerlyDisplayWarmth")
+        defaults.set(["disconnected": 0.73], forKey: "dimmerlyDisplayContrast")
+
+        let manager = BrightnessManager(forTesting: true, defaults: defaults)
+        manager.displayIdentityHook = { displayID in
+            displayID == 2 ? "connected" : "disconnected"
+        }
+        manager.displays = [
+            ExternalDisplay(id: 2, name: "Connected", brightness: 0.8, warmth: 0.6, contrast: 0.55),
+        ]
+
+        manager.persistAll()
+
+        XCTAssertEqual(
+            defaults.dictionary(forKey: "dimmerlyDisplayBrightness") as? [String: Double],
+            ["disconnected": 0.31, "connected": 0.8]
+        )
+        XCTAssertEqual(
+            defaults.dictionary(forKey: "dimmerlyDisplayWarmth") as? [String: Double],
+            ["disconnected": 0.42, "connected": 0.6]
+        )
+        XCTAssertEqual(
+            defaults.dictionary(forKey: "dimmerlyDisplayContrast") as? [String: Double],
+            ["disconnected": 0.73, "connected": 0.55]
+        )
+    }
+
+    func testPersistAllMigratesConnectedDisplayAwayFromLegacyIDKey() throws {
+        let suiteName = "BrightnessManagerTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        defaults.set(["4": 0.31, "disconnected": 0.62], forKey: "dimmerlyDisplayBrightness")
+        defaults.set(["4": 0.42, "disconnected": 0.53], forKey: "dimmerlyDisplayWarmth")
+        defaults.set(["4": 0.73, "disconnected": 0.84], forKey: "dimmerlyDisplayContrast")
+
+        let manager = BrightnessManager(forTesting: true, defaults: defaults)
+        manager.displayIdentityHook = { _ in "v4268m53409s305419896" }
+        manager.displays = [
+            ExternalDisplay(id: 4, name: "Connected", brightness: 0.8, warmth: 0.6, contrast: 0.55),
+        ]
+
+        manager.persistAll()
+
+        XCTAssertEqual(
+            defaults.dictionary(forKey: "dimmerlyDisplayBrightness") as? [String: Double],
+            ["v4268m53409s305419896": 0.8, "disconnected": 0.62]
+        )
+        XCTAssertEqual(
+            defaults.dictionary(forKey: "dimmerlyDisplayWarmth") as? [String: Double],
+            ["v4268m53409s305419896": 0.6, "disconnected": 0.53]
+        )
+        XCTAssertEqual(
+            defaults.dictionary(forKey: "dimmerlyDisplayContrast") as? [String: Double],
+            ["v4268m53409s305419896": 0.55, "disconnected": 0.84]
+        )
+    }
+
     // MARK: - Re-Asserting Gamma After an External Reset
 
     /// macOS wipes the gamma table late in a display wake, after the app's wake handler has run.
