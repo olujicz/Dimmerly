@@ -203,6 +203,11 @@
         /// so multiple failures cannot create duplicate probes for the same control.
         private var recoveryProbeTasks: [WriteKey: Task<Void, Never>] = [:]
 
+        /// Monotonic connection incarnation per display ID. A CoreGraphics display ID can be
+        /// reused after a disconnect, so capability equality alone cannot identify the same
+        /// physical connection.
+        private var displayIncarnation: [CGDirectDisplayID: UInt64] = [:]
+
         /// Monotonic per-key counter so a debounced write's own completion can tell whether
         /// it's still the current pending attempt for its key before clearing `pendingWrites`
         /// — a newer `debouncedWrite` call for the same key may have already taken the slot.
@@ -214,6 +219,9 @@
         var pendingWorkCountForTesting: Int {
             pendingWrites.count + pendingHardwareWrites.values.reduce(0, +)
         }
+
+        /// Test seam for waiting until an asynchronous read has attempted publication.
+        var readPublicationHookForTesting: (() -> Void)?
 
         /// Polling interval for DDC reads (seconds).
         var pollingInterval: TimeInterval = 5.0
@@ -367,6 +375,7 @@
                     guard let self, sessionGate.isCurrent(session) else { return }
                     let stillConnected = Set(connectedExternalDisplayIDsProvider())
                     for (displayID, cap) in results where stillConnected.contains(displayID) {
+                        advanceDisplayIncarnation(for: displayID)
                         capabilities[displayID] = cap
                         cancelRecoveryProbes(for: displayID)
                         // A fresh probe gets a fresh failure budget — otherwise a display that
@@ -571,6 +580,7 @@
 
         /// Cleans up state for disconnected displays.
         func removeDisplay(_ displayID: CGDirectDisplayID) {
+            advanceDisplayIncarnation(for: displayID)
             capabilities.removeValue(forKey: displayID)
             hardwareBrightness.removeValue(forKey: displayID)
             hardwareContrast.removeValue(forKey: displayID)
@@ -617,6 +627,7 @@
         private func readAllValues(for displayID: CGDirectDisplayID) {
             guard let session = sessionGate.capture() else { return }
             guard let cap = capabilities[displayID], cap.supportsDDC else { return }
+            let incarnation = displayIncarnation[displayID] ?? 0
 
             let ddcIO = ddcInterface
             let ddcQueue = ddcQueue
@@ -667,7 +678,12 @@
 
                 // Apply all read values on the main actor in a single hop
                 Task { @MainActor [weak self] in
-                    guard let self, sessionGate.isCurrent(session) else { return }
+                    guard let self else { return }
+                    defer { readPublicationHookForTesting?() }
+                    guard sessionGate.isCurrent(session),
+                          capabilities[displayID] == cap,
+                          displayIncarnation[displayID] == incarnation
+                    else { return }
                     if let brightness, shouldApplyRead(vcp: .brightness, for: displayID, readStartedAt: readStartedAt) {
                         hardwareBrightness[displayID] = brightness
                     }
@@ -859,6 +875,10 @@
                 recoveryProbeTasks[key]?.cancel()
                 recoveryProbeTasks.removeValue(forKey: key)
             }
+        }
+
+        private func advanceDisplayIncarnation(for displayID: CGDirectDisplayID) {
+            displayIncarnation[displayID] = (displayIncarnation[displayID] ?? 0) &+ 1
         }
 
         private func markLocalWrite(vcp: VCPCode, for displayID: CGDirectDisplayID) {
