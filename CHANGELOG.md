@@ -7,6 +7,17 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+## [1.1.4] - 2026-08-23
+
+### Changed
+- Refreshed the public website with a custom domain, consistent navigation and styling, expanded monitor guides, support content, metadata, and a branded 404 page.
+- Added privacy-safe Cloudflare Web Analytics to the public website while keeping the analytics token out of the repository.
+
+### Fixed
+- Fixed Apple Silicon DDC/CI reads by using the correct read offset and reply length for the display transport.
+- Fixed saved brightness, warmth, and contrast being overwritten when a display temporarily disconnects during hot-plug or sleep/wake.
+- Fixed stale DDC/CI values from an in-flight read being restored after a display was removed or reconnected under a reused identifier.
+
 ## [1.1.3] - 2026-08-03
 
 ### Fixed
