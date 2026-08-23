@@ -629,6 +629,66 @@ import XCTest
             XCTAssertEqual(manager.hardwareVolume[1], 0.8)
         }
 
+        func testRemoveDisplayRejectsStaleReadPublication() async {
+            let readStarted = expectation(description: "Read started")
+            let publicationAttempted = expectation(description: "Read publication attempted")
+            let blockingRead = BlockingDDCRead(callStarted: readStarted)
+            var mock = MockDDCInterface()
+            mock.readHandler = { _, _ in blockingRead.read() }
+            let manager = HardwareBrightnessManager(forTesting: true, ddcInterface: mock)
+            manager.readPublicationHookForTesting = { publicationAttempted.fulfill() }
+            manager.enable()
+            manager.pollingInterval = 0.01
+            manager.capabilities[1] = HardwareDisplayCapability(
+                displayID: 1,
+                supportsDDC: true,
+                supportedCodes: [.volume],
+                maxBrightness: 0,
+                maxContrast: 0,
+                maxVolume: 100
+            )
+
+            manager.startPolling()
+            await fulfillment(of: [readStarted], timeout: 1)
+            manager.removeDisplay(1)
+            blockingRead.release()
+            await fulfillment(of: [publicationAttempted], timeout: 1)
+
+            XCTAssertNil(manager.capabilities[1])
+            XCTAssertNil(manager.hardwareVolume[1])
+        }
+
+        func testReconnectedDisplayRejectsReadFromPreviousIncarnation() async {
+            let readStarted = expectation(description: "Read started")
+            let publicationAttempted = expectation(description: "Read publication attempted")
+            let blockingRead = BlockingDDCRead(callStarted: readStarted)
+            var mock = MockDDCInterface()
+            mock.readHandler = { _, _ in blockingRead.read() }
+            let manager = HardwareBrightnessManager(forTesting: true, ddcInterface: mock)
+            manager.readPublicationHookForTesting = { publicationAttempted.fulfill() }
+            manager.enable()
+            manager.pollingInterval = 0.01
+            let capability = HardwareDisplayCapability(
+                displayID: 1,
+                supportsDDC: true,
+                supportedCodes: [.volume],
+                maxBrightness: 0,
+                maxContrast: 0,
+                maxVolume: 100
+            )
+            manager.capabilities[1] = capability
+
+            manager.startPolling()
+            await fulfillment(of: [readStarted], timeout: 1)
+            manager.removeDisplay(1)
+            manager.capabilities[1] = capability
+            manager.hardwareVolume[1] = 0.8
+            blockingRead.release()
+            await fulfillment(of: [publicationAttempted], timeout: 1)
+
+            XCTAssertEqual(manager.hardwareVolume[1], 0.8)
+        }
+
         private func brightnessAndVolumeCapability(displayID: CGDirectDisplayID) -> HardwareDisplayCapability {
             HardwareDisplayCapability(
                 displayID: displayID,
