@@ -133,6 +133,8 @@ final class PresetManagerTests: XCTestCase {
     // MARK: - updatePreset
 
     func testUpdatePresetCapturesCurrentValues() {
+        let displayIdentity = "test-display-1"
+        bm.displayIdentityHook = { "test-display-\($0)" }
         bm.displays = [
             ExternalDisplay(id: 1, name: "A", brightness: 0.6, warmth: 0.3, contrast: 0.7),
         ]
@@ -151,9 +153,9 @@ final class PresetManagerTests: XCTestCase {
         guard let updated = manager.presets.first(where: { $0.id == preset.id }) else {
             XCTFail("Updated preset not found"); return
         }
-        XCTAssertEqual(updated.displayBrightness["1"], 0.4)
-        XCTAssertEqual(updated.displayWarmth?["1"], 0.8)
-        XCTAssertEqual(updated.displayContrast?["1"], 0.2)
+        XCTAssertEqual(updated.displayBrightness[displayIdentity], 0.4)
+        XCTAssertEqual(updated.displayWarmth?[displayIdentity], 0.8)
+        XCTAssertEqual(updated.displayContrast?[displayIdentity], 0.2)
     }
 
     func testUpdatePresetClearsUniversalValues() {
