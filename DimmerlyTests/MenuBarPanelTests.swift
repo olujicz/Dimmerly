@@ -28,6 +28,23 @@ private final class ClosePanelSpy {
     }
 }
 
+@MainActor
+private final class PopoverSpy: NSPopover {
+    private(set) var didShow = false
+    private(set) var presentedRect: NSRect?
+    private weak var presentedView: NSView?
+
+    override func show(relativeTo positioningRect: NSRect, of positioningView: NSView, preferredEdge _: NSRectEdge) {
+        didShow = true
+        presentedRect = positioningRect
+        presentedView = positioningView
+    }
+
+    func isPresented(relativeTo rect: NSRect, of view: NSView) -> Bool {
+        didShow && presentedRect == rect && presentedView === view
+    }
+}
+
 final class MenuBarPanelTests: XCTestCase {
     func testAutoTemperatureBadgeUsesAdaptiveHighContrastTreatment() throws {
         let repositoryURL = URL(fileURLWithPath: #filePath)
@@ -117,30 +134,22 @@ final class MenuBarPanelTests: XCTestCase {
     }
 
     @MainActor
-    func testMenuBarPanelPresenterShowsPublicPopoverWithAppKitAnchor() {
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 240, height: 80),
-            styleMask: [.titled, .closable],
-            backing: .buffered,
-            defer: false
-        )
+    func testMenuBarPanelPresenterUsesPublicPopoverWithAppKitAnchor() {
         let button = NSButton(frame: NSRect(x: 100, y: 20, width: 40, height: 24))
-        window.contentView = button
-        window.makeKeyAndOrderFront(nil)
-
-        let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        let presenter = MenuBarPanelPresenter {
-            (button.bounds, button)
-        }
+        let popover = PopoverSpy()
+        let presenter = MenuBarPanelPresenter(
+            anchorProvider: {
+                (button.bounds, button)
+            },
+            popoverFactory: { popover }
+        )
         defer {
             presenter.dismiss()
-            window.close()
-            NSStatusBar.system.removeStatusItem(statusItem)
         }
 
         var contentBuildCount = 0
         presenter.configure(
-            statusItem: statusItem,
+            statusItem: nil,
             contentBuilder: { _ in
                 contentBuildCount += 1
                 return NSViewController()
@@ -151,7 +160,7 @@ final class MenuBarPanelTests: XCTestCase {
         presenter.present(selectedPresetID: UUID())
 
         XCTAssertEqual(contentBuildCount, 1)
-        XCTAssertTrue(presenter.isPresented)
+        XCTAssertTrue(popover.isPresented(relativeTo: button.bounds, of: button))
     }
 
     @MainActor

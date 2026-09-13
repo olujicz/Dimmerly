@@ -16,8 +16,10 @@ final class MenuBarPanelPresenter: NSObject, NSPopoverDelegate {
 
     typealias ContentBuilder = @MainActor (UUID?) -> NSViewController
     typealias AnchorProvider = @MainActor () -> (rect: NSRect, view: NSView)?
+    typealias PopoverFactory = @MainActor () -> NSPopover
 
     private let anchorProvider: AnchorProvider?
+    private let popoverFactory: PopoverFactory
     private weak var statusItem: NSStatusItem?
     private var contentBuilder: ContentBuilder?
     private var didDismiss: (@MainActor () -> Void)?
@@ -28,13 +30,17 @@ final class MenuBarPanelPresenter: NSObject, NSPopoverDelegate {
         popover?.isShown == true
     }
 
-    init(anchorProvider: AnchorProvider? = nil) {
+    init(
+        anchorProvider: AnchorProvider? = nil,
+        popoverFactory: @escaping PopoverFactory = { NSPopover() }
+    ) {
         self.anchorProvider = anchorProvider
+        self.popoverFactory = popoverFactory
         super.init()
     }
 
     func configure(
-        statusItem: NSStatusItem,
+        statusItem: NSStatusItem?,
         contentBuilder: @escaping ContentBuilder,
         didDismiss: @escaping @MainActor () -> Void
     ) {
@@ -52,7 +58,7 @@ final class MenuBarPanelPresenter: NSObject, NSPopoverDelegate {
             return
         }
 
-        let popover = NSPopover()
+        let popover = popoverFactory()
         popover.behavior = .transient
         popover.animates = true
         popover.delegate = self
