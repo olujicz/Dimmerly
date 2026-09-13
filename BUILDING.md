@@ -5,8 +5,9 @@ This guide is for developers and contributors building Dimmerly from source.
 ## Prerequisites
 
 - macOS 15.0 SDK or later
-- Xcode 16.0 or later
-- Swift 6.0 or later
+- Xcode 26.0 or later
+- Swift 6.2 or later
+- For macOS 27 SDK validation: Xcode 27 on a supported macOS 26.6 or later host
 - Optional: [just](https://github.com/casey/just)
 - Optional: [SwiftLint](https://github.com/realm/SwiftLint)
 - Optional: [SwiftFormat](https://github.com/nicklockwood/SwiftFormat)
@@ -95,7 +96,7 @@ Repository-level branch protection, tag protection, Actions, and security settin
 
 - Built with Swift 6 and the Observation framework (`@Observable`)
 - State is managed through observable managers injected via SwiftUI environment
-- No third-party runtime dependencies
+- Uses [MenuBarExtraAccess](https://github.com/orchetect/MenuBarExtraAccess) as its only third-party runtime dependency
 
 ## Display Control Behavior
 

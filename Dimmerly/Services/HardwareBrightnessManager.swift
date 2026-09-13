@@ -362,11 +362,12 @@
             let ddcIO = ddcInterface
             let ddcQueue = ddcQueue
 
-            ddcQueue.async {
+            ddcQueue.async { [weak self] in
+                guard let self else { return }
                 var results: [CGDirectDisplayID: HardwareDisplayCapability] = [:]
 
                 for displayID in displayIDs {
-                    guard self.sessionGate.isCurrent(session) else { return }
+                    guard sessionGate.isCurrent(session) else { return }
                     let capability = ddcIO.probeCapabilities(for: displayID)
                     results[displayID] = capability
                 }
@@ -631,7 +632,8 @@
 
             let ddcIO = ddcInterface
             let ddcQueue = ddcQueue
-            ddcQueue.async {
+            ddcQueue.async { [weak self] in
+                guard let self else { return }
                 let readStartedAt = Date()
                 var brightness: Double?
                 var contrast: Double?
@@ -640,28 +642,28 @@
                 var inputSource: InputSource?
 
                 if cap.supportsBrightness {
-                    guard self.sessionGate.isCurrent(session) else { return }
+                    guard sessionGate.isCurrent(session) else { return }
                     if let result = ddcIO.read(vcp: .brightness, for: displayID) {
                         brightness = Double(result.currentValue) / Double(result.maxValue)
                     }
                 }
 
                 if cap.supportsContrast {
-                    guard self.sessionGate.isCurrent(session) else { return }
+                    guard sessionGate.isCurrent(session) else { return }
                     if let result = ddcIO.read(vcp: .contrast, for: displayID) {
                         contrast = Double(result.currentValue) / Double(result.maxValue)
                     }
                 }
 
                 if cap.supportsVolume {
-                    guard self.sessionGate.isCurrent(session) else { return }
+                    guard sessionGate.isCurrent(session) else { return }
                     if let result = ddcIO.read(vcp: .volume, for: displayID) {
                         volume = Double(result.currentValue) / Double(result.maxValue)
                     }
                 }
 
                 if cap.supportsAudioMute {
-                    guard self.sessionGate.isCurrent(session) else { return }
+                    guard sessionGate.isCurrent(session) else { return }
                     if let result = ddcIO.read(vcp: .audioMute, for: displayID) {
                         // Non-continuous VCP: value in low byte only
                         muted = (result.currentValue & 0xFF) == 1
@@ -669,7 +671,7 @@
                 }
 
                 if cap.supportsInputSource {
-                    guard self.sessionGate.isCurrent(session) else { return }
+                    guard sessionGate.isCurrent(session) else { return }
                     if let result = ddcIO.read(vcp: .inputSource, for: displayID) {
                         // Non-continuous VCP codes return the value in the low byte only
                         inputSource = InputSource(rawValue: result.currentValue & 0xFF)
@@ -802,10 +804,11 @@
             let ddcQueue = ddcQueue
             let writeTiming = writeTiming
             let writeKey = WriteKey(displayID: displayID, vcp: vcp)
-            ddcQueue.async {
-                guard self.sessionGate.isCurrent(session) else { return }
+            ddcQueue.async { [weak self] in
+                guard let self else { return }
+                guard sessionGate.isCurrent(session) else { return }
                 writeTiming.waitUntilReady(for: displayID, minimumInterval: minInterval)
-                guard self.sessionGate.isCurrent(session) else { return }
+                guard sessionGate.isCurrent(session) else { return }
                 let success = ddcIO.write(vcp: vcp, value: value, for: displayID)
 
                 Task { @MainActor [weak self] in

@@ -19,6 +19,32 @@ private final class MenuPresentationWindowSpy: NSWindow {
     }
 }
 
+@MainActor
+private final class ClosePanelSpy {
+    private(set) var callCount = 0
+
+    func close() {
+        callCount += 1
+    }
+}
+
+@MainActor
+private final class PopoverSpy: NSPopover {
+    private(set) var didShow = false
+    private(set) var presentedRect: NSRect?
+    private weak var presentedView: NSView?
+
+    override func show(relativeTo positioningRect: NSRect, of positioningView: NSView, preferredEdge _: NSRectEdge) {
+        didShow = true
+        presentedRect = positioningRect
+        presentedView = positioningView
+    }
+
+    func isPresented(relativeTo rect: NSRect, of view: NSView) -> Bool {
+        didShow && presentedRect == rect && presentedView === view
+    }
+}
+
 final class MenuBarPanelTests: XCTestCase {
     func testAutoTemperatureBadgeUsesAdaptiveHighContrastTreatment() throws {
         let repositoryURL = URL(fileURLWithPath: #filePath)
@@ -32,6 +58,129 @@ final class MenuBarPanelTests: XCTestCase {
         XCTAssertTrue(source.contains(".foregroundStyle(.primary)"))
         XCTAssertTrue(source.contains("Capsule().fill(.orange.opacity(0.16))"))
         XCTAssertTrue(source.contains("Capsule().stroke(.orange, lineWidth: 0.75)"))
+    }
+
+    #if !APPSTORE
+        func testInputSourceMenuMarksOnlyTheActiveSource() {
+            let active = InputSourceMenuItemPresentation.forSource(.hdmi1, active: .hdmi1)
+            let inactive = InputSourceMenuItemPresentation.forSource(.displayPort1, active: .hdmi1)
+
+            XCTAssertEqual(active.title, "HDMI 1")
+            XCTAssertEqual(active.systemImageName, "checkmark")
+            XCTAssertEqual(inactive.title, "DisplayPort 1")
+            XCTAssertNil(inactive.systemImageName)
+        }
+    #endif
+
+    @MainActor
+    func testCloseMenuBarPanelEnvironmentRoundTripsItsAction() {
+        let spy = ClosePanelSpy()
+        var values = EnvironmentValues()
+        values.closeMenuBarPanel = { spy.close() }
+
+        values.closeMenuBarPanel()
+
+        XCTAssertEqual(spy.callCount, 1)
+    }
+
+    @MainActor
+    func testMenuBarPanelCoordinatorPresentsAndSelectsPreset() {
+        let coordinator = MenuBarPanelCoordinator()
+        let presetID = UUID()
+        var didActivateApp = false
+
+        coordinator.openPreset(
+            id: presetID,
+            presentationPath: .menuBarExtra,
+            activateApp: { didActivateApp = true }
+        )
+
+        XCTAssertTrue(coordinator.isPresented)
+        XCTAssertEqual(coordinator.requestedPresetID, presetID)
+        XCTAssertTrue(didActivateApp)
+
+        coordinator.dismiss()
+
+        XCTAssertFalse(coordinator.isPresented)
+        XCTAssertNil(coordinator.requestedPresetID)
+    }
+
+    @MainActor
+    func testPublicPopoverPresentationDoesNotUseMenuBarExtraBinding() {
+        let coordinator = MenuBarPanelCoordinator()
+        let presetID = UUID()
+        var presentedPresetID: UUID?
+        var dismissed = false
+
+        coordinator.configureExternalPresentation(
+            present: { presentedPresetID = $0 },
+            dismiss: { dismissed = true }
+        )
+        coordinator.openPreset(
+            id: presetID,
+            presentationPath: .publicPopover,
+            activateApp: {}
+        )
+
+        XCTAssertFalse(coordinator.isPresented)
+        XCTAssertTrue(coordinator.isExternalPresentationActive)
+        XCTAssertEqual(presentedPresetID, presetID)
+
+        coordinator.dismiss()
+
+        XCTAssertTrue(dismissed)
+        XCTAssertFalse(coordinator.isExternalPresentationActive)
+        XCTAssertNil(coordinator.requestedPresetID)
+    }
+
+    @MainActor
+    func testMenuBarPanelPresenterUsesPublicPopoverWithAppKitAnchor() {
+        let button = NSButton(frame: NSRect(x: 100, y: 20, width: 40, height: 24))
+        let popover = PopoverSpy()
+        let presenter = MenuBarPanelPresenter(
+            anchorProvider: {
+                (button.bounds, button)
+            },
+            popoverFactory: { popover }
+        )
+        defer {
+            presenter.dismiss()
+        }
+
+        var contentBuildCount = 0
+        presenter.configure(
+            statusItem: nil,
+            contentBuilder: { _ in
+                contentBuildCount += 1
+                return NSViewController()
+            },
+            didDismiss: {}
+        )
+
+        presenter.present(selectedPresetID: UUID())
+
+        XCTAssertEqual(contentBuildCount, 1)
+        XCTAssertTrue(popover.isPresented(relativeTo: button.bounds, of: button))
+    }
+
+    @MainActor
+    func testGlassBackgroundPolicyPreservesSwiftUISliderBackingViews() {
+        let glassIdentifier = NSUserInterfaceItemIdentifier("DimmerlyMenuBarPanelGlass")
+        let sliderBackingView = NSView()
+        sliderBackingView.setAccessibilityRole(.slider)
+
+        XCTAssertFalse(
+            MenuBarPanelGlassBackgroundPolicy.shouldClearLayerBackground(
+                for: sliderBackingView,
+                glassIdentifier: glassIdentifier
+            )
+        )
+        XCTAssertFalse(
+            MenuBarPanelGlassBackgroundPolicy.shouldVisitSubviews(
+                of: sliderBackingView,
+                glassIdentifier: glassIdentifier
+            )
+        )
     }
 
     func testMenuBarPanelChromeClearsWindowContainerWithoutManualPerimeterStroke() throws {

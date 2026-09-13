@@ -9,6 +9,8 @@ import SwiftUI
 // MARK: - Presets Section
 
 struct PresetsSectionView: View {
+    let selectedPresetID: UUID?
+
     @Environment(PresetManager.self) var presetManager
     @Environment(BrightnessManager.self) var brightnessManager
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -16,6 +18,10 @@ struct PresetsSectionView: View {
     @State private var newPresetName = ""
     @State private var hoveredPresetID: UUID?
     @FocusState private var isPresetNameFieldFocused: Bool
+
+    init(selectedPresetID: UUID? = nil) {
+        self.selectedPresetID = selectedPresetID
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -93,14 +99,12 @@ struct PresetsSectionView: View {
             .padding(.vertical, 3)
             .padding(.horizontal, 6)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(hoveredPresetID == preset.id ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.clear))
-            )
+            .background { presetRowBackground(for: preset) }
             .animation(reduceMotion ? nil : .spring(response: 0.2, dampingFraction: 0.8), value: hoveredPresetID)
             .contentShape(Rectangle())
         }
         .buttonStyle(.borderless)
+        .id(preset.id)
         // Only bind the ⌘N shortcut when the row is actually showing that hint (no custom
         // shortcut assigned) — otherwise a preset with a custom shortcut like ⌥⌘B would still
         // silently respond to ⌘N too, with no visible affordance explaining why.
@@ -123,6 +127,17 @@ struct PresetsSectionView: View {
             Button("Delete", role: .destructive) {
                 presetManager.deletePreset(id: preset.id)
             }
+        }
+    }
+
+    @ViewBuilder
+    private func presetRowBackground(for preset: BrightnessPreset) -> some View {
+        if selectedPresetID == preset.id {
+            RoundedRectangle(cornerRadius: 8)
+                .fill(.tint.opacity(0.20))
+        } else {
+            RoundedRectangle(cornerRadius: 8)
+                .fill(hoveredPresetID == preset.id ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.clear))
         }
     }
 

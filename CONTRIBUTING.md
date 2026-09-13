@@ -45,8 +45,8 @@ Feature suggestions are welcome! Please:
 ### Prerequisites
 
 - macOS 15.0 (Sequoia) or later
-- Xcode 16.0 or later
-- Swift 6.0 or later
+- Xcode 26.0 or later
+- Swift 6.2 or later
 - Optional: [just](https://github.com/casey/just) command runner
 - Optional: [SwiftLint](https://github.com/realm/SwiftLint) and [SwiftFormat](https://github.com/nicklockwood/SwiftFormat)
 

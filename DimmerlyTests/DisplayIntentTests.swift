@@ -3,7 +3,9 @@
 //  DimmerlyTests
 //
 
+import AppIntents
 import CoreGraphics
+import CoreSpotlight
 @testable import Dimmerly
 import XCTest
 
@@ -92,6 +94,93 @@ final class DisplayIntentTests: XCTestCase {
 
         XCTAssertTrue(command.brightnessCalls.isEmpty)
     }
+
+    func testPresetEntityPublishesSpotlightAttributes() {
+        let entity = PresetEntity(id: "preset-1", name: "Evening")
+        let attributes = entity.attributeSet
+
+        XCTAssertEqual(attributes.title, "Evening")
+        XCTAssertEqual(attributes.contentDescription, "Dimmerly display brightness preset")
+        XCTAssertTrue(attributes.keywords?.contains("brightness") == true)
+    }
+
+    func testOpenPresetIntentTargetsPresetEntities() {
+        let intent: any OpenIntent = OpenPresetIntent()
+
+        XCTAssertTrue(intent is OpenPresetIntent)
+    }
+
+    func testOpenPresetIntentPresentsSelectedPreset() throws {
+        let suiteName = "DisplayIntentTests-(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let presetManager = PresetManager(
+            defaults: defaults,
+            mainShortcutProvider: { GlobalShortcut.default }
+        )
+        let preset = BrightnessPreset(name: "Evening")
+        presetManager.presets = [preset]
+        let coordinator = MenuBarPanelCoordinator()
+        var presentedPresetID: UUID?
+        var didActivateApp = false
+        coordinator.configureExternalPresentation(
+            present: { presentedPresetID = $0 },
+            dismiss: {}
+        )
+        let intent = OpenPresetIntent()
+        intent.target = PresetEntity(id: preset.id.uuidString, name: preset.name)
+
+        try intent.perform(
+            using: presetManager,
+            coordinator: coordinator,
+            activateApp: { didActivateApp = true },
+            presentationPath: .publicPopover
+        )
+
+        XCTAssertFalse(coordinator.isPresented)
+        XCTAssertTrue(coordinator.isExternalPresentationActive)
+        XCTAssertEqual(coordinator.requestedPresetID, preset.id)
+        XCTAssertEqual(presentedPresetID, preset.id)
+        XCTAssertTrue(didActivateApp)
+    }
+
+    func testSpotlightIndexingClientRegistersRecoveryDelegate() {
+        let client = CSSearchablePresetEntityIndexingClient()
+
+        XCTAssertTrue(client.searchableIndex.indexDelegate === client)
+    }
+
+    func testPresetIndexingCoalescesRapidUpdates() async {
+        let client = PresetEntityIndexingClientSpy()
+        let indexed = expectation(description: "latest preset snapshot indexed")
+        client.indexedExpectation = indexed
+        let service = AppEntityIndexingService(indexClient: client)
+
+        service.reindexPresets([BrightnessPreset(name: "Initial")])
+        service.reindexPresets([BrightnessPreset(name: "Latest")])
+
+        await fulfillment(of: [indexed], timeout: 1.0)
+
+        XCTAssertEqual(client.indexedSnapshots, [["Latest"]])
+        XCTAssertEqual(client.deleteCount, 1)
+    }
+
+    func testPresetIndexingRetriesAfterTransientIndexFailure() async {
+        let client = PresetEntityIndexingClientSpy()
+        let indexed = expectation(description: "preset snapshot indexed after retry")
+        client.indexedExpectation = indexed
+        client.indexFailuresRemaining = 1
+        let service = AppEntityIndexingService(indexClient: client)
+
+        service.reindexPresets([BrightnessPreset(name: "Latest")])
+
+        await fulfillment(of: [indexed], timeout: 2.0)
+
+        XCTAssertEqual(client.indexedSnapshots, [["Latest"]])
+        XCTAssertEqual(client.deleteCount, 2)
+        XCTAssertEqual(client.indexAttempts, 2)
+    }
 }
 
 @MainActor
@@ -126,4 +215,31 @@ private final class DisplayIntentCommandSpy: DisplayIntentCommanding {
     func toggleDim(for displayID: CGDirectDisplayID) {
         dimCalls.append(displayID)
     }
+}
+
+@MainActor
+private final class PresetEntityIndexingClientSpy: PresetEntityIndexingClient {
+    private(set) var deleteCount = 0
+    private(set) var indexAttempts = 0
+    private(set) var indexedSnapshots: [[String]] = []
+    var indexedExpectation: XCTestExpectation?
+    var indexFailuresRemaining = 0
+
+    func deleteAll() async throws {
+        deleteCount += 1
+    }
+
+    func index(_ entities: [PresetEntity]) async throws {
+        indexAttempts += 1
+        if indexFailuresRemaining > 0 {
+            indexFailuresRemaining -= 1
+            throw PresetEntityIndexingClientSpyError.transient
+        }
+        indexedSnapshots.append(entities.map(\.name))
+        indexedExpectation?.fulfill()
+    }
+}
+
+private enum PresetEntityIndexingClientSpyError: Error {
+    case transient
 }
