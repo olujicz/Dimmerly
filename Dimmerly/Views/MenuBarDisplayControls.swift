@@ -3,8 +3,39 @@
 //  Dimmerly
 //
 
+import AppIntents
 import AppKit
 import SwiftUI
+
+private struct DisplayEntityContextModifier: ViewModifier {
+    let identifier: EntityIdentifier
+
+    func body(content: Content) -> some View {
+        #if compiler(>=6.4)
+            if #available(macOS 15.4, *) {
+                content.appEntityIdentifier(identifier)
+            } else {
+                content
+            }
+        #else
+            content
+        #endif
+    }
+}
+
+#if !APPSTORE
+    struct InputSourceMenuItemPresentation: Equatable {
+        let title: String
+        let systemImageName: String?
+
+        static func forSource(_ source: InputSource, active: InputSource?) -> Self {
+            Self(
+                title: source.displayName,
+                systemImageName: source == active ? "checkmark" : nil
+            )
+        }
+    }
+#endif
 
 // MARK: - Display Brightness Row
 
@@ -390,10 +421,15 @@ struct DisplayBrightnessRow: View {
                                     Button {
                                         onInputSourceChange?(source)
                                     } label: {
-                                        if source == activeInputSource {
-                                            Label(source.displayName, systemImage: "checkmark")
+                                        let presentation = InputSourceMenuItemPresentation.forSource(
+                                            source,
+                                            active: activeInputSource
+                                        )
+                                        if let systemImageName = presentation.systemImageName {
+                                            Label(presentation.title, systemImage: systemImageName)
+                                                .labelStyle(.titleAndIcon)
                                         } else {
-                                            Text(source.displayName)
+                                            Text(presentation.title)
                                         }
                                     }
                                 }
@@ -461,23 +497,28 @@ struct DisplayBrightnessRow: View {
         }
         #if !APPSTORE
         .onChange(of: hardwareVolume) {
-                syncVolumeFromHardware()
-            }
+            syncVolumeFromHardware()
+        }
         #endif
-            .accessibilityElement(children: .contain)
-            .accessibilityLabel(display.name)
-            .contextMenu {
-                Button(isBlanked ? "Restore Display" : "Dim Display") {
-                    onToggleBlank()
-                }
-                Divider()
-                Button("Set to 100%") { onChange(1.0) }
-                Button("Set to 50%") { onChange(0.5) }
-                Button("Set to 25%") { onChange(0.25) }
-                Divider()
-                Button("Reset Warmth") { onWarmthChange(0.0) }
-                Button("Reset Contrast") { onContrastChange(0.5) }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(display.name)
+        .contextMenu {
+            Button(isBlanked ? "Restore Display" : "Dim Display") {
+                onToggleBlank()
             }
+            Divider()
+            Button("Set to 100%") { onChange(1.0) }
+            Button("Set to 50%") { onChange(0.5) }
+            Button("Set to 25%") { onChange(0.25) }
+            Divider()
+            Button("Reset Warmth") { onWarmthChange(0.0) }
+            Button("Reset Contrast") { onContrastChange(0.5) }
+        }
+        .modifier(
+            DisplayEntityContextModifier(
+                identifier: EntityIdentifier(for: DisplayEntity.self, identifier: String(display.id))
+            )
+        )
     }
 
     private func syncDisplayValuesFromModel() {

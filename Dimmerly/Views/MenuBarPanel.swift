@@ -9,8 +9,15 @@ import AppKit
 import MenuBarExtraAccess
 import SwiftUI
 
+private struct CloseMenuBarPanelKey: EnvironmentKey {
+    static let defaultValue: @MainActor @Sendable () -> Void = {}
+}
+
 extension EnvironmentValues {
-    @Entry var closeMenuBarPanel: @MainActor @Sendable () -> Void = {}
+    var closeMenuBarPanel: @MainActor @Sendable () -> Void {
+        get { self[CloseMenuBarPanelKey.self] }
+        set { self[CloseMenuBarPanelKey.self] = newValue }
+    }
 }
 
 @MainActor
@@ -45,8 +52,7 @@ enum MenuBarPanelGlassBackgroundPolicy {
         glassIdentifier: NSUserInterfaceItemIdentifier
     ) -> Bool {
         guard view.identifier != glassIdentifier else { return false }
-        guard !(view is NSVisualEffectView), !(view is NSControl) else { return false }
-        guard !(view is NSScrollView) else { return false }
+        guard !isProtectedControl(view) else { return false }
 
         return isContainerView(view)
     }
@@ -56,13 +62,20 @@ enum MenuBarPanelGlassBackgroundPolicy {
         glassIdentifier: NSUserInterfaceItemIdentifier
     ) -> Bool {
         guard view.identifier != glassIdentifier else { return false }
-        return !(view is NSVisualEffectView) && !(view is NSControl) && !(view is NSScrollView)
+        return !isProtectedControl(view)
     }
 
     private static func isContainerView(_ view: NSView) -> Bool {
         view is NSClipView
             || type(of: view) == NSView.self
             || view.subviews.isEmpty == false
+    }
+
+    private static func isProtectedControl(_ view: NSView) -> Bool {
+        view is NSVisualEffectView
+            || view is NSControl
+            || view is NSScrollView
+            || view.accessibilityRole() == .slider
     }
 }
 
@@ -154,10 +167,10 @@ struct MenuBarPanel: View {
                 )
                 #if !APPSTORE
                 .ddcControls(
-                        hardwareManager: hardwareManager,
-                        displayID: display.id,
-                        isBuiltIn: display.isBuiltIn
-                    )
+                    hardwareManager: hardwareManager,
+                    displayID: display.id,
+                    isBuiltIn: display.isBuiltIn
+                )
                 #endif
             }
 

@@ -12,7 +12,20 @@ struct SetDisplayBrightnessIntent: AppIntent {
     static let title: LocalizedStringResource = "Set Display Brightness"
     static let description: IntentDescription = .init("Sets the brightness of a specific display.")
 
-    @Parameter(title: "Display")
+    #if compiler(>=6.4)
+        @available(macOS 27.0, *)
+        static let allowedExecutionTargets: IntentExecutionTargets = .main
+    #endif
+
+    static var parameterSummary: some ParameterSummary {
+        Summary("Set the brightness of \(\.$display) to \(\.$brightness) percent")
+    }
+
+    @Parameter(
+        title: "Display",
+        requestValueDialog: "Which display should I control?",
+        requestDisambiguationDialog: "Which display do you want to control?"
+    )
     var display: DisplayEntity
 
     @Parameter(
@@ -20,7 +33,8 @@ struct SetDisplayBrightnessIntent: AppIntent {
         description: "Brightness percentage (10–100)",
         default: 100.0,
         controlStyle: .slider,
-        inclusiveRange: (10.0, 100.0)
+        inclusiveRange: (10.0, 100.0),
+        requestValueDialog: "What brightness percentage should I set?"
     )
     var brightness: Double
 

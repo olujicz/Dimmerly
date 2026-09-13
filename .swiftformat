@@ -3,6 +3,7 @@
 --linebreaks lf
 --header ignore
 --disable numberFormatting
+--disable environmentEntry
 
 --binary-grouping none
 --decimal-grouping none

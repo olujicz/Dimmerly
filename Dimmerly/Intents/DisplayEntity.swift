@@ -24,6 +24,11 @@ struct DisplayEntity: AppEntity {
 }
 
 struct DisplayEntityQuery: EntityQuery {
+    #if compiler(>=6.4)
+        @available(macOS 27.0, *)
+        static let allowedExecutionTargets: IntentExecutionTargets = .main
+    #endif
+
     @MainActor
     func entities(for identifiers: [String]) async throws -> [DisplayEntity] {
         let manager = BrightnessManager.shared

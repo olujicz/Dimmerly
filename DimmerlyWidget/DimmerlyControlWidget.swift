@@ -9,10 +9,9 @@ import AppIntents
 import SwiftUI
 import WidgetKit
 
-// ControlWidgetConfiguration is explicitly marked unavailable on macOS in
-// current SDKs.  Gate the entire struct behind a compiler version check so
-// CI passes on older toolchains.  When the macOS 26 SDK ships (expected
-// with Swift ≥ 6.2), remove or adjust this guard.
+// Gate the widget behind the compiler version that introduced
+// ControlWidgetConfiguration so older toolchains can still build the widget
+// extension. The matching SDK availability check remains on the declaration.
 #if compiler(>=6.2)
     @available(macOS 26.0, *)
     struct DimmerlyControlWidget: ControlWidget {

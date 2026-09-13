@@ -97,6 +97,7 @@ struct DimmerlyApp: App {
                     configureScheduleManager()
                     observeWidgetNotifications()
                     processPendingWidgetCommands()
+                    AppEntityIndexingService.shared.reindexPresets(presetManager.presets)
                     // Initial sync for settings-driven managers. `.onChange` below
                     // keeps them current for subsequent edits without needing each
                     // manager to observe UserDefaults directly.
@@ -125,6 +126,7 @@ struct DimmerlyApp: App {
                 }
                 .onChange(of: presetManager.presets) { _, newValue in
                     presetShortcutManager.updateShortcuts(from: newValue)
+                    AppEntityIndexingService.shared.reindexPresets(newValue)
                 }
         }
         .menuBarExtraAccess(isPresented: $isMenuBarPanelPresented) { statusItem in
@@ -301,6 +303,20 @@ struct DimmerlyApp: App {
     #endif
 }
 
+/// Selects the menu presentation path supported by the current macOS release.
+enum StatusItemQuickActionsPresentation: Equatable {
+    case contextMenu
+    case statusItemMenu
+
+    static var current: Self {
+        if #available(macOS 27.0, *) {
+            .contextMenu
+        } else {
+            .statusItemMenu
+        }
+    }
+}
+
 /// Attaches a right-click quick-actions menu to the status bar icon, using the
 /// `NSStatusItem` exposed by `MenuBarExtraAccess`. A local event monitor detects
 /// right-clicks on the button specifically so left-clicks keep opening the panel
@@ -346,21 +362,29 @@ final class StatusItemQuickActions: NSObject {
             let isControlClick = event.type == .leftMouseDown && event.modifierFlags.contains(.control)
             guard event.type == .rightMouseDown || isControlClick else { return event }
 
-            showQuickActionsMenu()
+            showQuickActionsMenu(for: event, in: currentButton)
             return nil
         }
     }
 
-    private func showQuickActionsMenu() {
+    private func showQuickActionsMenu(for event: NSEvent, in button: NSStatusBarButton) {
         guard let statusItem, let settings else { return }
 
         let menu = makeQuickActionsMenu(turnOffTitle: Self.turnOffTitle(settings: settings))
 
-        // Temporarily assign the menu so this click shows it, then clear it so
-        // subsequent left-clicks keep going through the normal panel toggle.
-        statusItem.menu = menu
-        statusItem.button?.performClick(nil)
-        statusItem.menu = nil
+        switch StatusItemQuickActionsPresentation.current {
+        case .contextMenu:
+            // macOS 27 no longer routes window-based MenuBarExtra clicks through
+            // the status item's target/action. Pop up this independent menu
+            // directly so quick actions do not depend on that presentation path.
+            NSMenu.popUpContextMenu(menu, with: event, for: button)
+        case .statusItemMenu:
+            // Temporarily assign the menu so this click shows it, then clear it so
+            // subsequent left-clicks keep going through the normal panel toggle.
+            statusItem.menu = menu
+            statusItem.button?.performClick(nil)
+            statusItem.menu = nil
+        }
     }
 
     /// Title matches the primary panel button's wording (`turnOffButtonContent` in

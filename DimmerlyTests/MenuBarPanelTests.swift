@@ -19,6 +19,15 @@ private final class MenuPresentationWindowSpy: NSWindow {
     }
 }
 
+@MainActor
+private final class ClosePanelSpy {
+    private(set) var callCount = 0
+
+    func close() {
+        callCount += 1
+    }
+}
+
 final class MenuBarPanelTests: XCTestCase {
     func testAutoTemperatureBadgeUsesAdaptiveHighContrastTreatment() throws {
         let repositoryURL = URL(fileURLWithPath: #filePath)
@@ -32,6 +41,49 @@ final class MenuBarPanelTests: XCTestCase {
         XCTAssertTrue(source.contains(".foregroundStyle(.primary)"))
         XCTAssertTrue(source.contains("Capsule().fill(.orange.opacity(0.16))"))
         XCTAssertTrue(source.contains("Capsule().stroke(.orange, lineWidth: 0.75)"))
+    }
+
+    #if !APPSTORE
+        func testInputSourceMenuMarksOnlyTheActiveSource() {
+            let active = InputSourceMenuItemPresentation.forSource(.hdmi1, active: .hdmi1)
+            let inactive = InputSourceMenuItemPresentation.forSource(.displayPort1, active: .hdmi1)
+
+            XCTAssertEqual(active.title, "HDMI 1")
+            XCTAssertEqual(active.systemImageName, "checkmark")
+            XCTAssertEqual(inactive.title, "DisplayPort 1")
+            XCTAssertNil(inactive.systemImageName)
+        }
+    #endif
+
+    @MainActor
+    func testCloseMenuBarPanelEnvironmentRoundTripsItsAction() {
+        let spy = ClosePanelSpy()
+        var values = EnvironmentValues()
+        values.closeMenuBarPanel = { spy.close() }
+
+        values.closeMenuBarPanel()
+
+        XCTAssertEqual(spy.callCount, 1)
+    }
+
+    @MainActor
+    func testGlassBackgroundPolicyPreservesSwiftUISliderBackingViews() {
+        let glassIdentifier = NSUserInterfaceItemIdentifier("DimmerlyMenuBarPanelGlass")
+        let sliderBackingView = NSView()
+        sliderBackingView.setAccessibilityRole(.slider)
+
+        XCTAssertFalse(
+            MenuBarPanelGlassBackgroundPolicy.shouldClearLayerBackground(
+                for: sliderBackingView,
+                glassIdentifier: glassIdentifier
+            )
+        )
+        XCTAssertFalse(
+            MenuBarPanelGlassBackgroundPolicy.shouldVisitSubviews(
+                of: sliderBackingView,
+                glassIdentifier: glassIdentifier
+            )
+        )
     }
 
     func testMenuBarPanelChromeClearsWindowContainerWithoutManualPerimeterStroke() throws {

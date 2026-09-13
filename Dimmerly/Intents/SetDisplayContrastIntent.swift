@@ -12,7 +12,20 @@ struct SetDisplayContrastIntent: AppIntent {
     static let title: LocalizedStringResource = "Set Display Contrast"
     static let description: IntentDescription = .init("Sets the contrast of a specific display.")
 
-    @Parameter(title: "Display")
+    #if compiler(>=6.4)
+        @available(macOS 27.0, *)
+        static let allowedExecutionTargets: IntentExecutionTargets = .main
+    #endif
+
+    static var parameterSummary: some ParameterSummary {
+        Summary("Set the contrast of \(\.$display) to \(\.$contrast) percent")
+    }
+
+    @Parameter(
+        title: "Display",
+        requestValueDialog: "Which display should I control?",
+        requestDisambiguationDialog: "Which display do you want to control?"
+    )
     var display: DisplayEntity
 
     @Parameter(
@@ -20,7 +33,8 @@ struct SetDisplayContrastIntent: AppIntent {
         description: "Contrast percentage (0–100, 50 = neutral)",
         default: 50.0,
         controlStyle: .slider,
-        inclusiveRange: (0.0, 100.0)
+        inclusiveRange: (0.0, 100.0),
+        requestValueDialog: "What contrast percentage should I set?"
     )
     var contrast: Double
 

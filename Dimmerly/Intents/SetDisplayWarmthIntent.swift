@@ -12,7 +12,20 @@ struct SetDisplayWarmthIntent: AppIntent {
     static let title: LocalizedStringResource = "Set Display Warmth"
     static let description: IntentDescription = .init("Sets the color warmth of a specific display.")
 
-    @Parameter(title: "Display")
+    #if compiler(>=6.4)
+        @available(macOS 27.0, *)
+        static let allowedExecutionTargets: IntentExecutionTargets = .main
+    #endif
+
+    static var parameterSummary: some ParameterSummary {
+        Summary("Set the warmth of \(\.$display) to \(\.$warmth) percent")
+    }
+
+    @Parameter(
+        title: "Display",
+        requestValueDialog: "Which display should I control?",
+        requestDisambiguationDialog: "Which display do you want to control?"
+    )
     var display: DisplayEntity
 
     @Parameter(
@@ -20,7 +33,8 @@ struct SetDisplayWarmthIntent: AppIntent {
         description: "Warmth percentage (0–100)",
         default: 0.0,
         controlStyle: .slider,
-        inclusiveRange: (0.0, 100.0)
+        inclusiveRange: (0.0, 100.0),
+        requestValueDialog: "What warmth percentage should I set?"
     )
     var warmth: Double
 
