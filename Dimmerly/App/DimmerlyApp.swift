@@ -57,9 +57,8 @@ struct DimmerlyApp: App {
     /// Guard against duplicate observer registration if onAppear fires more than once
     @State private var isConfigured = false
 
-    /// Presentation state for the menu bar panel, so it can be dismissed programmatically
-    /// (e.g. after "Turn Displays Off") without leaving the status bar icon stuck highlighted.
-    @State private var isMenuBarPanelPresented = false
+    /// Coordinates programmatic menu panel presentation, including Spotlight preset selection.
+    @State private var menuBarPanelCoordinator = MenuBarPanelCoordinator.shared
 
     /// Handles the right-click quick actions menu on the status bar icon.
     @State private var statusItemQuickActions = StatusItemQuickActions()
@@ -73,17 +72,25 @@ struct DimmerlyApp: App {
     @State private var widgetPresetObserver: NSObjectProtocol?
 
     var body: some Scene {
+        @Bindable var menuBarPanelCoordinator = menuBarPanelCoordinator
+
         // Menu bar extra (the main interface) — window style preserves slider controls.
         MenuBarExtra {
-            MenuBarPanel()
-                .environment(settings)
-                .environment(brightnessManager)
-                .environment(presetManager)
-                .environment(colorTempManager)
+            MenuBarPanel(
+                selectedPresetID: menuBarPanelCoordinator.requestedPresetID,
+                openSettingsAction: {
+                    openSettings()
+                    NSApp.activate()
+                }
+            )
+            .environment(settings)
+            .environment(brightnessManager)
+            .environment(presetManager)
+            .environment(colorTempManager)
             #if !APPSTORE
                 .environment(hardwareManager)
             #endif
-                .environment(\.closeMenuBarPanel) { isMenuBarPanelPresented = false }
+                .environment(\.closeMenuBarPanel) { menuBarPanelCoordinator.dismiss() }
         } label: {
             menuBarLabel
                 .onAppear {
@@ -105,6 +112,11 @@ struct DimmerlyApp: App {
                     #if !APPSTORE
                         configureHardwareControl()
                     #endif
+                }
+                .onChange(of: menuBarPanelCoordinator.isPresented) { _, isPresented in
+                    if !isPresented {
+                        menuBarPanelCoordinator.requestedPresetID = nil
+                    }
                 }
                 .onChange(of: settings.idleTimerEnabled) { _, _ in
                     idleTimerManager.apply(
@@ -129,7 +141,43 @@ struct DimmerlyApp: App {
                     AppEntityIndexingService.shared.reindexPresets(newValue)
                 }
         }
-        .menuBarExtraAccess(isPresented: $isMenuBarPanelPresented) { statusItem in
+        .menuBarExtraAccess(isPresented: $menuBarPanelCoordinator.isPresented) { statusItem in
+            let panelPresenter = MenuBarPanelPresenter.shared
+            panelPresenter.configure(
+                statusItem: statusItem,
+                contentBuilder: { selectedPresetID in
+                    NSHostingController(
+                        rootView: MenuBarPanel(
+                            selectedPresetID: selectedPresetID,
+                            openSettingsAction: {
+                                openSettings()
+                                NSApp.activate()
+                            }
+                        )
+                        .environment(settings)
+                        .environment(brightnessManager)
+                        .environment(presetManager)
+                        .environment(colorTempManager)
+                        #if !APPSTORE
+                            .environment(hardwareManager)
+                        #endif
+                            .environment(\.closeMenuBarPanel) {
+                                menuBarPanelCoordinator.dismiss()
+                            }
+                    )
+                },
+                didDismiss: {
+                    menuBarPanelCoordinator.externalPresentationDidDismiss()
+                }
+            )
+            menuBarPanelCoordinator.configureExternalPresentation(
+                present: { presetID in
+                    panelPresenter.present(selectedPresetID: presetID)
+                },
+                dismiss: {
+                    panelPresenter.dismiss()
+                }
+            )
             statusItemQuickActions.configure(
                 statusItem: statusItem,
                 settings: settings,

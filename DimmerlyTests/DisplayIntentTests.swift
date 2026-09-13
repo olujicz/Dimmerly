@@ -110,6 +110,47 @@ final class DisplayIntentTests: XCTestCase {
         XCTAssertTrue(intent is OpenPresetIntent)
     }
 
+    func testOpenPresetIntentPresentsSelectedPreset() throws {
+        let suiteName = "DisplayIntentTests-(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let presetManager = PresetManager(
+            defaults: defaults,
+            mainShortcutProvider: { GlobalShortcut.default }
+        )
+        let preset = BrightnessPreset(name: "Evening")
+        presetManager.presets = [preset]
+        let coordinator = MenuBarPanelCoordinator()
+        var presentedPresetID: UUID?
+        var didActivateApp = false
+        coordinator.configureExternalPresentation(
+            present: { presentedPresetID = $0 },
+            dismiss: {}
+        )
+        let intent = OpenPresetIntent()
+        intent.target = PresetEntity(id: preset.id.uuidString, name: preset.name)
+
+        try intent.perform(
+            using: presetManager,
+            coordinator: coordinator,
+            activateApp: { didActivateApp = true },
+            presentationPath: .publicPopover
+        )
+
+        XCTAssertFalse(coordinator.isPresented)
+        XCTAssertTrue(coordinator.isExternalPresentationActive)
+        XCTAssertEqual(coordinator.requestedPresetID, preset.id)
+        XCTAssertEqual(presentedPresetID, preset.id)
+        XCTAssertTrue(didActivateApp)
+    }
+
+    func testSpotlightIndexingClientRegistersRecoveryDelegate() {
+        let client = CSSearchablePresetEntityIndexingClient()
+
+        XCTAssertTrue(client.searchableIndex.indexDelegate === client)
+    }
+
     func testPresetIndexingCoalescesRapidUpdates() async {
         let client = PresetEntityIndexingClientSpy()
         let indexed = expectation(description: "latest preset snapshot indexed")

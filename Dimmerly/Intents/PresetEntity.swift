@@ -74,14 +74,85 @@ protocol PresetEntityIndexingClient: AnyObject {
     func index(_ entities: [PresetEntity]) async throws
 }
 
+private final class SearchableIndexAcknowledgement: @unchecked Sendable {
+    private let handler: () -> Void
+
+    init(_ handler: @escaping () -> Void) {
+        self.handler = handler
+    }
+
+    func call() {
+        handler()
+    }
+}
+
 @MainActor
-private final class CSSearchablePresetEntityIndexingClient: PresetEntityIndexingClient {
+final class CSSearchablePresetEntityIndexingClient: NSObject, PresetEntityIndexingClient, CSSearchableIndexDelegate {
+    let searchableIndex: CSSearchableIndex
+
+    override init() {
+        searchableIndex = CSSearchableIndex(name: presetEntityIndexName)
+        super.init()
+        searchableIndex.indexDelegate = self
+    }
+
     func deleteAll() async throws {
         try await CSSearchableIndex(name: presetEntityIndexName).deleteAppEntities(ofType: PresetEntity.self)
     }
 
     func index(_ entities: [PresetEntity]) async throws {
         try await CSSearchableIndex(name: presetEntityIndexName).indexAppEntities(entities)
+    }
+
+    nonisolated func searchableIndex(
+        _: CSSearchableIndex,
+        reindexAllSearchableItemsWithAcknowledgementHandler acknowledgementHandler: @escaping () -> Void
+    ) {
+        let acknowledgement = SearchableIndexAcknowledgement(acknowledgementHandler)
+        Task { @MainActor [weak self, acknowledgement] in
+            defer { acknowledgement.call() }
+            do {
+                try await self?.reindexAll()
+            } catch {
+                presetEntityIndexLogger.error("Failed to recover all preset entities: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    nonisolated func searchableIndex(
+        _: CSSearchableIndex,
+        reindexSearchableItemsWithIdentifiers identifiers: [String],
+        acknowledgementHandler: @escaping () -> Void
+    ) {
+        let acknowledgement = SearchableIndexAcknowledgement(acknowledgementHandler)
+        Task { @MainActor [weak self, acknowledgement] in
+            defer { acknowledgement.call() }
+            do {
+                try await self?.reindex(identifiers: identifiers)
+            } catch {
+                presetEntityIndexLogger.error("Failed to recover preset entities: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func reindexAll() async throws {
+        let entities = try await PresetEntityQuery().suggestedEntities()
+        try await deleteAll()
+        try await index(entities)
+    }
+
+    private func reindex(identifiers: [String]) async throws {
+        let entities = try await PresetEntityQuery().entities(for: identifiers)
+        let foundIdentifiers = Set(entities.map(\.id))
+        let missingIdentifiers = identifiers.filter { !foundIdentifiers.contains($0) }
+
+        if !missingIdentifiers.isEmpty {
+            try await CSSearchableIndex(name: presetEntityIndexName)
+                .deleteSearchableItems(withIdentifiers: missingIdentifiers)
+        }
+        if !entities.isEmpty {
+            try await index(entities)
+        }
     }
 }
 

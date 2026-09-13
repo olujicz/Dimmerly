@@ -6,7 +6,7 @@
 //
 
 import AppKit
-import MenuBarExtraAccess
+import Observation
 import SwiftUI
 
 private struct CloseMenuBarPanelKey: EnvironmentKey {
@@ -17,6 +17,78 @@ extension EnvironmentValues {
     var closeMenuBarPanel: @MainActor @Sendable () -> Void {
         get { self[CloseMenuBarPanelKey.self] }
         set { self[CloseMenuBarPanelKey.self] = newValue }
+    }
+}
+
+@MainActor
+enum MenuBarPanelPresentationPath: Equatable {
+    case menuBarExtra
+    case publicPopover
+
+    static var current: Self {
+        if #available(macOS 27.0, *) {
+            .publicPopover
+        } else {
+            .menuBarExtra
+        }
+    }
+}
+
+@MainActor
+@Observable
+final class MenuBarPanelCoordinator {
+    static let shared = MenuBarPanelCoordinator()
+
+    var isPresented = false
+    var requestedPresetID: UUID?
+    private(set) var isExternalPresentationActive = false
+
+    private var presentExternal: (@MainActor (UUID) -> Void)?
+    private var dismissExternal: (@MainActor () -> Void)?
+
+    func configureExternalPresentation(
+        present: @escaping @MainActor (UUID) -> Void,
+        dismiss: @escaping @MainActor () -> Void
+    ) {
+        presentExternal = present
+        dismissExternal = dismiss
+
+        if isExternalPresentationActive, let requestedPresetID {
+            presentExternal?(requestedPresetID)
+        }
+    }
+
+    func openPreset(
+        id: UUID,
+        presentationPath: MenuBarPanelPresentationPath = .current,
+        activateApp: @escaping @MainActor () -> Void = { NSApp.activate(ignoringOtherApps: true) }
+    ) {
+        requestedPresetID = id
+        activateApp()
+
+        switch presentationPath {
+        case .menuBarExtra:
+            isPresented = true
+        case .publicPopover:
+            isExternalPresentationActive = true
+            presentExternal?(id)
+        }
+    }
+
+    func dismiss() {
+        let wasExternallyPresented = isExternalPresentationActive
+        isPresented = false
+        isExternalPresentationActive = false
+        requestedPresetID = nil
+
+        if wasExternallyPresented {
+            dismissExternal?()
+        }
+    }
+
+    func externalPresentationDidDismiss() {
+        isExternalPresentationActive = false
+        requestedPresetID = nil
     }
 }
 
@@ -90,6 +162,9 @@ enum MenuBarPanelScrollStyle {
 }
 
 struct MenuBarPanel: View {
+    let selectedPresetID: UUID?
+    let openSettingsAction: @MainActor () -> Void
+
     @Environment(BrightnessManager.self) var brightnessManager
     @Environment(AppSettings.self) var settings
     @Environment(PresetManager.self) var presetManager
@@ -97,41 +172,62 @@ struct MenuBarPanel: View {
     #if !APPSTORE
         @Environment(HardwareBrightnessManager.self) var hardwareManager
     #endif
-    @Environment(\.openSettings) private var openSettings
     @Environment(\.closeMenuBarPanel) private var closeMenuBarPanel
 
+    init(
+        selectedPresetID: UUID? = nil,
+        openSettingsAction: @escaping @MainActor () -> Void = {}
+    ) {
+        self.selectedPresetID = selectedPresetID
+        self.openSettingsAction = openSettingsAction
+    }
+
     var body: some View {
-        VStack(spacing: 0) {
-            ScrollView {
-                VStack(spacing: 0) {
-                    displaySliders
+        ScrollViewReader { proxy in
+            VStack(spacing: 0) {
+                ScrollView {
+                    VStack(spacing: 0) {
+                        displaySliders
 
-                    panelDivider
-                    presetsSection
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 8)
+                        panelDivider
+                        presetsSection
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 8)
+                    }
+                    .menuBarPanelScrollStyle()
                 }
-                .menuBarPanelScrollStyle()
+                .scrollBounceBehavior(.basedOnSize)
+                .frame(idealHeight: 200, maxHeight: 400)
+                .fixedSize(horizontal: false, vertical: true)
+                .onAppear { scrollToSelectedPreset(using: proxy) }
+                .onChange(of: selectedPresetID) { _, _ in
+                    scrollToSelectedPreset(using: proxy)
+                }
+
+                panelDivider
+
+                turnOffButton
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 8)
+
+                panelDivider
+
+                footer
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 8)
             }
-            .scrollBounceBehavior(.basedOnSize)
-            .frame(idealHeight: 200, maxHeight: 400)
-            .fixedSize(horizontal: false, vertical: true)
-
-            panelDivider
-
-            turnOffButton
-                .padding(.horizontal, 20)
-                .padding(.vertical, 8)
-
-            panelDivider
-
-            footer
-                .padding(.horizontal, 20)
-                .padding(.vertical, 8)
         }
         .frame(width: 300)
         .menuBarPanelHostGlass()
         .menuBarPanelChrome()
+    }
+
+    private func scrollToSelectedPreset(using proxy: ScrollViewProxy) {
+        guard selectedPresetID != nil else { return }
+        Task { @MainActor in
+            await Task.yield()
+            proxy.scrollTo(selectedPresetID, anchor: .center)
+        }
     }
 
     // MARK: - Sliders
@@ -227,7 +323,7 @@ struct MenuBarPanel: View {
     // MARK: - Presets
 
     private var presetsSection: some View {
-        PresetsSectionView()
+        PresetsSectionView(selectedPresetID: selectedPresetID)
             .environment(presetManager)
             .environment(brightnessManager)
     }
@@ -286,8 +382,7 @@ struct MenuBarPanel: View {
     private var footer: some View {
         HStack(spacing: 0) {
             Button {
-                openSettings()
-                NSApp.activate()
+                openSettingsAction()
             } label: {
                 FooterLabel("Settings", icon: "gear", shortcut: "⌘,")
             }

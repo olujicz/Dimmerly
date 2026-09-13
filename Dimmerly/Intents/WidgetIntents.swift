@@ -9,6 +9,29 @@
 
 import AppIntents
 
+#if compiler(>=6.4)
+    enum WidgetIntentExecutionPolicy: Equatable {
+        case mainApp
+        case widgetKitExtension
+
+        #if WIDGET_EXTENSION
+            static let current: Self = .widgetKitExtension
+        #else
+            static let current: Self = .mainApp
+        #endif
+
+        @available(macOS 27.0, *)
+        var intentExecutionTargets: IntentExecutionTargets {
+            switch self {
+            case .mainApp:
+                .main
+            case .widgetKitExtension:
+                .widgetKitExtension
+            }
+        }
+    }
+#endif
+
 struct DimDisplaysWidgetIntent: AppIntent {
     static let title: LocalizedStringResource = "Dim Displays (Widget)"
     static let description: IntentDescription = "Dims all connected displays."

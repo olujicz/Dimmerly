@@ -96,7 +96,7 @@ Repository-level branch protection, tag protection, Actions, and security settin
 
 - Built with Swift 6 and the Observation framework (`@Observable`)
 - State is managed through observable managers injected via SwiftUI environment
-- No third-party runtime dependencies
+- Uses [MenuBarExtraAccess](https://github.com/orchetect/MenuBarExtraAccess) as its only third-party runtime dependency
 
 ## Display Control Behavior
 

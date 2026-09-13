@@ -67,6 +67,94 @@ final class MenuBarPanelTests: XCTestCase {
     }
 
     @MainActor
+    func testMenuBarPanelCoordinatorPresentsAndSelectsPreset() {
+        let coordinator = MenuBarPanelCoordinator()
+        let presetID = UUID()
+        var didActivateApp = false
+
+        coordinator.openPreset(
+            id: presetID,
+            presentationPath: .menuBarExtra,
+            activateApp: { didActivateApp = true }
+        )
+
+        XCTAssertTrue(coordinator.isPresented)
+        XCTAssertEqual(coordinator.requestedPresetID, presetID)
+        XCTAssertTrue(didActivateApp)
+
+        coordinator.dismiss()
+
+        XCTAssertFalse(coordinator.isPresented)
+        XCTAssertNil(coordinator.requestedPresetID)
+    }
+
+    @MainActor
+    func testPublicPopoverPresentationDoesNotUseMenuBarExtraBinding() {
+        let coordinator = MenuBarPanelCoordinator()
+        let presetID = UUID()
+        var presentedPresetID: UUID?
+        var dismissed = false
+
+        coordinator.configureExternalPresentation(
+            present: { presentedPresetID = $0 },
+            dismiss: { dismissed = true }
+        )
+        coordinator.openPreset(
+            id: presetID,
+            presentationPath: .publicPopover,
+            activateApp: {}
+        )
+
+        XCTAssertFalse(coordinator.isPresented)
+        XCTAssertTrue(coordinator.isExternalPresentationActive)
+        XCTAssertEqual(presentedPresetID, presetID)
+
+        coordinator.dismiss()
+
+        XCTAssertTrue(dismissed)
+        XCTAssertFalse(coordinator.isExternalPresentationActive)
+        XCTAssertNil(coordinator.requestedPresetID)
+    }
+
+    @MainActor
+    func testMenuBarPanelPresenterShowsPublicPopoverWithAppKitAnchor() {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 240, height: 80),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        let button = NSButton(frame: NSRect(x: 100, y: 20, width: 40, height: 24))
+        window.contentView = button
+        window.makeKeyAndOrderFront(nil)
+
+        let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        let presenter = MenuBarPanelPresenter {
+            (button.bounds, button)
+        }
+        defer {
+            presenter.dismiss()
+            window.close()
+            NSStatusBar.system.removeStatusItem(statusItem)
+        }
+
+        var contentBuildCount = 0
+        presenter.configure(
+            statusItem: statusItem,
+            contentBuilder: { _ in
+                contentBuildCount += 1
+                return NSViewController()
+            },
+            didDismiss: {}
+        )
+
+        presenter.present(selectedPresetID: UUID())
+
+        XCTAssertEqual(contentBuildCount, 1)
+        XCTAssertTrue(presenter.isPresented)
+    }
+
+    @MainActor
     func testGlassBackgroundPolicyPreservesSwiftUISliderBackingViews() {
         let glassIdentifier = NSUserInterfaceItemIdentifier("DimmerlyMenuBarPanelGlass")
         let sliderBackingView = NSView()

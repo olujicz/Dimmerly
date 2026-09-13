@@ -39,6 +39,7 @@ brew install --cask dimmerly
 - Global keyboard shortcuts for dimming and presets
 - Schedules based on a fixed time, sunrise, or sunset
 - Desktop widgets and Shortcuts actions
+- Control Center dimming on macOS 26 and later
 - Optional automatic color temperature changes
 - Optional auto-dim after inactivity
 - VoiceOver labels and Reduce Motion support
@@ -62,7 +63,7 @@ brew install --cask dimmerly
 The Homebrew cask installs the signed and notarized direct-download build with
 the full feature set.
 
-### Direct Download
+### Direct download
 
 Download the latest signed and notarized DMG from
 [GitHub Releases](https://github.com/olujicz/Dimmerly/releases/latest).
@@ -70,17 +71,17 @@ Download the latest signed and notarized DMG from
 This is the recommended build when you want DDC/CI hardware controls and display
 sleep.
 
-### App Store Build
+### App Store build
 
 The repository also includes a sandboxed App Store configuration. See
 [Build Differences](#build-differences) for its capabilities.
 
-### Build From Source
+### Build from source
 
 See [BUILDING.md](BUILDING.md) for Xcode requirements, build configurations,
 test commands, and architecture notes.
 
-## Build Differences
+## Build differences
 
 | Capability | Direct download | App Store build |
 | --- | --- | --- |
@@ -103,7 +104,7 @@ the sandboxed build when App Store distribution or sandboxing matters more.
 
 ## Usage
 
-### Menu Bar Controls
+### Menu bar controls
 
 Open Dimmerly from the menu bar to adjust each display. The main slider controls
 brightness. Expand a display row for warmth, contrast, and, when available,
@@ -112,7 +113,7 @@ DDC/CI controls such as volume or input source.
 If a display shows the hardware indicator, Dimmerly is talking to it through
 DDC/CI. Otherwise the app uses software dimming for that display.
 
-### Presets And Schedules
+### Presets and schedules
 
 Presets save the current display setup: brightness, warmth, and contrast for
 each display. They can be applied from the menu bar, widgets, Shortcuts,
@@ -122,7 +123,7 @@ Schedules can run at a fixed time, at sunrise, at sunset, or with an offset
 from sunrise or sunset. Sunrise and sunset schedules can use your current
 location or manually entered coordinates.
 
-### Dimming And Wake Behavior
+### Dimming and wake behavior
 
 The direct-download build can put displays to sleep. Dim-only mode keeps the
 session visible but darkened, which is useful when you want quick wake behavior
@@ -139,12 +140,14 @@ Animated transitions respect the macOS Reduce Motion setting.
 ### Automation
 
 Dimmerly includes Shortcuts actions for setting brightness, warmth, and contrast,
-sleeping displays, toggling dimming, and applying presets.
+sleeping or blanking displays depending on the build, toggling dimming, and
+applying presets.
 
 It also includes small and medium desktop widgets for quick dimming and preset
-access.
+access. On macOS 26 and later, Dimmerly also provides a Control Center button
+for quick dimming.
 
-## Known Limitations
+## Known limitations
 
 - Hardware monitor controls require a DDC/CI-capable display and connection.
   Some hubs, docks, KVMs, HDMI adapters, DisplayLink adapters, and built-in HDMI
@@ -171,7 +174,7 @@ Read the full [Privacy Policy](https://dimmerly.olujic.in.rs/privacy-policy.html
 
 ## Troubleshooting
 
-### Brightness Does Not Change The Monitor Backlight
+### Brightness does not change the monitor backlight
 
 If a display does not show the hardware indicator, Dimmerly is using software
 dimming for that display. Software dimming changes perceived brightness, not the
@@ -187,7 +190,7 @@ Common reasons DDC/CI is unavailable:
 Try connecting the monitor directly over USB-C or DisplayPort and check the
 monitor's settings for DDC/CI support.
 
-### Keyboard Shortcuts Do Not Work
+### Keyboard shortcuts do not work
 
 Global shortcuts require Accessibility permission:
 
@@ -198,13 +201,13 @@ System Settings -> Privacy & Security -> Accessibility
 After granting permission, restart Dimmerly. If the shortcut still does not
 work, choose a shortcut that is not already reserved by macOS or another app.
 
-### Displays Wake Too Easily
+### Displays wake too easily
 
 Open Settings and adjust the dimming wake behavior. Enable "Ignore mouse
 movement" if small pointer movement wakes the displays, or enable Escape-only
 dismissal for stricter control.
 
-### Get Help
+### Get help
 
 - [Report a bug](https://github.com/olujicz/Dimmerly/issues/new?template=bug_report.yml)
 - [Report a monitor compatibility issue](https://github.com/olujicz/Dimmerly/issues/new?template=monitor_compatibility.yml)

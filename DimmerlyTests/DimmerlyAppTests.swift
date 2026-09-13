@@ -25,6 +25,19 @@ final class DimmerlyAppTests: XCTestCase {
         XCTAssertFalse(source.contains(".onAppear {\n            NSApp.activate()\n        }"))
     }
 
+    func testMenuBarExtraAccessUsesThePublicReleaseBeforeMacOS27SPI() throws {
+        let repositoryURL = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let packageURL = repositoryURL.appendingPathComponent(
+            "Dimmerly.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
+        )
+        let resolvedPackage = try String(contentsOf: packageURL, encoding: .utf8)
+
+        XCTAssertTrue(resolvedPackage.contains("\"version\" : \"1.3.0\""))
+        XCTAssertFalse(resolvedPackage.contains("\"version\" : \"1.3.1\""))
+    }
+
     func testTurnOffTitleReflectsPreventScreenLockSetting() throws {
         // Isolated suite so this test doesn't read or overwrite the developer's real
         // preventScreenLock setting in UserDefaults.standard.
@@ -87,6 +100,19 @@ final class DimmerlyAppTests: XCTestCase {
     }
 
     #if compiler(>=6.4)
+        @available(macOS 27.0, *)
+        func testWidgetIntentExecutionPolicyMapsAppAndExtensionTargets() {
+            XCTAssertEqual(
+                WidgetIntentExecutionPolicy.mainApp.intentExecutionTargets,
+                .main
+            )
+            XCTAssertEqual(
+                WidgetIntentExecutionPolicy.widgetKitExtension.intentExecutionTargets,
+                .widgetKitExtension
+            )
+            XCTAssertEqual(WidgetIntentExecutionPolicy.current, .mainApp)
+        }
+
         @available(macOS 27.0, *)
         func testWidgetIntentsTargetTheMainAppOnMacOS27() {
             XCTAssertEqual(DimDisplaysWidgetIntent.allowedExecutionTargets, .main)

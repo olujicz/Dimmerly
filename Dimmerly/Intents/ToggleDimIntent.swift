@@ -6,20 +6,31 @@
 //
 
 import AppIntents
+import AppKit
 import CoreGraphics
 
 @MainActor
-private func applyPresetEntity(_ entity: PresetEntity) throws {
-    let presetManager = PresetManager.shared
-    let brightnessManager = BrightnessManager.shared
-
+private func resolvePresetEntity(
+    _ entity: PresetEntity,
+    in presetManager: PresetManager
+) throws -> (id: UUID, preset: BrightnessPreset) {
     guard let uuid = UUID(uuidString: entity.id),
           let resolvedPreset = presetManager.presets.first(where: { $0.id == uuid })
     else {
         throw ApplyPresetIntent.IntentError.presetNotFound
     }
 
-    presetManager.applyPreset(resolvedPreset, to: brightnessManager, animated: true)
+    return (uuid, resolvedPreset)
+}
+
+@MainActor
+private func applyPresetEntity(_ entity: PresetEntity) throws {
+    let presetManager = PresetManager.shared
+    let brightnessManager = BrightnessManager.shared
+
+    let resolved = try resolvePresetEntity(entity, in: presetManager)
+
+    presetManager.applyPreset(resolved.preset, to: brightnessManager, animated: true)
 }
 
 struct ToggleDimIntent: AppIntent {
@@ -96,7 +107,7 @@ struct ApplyPresetIntent: AppIntent {
 
 struct OpenPresetIntent: OpenIntent {
     static let title: LocalizedStringResource = "Open Brightness Preset"
-    static let description: IntentDescription = .init("Opens and applies a saved brightness preset in Dimmerly.")
+    static let description: IntentDescription = .init("Opens a saved brightness preset in Dimmerly.")
 
     #if compiler(>=6.4)
         @available(macOS 27.0, *)
@@ -116,7 +127,26 @@ struct OpenPresetIntent: OpenIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult {
-        try applyPresetEntity(target)
+        try perform(
+            using: PresetManager.shared,
+            coordinator: MenuBarPanelCoordinator.shared,
+            activateApp: { NSApp.activate(ignoringOtherApps: true) }
+        )
         return .result()
+    }
+
+    @MainActor
+    func perform(
+        using presetManager: PresetManager,
+        coordinator: MenuBarPanelCoordinator,
+        activateApp: @escaping @MainActor () -> Void,
+        presentationPath: MenuBarPanelPresentationPath = .current
+    ) throws {
+        let resolved = try resolvePresetEntity(target, in: presetManager)
+        coordinator.openPreset(
+            id: resolved.id,
+            presentationPath: presentationPath,
+            activateApp: activateApp
+        )
     }
 }

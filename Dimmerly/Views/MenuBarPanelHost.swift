@@ -6,6 +6,117 @@
 import AppKit
 import SwiftUI
 
+// MARK: - Public popover presentation
+
+/// Presents the menu bar panel through public AppKit APIs when a system
+/// `MenuBarExtra` cannot be opened programmatically.
+@MainActor
+final class MenuBarPanelPresenter: NSObject, NSPopoverDelegate {
+    static let shared = MenuBarPanelPresenter()
+
+    typealias ContentBuilder = @MainActor (UUID?) -> NSViewController
+    typealias AnchorProvider = @MainActor () -> (rect: NSRect, view: NSView)?
+
+    private let anchorProvider: AnchorProvider?
+    private weak var statusItem: NSStatusItem?
+    private var contentBuilder: ContentBuilder?
+    private var didDismiss: (@MainActor () -> Void)?
+    private var popover: NSPopover?
+    private var dismissalWasNotified = false
+
+    var isPresented: Bool {
+        popover?.isShown == true
+    }
+
+    init(anchorProvider: AnchorProvider? = nil) {
+        self.anchorProvider = anchorProvider
+        super.init()
+    }
+
+    func configure(
+        statusItem: NSStatusItem,
+        contentBuilder: @escaping ContentBuilder,
+        didDismiss: @escaping @MainActor () -> Void
+    ) {
+        self.statusItem = statusItem
+        self.contentBuilder = contentBuilder
+        self.didDismiss = didDismiss
+    }
+
+    func present(selectedPresetID: UUID?) {
+        guard let anchor = presentationAnchor(), let contentBuilder else { return }
+
+        if let popover, popover.isShown {
+            popover.contentViewController = contentBuilder(selectedPresetID)
+            popover.contentSize = contentSize(for: popover.contentViewController)
+            return
+        }
+
+        let popover = NSPopover()
+        popover.behavior = .transient
+        popover.animates = true
+        popover.delegate = self
+        popover.contentViewController = contentBuilder(selectedPresetID)
+        popover.contentSize = contentSize(for: popover.contentViewController)
+        self.popover = popover
+        dismissalWasNotified = false
+
+        // `show(relativeTo:of:preferredEdge:)` is public AppKit presentation and
+        // does not depend on MenuBarExtra's private target/action implementation.
+        popover.show(relativeTo: anchor.rect, of: anchor.view, preferredEdge: .maxY)
+    }
+
+    func dismiss() {
+        guard let popover else {
+            notifyDismissalIfNeeded()
+            return
+        }
+
+        if popover.isShown {
+            popover.performClose(nil)
+        } else {
+            finishDismissal(for: popover)
+        }
+    }
+
+    func popoverDidClose(_ notification: Notification) {
+        guard let closedPopover = notification.object as? NSPopover else { return }
+        finishDismissal(for: closedPopover)
+    }
+
+    private func contentSize(for viewController: NSViewController?) -> NSSize {
+        guard let viewController else { return NSSize(width: 300, height: 480) }
+
+        viewController.view.layoutSubtreeIfNeeded()
+        let fittingSize = viewController.view.fittingSize
+        let height = fittingSize.height.isFinite && fittingSize.height > 0
+            ? min(max(fittingSize.height, 200), 640)
+            : 480
+        return NSSize(width: 300, height: height)
+    }
+
+    private func presentationAnchor() -> (rect: NSRect, view: NSView)? {
+        if let anchorProvider {
+            return anchorProvider()
+        }
+
+        guard let button = statusItem?.button else { return nil }
+        return (button.bounds, button)
+    }
+
+    private func finishDismissal(for popover: NSPopover) {
+        guard self.popover === popover else { return }
+        self.popover = nil
+        notifyDismissalIfNeeded()
+    }
+
+    private func notifyDismissalIfNeeded() {
+        guard !dismissalWasNotified else { return }
+        dismissalWasNotified = true
+        didDismiss?()
+    }
+}
+
 // MARK: - Scroll Style
 
 final class MenuBarPanelScrollStyleConfiguratorView: NSView {
@@ -64,6 +175,47 @@ final class MenuBarPanelScrollStyleConfiguratorView: NSView {
     }
 }
 
+/// Configures the panel's host window using the public `NSView.window` path.
+/// This works for both SwiftUI's MenuBarExtra window and the fallback popover.
+final class MenuBarPanelWindowConfiguratorView: NSView {
+    private var hasConfiguredWindow = false
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        scheduleConfigure()
+    }
+
+    override func viewDidMoveToSuperview() {
+        super.viewDidMoveToSuperview()
+        scheduleConfigure()
+    }
+
+    func scheduleConfigure(attemptsRemaining: Int = 8) {
+        guard !hasConfiguredWindow else { return }
+
+        guard let window else {
+            guard attemptsRemaining > 0 else { return }
+            DispatchQueue.main.async { [weak self] in
+                self?.scheduleConfigure(attemptsRemaining: attemptsRemaining - 1)
+            }
+            return
+        }
+
+        MenuBarPanelHostGlass.configureWindow(window)
+        hasConfiguredWindow = true
+    }
+}
+
+private struct MenuBarPanelWindowConfigurator: NSViewRepresentable {
+    func makeNSView(context _: Context) -> NSView {
+        MenuBarPanelWindowConfiguratorView()
+    }
+
+    func updateNSView(_ nsView: NSView, context _: Context) {
+        (nsView as? MenuBarPanelWindowConfiguratorView)?.scheduleConfigure()
+    }
+}
+
 private struct MenuBarPanelScrollStyleConfigurator: NSViewRepresentable {
     func makeNSView(context _: Context) -> NSView {
         MenuBarPanelScrollStyleConfiguratorView()
@@ -87,8 +239,7 @@ extension View {
 
 // MARK: - Host Glass Configuration
 
-/// Glass window styling, driven by `MenuBarExtraAccess`'s `introspectMenuBarExtraWindow`
-/// instead of a hand-rolled `viewDidMoveToWindow`/`viewDidMoveToSuperview` polling `NSView`.
+/// Glass window styling shared by the system MenuBarExtra and the public AppKit popover.
 @MainActor
 enum MenuBarPanelHostGlass {
     private static let glassIdentifier = NSUserInterfaceItemIdentifier("DimmerlyMenuBarPanelGlass")
@@ -198,7 +349,6 @@ final class MenuBarPanelHostRefreshConfiguratorView: NSView {
 }
 
 /// Re-applies glass background clearing as SwiftUI's content view hierarchy changes.
-/// Window-level setup (transparency, effect view) happens once via `introspectMenuBarExtraWindow`.
 private struct MenuBarPanelHostRefreshConfigurator: NSViewRepresentable {
     func makeNSView(context _: Context) -> NSView {
         MenuBarPanelHostRefreshConfiguratorView()
@@ -211,9 +361,7 @@ private struct MenuBarPanelHostRefreshConfigurator: NSViewRepresentable {
 
 extension View {
     func menuBarPanelHostGlass() -> some View {
-        background(MenuBarPanelHostRefreshConfigurator())
-            .introspectMenuBarExtraWindow { window in
-                MenuBarPanelHostGlass.configureWindow(window)
-            }
+        background(MenuBarPanelWindowConfigurator())
+            .background(MenuBarPanelHostRefreshConfigurator())
     }
 }
