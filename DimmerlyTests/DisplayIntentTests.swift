@@ -95,6 +95,66 @@ final class DisplayIntentTests: XCTestCase {
         XCTAssertTrue(command.brightnessCalls.isEmpty)
     }
 
+    func testContrastIntentRejectsValuesOutsideSharedRange() {
+        let command = DisplayIntentCommandSpy(connectedDisplayIDs: [42])
+        let intent = SetDisplayContrastIntent()
+        intent.display = DisplayEntity(id: "42", name: "External")
+
+        for value in [-1.0, 101.0] {
+            intent.contrast = value
+            XCTAssertThrowsError(try intent.perform(using: command)) { error in
+                guard case .contrastOutOfRange = error as? DisplayIntentError else {
+                    return XCTFail("Expected contrastOutOfRange, got \(error)")
+                }
+            }
+        }
+
+        XCTAssertTrue(command.contrastCalls.isEmpty)
+    }
+
+    func testContrastIntentAcceptsSharedRangeBoundaries() throws {
+        let command = DisplayIntentCommandSpy(connectedDisplayIDs: [42])
+        let intent = SetDisplayContrastIntent()
+        intent.display = DisplayEntity(id: "42", name: "External")
+
+        intent.contrast = 0
+        try intent.perform(using: command)
+        intent.contrast = 100
+        try intent.perform(using: command)
+
+        XCTAssertEqual(command.contrastCalls.map(\.value), [0.0, 1.0])
+    }
+
+    func testWarmthIntentRejectsValuesOutsideSharedRange() {
+        let command = DisplayIntentCommandSpy(connectedDisplayIDs: [42])
+        let intent = SetDisplayWarmthIntent()
+        intent.display = DisplayEntity(id: "42", name: "External")
+
+        for value in [-1.0, 101.0] {
+            intent.warmth = value
+            XCTAssertThrowsError(try intent.perform(using: command)) { error in
+                guard case .warmthOutOfRange = error as? DisplayIntentError else {
+                    return XCTFail("Expected warmthOutOfRange, got \(error)")
+                }
+            }
+        }
+
+        XCTAssertTrue(command.warmthCalls.isEmpty)
+    }
+
+    func testWarmthIntentAcceptsSharedRangeBoundaries() throws {
+        let command = DisplayIntentCommandSpy(connectedDisplayIDs: [42])
+        let intent = SetDisplayWarmthIntent()
+        intent.display = DisplayEntity(id: "42", name: "External")
+
+        intent.warmth = 0
+        try intent.perform(using: command)
+        intent.warmth = 100
+        try intent.perform(using: command)
+
+        XCTAssertEqual(command.warmthCalls.map(\.value), [0.0, 1.0])
+    }
+
     func testPresetEntityPublishesSpotlightAttributes() {
         let entity = PresetEntity(id: "preset-1", name: "Evening")
         let attributes = entity.attributeSet
