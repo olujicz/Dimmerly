@@ -323,6 +323,13 @@ class BrightnessManager {
             }
         }
 
+        #if DEBUG
+            /// Test-only entry point for the same read path used by backlight polling.
+            func syncBuiltInBrightnessForTesting() {
+                syncBuiltInBrightness()
+            }
+        #endif
+
         /// Starts polling the built-in display backlight every ~1 second.
         private func startBacklightPolling() {
             backlightPollTask?.cancel()

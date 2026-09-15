@@ -963,6 +963,43 @@ final class BrightnessManagerTests: XCTestCase {
 
 @MainActor
 extension BrightnessManagerTests {
+    #if !APPSTORE
+        func testRefreshPreservesSuccessfulBuiltInReadBelowMinimumExactly() {
+            let displayID: CGDirectDisplayID = 42
+            bm.displays = [ExternalDisplay(
+                id: displayID,
+                name: "Built-in",
+                brightness: 0.37,
+                warmth: 0.2,
+                contrast: 0.6,
+                isBuiltIn: true
+            )]
+            bm.activeDisplayIDsHook = { [displayID] }
+            bm.isBuiltInDisplayHook = { $0 == displayID }
+            bm.readBuiltInBrightnessHook = { _ in 0.05 }
+            bm.applyGammaHook = { _, _, _, _ in }
+
+            bm.refreshDisplays()
+
+            XCTAssertEqual(bm.displays[0].brightness, 0.05, accuracy: 0.0001)
+        }
+
+        func testSyncBuiltInBrightnessClampsSuccessfulReadAboveMaximum() {
+            let displayID: CGDirectDisplayID = 42
+            bm.displays = [ExternalDisplay(
+                id: displayID,
+                name: "Built-in",
+                brightness: 0.5,
+                isBuiltIn: true
+            )]
+            bm.readBuiltInBrightnessHook = { _ in 1.05 }
+
+            bm.syncBuiltInBrightnessForTesting()
+
+            XCTAssertEqual(bm.displays[0].brightness, 1.0, accuracy: 0.0001)
+        }
+    #endif
+
     func testAnimateToPresetClampsUniversalBrightnessToMaximum() async {
         bm.displays = [ExternalDisplay(id: 1, name: "A", brightness: 0.5)]
         bm.canAnimateTransitionsHook = { true }
