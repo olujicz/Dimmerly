@@ -117,17 +117,28 @@ jobs:
   test:
     needs: changes
     if: needs.changes.outputs.full_ci == 'true'
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Select Xcode 26.6
-        run: sudo xcode-select -s /Applications/Xcode_26.6.app/Contents/Developer
-
       - name: Xcode Version
         run: xcodebuild -version
+
+      - name: Verify Toolchain Includes macOS 27 Code
+        run: |
+          swift_version="$(swift -version 2>&1 | sed -n 's/.*Apple Swift version \([0-9][0-9.]*\).*/\1/p' | head -1)"
+          echo "Swift ${swift_version}, macOS SDK $(xcrun --show-sdk-version)"
+          # The macOS 27 intents, Spotlight indexing, and appEntityIdentifier wiring sit
+          # behind `#if compiler(>=6.4)`. An older toolchain drops them silently and still
+          # reports a green build, so fail loudly instead of shipping a hollow binary.
+          major="${swift_version%%.*}"
+          minor="$(echo "${swift_version}" | cut -d. -f2)"
+          if [ "${major}" -lt 6 ] || { [ "${major}" -eq 6 ] && [ "${minor}" -lt 4 ]; }; then
+            echo "::error::Swift ${swift_version} excludes the macOS 27 code (needs >= 6.4)"
+            exit 1
+          fi
 
       - name: Run Tests
         run: xcodebuild test -scheme Dimmerly -destination 'platform=macOS' CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
@@ -135,17 +146,28 @@ jobs:
   build-appstore:
     needs: changes
     if: needs.changes.outputs.full_ci == 'true'
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Select Xcode 26.6
-        run: sudo xcode-select -s /Applications/Xcode_26.6.app/Contents/Developer
-
       - name: Xcode Version
         run: xcodebuild -version
+
+      - name: Verify Toolchain Includes macOS 27 Code
+        run: |
+          swift_version="$(swift -version 2>&1 | sed -n 's/.*Apple Swift version \([0-9][0-9.]*\).*/\1/p' | head -1)"
+          echo "Swift ${swift_version}, macOS SDK $(xcrun --show-sdk-version)"
+          # The macOS 27 intents, Spotlight indexing, and appEntityIdentifier wiring sit
+          # behind `#if compiler(>=6.4)`. An older toolchain drops them silently and still
+          # reports a green build, so fail loudly instead of shipping a hollow binary.
+          major="${swift_version%%.*}"
+          minor="$(echo "${swift_version}" | cut -d. -f2)"
+          if [ "${major}" -lt 6 ] || { [ "${major}" -eq 6 ] && [ "${minor}" -lt 4 ]; }; then
+            echo "::error::Swift ${swift_version} excludes the macOS 27 code (needs >= 6.4)"
+            exit 1
+          fi
 
       - name: Build App Store Scheme
         run: xcodebuild build -project Dimmerly.xcodeproj -scheme "Dimmerly App Store" -configuration Debug-AppStore -destination 'platform=macOS' CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
