@@ -250,6 +250,36 @@ final class MenuBarPanelTests: XCTestCase {
     }
 
     @MainActor
+    func testConfigureWindowDoesNotInjectEffectViewIntoHostingContentView() {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 300, height: 400),
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: true
+        )
+        let hostingContentView = NSView()
+        window.contentView = hostingContentView
+
+        MenuBarPanelHostGlass.configureWindow(window)
+
+        let injectedEffectViews = hostingContentView.subviews.compactMap { $0 as? NSVisualEffectView }
+        XCTAssertTrue(
+            injectedEffectViews.isEmpty,
+            "Adding NSVisualEffectView to NSHostingController.view is unsupported by AppKit"
+        )
+    }
+
+    @MainActor
+    func testGlassBackgroundViewUsesConfiguredMenuMaterial() {
+        let effectView = MenuBarPanelGlassBackgroundView.makeEffectView()
+
+        XCTAssertEqual(effectView.material, MenuBarPanelGlassStyle.windowMaterial)
+        XCTAssertEqual(effectView.blendingMode, MenuBarPanelGlassStyle.blendingMode)
+        XCTAssertEqual(effectView.state, MenuBarPanelGlassStyle.state)
+        XCTAssertEqual(effectView.layer?.cornerRadius, MenuBarPanelGlassStyle.cornerRadius)
+    }
+
+    @MainActor
     func testScrollStyleUsesSubtleAutohidingOverlayScroller() {
         let scrollView = NSScrollView()
         scrollView.scrollerStyle = .legacy
@@ -384,19 +414,13 @@ final class MenuBarPanelTests: XCTestCase {
     // MARK: - Host Glass Configuration
 
     @MainActor
-    func testConfigureWindowInsertsSingleGlassEffectView() {
+    func testConfigureWindowMakesHostWindowTransparent() {
         let window = Self.makeTestWindow()
 
         MenuBarPanelHostGlass.configureWindow(window)
 
         XCTAssertFalse(window.isOpaque)
         XCTAssertEqual(window.backgroundColor, .clear)
-
-        let effectViews = window.contentView?.subviews.compactMap { $0 as? NSVisualEffectView } ?? []
-        XCTAssertEqual(effectViews.count, 1)
-        XCTAssertEqual(effectViews.first?.material, MenuBarPanelGlassStyle.windowMaterial)
-        XCTAssertEqual(effectViews.first?.blendingMode, MenuBarPanelGlassStyle.blendingMode)
-        XCTAssertEqual(effectViews.first?.state, MenuBarPanelGlassStyle.state)
     }
 
     @MainActor
@@ -406,8 +430,11 @@ final class MenuBarPanelTests: XCTestCase {
         MenuBarPanelHostGlass.configureWindow(window)
         MenuBarPanelHostGlass.configureWindow(window)
 
+        XCTAssertFalse(window.isOpaque)
+        XCTAssertEqual(window.backgroundColor, .clear)
+
         let effectViews = window.contentView?.subviews.compactMap { $0 as? NSVisualEffectView } ?? []
-        XCTAssertEqual(effectViews.count, 1)
+        XCTAssertTrue(effectViews.isEmpty)
     }
 
     @MainActor
