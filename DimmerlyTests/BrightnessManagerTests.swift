@@ -960,3 +960,42 @@ final class BrightnessManagerTests: XCTestCase {
         XCTAssertEqual(manager.displays[0].contrast, 0.6, accuracy: 0.001)
     }
 }
+
+@MainActor
+extension BrightnessManagerTests {
+    func testAnimateToPresetClampsUniversalBrightnessToMaximum() async {
+        bm.displays = [ExternalDisplay(id: 1, name: "A", brightness: 0.5)]
+        bm.canAnimateTransitionsHook = { true }
+        bm.applyGammaHook = { _, _, _, _ in }
+
+        let preset = BrightnessPreset(name: "Too Bright", universalBrightness: 1.5)
+        XCTAssertTrue(bm.animateToPreset(preset))
+
+        let settled = expectation(description: "animation reached the clamped brightness")
+        Task { @MainActor in
+            for _ in 0 ..< 300 where abs(bm.displays[0].brightness - 1.0) > 0.001 {
+                try? await Task.sleep(for: .milliseconds(10))
+            }
+            settled.fulfill()
+        }
+        await fulfillment(of: [settled], timeout: 5.0)
+
+        XCTAssertEqual(bm.displays[0].brightness, 1.0, accuracy: 0.001)
+    }
+
+    func testRefreshClampsPersistedBrightnessToMaximum() throws {
+        let suiteName = "BrightnessManagerTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        defaults.set(["1": 1.5], forKey: "dimmerlyDisplayBrightness")
+
+        let manager = BrightnessManager(forTesting: true, defaults: defaults)
+        manager.applyGammaHook = { _, _, _, _ in }
+        manager.isBuiltInDisplayHook = { _ in false }
+        manager.activeDisplayIDsHook = { [1] }
+
+        manager.refreshDisplays()
+
+        XCTAssertEqual(manager.displays[0].brightness, 1.0, accuracy: 0.001)
+    }
+}

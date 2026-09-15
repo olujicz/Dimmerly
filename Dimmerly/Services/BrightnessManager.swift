@@ -314,7 +314,7 @@ class BrightnessManager {
         private func syncBuiltInBrightness() {
             for i in displays.indices where displays[i].isBuiltIn {
                 if let hw = readBuiltInBrightness(for: displays[i].id) {
-                    let clamped = max(hw, Self.minimumBrightness)
+                    let clamped = clampedBrightness(hw)
                     if abs(displays[i].brightness - clamped) > 0.005 {
                         displays[i].brightness = clamped
                         debouncePersist()
@@ -573,12 +573,16 @@ class BrightnessManager {
                 // DisplayServices can be briefly unavailable during reconfiguration.
                 // Preserve the live model and do not write fallback state to the panel.
                 let fallback = previousBrightness
-                    ?? Swift.max(savedBrightness ?? 1.0, Self.minimumBrightness)
+                    ?? clampedBrightness(savedBrightness ?? 1.0)
                 return (fallback, true)
             }
         #endif
 
-        return (Swift.max(savedBrightness ?? 1.0, Self.minimumBrightness), false)
+        return (clampedBrightness(savedBrightness ?? 1.0), false)
+    }
+
+    private func clampedBrightness(_ value: Double) -> Double {
+        min(max(value, Self.minimumBrightness), 1.0)
     }
 
     /// Sets the brightness for a specific display.
@@ -591,7 +595,7 @@ class BrightnessManager {
     ///   - value: Desired brightness level (0.0–1.0), will be clamped to safe range
     /// - Note: If screen blanking is active, gamma changes are deferred until unblanking
     func setBrightness(for displayID: CGDirectDisplayID, to value: Double) {
-        let clamped = min(Swift.max(value, Self.minimumBrightness), 1)
+        let clamped = clampedBrightness(value)
 
         guard let index = displays.firstIndex(where: { $0.id == displayID }) else { return }
         displays[index].brightness = clamped
@@ -733,11 +737,11 @@ class BrightnessManager {
             let identity = displayIdentity(for: display.id)
 
             let endBrightness: Double = if let universal = preset.universalBrightness {
-                max(universal, Self.minimumBrightness)
+                clampedBrightness(universal)
             } else if let value = savedValue(preset.displayBrightness, for: display.id, identity: identity) {
-                max(value, Self.minimumBrightness)
+                clampedBrightness(value)
             } else {
-                display.brightness
+                clampedBrightness(display.brightness)
             }
 
             let endWarmth: Double = if let universal = preset.universalWarmth {
