@@ -983,7 +983,9 @@ extension BrightnessManagerTests {
 
             XCTAssertEqual(bm.displays[0].brightness, 0.05, accuracy: 0.0001)
         }
+    #endif
 
+    #if !APPSTORE && DEBUG
         func testSyncBuiltInBrightnessClampsSuccessfulReadAboveMaximum() {
             let displayID: CGDirectDisplayID = 42
             bm.displays = [ExternalDisplay(

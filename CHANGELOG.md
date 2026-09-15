@@ -23,6 +23,12 @@ Semantic Versioning.
 
 ### Fixed
 - Fixed the Settings and Quit buttons in the menu bar panel not highlighting when the pointer moved over them.
+- Fixed full-screen and per-display blanking being able to run at the same time, and displays sometimes staying stuck blanked after a per-display recovery.
+- Fixed manual warmth overrides not clearing at the next day/night boundary when set while location was temporarily unavailable.
+- Fixed hardware display reads with a legitimate zero maximum (input source, mute, power mode) being rejected as invalid.
+- Fixed schedule catch-up replaying every missed trigger after the app was asleep or closed, instead of applying only the most recent one.
+- Fixed the Set Contrast and Set Warmth Shortcuts actions accepting out-of-range values instead of reporting an error.
+- Fixed inconsistent brightness clamping across preset, hardware-sync, and direct-set code paths so brightness can no longer be set above 100%.
 
 ## [1.1.4] - 2026-08-23
 
