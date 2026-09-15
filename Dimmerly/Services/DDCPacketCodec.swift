@@ -70,7 +70,12 @@ import Foundation
             }
 
             let maxValue = (UInt16(packet[6]) << 8) | UInt16(packet[7])
-            guard maxValue > 0 else { return nil }
+            switch expectedVCP {
+            case .brightness, .contrast, .redGain, .greenGain, .blueGain, .volume:
+                guard maxValue > 0 else { return nil }
+            case .inputSource, .audioMute, .powerMode:
+                break
+            }
 
             let currentValue = (UInt16(packet[8]) << 8) | UInt16(packet[9])
             return DDCReadResult(currentValue: currentValue, maxValue: maxValue)

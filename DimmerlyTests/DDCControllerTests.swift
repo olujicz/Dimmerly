@@ -56,6 +56,21 @@ import XCTest
             )
         }
 
+        func testPacketCodecParsesNonContinuousGetReplyWithZeroMaximum() {
+            let reply = makeReply(vcp: .inputSource, maximum: 0, current: 17)
+
+            XCTAssertEqual(
+                DDCPacketCodec.parseGetReply(reply, expectedVCP: .inputSource),
+                DDCReadResult(currentValue: 17, maxValue: 0)
+            )
+        }
+
+        func testPacketCodecRejectsContinuousGetReplyWithZeroMaximum() {
+            let reply = makeReply(vcp: .brightness, maximum: 0, current: 0)
+
+            XCTAssertNil(DDCPacketCodec.parseGetReply(reply, expectedVCP: .brightness))
+        }
+
         func testPacketCodecRejectsInvalidReplies() {
             let valid = makeReply(vcp: .brightness, maximum: 100, current: 42)
 
