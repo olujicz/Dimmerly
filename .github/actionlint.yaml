@@ -1,0 +1,6 @@
+# GitHub's Xcode 27 image ships a macOS 27 SDK and Swift 6.4, which the macOS 27
+# intents and Spotlight indexing need. actionlint does not know this label yet
+# because the image is still a public preview, so declare it explicitly.
+self-hosted-runner:
+  labels:
+    - xcode-27

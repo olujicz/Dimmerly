@@ -136,6 +136,21 @@ Use the manual workflow first to prove signing, notarization, and packaging befo
 
 The Release workflow uses GitHub's `macos-26` runner and explicitly selects Xcode 26.6 for both the quality gate and signed DMG build. The archive uses manual signing with the imported Developer ID Application identity so clean runners do not create disposable Apple Development certificates. Keep these settings aligned with `.github/workflows/release.yml` when upgrading the release environment.
 
+### Toolchain Split Between CI And Release
+
+CI (`.github/workflows/ci.yml`) and the Release workflow deliberately run different toolchains:
+
+| Workflow | Runner | Xcode |
+| --- | --- | --- |
+| CI `test` and `build-appstore` | `xcode-27` | 27.0 (beta) |
+| Release quality gate and DMG build | `macos-26` | 26.6 |
+
+The macOS 27 intents, Spotlight preset indexing, and `appEntityIdentifier` wiring are behind `#if compiler(>=6.4)`. Xcode 26.6 predates Swift 6.4, so that code is excluded from anything it builds. CI runs on Xcode 27 so the gated code is actually compiled and tested, and each macOS job asserts the Swift version so an older toolchain fails loudly instead of silently producing a hollow but green build.
+
+Release stays on Xcode 26.6 because the `xcode-27` image is a GitHub public preview carrying a beta Xcode, which is not a suitable toolchain for signed, notarized public builds.
+
+**Consequence:** a DMG built today does not contain the macOS 27 features. Before releasing them, move the Release workflow to a non-beta Xcode 27 image and update this runbook in the same change.
+
 1. Open GitHub Actions.
 2. Run the `Release` workflow manually.
 3. Enter the intended stable SemVer version, for example `1.0.0`.
