@@ -184,7 +184,9 @@ class ScheduleManager {
         let previousCheck = effectivePreviousCheckDate(for: now)
 
         for candidate in fireCandidates(previousCheck: previousCheck, now: now) {
-            guard firedToday[candidate.schedule.id] != candidate.dayString else { continue }
+            guard firedToday[candidate.schedule.id] != todayString,
+                  firedToday[candidate.schedule.id] != candidate.dayString
+            else { continue }
             firedToday[candidate.schedule.id] = candidate.dayString
             onScheduleTriggered?(candidate.schedule.presetID)
         }
@@ -214,28 +216,31 @@ class ScheduleManager {
         return lastCheckDate
     }
 
-    /// Builds all schedule triggers crossed in `(previousCheck, now]`, sorted by trigger time.
+    /// Builds the most recent schedule trigger crossed in `(previousCheck, now]` for each schedule,
+    /// sorted by trigger time.
     private func fireCandidates(previousCheck: Date, now: Date) -> [ScheduleFireCandidate] {
         let daysToCheck = Self.daysInRange(from: previousCheck, through: now)
-        var candidates: [ScheduleFireCandidate] = []
+        var candidatesByScheduleID: [UUID: ScheduleFireCandidate] = [:]
 
         for (scheduleIndex, schedule) in schedules.enumerated() where schedule.isEnabled {
             for day in daysToCheck {
                 let dayString = Self.dateString(for: day)
-                guard firedToday[schedule.id] != dayString else { continue }
                 guard let triggerDate = resolveTriggerDate(schedule.trigger, on: day) else { continue }
                 guard triggerDate > previousCheck, triggerDate <= now else { continue }
 
-                candidates.append(ScheduleFireCandidate(
+                let candidate = ScheduleFireCandidate(
                     triggerDate: triggerDate,
                     scheduleIndex: scheduleIndex,
                     schedule: schedule,
                     dayString: dayString
-                ))
+                )
+                if candidatesByScheduleID[schedule.id]?.triggerDate ?? .distantPast < triggerDate {
+                    candidatesByScheduleID[schedule.id] = candidate
+                }
             }
         }
 
-        return candidates.sorted {
+        return candidatesByScheduleID.values.sorted {
             if $0.triggerDate == $1.triggerDate {
                 return $0.scheduleIndex < $1.scheduleIndex
             }

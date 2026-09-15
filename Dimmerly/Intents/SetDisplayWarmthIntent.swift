@@ -46,6 +46,9 @@ struct SetDisplayWarmthIntent: AppIntent {
 
     @MainActor
     func perform(using command: DisplayIntentCommanding) throws {
+        guard (0.0 ... 100.0).contains(warmth) else {
+            throw DisplayIntentError.warmthOutOfRange
+        }
         let displayID = try ConnectedDisplayResolver.resolve(display) {
             command.connectedDisplayIDs
         }

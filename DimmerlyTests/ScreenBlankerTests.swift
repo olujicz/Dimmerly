@@ -62,6 +62,44 @@ final class ScreenBlankerTests: XCTestCase {
         XCTAssertEqual(harness.cursor.hideCount, 1)
     }
 
+    func testPerDisplayRequestsDuringFullBlankDoNotReplaceFullBlankRecovery() throws {
+        let harness = makeHarness()
+        harness.sut.blank()
+
+        harness.sut.blankDisplay(7)
+        harness.sut.blankDisplay(9)
+
+        XCTAssertTrue(harness.sut.isBlanking)
+        XCTAssertTrue(harness.sut.blankedDisplayIDs.isEmpty)
+        XCTAssertEqual(harness.input.startPolicies.count, 1)
+        XCTAssertEqual(harness.windows.shownDisplayIDs, [7, 9])
+        XCTAssertEqual(harness.gamma.blankedDisplayIDs, [7, 9])
+
+        harness.clock.now = 100.5
+        try harness.input.sendWake()
+
+        XCTAssertFalse(harness.sut.isBlanking)
+        XCTAssertTrue(harness.sut.blankedDisplayIDs.isEmpty)
+        XCTAssertEqual(harness.input.stopCount, 1)
+    }
+
+    func testPerDisplayRecoveryResetsStateSoFullBlankCanStartAgain() throws {
+        let harness = makeHarness()
+        harness.sut.blankDisplay(7)
+        harness.sut.blankDisplay(9)
+
+        harness.clock.now = 100.5
+        try harness.input.sendWake()
+
+        XCTAssertFalse(harness.sut.isBlanking)
+        XCTAssertTrue(harness.sut.blankedDisplayIDs.isEmpty)
+
+        harness.sut.blank()
+
+        XCTAssertTrue(harness.sut.isBlanking)
+        XCTAssertEqual(harness.input.startPolicies.count, 2)
+    }
+
     func testWakeDuringGracePeriodDoesNotDismiss() throws {
         let harness = makeHarness()
         harness.sut.blank()

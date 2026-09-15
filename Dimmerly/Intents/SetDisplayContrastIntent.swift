@@ -46,6 +46,9 @@ struct SetDisplayContrastIntent: AppIntent {
 
     @MainActor
     func perform(using command: DisplayIntentCommanding) throws {
+        guard (0.0 ... 100.0).contains(contrast) else {
+            throw DisplayIntentError.contrastOutOfRange
+        }
         let displayID = try ConnectedDisplayResolver.resolve(display) {
             command.connectedDisplayIDs
         }

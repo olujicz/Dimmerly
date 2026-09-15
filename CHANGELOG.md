@@ -7,6 +7,29 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+<!-- Release note: `allowedExecutionTargets`, the `IndexedEntityQuery` reindex path, and
+     `appEntityIdentifier` are behind `#if compiler(>=6.4)`. The Release workflow still
+     builds on Xcode 26.6, which excludes them. Do not move the entries marked "macOS 27"
+     or the display-control targeting line into a release heading until the release
+     toolchain moves to Xcode 27. See documentation/RELEASE.md. -->
+
+### Added
+- Saved presets now appear in Spotlight, so a preset can be found and opened straight from search.
+- Added an "Open Brightness Preset" action to Shortcuts, which opens a saved preset in the menu bar panel.
+- Menu bar display controls can now be targeted individually from Shortcuts and Spotlight on macOS 15.4 and later.
+
+### Changed
+- On macOS 27, Shortcuts actions now run inside Dimmerly rather than in a separate helper process, so they act on the app's current display state.
+
+### Fixed
+- Fixed the Settings and Quit buttons in the menu bar panel not highlighting when the pointer moved over them.
+- Fixed full-screen and per-display blanking being able to run at the same time, and displays sometimes staying stuck blanked after a per-display recovery.
+- Fixed manual warmth overrides not clearing at the next day/night boundary when set while location was temporarily unavailable.
+- Fixed hardware display reads with a legitimate zero maximum (input source, mute, power mode) being rejected as invalid.
+- Fixed schedule catch-up replaying every missed trigger after the app was asleep or closed, instead of applying only the most recent one.
+- Fixed the Set Contrast and Set Warmth Shortcuts actions accepting out-of-range values instead of reporting an error.
+- Fixed inconsistent brightness clamping across preset, hardware-sync, and direct-set code paths so brightness can no longer be set above 100%.
+
 ## [1.1.4] - 2026-08-23
 
 ### Changed

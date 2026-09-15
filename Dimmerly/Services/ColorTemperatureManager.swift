@@ -104,6 +104,9 @@ class ColorTemperatureManager {
     /// isolated one so enabling or disabling auto warmth doesn't rewrite real display state.
     private let brightnessManager: BrightnessManager
 
+    /// Optional location lookup override for deterministic tests.
+    var locationCoordinatesHook: (() -> (latitude: Double, longitude: Double)?)?
+
     /// - Parameter brightnessManager: Where warmth is applied. Pass an isolated instance in tests.
     init(brightnessManager: BrightnessManager = .shared) {
         self.brightnessManager = brightnessManager
@@ -232,6 +235,10 @@ class ColorTemperatureManager {
             sunset: sunset,
             halfTransition: halfTransition
         )
+
+        if manualOverrideActive, overrideState == nil {
+            overrideState = state
+        }
 
         // Clear manual override when crossing a day/night boundary
         if manualOverrideActive, let overrideState {
@@ -447,6 +454,10 @@ class ColorTemperatureManager {
     // MARK: - Location
 
     private func locationCoordinates() -> (latitude: Double, longitude: Double)? {
+        if let locationCoordinatesHook {
+            return locationCoordinatesHook()
+        }
+
         guard let lat = LocationProvider.shared.latitude,
               let lon = LocationProvider.shared.longitude
         else {

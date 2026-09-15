@@ -127,7 +127,8 @@ final class ScreenBlanker {
     }
 
     func blankDisplay(_ displayID: CGDirectDisplayID) {
-        guard !blankedDisplayIDs.contains(displayID),
+        guard !isBlanking,
+              !blankedDisplayIDs.contains(displayID),
               displays.activeDisplayIDs.contains(displayID),
               displays.hasScreen(for: displayID),
               windows.showWindow(for: displayID, showsEscapeHint: requireEscapeToDismiss)
@@ -309,6 +310,8 @@ final class ScreenBlanker {
         windows.endBlankingSession()
         unhideCursorIfNeeded()
         isPerDisplayFullBlanked = false
+        isBlanking = false
+        state = .idle
     }
 
     private func restore(_ displayID: CGDirectDisplayID) {

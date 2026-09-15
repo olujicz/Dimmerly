@@ -12,11 +12,15 @@ import AppIntents
 enum DisplayIntentError: Swift.Error, CustomLocalizedStringResourceConvertible {
     case invalidDisplay
     case brightnessOutOfRange
+    case contrastOutOfRange
+    case warmthOutOfRange
 
     var localizedStringResource: LocalizedStringResource {
         switch self {
         case .invalidDisplay: "The selected display is no longer connected."
         case .brightnessOutOfRange: "Brightness must be between 10 and 100 percent."
+        case .contrastOutOfRange: "Contrast must be between 0 and 100 percent."
+        case .warmthOutOfRange: "Warmth must be between 0 and 100 percent."
         }
     }
 }
