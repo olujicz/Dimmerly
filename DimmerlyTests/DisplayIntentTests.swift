@@ -111,7 +111,7 @@ final class DisplayIntentTests: XCTestCase {
     }
 
     func testOpenPresetIntentPresentsSelectedPreset() throws {
-        let suiteName = "DisplayIntentTests-(UUID().uuidString)"
+        let suiteName = "DisplayIntentTests-\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
         defer { defaults.removePersistentDomain(forName: suiteName) }
 

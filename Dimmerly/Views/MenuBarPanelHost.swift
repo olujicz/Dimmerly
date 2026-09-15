@@ -248,7 +248,7 @@ extension View {
 /// Glass window styling shared by the system MenuBarExtra and the public AppKit popover.
 @MainActor
 enum MenuBarPanelHostGlass {
-    private static let glassIdentifier = NSUserInterfaceItemIdentifier("DimmerlyMenuBarPanelGlass")
+    static let glassIdentifier = NSUserInterfaceItemIdentifier("DimmerlyMenuBarPanelGlass")
 
     /// One-time window setup: transparency and the rounded glass effect view.
     static func configureWindow(_ window: NSWindow) {
@@ -262,12 +262,6 @@ enum MenuBarPanelHostGlass {
         contentView.wantsLayer = true
         contentView.layer?.backgroundColor = NSColor.clear.cgColor
 
-        let effectView = existingGlassEffectView(in: contentView) ?? makeGlassEffectView(in: contentView)
-        effectView.material = MenuBarPanelGlassStyle.windowMaterial
-        effectView.blendingMode = MenuBarPanelGlassStyle.blendingMode
-        effectView.state = MenuBarPanelGlassStyle.state
-        effectView.isEmphasized = true
-
         clearContentBackgrounds(in: contentView)
     }
 
@@ -276,33 +270,6 @@ enum MenuBarPanelHostGlass {
     static func refreshContentBackgrounds(in window: NSWindow) {
         guard let contentView = window.contentView else { return }
         clearContentBackgrounds(in: contentView)
-    }
-
-    private static func existingGlassEffectView(in contentView: NSView) -> NSVisualEffectView? {
-        contentView.subviews
-            .compactMap { $0 as? NSVisualEffectView }
-            .first { $0.identifier == glassIdentifier }
-    }
-
-    private static func makeGlassEffectView(in contentView: NSView) -> NSVisualEffectView {
-        let effectView = NSVisualEffectView()
-        effectView.identifier = glassIdentifier
-        effectView.translatesAutoresizingMaskIntoConstraints = false
-        effectView.wantsLayer = true
-        effectView.layer?.cornerRadius = MenuBarPanelGlassStyle.cornerRadius
-        effectView.layer?.cornerCurve = .continuous
-        effectView.layer?.masksToBounds = true
-
-        contentView.addSubview(effectView, positioned: .below, relativeTo: contentView.subviews.first)
-
-        NSLayoutConstraint.activate([
-            effectView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            effectView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            effectView.topAnchor.constraint(equalTo: contentView.topAnchor),
-            effectView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
-        ])
-
-        return effectView
     }
 
     private static func clearContentBackgrounds(in view: NSView) {
@@ -365,9 +332,43 @@ private struct MenuBarPanelHostRefreshConfigurator: NSViewRepresentable {
     }
 }
 
+/// Vends the glass material as part of the SwiftUI content. AppKit does not support
+/// adding an `NSVisualEffectView` as a subview of `NSHostingController.view`, so the
+/// material is inserted through an `NSViewRepresentable` instead of being injected
+/// into the host window's content view.
+@MainActor
+enum MenuBarPanelGlassBackgroundView {
+    static func makeEffectView() -> NSVisualEffectView {
+        let effectView = NSVisualEffectView()
+        effectView.identifier = MenuBarPanelHostGlass.glassIdentifier
+        effectView.material = MenuBarPanelGlassStyle.windowMaterial
+        effectView.blendingMode = MenuBarPanelGlassStyle.blendingMode
+        effectView.state = MenuBarPanelGlassStyle.state
+        effectView.isEmphasized = true
+        effectView.wantsLayer = true
+        effectView.layer?.cornerRadius = MenuBarPanelGlassStyle.cornerRadius
+        effectView.layer?.cornerCurve = .continuous
+        effectView.layer?.masksToBounds = true
+        return effectView
+    }
+}
+
+private struct MenuBarPanelGlassBackground: NSViewRepresentable {
+    func makeNSView(context _: Context) -> NSVisualEffectView {
+        MenuBarPanelGlassBackgroundView.makeEffectView()
+    }
+
+    func updateNSView(_ nsView: NSVisualEffectView, context _: Context) {
+        nsView.material = MenuBarPanelGlassStyle.windowMaterial
+        nsView.blendingMode = MenuBarPanelGlassStyle.blendingMode
+        nsView.state = MenuBarPanelGlassStyle.state
+    }
+}
+
 extension View {
     func menuBarPanelHostGlass() -> some View {
-        background(MenuBarPanelWindowConfigurator())
+        background(MenuBarPanelGlassBackground())
+            .background(MenuBarPanelWindowConfigurator())
             .background(MenuBarPanelHostRefreshConfigurator())
     }
 }

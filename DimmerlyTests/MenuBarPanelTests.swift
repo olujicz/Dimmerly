@@ -250,6 +250,69 @@ final class MenuBarPanelTests: XCTestCase {
     }
 
     @MainActor
+    func testConfigureWindowDoesNotInjectEffectViewIntoHostingContentView() {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 300, height: 400),
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: true
+        )
+        let hostingContentView = NSView()
+        window.contentView = hostingContentView
+
+        MenuBarPanelHostGlass.configureWindow(window)
+
+        let injectedEffectViews = hostingContentView.subviews.compactMap { $0 as? NSVisualEffectView }
+        XCTAssertTrue(
+            injectedEffectViews.isEmpty,
+            "Adding NSVisualEffectView to NSHostingController.view is unsupported by AppKit"
+        )
+    }
+
+    @MainActor
+    func testGlassBackgroundViewUsesConfiguredMenuMaterial() {
+        let effectView = MenuBarPanelGlassBackgroundView.makeEffectView()
+
+        XCTAssertEqual(effectView.material, MenuBarPanelGlassStyle.windowMaterial)
+        XCTAssertEqual(effectView.blendingMode, MenuBarPanelGlassStyle.blendingMode)
+        XCTAssertEqual(effectView.state, MenuBarPanelGlassStyle.state)
+        XCTAssertEqual(effectView.layer?.cornerRadius, MenuBarPanelGlassStyle.cornerRadius)
+    }
+
+    func testFooterButtonsOwnHoverStateRatherThanTheirLabel() throws {
+        let viewsURL = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Dimmerly/Views")
+        let panel = try String(
+            contentsOf: viewsURL.appendingPathComponent("MenuBarPanel.swift"),
+            encoding: .utf8
+        )
+        let presetControls = try String(
+            contentsOf: viewsURL.appendingPathComponent("MenuBarPresetControls.swift"),
+            encoding: .utf8
+        )
+
+        // A SwiftUI Button consumes pointer events before its label, so `.onHover`
+        // inside `FooterLabel` never fires. The Button must own the hover state.
+        // Scoped to FooterLabel: preset rows in this same file use .onHover correctly.
+        let footerLabelStart = try XCTUnwrap(presetControls.range(of: "struct FooterLabel"))
+        let footerLabelSource = String(presetControls[footerLabelStart.lowerBound...])
+        XCTAssertFalse(
+            footerLabelSource.contains(".onHover"),
+            "FooterLabel must not attach .onHover inside a Button label"
+        )
+        XCTAssertTrue(
+            panel.contains("isSettingsHovered"),
+            "Footer Settings button must own its hover state"
+        )
+        XCTAssertTrue(
+            panel.contains("isQuitHovered"),
+            "Footer Quit button must own its hover state"
+        )
+    }
+
+    @MainActor
     func testScrollStyleUsesSubtleAutohidingOverlayScroller() {
         let scrollView = NSScrollView()
         scrollView.scrollerStyle = .legacy
@@ -384,19 +447,13 @@ final class MenuBarPanelTests: XCTestCase {
     // MARK: - Host Glass Configuration
 
     @MainActor
-    func testConfigureWindowInsertsSingleGlassEffectView() {
+    func testConfigureWindowMakesHostWindowTransparent() {
         let window = Self.makeTestWindow()
 
         MenuBarPanelHostGlass.configureWindow(window)
 
         XCTAssertFalse(window.isOpaque)
         XCTAssertEqual(window.backgroundColor, .clear)
-
-        let effectViews = window.contentView?.subviews.compactMap { $0 as? NSVisualEffectView } ?? []
-        XCTAssertEqual(effectViews.count, 1)
-        XCTAssertEqual(effectViews.first?.material, MenuBarPanelGlassStyle.windowMaterial)
-        XCTAssertEqual(effectViews.first?.blendingMode, MenuBarPanelGlassStyle.blendingMode)
-        XCTAssertEqual(effectViews.first?.state, MenuBarPanelGlassStyle.state)
     }
 
     @MainActor
@@ -406,8 +463,11 @@ final class MenuBarPanelTests: XCTestCase {
         MenuBarPanelHostGlass.configureWindow(window)
         MenuBarPanelHostGlass.configureWindow(window)
 
+        XCTAssertFalse(window.isOpaque)
+        XCTAssertEqual(window.backgroundColor, .clear)
+
         let effectViews = window.contentView?.subviews.compactMap { $0 as? NSVisualEffectView } ?? []
-        XCTAssertEqual(effectViews.count, 1)
+        XCTAssertTrue(effectViews.isEmpty)
     }
 
     @MainActor

@@ -174,6 +174,9 @@ struct MenuBarPanel: View {
     #endif
     @Environment(\.closeMenuBarPanel) private var closeMenuBarPanel
 
+    @State private var isSettingsHovered = false
+    @State private var isQuitHovered = false
+
     init(
         selectedPresetID: UUID? = nil,
         openSettingsAction: @escaping @MainActor () -> Void = {}
@@ -223,7 +226,7 @@ struct MenuBarPanel: View {
     }
 
     private func scrollToSelectedPreset(using proxy: ScrollViewProxy) {
-        guard selectedPresetID != nil else { return }
+        guard let selectedPresetID else { return }
         Task { @MainActor in
             await Task.yield()
             proxy.scrollTo(selectedPresetID, anchor: .center)
@@ -384,22 +387,24 @@ struct MenuBarPanel: View {
             Button {
                 openSettingsAction()
             } label: {
-                FooterLabel("Settings", icon: "gear", shortcut: "⌘,")
+                FooterLabel("Settings", icon: "gear", shortcut: "⌘,", isHovered: isSettingsHovered)
             }
             .buttonStyle(.borderless)
             .keyboardShortcut(",", modifiers: .command)
             .help("Open Dimmerly settings")
+            .onHover { isSettingsHovered = $0 }
 
             Spacer()
 
             Button {
                 NSApplication.shared.terminate(nil)
             } label: {
-                FooterLabel("Quit", icon: "power", shortcut: "⌘Q")
+                FooterLabel("Quit", icon: "power", shortcut: "⌘Q", isHovered: isQuitHovered)
             }
             .buttonStyle(.borderless)
             .keyboardShortcut("q", modifiers: .command)
             .help("Quit Dimmerly")
+            .onHover { isQuitHovered = $0 }
         }
         .font(.callout)
         .foregroundStyle(.secondary)
