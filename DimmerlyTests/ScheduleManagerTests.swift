@@ -187,6 +187,22 @@ final class ScheduleManagerTests: XCTestCase {
         XCTAssertEqual(firedPresets, [presetID], "Should fire yesterday's missed trigger after overnight sleep")
     }
 
+    func testCheckSchedulesCatchesUpOnlyMostRecentMissedTrigger() {
+        var firedPresets: [UUID] = []
+        manager.onScheduleTriggered = { firedPresets.append($0) }
+
+        let presetID = UUID()
+        manager.addSchedule(makeSchedule(hour: 22, minute: 0, presetID: presetID))
+
+        let beforeDay1Trigger = makeDate(day: 1, hour: 21, minute: 30)
+        manager.checkSchedules(now: beforeDay1Trigger)
+
+        let afterDay3Trigger = makeDate(day: 3, hour: 7, minute: 0)
+        manager.checkSchedules(now: afterDay3Trigger)
+
+        XCTAssertEqual(firedPresets, [presetID], "Catch-up should fire only the most recent missed trigger")
+    }
+
     func testCheckSchedulesFiresMissedSchedulesInTriggerOrder() {
         var firedPresets: [UUID] = []
         manager.onScheduleTriggered = { firedPresets.append($0) }
