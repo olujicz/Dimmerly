@@ -7,6 +7,23 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+<!-- Release note: `allowedExecutionTargets`, the `IndexedEntityQuery` reindex path, and
+     `appEntityIdentifier` are behind `#if compiler(>=6.4)`. The Release workflow still
+     builds on Xcode 26.6, which excludes them. Do not move the entries marked "macOS 27"
+     or the display-control targeting line into a release heading until the release
+     toolchain moves to Xcode 27. See documentation/RELEASE.md. -->
+
+### Added
+- Saved presets now appear in Spotlight, so a preset can be found and opened straight from search.
+- Added an "Open Brightness Preset" action to Shortcuts, which opens a saved preset in the menu bar panel.
+- Menu bar display controls can now be targeted individually from Shortcuts and Spotlight on macOS 15.4 and later.
+
+### Changed
+- On macOS 27, Shortcuts actions now run inside Dimmerly rather than in a separate helper process, so they act on the app's current display state.
+
+### Fixed
+- Fixed the Settings and Quit buttons in the menu bar panel not highlighting when the pointer moved over them.
+
 ## [1.1.4] - 2026-08-23
 
 ### Changed
