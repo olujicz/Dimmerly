@@ -223,7 +223,7 @@ struct MenuBarPanel: View {
     }
 
     private func scrollToSelectedPreset(using proxy: ScrollViewProxy) {
-        guard selectedPresetID != nil else { return }
+        guard let selectedPresetID else { return }
         Task { @MainActor in
             await Task.yield()
             proxy.scrollTo(selectedPresetID, anchor: .center)
