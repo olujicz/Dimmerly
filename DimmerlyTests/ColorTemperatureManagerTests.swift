@@ -16,9 +16,12 @@ final class ColorTemperatureManagerTests: XCTestCase {
 
     private func makeDate(
         year: Int = 2026, month: Int = 6, day: Int = 15,
-        hour: Int, minute: Int, second: Int = 0
+        hour: Int, minute: Int, second: Int = 0,
+        timeZone: TimeZone = .current
     ) -> Date {
-        Calendar.current.date(from: DateComponents(
+        var calendar = Calendar.current
+        calendar.timeZone = timeZone
+        return calendar.date(from: DateComponents(
             year: year, month: month, day: day,
             hour: hour, minute: minute, second: second
         ))!
@@ -228,6 +231,28 @@ final class ColorTemperatureManagerTests: XCTestCase {
         manager.notifyManualWarmthChange()
 
         XCTAssertFalse(manager.isActive, "Manual change should deactivate auto mode")
+        manager.apply(enabled: false)
+    }
+
+    func testManualOverrideRecoversWhenLocationReturns() {
+        let (manager, _) = isolatedManager()
+        var coordinates: (latitude: Double, longitude: Double)?
+        manager.locationCoordinatesHook = { coordinates }
+
+        manager.apply(enabled: true)
+        manager.notifyManualWarmthChange()
+
+        coordinates = (latitude: 40.7128, longitude: -74.0060)
+        guard let newYorkTimeZone = TimeZone(identifier: "America/New_York") else {
+            XCTFail("New York time zone must be available")
+            return
+        }
+        manager.updateColorTemperature(now: makeDate(hour: 12, minute: 0, timeZone: newYorkTimeZone))
+        XCTAssertFalse(manager.isActive, "The first valid update should preserve the manual override")
+
+        manager.updateColorTemperature(now: makeDate(hour: 23, minute: 0, timeZone: newYorkTimeZone))
+        XCTAssertTrue(manager.isActive, "A later day/night boundary should clear the manual override")
+
         manager.apply(enabled: false)
     }
 
