@@ -279,6 +279,39 @@ final class MenuBarPanelTests: XCTestCase {
         XCTAssertEqual(effectView.layer?.cornerRadius, MenuBarPanelGlassStyle.cornerRadius)
     }
 
+    func testFooterButtonsOwnHoverStateRatherThanTheirLabel() throws {
+        let viewsURL = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Dimmerly/Views")
+        let panel = try String(
+            contentsOf: viewsURL.appendingPathComponent("MenuBarPanel.swift"),
+            encoding: .utf8
+        )
+        let presetControls = try String(
+            contentsOf: viewsURL.appendingPathComponent("MenuBarPresetControls.swift"),
+            encoding: .utf8
+        )
+
+        // A SwiftUI Button consumes pointer events before its label, so `.onHover`
+        // inside `FooterLabel` never fires. The Button must own the hover state.
+        // Scoped to FooterLabel: preset rows in this same file use .onHover correctly.
+        let footerLabelStart = try XCTUnwrap(presetControls.range(of: "struct FooterLabel"))
+        let footerLabelSource = String(presetControls[footerLabelStart.lowerBound...])
+        XCTAssertFalse(
+            footerLabelSource.contains(".onHover"),
+            "FooterLabel must not attach .onHover inside a Button label"
+        )
+        XCTAssertTrue(
+            panel.contains("isSettingsHovered"),
+            "Footer Settings button must own its hover state"
+        )
+        XCTAssertTrue(
+            panel.contains("isQuitHovered"),
+            "Footer Quit button must own its hover state"
+        )
+    }
+
     @MainActor
     func testScrollStyleUsesSubtleAutohidingOverlayScroller() {
         let scrollView = NSScrollView()

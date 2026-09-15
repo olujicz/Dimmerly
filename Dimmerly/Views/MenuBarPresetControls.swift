@@ -3,7 +3,6 @@
 //  Dimmerly
 //
 
-import AppKit
 import SwiftUI
 
 // MARK: - Presets Section
@@ -162,13 +161,18 @@ struct FooterLabel: View {
     let title: LocalizedStringKey
     let icon: String
     let shortcut: String?
+    let isHovered: Bool
 
-    @State private var isHovered = false
-
-    init(_ title: LocalizedStringKey, icon: String, shortcut: String? = nil) {
+    init(
+        _ title: LocalizedStringKey,
+        icon: String,
+        shortcut: String? = nil,
+        isHovered: Bool = false
+    ) {
         self.title = title
         self.icon = icon
         self.shortcut = shortcut
+        self.isHovered = isHovered
     }
 
     var body: some View {
@@ -190,7 +194,6 @@ struct FooterLabel: View {
         )
         .contentShape(RoundedRectangle(cornerRadius: 8))
         .animation(reduceMotion ? nil : .spring(response: 0.2, dampingFraction: 0.8), value: isHovered)
-        .onHover { isHovered = $0 }
         .accessibilityAddTraits(.isButton)
     }
 }
