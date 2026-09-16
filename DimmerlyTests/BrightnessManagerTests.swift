@@ -1037,4 +1037,64 @@ extension BrightnessManagerTests {
 
         XCTAssertEqual(manager.displays[0].brightness, 1.0, accuracy: 0.001)
     }
+
+    // MARK: - isAffectingDisplays
+
+    /// Builds a display that is fully neutral: full brightness, no warmth, linear contrast.
+    private func neutralDisplay(id: CGDirectDisplayID = 1) -> ExternalDisplay {
+        ExternalDisplay(id: id, name: "Test \(id)", brightness: 1.0)
+    }
+
+    func testIsAffectingDisplaysIsFalseWithNoDisplays() {
+        bm.displays = []
+
+        XCTAssertFalse(bm.isAffectingDisplays)
+    }
+
+    func testIsAffectingDisplaysIsFalseWhenAllDisplaysAreNeutral() {
+        bm.displays = [neutralDisplay(id: 1), neutralDisplay(id: 2)]
+
+        XCTAssertFalse(bm.isAffectingDisplays)
+    }
+
+    func testIsAffectingDisplaysIsTrueWhenADisplayIsDimmed() {
+        var dimmed = neutralDisplay()
+        dimmed.brightness = 0.5
+        bm.displays = [dimmed]
+
+        XCTAssertTrue(bm.isAffectingDisplays)
+    }
+
+    func testIsAffectingDisplaysIsTrueWhenADisplayIsWarmed() {
+        var warmed = neutralDisplay()
+        warmed.warmth = 0.3
+        bm.displays = [warmed]
+
+        XCTAssertTrue(bm.isAffectingDisplays)
+    }
+
+    func testIsAffectingDisplaysIsTrueWhenContrastIsOffNeutral() {
+        var contrasted = neutralDisplay()
+        contrasted.contrast = 0.8
+        bm.displays = [contrasted]
+
+        XCTAssertTrue(bm.isAffectingDisplays)
+    }
+
+    func testIsAffectingDisplaysIgnoresFloatingPointNoiseInContrast() {
+        var noisy = neutralDisplay()
+        noisy.contrast = ExternalDisplay.neutralContrast + 0.0001
+        bm.displays = [noisy]
+
+        XCTAssertFalse(bm.isAffectingDisplays,
+                       "Sub-threshold contrast drift should not count as affecting displays")
+    }
+
+    func testIsAffectingDisplaysIsTrueWhenOnlyOneOfSeveralDisplaysIsAffected() {
+        var dimmed = neutralDisplay(id: 2)
+        dimmed.brightness = 0.4
+        bm.displays = [neutralDisplay(id: 1), dimmed, neutralDisplay(id: 3)]
+
+        XCTAssertTrue(bm.isAffectingDisplays)
+    }
 }

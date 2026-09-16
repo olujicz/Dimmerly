@@ -33,6 +33,7 @@
 		9B4E7A11F2B9407BA3C0D1E2 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 9B4E7A11F2B9407BA3C0D1E3 /* Localizable.xcstrings */; };
 		9B4E7A11F2B9407BA3C0D1E4 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 9B4E7A11F2B9407BA3C0D1E5 /* InfoPlist.xcstrings */; };
 		AA1234560000000000000001 /* Dimmerly.icns in Resources */ = {isa = PBXBuildFile; fileRef = AA1234560000000000000002 /* Dimmerly.icns */; };
+		AA12345600000000000000A2 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = AA12345600000000000000A1 /* AppIcon.icon */; };
 		BA0000000000000000000001 /* BrightnessManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0000000000000000000002 /* BrightnessManager.swift */; };
 		BA0000000000000000000003 /* MenuBarPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0000000000000000000004 /* MenuBarPanel.swift */; };
 		BI0000000000000000000011 /* BlankingInputMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BI0000000000000000000001 /* BlankingInputMonitor.swift */; };
@@ -161,6 +162,7 @@
 		9B4E7A11F2B9407BA3C0D1E5 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		A1B2C3D4E5F6A7B8C9D0E1FF /* Dimmerly.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Dimmerly.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA1234560000000000000002 /* Dimmerly.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = Dimmerly.icns; sourceTree = "<group>"; };
+		AA12345600000000000000A1 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		B1B2C3D4E5F6A7B8C9D0E1F1 /* DimmerlyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DimmerlyApp.swift; sourceTree = "<group>"; };
 		B1B2C3D4E5F6A7B8C9D0E1F2 /* DisplayController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayController.swift; sourceTree = "<group>"; };
 		B1B2C3D4E5F6A7B8C9D0E1F3 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -356,6 +358,7 @@
 			children = (
 				B1B2C3D4E5F6A7B8C9D0E1F4 /* Assets.xcassets */,
 				AA1234560000000000000002 /* Dimmerly.icns */,
+				AA12345600000000000000A1 /* AppIcon.icon */,
 				9B4E7A11F2B9407BA3C0D1E5 /* InfoPlist.xcstrings */,
 				9B4E7A11F2B9407BA3C0D1E3 /* Localizable.xcstrings */,
 				B1B2C3D4E5F6A7B8C9D0E1F3 /* Info.plist */,
@@ -590,6 +593,7 @@
 			files = (
 				C1B2C3D4E5F6A7B8C9D0E1F3 /* Assets.xcassets in Resources */,
 				AA1234560000000000000001 /* Dimmerly.icns in Resources */,
+				AA12345600000000000000A2 /* AppIcon.icon in Resources */,
 				9B4E7A11F2B9407BA3C0D1E4 /* InfoPlist.xcstrings in Resources */,
 				9B4E7A11F2B9407BA3C0D1E2 /* Localizable.xcstrings in Resources */,
 				PRV00000000000000000002 /* PrivacyInfo.xcprivacy in Resources */,

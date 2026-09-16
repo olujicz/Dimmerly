@@ -1,0 +1,14 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Dimmerly app icon - DISC layer (the sun itself, bright to dim). -->
+  <defs>
+    <linearGradient id="disc" x1="330" y1="380" x2="694" y2="644" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EAF7FF"/>
+      <stop offset="0.42" stop-color="#7FC6FF"/>
+      <stop offset="0.72" stop-color="#2C63A0"/>
+      <stop offset="1" stop-color="#16304F"/>
+    </linearGradient>
+  </defs>
+
+  <circle cx="512" cy="512" r="182" fill="url(#disc)"/>
+  <circle cx="512" cy="512" r="182" stroke="#E2F6FF" stroke-opacity="0.5" stroke-width="4"/>
+</svg>

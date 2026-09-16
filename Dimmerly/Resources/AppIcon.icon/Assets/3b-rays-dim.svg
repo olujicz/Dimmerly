@@ -1,0 +1,9 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Dimmerly app icon - DIM rays (the dimmed side). -->
+  <g stroke="#EAF7FF" stroke-linecap="round" stroke-width="21">
+    <line x1="303" y1="721" x2="344" y2="680" stroke-opacity="0.5"/>
+    <line x1="512" y1="849" x2="512" y2="792" stroke-opacity="0.4"/>
+    <line x1="721" y1="721" x2="680" y2="680" stroke-opacity="0.3"/>
+    <line x1="849" y1="512" x2="792" y2="512" stroke-opacity="0.42"/>
+  </g>
+</svg>

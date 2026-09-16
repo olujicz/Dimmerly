@@ -58,6 +58,9 @@ import CoreGraphics
 /// This model tracks per-display brightness, warmth (color temperature), and contrast
 /// adjustments applied via CoreGraphics gamma tables.
 struct ExternalDisplay: Identifiable {
+    /// Contrast value representing a neutral, linear response curve.
+    static let neutralContrast: Double = 0.5
+
     /// Core Graphics display identifier (unique hardware ID)
     let id: CGDirectDisplayID
     /// Human-readable display name (e.g., "LG UltraFine 5K" or "Built-in Retina Display")
@@ -67,7 +70,7 @@ struct ExternalDisplay: Identifiable {
     /// Color temperature shift (0.0 = neutral/6500K, 1.0 = warmest/1900K)
     var warmth: Double = 0.0
     /// Contrast curve steepness (0.0 = flat, 0.5 = neutral/linear, 1.0 = steep S-curve)
-    var contrast: Double = 0.5
+    var contrast: Double = Self.neutralContrast
     /// Whether this is the built-in (laptop) display
     var isBuiltIn: Bool = false
 
@@ -107,6 +110,20 @@ class BrightnessManager {
     /// Currently connected displays (built-in and external) with their visual properties.
     /// Updated automatically when displays are connected/disconnected.
     var displays: [ExternalDisplay] = []
+
+    /// Tolerance below which a contrast difference is treated as neutral, so that
+    /// floating-point drift from slider input does not register as an adjustment.
+    private static let contrastNeutralTolerance: Double = 0.001
+
+    /// True when Dimmerly is altering the output of any connected display, whether by
+    /// dimming, warming, or adjusting contrast. Drives the menu bar active-state icon.
+    var isAffectingDisplays: Bool {
+        displays.contains { display in
+            display.brightness < 1.0
+                || display.warmth > 0
+                || abs(display.contrast - ExternalDisplay.neutralContrast) > Self.contrastNeutralTolerance
+        }
+    }
 
     /// UserDefaults keys for persisting display settings
     private let persistenceKey = "dimmerlyDisplayBrightness"
