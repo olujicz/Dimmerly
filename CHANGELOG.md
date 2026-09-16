@@ -19,6 +19,7 @@ Semantic Versioning.
 - Menu bar display controls can now be targeted individually from Shortcuts and Spotlight on macOS 15.4 and later.
 
 ### Changed
+- The app icon is now authored in Icon Composer, so on macOS 26 and later it picks up the system's layered mask, shadow, and specular treatment. Older versions fall back to a flattened icon that matches the previous artwork's sizes.
 - On macOS 27, Shortcuts actions now run inside Dimmerly rather than in a separate helper process, so they act on the app's current display state.
 
 ### Fixed

@@ -1,0 +1,19 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Dimmerly app icon - BACKGROUND layer.
+       Full-bleed 1024x1024, no corner radius and no rim stroke:
+       Icon Composer applies the squircle mask, edge highlight and shadow. -->
+  <defs>
+    <linearGradient id="bg" x1="84" y1="84" x2="923" y2="940" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#324B6B"/>
+      <stop offset="0.52" stop-color="#294464"/>
+      <stop offset="1" stop-color="#1A2F4B"/>
+    </linearGradient>
+    <radialGradient id="aurora" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(482 360) rotate(77) scale(680 600)">
+      <stop stop-color="#8ED8FF" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="#8ED8FF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <rect width="1024" height="1024" fill="url(#aurora)"/>
+</svg>
