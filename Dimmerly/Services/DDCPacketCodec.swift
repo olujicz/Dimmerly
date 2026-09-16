@@ -18,6 +18,61 @@ import Foundation
         static let replyLength = 11
     }
 
+    /// DDC chip-address routing for Apple Silicon display bridges.
+    ///
+    /// Most Apple Silicon display paths expose the monitor at the standard DDC/CI
+    /// address `0x37`. MCDP29xx bridges used by some HDMI paths expose it at `0xB7`
+    /// instead. The provider-class check is intentionally exact: this address must
+    /// never be used as a speculative fallback on an unrelated display path.
+    enum DDCAppleSiliconTransport {
+        static let defaultChipAddress: UInt32 = 0x37
+        static let mcdp29xxChipAddress: UInt32 = 0xB7
+        static let mcdp29xxProviderClass = "AppleDCPMCDP29XX"
+
+        static func chipAddress(for providerClass: String?) -> UInt32 {
+            providerClass == mcdp29xxProviderClass
+                ? mcdp29xxChipAddress
+                : defaultChipAddress
+        }
+    }
+
+    /// A display identity assembled from registry properties or EDID fields.
+    struct DDCDisplayIdentity {
+        let vendorID: UInt32?
+        let modelID: UInt32?
+        let serialNumber: UInt32?
+    }
+
+    /// Matches a registry or EDID identity while rejecting a known serial conflict.
+    ///
+    /// Vendor/product pairs are not unique when multiple identical monitors are
+    /// connected. A candidate with the expected vendor and product is acceptable
+    /// when its serial is absent, but not when it reports a different non-zero serial.
+    enum DDCDisplayIdentityMatcher {
+        static func matches(
+            candidate: DDCDisplayIdentity,
+            expected: DDCDisplayIdentity
+        ) -> Bool {
+            guard candidate.vendorID == expected.vendorID else { return false }
+            if let expectedSerialNumber = expected.serialNumber,
+               expectedSerialNumber != 0,
+               let candidateSerialNumber = candidate.serialNumber,
+               candidateSerialNumber != 0,
+               candidateSerialNumber != expectedSerialNumber
+            {
+                return false
+            }
+
+            if candidate.modelID == expected.modelID {
+                return true
+            }
+            guard let expectedSerialNumber = expected.serialNumber, expectedSerialNumber != 0 else {
+                return false
+            }
+            return candidate.serialNumber == expectedSerialNumber
+        }
+    }
+
     enum DDCPacketCodec {
         private static let displayWriteAddress: UInt8 = 0x6E
         private static let hostSourceAddress: UInt8 = 0x51

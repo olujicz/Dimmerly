@@ -15,7 +15,8 @@
 //  - Intel Macs: Uses IOI2CRequest via IOFramebufferI2CInterface
 //
 //  Known limitations:
-//  - Built-in HDMI on M1/entry M2/M4 Macs may not support DDC (USB-C/DP works)
+//  - Some built-in HDMI paths require the MCDP29xx bridge address; those are routed
+//    to 0xB7 when the DCP provider advertises AppleDCPMCDP29XX
 //  - DisplayLink USB adapters do not support DDC on macOS
 //  - Some EIZO monitors use a proprietary USB protocol instead of DDC/CI
 //  - Most TVs do not implement DDC/CI (they use CEC instead)
@@ -41,6 +42,45 @@
     import Foundation
     import IOKit
     import OSLog
+
+    /// Injectable Apple Silicon I2C operations used by each DDC transport wrapper.
+    /// Keeping the chip address as an explicit operation argument makes the bridge
+    /// routing testable without opening private IOKit services in unit tests.
+    struct DDCAppleSiliconI2CTransport {
+        typealias WriteOperation = (
+            _ chipAddress: UInt32,
+            _ register: UInt32,
+            _ data: inout [UInt8]
+        ) -> IOReturn
+        typealias ReadOperation = WriteOperation
+
+        private let writeI2C: WriteOperation
+        private let readI2C: ReadOperation?
+
+        init(writeI2C: @escaping WriteOperation, readI2C: ReadOperation? = nil) {
+            self.writeI2C = writeI2C
+            self.readI2C = readI2C
+        }
+
+        @discardableResult
+        func write(
+            _ data: inout [UInt8],
+            chipAddress: UInt32,
+            register: UInt32
+        ) -> IOReturn {
+            writeI2C(chipAddress, register, &data)
+        }
+
+        @discardableResult
+        func read(
+            _ data: inout [UInt8],
+            chipAddress: UInt32,
+            register: UInt32
+        ) -> IOReturn {
+            guard let readI2C else { return kIOReturnUnsupported }
+            return readI2C(chipAddress, register, &data)
+        }
+    }
 
     // MARK: - VCP Code Definitions
 
@@ -175,7 +215,7 @@
     ///
     /// All operations are synchronous (~50ms per transaction). Callers should dispatch
     /// off the main thread and rate-limit writes. Thread-safe but serialize per display.
-    enum DDCController {
+    enum DDCController { // swiftlint:disable:this type_body_length
         private static let logger = Logger(
             subsystem: Bundle.main.bundleIdentifier ?? "rs.in.olujic.dimmerly",
             category: "DDCController"
@@ -183,9 +223,10 @@
 
         // MARK: - DDC I2C Protocol Constants
 
-        /// Standard DDC/CI I2C slave address (0x37 << 1 = 0x6E for write, 0x6F for read).
-        /// All DDC/CI monitors respond on this address per VESA E-DDC standard.
-        private static let ddcI2CAddress: UInt32 = 0x37
+        /// Default DDC/CI I2C slave address (0x37 << 1 = 0x6E for write,
+        /// 0x6F for read). MCDP29xx bridge paths select their alternate address
+        /// during Apple Silicon service discovery; Intel uses this default.
+        private static let ddcI2CAddress: UInt32 = DDCAppleSiliconTransport.defaultChipAddress
 
         /// Source address identifying the host (0x51). Used in DDC/CI packet checksums
         /// and as the I2C register/sub-address byte for Apple Silicon DDC transactions.
@@ -342,6 +383,46 @@
 
             // MARK: Service Discovery
 
+            /// An Apple Silicon I2C service together with the chip address used by the
+            /// display bridge. Most paths use the standard DDC address; MCDP29xx HDMI
+            /// bridges use their alternate address.
+            private struct AppleSiliconDDCTransport {
+                let service: CFTypeRef
+                let chipAddress: UInt32
+            }
+
+            /// A raw Apple Silicon IOKit service together with its DDC chip address.
+            /// The raw service is borrowed from the iterator and must be released by
+            /// the caller after the direct IOConnect operation completes.
+            private struct AppleSiliconRawDDCTransport {
+                let service: io_service_t
+                let chipAddress: UInt32
+            }
+
+            /// Returns the DDC chip address for an Apple Silicon display service.
+            ///
+            /// MCDP29xx bridges advertise their provider class on the parent registry
+            /// entry and route DDC/CI through `0xB7`. This mirrors m1ddc's detection,
+            /// while keeping the normal `0x37` address as the safe default.
+            private static func ddcChipAddress(for service: io_service_t) -> UInt32 {
+                var parent: io_registry_entry_t = IO_OBJECT_NULL
+                guard IORegistryEntryGetParentEntry(
+                    service, kIOServicePlane, &parent
+                ) == KERN_SUCCESS else {
+                    return DDCAppleSiliconTransport.defaultChipAddress
+                }
+                defer { IOObjectRelease(parent) }
+
+                let providerClass = IORegistryEntryCreateCFProperty(
+                    parent,
+                    "EPICProviderClass" as CFString,
+                    kCFAllocatorDefault,
+                    0
+                )?.takeRetainedValue() as? String
+
+                return DDCAppleSiliconTransport.chipAddress(for: providerClass)
+            }
+
             /// Finds and creates an IOAVService for a given display on Apple Silicon.
             ///
             /// On Apple Silicon, external displays are exposed via IOAVService or
@@ -354,9 +435,9 @@
             /// i2c_on_macOS projects (all MIT licensed).
             ///
             /// - Parameter displayID: CoreGraphics display identifier
-            /// - Returns: IOAVService object for I2C operations, or `nil` if not found.
+            /// - Returns: IOAVService object and its DDC chip address, or `nil` if not found.
             ///           The returned CFTypeRef is retained and managed by ARC.
-            private static func findIOAVService(for displayID: CGDirectDisplayID) -> CFTypeRef? {
+            private static func findIOAVTransport(for displayID: CGDirectDisplayID) -> AppleSiliconDDCTransport? {
                 let vendorID = CGDisplayVendorNumber(displayID)
                 let modelID = CGDisplayModelNumber(displayID)
                 let serialNumber = CGDisplaySerialNumber(displayID)
@@ -378,9 +459,14 @@
                             service: service, vendorID: vendorID,
                             modelID: modelID, serialNumber: serialNumber
                         ) {
-                            let avService = IOAVServiceCreateWithService(nil, service)
+                            let avService = IOAVServiceCreateWithService(nil, service)?.takeRetainedValue()
+                            let chipAddress = ddcChipAddress(for: service)
                             IOObjectRelease(service)
-                            return avService?.takeRetainedValue()
+                            guard let avService else { return nil }
+                            return AppleSiliconDDCTransport(
+                                service: avService,
+                                chipAddress: chipAddress
+                            )
                         }
                         IOObjectRelease(service)
                         service = IOIteratorNext(iterator)
@@ -411,8 +497,12 @@
                                modelID: modelID, serialNumber: serialNumber
                            )
                         {
+                            let chipAddress = ddcChipAddress(for: service)
                             IOObjectRelease(service)
-                            return avService
+                            return AppleSiliconDDCTransport(
+                                service: avService,
+                                chipAddress: chipAddress
+                            )
                         }
                         IOObjectRelease(service)
                         service = IOIteratorNext(iterator)
@@ -420,14 +510,14 @@
                 }
 
                 // Strategy 3: If only one external display and one service, assume match.
-                return findSoleAVService(for: displayID)
+                return findSoleAVTransport(for: displayID)
             }
 
             /// Fallback: if only one external display and one AV service exist, assume they match.
             ///
             /// This handles monitors where EDID vendor/model don't match CG-reported values
             /// or where the IOKit registry structure prevents proper matching.
-            private static func findSoleAVService(for displayID: CGDirectDisplayID) -> CFTypeRef? {
+            private static func findSoleAVTransport(for displayID: CGDirectDisplayID) -> AppleSiliconDDCTransport? {
                 for className in avServiceClassNames {
                     var iterator: io_iterator_t = 0
                     guard IOServiceGetMatchingServices(
@@ -457,11 +547,16 @@
                     if services.count == 1, externalDisplays.count == 1,
                        externalDisplays.first == displayID
                     {
-                        let avService = IOAVServiceCreateWithService(nil, services[0])
+                        let chipAddress = ddcChipAddress(for: services[0])
+                        let avService = IOAVServiceCreateWithService(nil, services[0])?.takeRetainedValue()
                         for svc in services {
                             IOObjectRelease(svc)
                         }
-                        return avService?.takeRetainedValue()
+                        guard let avService else { return nil }
+                        return AppleSiliconDDCTransport(
+                            service: avService,
+                            chipAddress: chipAddress
+                        )
                     }
 
                     for svc in services {
@@ -479,7 +574,7 @@
             ///
             /// - Parameter displayID: CoreGraphics display identifier
             /// - Returns: IOAVDevice object for I2C operations, or `nil` if not available
-            private static func findIOAVDevice(for displayID: CGDirectDisplayID) -> CFTypeRef? {
+            private static func findIOAVDevice(for displayID: CGDirectDisplayID) -> AppleSiliconDDCTransport? {
                 guard let createFn = avDeviceCreate else { return nil }
 
                 let vendorID = CGDisplayVendorNumber(displayID)
@@ -503,8 +598,10 @@
                         modelID: modelID, serialNumber: serialNumber
                     ) {
                         let device = createFn(nil, service)
+                        let chipAddress = ddcChipAddress(for: service)
                         IOObjectRelease(service)
-                        return device?.takeRetainedValue()
+                        guard let device = device?.takeRetainedValue() else { return nil }
+                        return AppleSiliconDDCTransport(service: device, chipAddress: chipAddress)
                     }
                     IOObjectRelease(service)
                     service = IOIteratorNext(iterator)
@@ -518,7 +615,7 @@
             /// Returns an un-wrapped io_service_t (not converted to IOAVService/IOAVDevice)
             /// for use with IOServiceOpen + IOConnectCallMethod. Caller must release via
             /// IOObjectRelease.
-            private static func findRawService(for displayID: CGDirectDisplayID) -> io_service_t? {
+            private static func findRawTransport(for displayID: CGDirectDisplayID) -> AppleSiliconRawDDCTransport? {
                 let vendorID = CGDisplayVendorNumber(displayID)
                 let modelID = CGDisplayModelNumber(displayID)
                 let serialNumber = CGDisplaySerialNumber(displayID)
@@ -541,7 +638,10 @@
                             service: service, vendorID: vendorID,
                             modelID: modelID, serialNumber: serialNumber
                         ) {
-                            return service
+                            return AppleSiliconRawDDCTransport(
+                                service: service,
+                                chipAddress: ddcChipAddress(for: service)
+                            )
                         }
                         IOObjectRelease(service)
                         service = IOIteratorNext(iterator)
@@ -561,6 +661,11 @@
             ) -> Bool {
                 // Walk up the registry to find the parent with EDID/display info
                 var current = service
+                let expectedIdentity = DDCDisplayIdentity(
+                    vendorID: vendorID,
+                    modelID: modelID,
+                    serialNumber: serialNumber
+                )
 
                 // Walk up a few levels looking for display properties
                 for _ in 0 ..< 5 {
@@ -582,28 +687,36 @@
                         continue
                     }
 
-                    // Check for ProductID/VendorID match (Apple Silicon display properties)
-                    if let productID = dict["ProductID"] as? UInt32,
-                       let vid = dict["VendorID"] as? UInt32
-                    {
-                        if productID == modelID, vid == vendorID {
-                            if current != service {
-                                IOObjectRelease(current)
-                            }
-                            return true
+                    let candidateSerialNumber = dict["DisplaySerialNumber"] as? UInt32
+
+                    // Check for ProductID/VendorID match (Apple Silicon display properties).
+                    if DDCDisplayIdentityMatcher.matches(
+                        candidate: DDCDisplayIdentity(
+                            vendorID: dict["VendorID"] as? UInt32,
+                            modelID: dict["ProductID"] as? UInt32,
+                            serialNumber: candidateSerialNumber
+                        ),
+                        expected: expectedIdentity
+                    ) {
+                        if current != service {
+                            IOObjectRelease(current)
                         }
+                        return true
                     }
 
-                    // Check for DisplayVendorID/DisplayProductID match (standard IOKit display)
-                    if let displayVendorID = dict["DisplayVendorID"] as? UInt32,
-                       let displayProductID = dict["DisplayProductID"] as? UInt32
-                    {
-                        if displayVendorID == vendorID, displayProductID == modelID {
-                            if current != service {
-                                IOObjectRelease(current)
-                            }
-                            return true
+                    // Check for DisplayVendorID/DisplayProductID match (standard IOKit display).
+                    if DDCDisplayIdentityMatcher.matches(
+                        candidate: DDCDisplayIdentity(
+                            vendorID: dict["DisplayVendorID"] as? UInt32,
+                            modelID: dict["DisplayProductID"] as? UInt32,
+                            serialNumber: candidateSerialNumber
+                        ),
+                        expected: expectedIdentity
+                    ) {
+                        if current != service {
+                            IOObjectRelease(current)
                         }
+                        return true
                     }
 
                     // Check for serial number match
@@ -646,15 +759,18 @@
                 let edidSerial = UInt32(edid[12]) | (UInt32(edid[13]) << 8)
                     | (UInt32(edid[14]) << 16) | (UInt32(edid[15]) << 24)
 
-                // Match by vendor + product (most reliable)
-                if edidVendor == vendorID, UInt32(edidProduct) == modelID {
-                    return true
-                }
-                // Fallback: match by serial if vendor matches but product doesn't
-                if serialNumber != 0, edidSerial == serialNumber, edidVendor == vendorID {
-                    return true
-                }
-                return false
+                return DDCDisplayIdentityMatcher.matches(
+                    candidate: DDCDisplayIdentity(
+                        vendorID: edidVendor,
+                        modelID: UInt32(edidProduct),
+                        serialNumber: edidSerial
+                    ),
+                    expected: DDCDisplayIdentity(
+                        vendorID: vendorID,
+                        modelID: modelID,
+                        serialNumber: serialNumber
+                    )
+                )
             }
 
             /// Reads the first 128 bytes of EDID from an IOAVService.
@@ -703,21 +819,33 @@
             ///
             /// Each transport uses retry logic with multiple write cycles per attempt.
             private static func readAppleSilicon(vcp: VCPCode, for displayID: CGDirectDisplayID) -> DDCReadResult? {
-                if let avService = findIOAVService(for: displayID) {
-                    if let result = readViaService(avService: avService, vcp: vcp) {
+                if let avTransport = findIOAVTransport(for: displayID) {
+                    if let result = readViaService(
+                        avService: avTransport.service,
+                        chipAddress: avTransport.chipAddress,
+                        vcp: vcp
+                    ) {
                         return result
                     }
                 }
 
                 if let avDevice = findIOAVDevice(for: displayID) {
-                    if let result = readViaDevice(avDevice: avDevice, vcp: vcp) {
+                    if let result = readViaDevice(
+                        avDevice: avDevice.service,
+                        chipAddress: avDevice.chipAddress,
+                        vcp: vcp
+                    ) {
                         return result
                     }
                 }
 
-                if let service = findRawService(for: displayID) {
-                    defer { IOObjectRelease(service) }
-                    if let result = readViaDirect(service: service, vcp: vcp) {
+                if let rawTransport = findRawTransport(for: displayID) {
+                    defer { IOObjectRelease(rawTransport.service) }
+                    if let result = readViaDirect(
+                        service: rawTransport.service,
+                        chipAddress: rawTransport.chipAddress,
+                        vcp: vcp
+                    ) {
                         return result
                     }
                 }
@@ -731,21 +859,36 @@
             private static func writeAppleSilicon(
                 vcp: VCPCode, value: UInt16, for displayID: CGDirectDisplayID
             ) -> Bool {
-                if let avService = findIOAVService(for: displayID) {
-                    if writeViaService(avService: avService, vcp: vcp, value: value) {
+                if let avTransport = findIOAVTransport(for: displayID) {
+                    if writeViaService(
+                        avService: avTransport.service,
+                        chipAddress: avTransport.chipAddress,
+                        vcp: vcp,
+                        value: value
+                    ) {
                         return true
                     }
                 }
 
                 if let avDevice = findIOAVDevice(for: displayID) {
-                    if writeViaDevice(avDevice: avDevice, vcp: vcp, value: value) {
+                    if writeViaDevice(
+                        avDevice: avDevice.service,
+                        chipAddress: avDevice.chipAddress,
+                        vcp: vcp,
+                        value: value
+                    ) {
                         return true
                     }
                 }
 
-                if let service = findRawService(for: displayID) {
-                    defer { IOObjectRelease(service) }
-                    if writeViaDirect(service: service, vcp: vcp, value: value) {
+                if let rawTransport = findRawTransport(for: displayID) {
+                    defer { IOObjectRelease(rawTransport.service) }
+                    if writeViaDirect(
+                        service: rawTransport.service,
+                        chipAddress: rawTransport.chipAddress,
+                        vcp: vcp,
+                        value: value
+                    ) {
                         return true
                     }
                 }
@@ -761,8 +904,24 @@
             /// offset zero, matching MonitorControl's Apple Silicon transport contract.
             /// IOAVServiceWriteI2C transmits 0x51 on the bus as a data byte before the
             /// payload, so it remains included in the checksum per DDC/CI spec.
-            private static func readViaService(avService: CFTypeRef, vcp: VCPCode) -> DDCReadResult? {
+            private static func readViaService(
+                avService: CFTypeRef,
+                chipAddress: UInt32,
+                vcp: VCPCode
+            ) -> DDCReadResult? {
                 let vcpHex = String(format: "%02X", vcp.rawValue)
+                let transport = DDCAppleSiliconI2CTransport(
+                    writeI2C: { address, register, data in
+                        IOAVServiceWriteI2C(
+                            avService, address, register, &data, UInt32(data.count)
+                        )
+                    },
+                    readI2C: { address, register, data in
+                        IOAVServiceReadI2C(
+                            avService, address, register, &data, UInt32(data.count)
+                        )
+                    }
+                )
                 for attempt in 0 ..< maxRetryAttempts {
                     if attempt > 0 {
                         usleep(retryDelayMs * 1000)
@@ -775,9 +934,10 @@
                         if cycle > 0 {
                             usleep(writeCycleDelayMs * 1000)
                         }
-                        lastWriteResult = IOAVServiceWriteI2C(
-                            avService, ddcI2CAddress, UInt32(hostAddress),
-                            &writeData, UInt32(writeData.count)
+                        lastWriteResult = transport.write(
+                            &writeData,
+                            chipAddress: chipAddress,
+                            register: UInt32(hostAddress)
                         )
                         if lastWriteResult == KERN_SUCCESS {
                             writeOK = true
@@ -794,9 +954,10 @@
                         repeating: 0,
                         count: DDCAppleSiliconReadContract.replyLength
                     )
-                    let r = IOAVServiceReadI2C(
-                        avService, ddcI2CAddress, DDCAppleSiliconReadContract.dataAddress,
-                        &readData, UInt32(readData.count)
+                    let r = transport.read(
+                        &readData,
+                        chipAddress: chipAddress,
+                        register: DDCAppleSiliconReadContract.dataAddress
                     )
                     guard r == KERN_SUCCESS else {
                         logger.debug("DDC read 0x\(vcpHex, privacy: .public) attempt \(attempt + 1) failed: \(r)")
@@ -814,7 +975,19 @@
             }
 
             /// Writes a VCP code via IOAVService with retry logic.
-            private static func writeViaService(avService: CFTypeRef, vcp: VCPCode, value: UInt16) -> Bool {
+            private static func writeViaService(
+                avService: CFTypeRef,
+                chipAddress: UInt32,
+                vcp: VCPCode,
+                value: UInt16
+            ) -> Bool {
+                let transport = DDCAppleSiliconI2CTransport(
+                    writeI2C: { address, register, data in
+                        IOAVServiceWriteI2C(
+                            avService, address, register, &data, UInt32(data.count)
+                        )
+                    }
+                )
                 for attempt in 0 ..< maxRetryAttempts {
                     if attempt > 0 {
                         usleep(retryDelayMs * 1000)
@@ -826,9 +999,10 @@
                         if cycle > 0 {
                             usleep(writeCycleDelayMs * 1000)
                         }
-                        let r = IOAVServiceWriteI2C(
-                            avService, ddcI2CAddress, UInt32(hostAddress),
-                            &writeData, UInt32(writeData.count)
+                        let r = transport.write(
+                            &writeData,
+                            chipAddress: chipAddress,
+                            register: UInt32(hostAddress)
                         )
                         if r == KERN_SUCCESS {
                             writeOK = true
@@ -844,10 +1018,26 @@
             // MARK: IOAVDevice Transport (HDMI Fallback)
 
             /// Reads a VCP code via IOAVDevice (alternative I2C path for HDMI).
-            private static func readViaDevice(avDevice: CFTypeRef, vcp: VCPCode) -> DDCReadResult? {
+            private static func readViaDevice(
+                avDevice: CFTypeRef,
+                chipAddress: UInt32,
+                vcp: VCPCode
+            ) -> DDCReadResult? {
                 guard let writeFn = avDeviceWrite, let readFn = avDeviceRead else {
                     return nil
                 }
+                let transport = DDCAppleSiliconI2CTransport(
+                    writeI2C: { address, register, data in
+                        writeFn(
+                            avDevice, address, register, &data, UInt32(data.count)
+                        )
+                    },
+                    readI2C: { address, register, data in
+                        readFn(
+                            avDevice, address, register, &data, UInt32(data.count)
+                        )
+                    }
+                )
 
                 for attempt in 0 ..< maxRetryAttempts {
                     if attempt > 0 {
@@ -860,9 +1050,10 @@
                         if cycle > 0 {
                             usleep(writeCycleDelayMs * 1000)
                         }
-                        let r = writeFn(
-                            avDevice, ddcI2CAddress, UInt32(hostAddress),
-                            &writeData, UInt32(writeData.count)
+                        let r = transport.write(
+                            &writeData,
+                            chipAddress: chipAddress,
+                            register: UInt32(hostAddress)
                         )
                         if r == KERN_SUCCESS {
                             writeOK = true
@@ -876,9 +1067,10 @@
                         repeating: 0,
                         count: DDCAppleSiliconReadContract.replyLength
                     )
-                    let r = readFn(
-                        avDevice, ddcI2CAddress, DDCAppleSiliconReadContract.dataAddress,
-                        &readData, UInt32(readData.count)
+                    let r = transport.read(
+                        &readData,
+                        chipAddress: chipAddress,
+                        register: DDCAppleSiliconReadContract.dataAddress
                     )
                     guard r == KERN_SUCCESS else { continue }
 
@@ -890,8 +1082,20 @@
             }
 
             /// Writes a VCP code via IOAVDevice (alternative I2C path for HDMI).
-            private static func writeViaDevice(avDevice: CFTypeRef, vcp: VCPCode, value: UInt16) -> Bool {
+            private static func writeViaDevice(
+                avDevice: CFTypeRef,
+                chipAddress: UInt32,
+                vcp: VCPCode,
+                value: UInt16
+            ) -> Bool {
                 guard let writeFn = avDeviceWrite else { return false }
+                let transport = DDCAppleSiliconI2CTransport(
+                    writeI2C: { address, register, data in
+                        writeFn(
+                            avDevice, address, register, &data, UInt32(data.count)
+                        )
+                    }
+                )
 
                 for attempt in 0 ..< maxRetryAttempts {
                     if attempt > 0 {
@@ -904,9 +1108,10 @@
                         if cycle > 0 {
                             usleep(writeCycleDelayMs * 1000)
                         }
-                        let r = writeFn(
-                            avDevice, ddcI2CAddress, UInt32(hostAddress),
-                            &writeData, UInt32(writeData.count)
+                        let r = transport.write(
+                            &writeData,
+                            chipAddress: chipAddress,
+                            register: UInt32(hostAddress)
                         )
                         if r == KERN_SUCCESS {
                             writeOK = true
@@ -929,7 +1134,11 @@
             /// higher-level paths fail.
             ///
             /// Tries selector pairs: 24/25 (IOAVService I2C) and 6/7 (IOAVDevice I2C).
-            private static func readViaDirect(service: io_service_t, vcp: VCPCode) -> DDCReadResult? {
+            private static func readViaDirect(
+                service: io_service_t,
+                chipAddress: UInt32,
+                vcp: VCPCode
+            ) -> DDCReadResult? {
                 var connect: io_connect_t = 0
                 guard IOServiceOpen(service, mach_task_self_, 0, &connect) == KERN_SUCCESS else {
                     return nil
@@ -939,24 +1148,48 @@
                 let selectorPairs: [(write: UInt32, read: UInt32)] = [(24, 25), (6, 7)]
 
                 for (writeSel, readSel) in selectorPairs {
+                    let transport = DDCAppleSiliconI2CTransport(
+                        writeI2C: { address, register, data in
+                            var scalarIn: [UInt64] = [UInt64(address), UInt64(register)]
+                            return data.withUnsafeMutableBufferPointer { buffer in
+                                scalarIn.withUnsafeMutableBufferPointer { scalars in
+                                    IOConnectCallMethod(
+                                        connect, writeSel,
+                                        scalars.baseAddress, UInt32(scalars.count),
+                                        buffer.baseAddress, buffer.count,
+                                        nil, nil, nil, nil
+                                    )
+                                }
+                            }
+                        },
+                        readI2C: { address, register, data in
+                            var outSize = data.count
+                            var scalarIn: [UInt64] = [UInt64(address), UInt64(register)]
+                            return data.withUnsafeMutableBufferPointer { buffer in
+                                scalarIn.withUnsafeMutableBufferPointer { scalars in
+                                    IOConnectCallMethod(
+                                        connect, readSel,
+                                        scalars.baseAddress, UInt32(scalars.count),
+                                        nil, 0,
+                                        nil, nil,
+                                        buffer.baseAddress, &outSize
+                                    )
+                                }
+                            }
+                        }
+                    )
+
                     for attempt in 0 ..< maxRetryAttempts {
                         if attempt > 0 {
                             usleep(retryDelayMs * 1000)
                         }
 
                         var writeData = DDCPacketCodec.getRequest(for: vcp, includeHostAddress: false)
-                        var scalarIn: [UInt64] = [UInt64(ddcI2CAddress), UInt64(hostAddress)]
-
-                        let wr = writeData.withUnsafeMutableBufferPointer { wBuf in
-                            scalarIn.withUnsafeMutableBufferPointer { sBuf in
-                                IOConnectCallMethod(
-                                    connect, writeSel,
-                                    sBuf.baseAddress, UInt32(sBuf.count),
-                                    wBuf.baseAddress, wBuf.count,
-                                    nil, nil, nil, nil
-                                )
-                            }
-                        }
+                        let wr = transport.write(
+                            &writeData,
+                            chipAddress: chipAddress,
+                            register: UInt32(hostAddress)
+                        )
                         guard wr == KERN_SUCCESS else { continue }
 
                         usleep(transactionDelayMs * 1000)
@@ -965,23 +1198,11 @@
                             repeating: 0,
                             count: DDCAppleSiliconReadContract.replyLength
                         )
-                        var outSize = readData.count
-                        var readScalarIn: [UInt64] = [
-                            UInt64(ddcI2CAddress),
-                            UInt64(DDCAppleSiliconReadContract.dataAddress),
-                        ]
-
-                        let rr = readData.withUnsafeMutableBufferPointer { rBuf in
-                            readScalarIn.withUnsafeMutableBufferPointer { sBuf in
-                                IOConnectCallMethod(
-                                    connect, readSel,
-                                    sBuf.baseAddress, UInt32(sBuf.count),
-                                    nil, 0,
-                                    nil, nil,
-                                    rBuf.baseAddress, &outSize
-                                )
-                            }
-                        }
+                        let rr = transport.read(
+                            &readData,
+                            chipAddress: chipAddress,
+                            register: DDCAppleSiliconReadContract.dataAddress
+                        )
                         guard rr == KERN_SUCCESS else { continue }
 
                         if let result = DDCPacketCodec.parseGetReply(readData, expectedVCP: vcp) {
@@ -993,7 +1214,12 @@
             }
 
             /// Writes a VCP code via direct IOConnectCallMethod (last-resort fallback).
-            private static func writeViaDirect(service: io_service_t, vcp: VCPCode, value: UInt16) -> Bool {
+            private static func writeViaDirect(
+                service: io_service_t,
+                chipAddress: UInt32,
+                vcp: VCPCode,
+                value: UInt16
+            ) -> Bool {
                 var connect: io_connect_t = 0
                 guard IOServiceOpen(service, mach_task_self_, 0, &connect) == KERN_SUCCESS else {
                     return false
@@ -1003,6 +1229,22 @@
                 let selectorPairs: [(write: UInt32, read: UInt32)] = [(24, 25), (6, 7)]
 
                 for (writeSel, _) in selectorPairs {
+                    let transport = DDCAppleSiliconI2CTransport(
+                        writeI2C: { address, register, data in
+                            var scalarIn: [UInt64] = [UInt64(address), UInt64(register)]
+                            return data.withUnsafeMutableBufferPointer { buffer in
+                                scalarIn.withUnsafeMutableBufferPointer { scalars in
+                                    IOConnectCallMethod(
+                                        connect, writeSel,
+                                        scalars.baseAddress, UInt32(scalars.count),
+                                        buffer.baseAddress, buffer.count,
+                                        nil, nil, nil, nil
+                                    )
+                                }
+                            }
+                        }
+                    )
+
                     for attempt in 0 ..< maxRetryAttempts {
                         if attempt > 0 {
                             usleep(retryDelayMs * 1000)
@@ -1013,18 +1255,11 @@
                             value: value,
                             includeHostAddress: false
                         )
-                        var scalarIn: [UInt64] = [UInt64(ddcI2CAddress), UInt64(hostAddress)]
-
-                        let r = writeData.withUnsafeMutableBufferPointer { wBuf in
-                            scalarIn.withUnsafeMutableBufferPointer { sBuf in
-                                IOConnectCallMethod(
-                                    connect, writeSel,
-                                    sBuf.baseAddress, UInt32(sBuf.count),
-                                    wBuf.baseAddress, wBuf.count,
-                                    nil, nil, nil, nil
-                                )
-                            }
-                        }
+                        let r = transport.write(
+                            &writeData,
+                            chipAddress: chipAddress,
+                            register: UInt32(hostAddress)
+                        )
                         if r == KERN_SUCCESS {
                             return true
                         }
@@ -1034,11 +1269,13 @@
             }
 
         #endif
+    }
+
+    #if arch(x86_64)
 
         // MARK: - Intel Implementation
 
-        #if arch(x86_64)
-
+        extension DDCController {
             /// Finds the IOFramebuffer service for a given display on Intel Macs.
             ///
             /// On Intel Macs, each display is connected via an IOFramebuffer which exposes
@@ -1193,9 +1430,9 @@
                         && request.result == KERN_SUCCESS
                 }
             }
+        }
 
-        #endif
-    }
+    #endif
 
     // MARK: - IOAVService Bridging (Apple Silicon)
 
@@ -1239,4 +1476,6 @@
 
     #endif
 
+    // Keep the platform-specific DDC fallbacks together so their protocol behavior stays aligned.
+    // swiftlint:disable:next file_length
 #endif // !APPSTORE
