@@ -22,6 +22,7 @@ enum MenuBarIconStyle: String, CaseIterable, Identifiable {
     case moonFilled
     case moonOutline
     case sunMoon
+    case sunSplit
 
     var id: String {
         rawValue
@@ -36,6 +37,7 @@ enum MenuBarIconStyle: String, CaseIterable, Identifiable {
         case .moonFilled: "moon.fill"
         case .moonOutline: "moon"
         case .sunMoon: "moon.haze"
+        case .sunSplit: nil
         }
     }
 
@@ -44,6 +46,7 @@ enum MenuBarIconStyle: String, CaseIterable, Identifiable {
         switch self {
         case .defaultIcon: "MenuBarIcon"
         case .classic: "MenuBarIconClassic"
+        case .sunSplit: "MenuBarIconSplit"
         default: nil
         }
     }
@@ -73,6 +76,7 @@ enum MenuBarIconStyle: String, CaseIterable, Identifiable {
         case .moonFilled: "Moon (Filled)"
         case .moonOutline: "Moon (Outline)"
         case .sunMoon: "Moon & Haze"
+        case .sunSplit: "Sun (Split)"
         }
     }
 }

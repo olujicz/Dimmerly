@@ -10,7 +10,7 @@ import XCTest
 
 final class MenuBarIconStyleTests: XCTestCase {
     func testAllCasesCount() {
-        XCTAssertEqual(MenuBarIconStyle.allCases.count, 6)
+        XCTAssertEqual(MenuBarIconStyle.allCases.count, 7)
     }
 
     func testAllCasesMembership() {
@@ -21,6 +21,7 @@ final class MenuBarIconStyleTests: XCTestCase {
         XCTAssertTrue(cases.contains(.moonFilled))
         XCTAssertTrue(cases.contains(.moonOutline))
         XCTAssertTrue(cases.contains(.sunMoon))
+        XCTAssertTrue(cases.contains(.sunSplit))
     }
 
     func testRawValueRoundTrip() {
@@ -40,6 +41,8 @@ final class MenuBarIconStyleTests: XCTestCase {
         XCTAssertEqual(MenuBarIconStyle.moonFilled.systemImageName, "moon.fill")
         XCTAssertEqual(MenuBarIconStyle.moonOutline.systemImageName, "moon")
         XCTAssertEqual(MenuBarIconStyle.sunMoon.systemImageName, "moon.haze")
+        XCTAssertNil(MenuBarIconStyle.sunSplit.systemImageName,
+                     "Split sun should use a custom asset (nil)")
     }
 
     func testAssetNames() {
@@ -49,6 +52,7 @@ final class MenuBarIconStyleTests: XCTestCase {
         XCTAssertNil(MenuBarIconStyle.moonFilled.assetName)
         XCTAssertNil(MenuBarIconStyle.moonOutline.assetName)
         XCTAssertNil(MenuBarIconStyle.sunMoon.assetName)
+        XCTAssertEqual(MenuBarIconStyle.sunSplit.assetName, "MenuBarIconSplit")
     }
 
     func testIdEqualsRawValue() {
@@ -67,6 +71,8 @@ final class MenuBarIconStyleTests: XCTestCase {
         XCTAssertNil(MenuBarIconStyle.moonFilled.activeAssetName)
         XCTAssertNil(MenuBarIconStyle.moonOutline.activeAssetName)
         XCTAssertNil(MenuBarIconStyle.sunMoon.activeAssetName)
+        XCTAssertNil(MenuBarIconStyle.sunSplit.activeAssetName,
+                     "Split sun already reads as dimmed and stays static")
     }
 
     func testStylesWithActiveAssetAlsoHaveAnIdleAsset() {
