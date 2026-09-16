@@ -57,4 +57,43 @@ final class MenuBarIconStyleTests: XCTestCase {
                            "id should equal rawValue for \(style)")
         }
     }
+
+    func testActiveAssetNames() {
+        XCTAssertEqual(MenuBarIconStyle.defaultIcon.activeAssetName, "MenuBarIconActive",
+                       "Default style should have an active-state asset")
+        XCTAssertNil(MenuBarIconStyle.classic.activeAssetName,
+                     "Classic style stays static")
+        XCTAssertNil(MenuBarIconStyle.monitor.activeAssetName)
+        XCTAssertNil(MenuBarIconStyle.moonFilled.activeAssetName)
+        XCTAssertNil(MenuBarIconStyle.moonOutline.activeAssetName)
+        XCTAssertNil(MenuBarIconStyle.sunMoon.activeAssetName)
+    }
+
+    func testStylesWithActiveAssetAlsoHaveAnIdleAsset() {
+        for style in MenuBarIconStyle.allCases where style.activeAssetName != nil {
+            XCTAssertNotNil(style.assetName,
+                            "\(style) has an active asset but no idle asset to fall back to")
+        }
+    }
+
+    func testResolvedAssetNameUsesActiveVariantWhenActive() {
+        XCTAssertEqual(MenuBarIconStyle.defaultIcon.resolvedAssetName(isActive: true),
+                       "MenuBarIconActive")
+    }
+
+    func testResolvedAssetNameUsesIdleVariantWhenNotActive() {
+        XCTAssertEqual(MenuBarIconStyle.defaultIcon.resolvedAssetName(isActive: false),
+                       "MenuBarIcon")
+    }
+
+    func testResolvedAssetNameFallsBackToIdleForStylesWithoutAnActiveVariant() {
+        XCTAssertEqual(MenuBarIconStyle.classic.resolvedAssetName(isActive: true),
+                       "MenuBarIconClassic",
+                       "Classic has no active variant and should keep its idle asset")
+    }
+
+    func testResolvedAssetNameIsNilForSymbolBackedStyles() {
+        XCTAssertNil(MenuBarIconStyle.monitor.resolvedAssetName(isActive: true))
+        XCTAssertNil(MenuBarIconStyle.moonFilled.resolvedAssetName(isActive: false))
+    }
 }

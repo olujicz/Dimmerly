@@ -207,16 +207,19 @@ struct DimmerlyApp: App {
         }
     }
 
-    /// Menu bar icon view that adapts to the user's selected icon style.
+    /// Menu bar icon view that adapts to the user's selected icon style, and to
+    /// whether Dimmerly is currently affecting the displays.
     ///
-    /// Displays either an SF Symbol (for built-in styles) or a custom asset (for default style).
+    /// Displays either an SF Symbol (for built-in styles) or a custom asset. Asset-backed
+    /// styles that define an active variant switch to it while displays are being adjusted.
     @ViewBuilder
     private var menuBarLabel: some View {
         if let systemImage = settings.menuBarIcon.systemImageName {
             Image(systemName: systemImage)
                 .accessibilityLabel("Dimmerly")
         } else {
-            Image(settings.menuBarIcon.assetName ?? "MenuBarIcon")
+            Image(settings.menuBarIcon
+                .resolvedAssetName(isActive: brightnessManager.isAffectingDisplays) ?? "MenuBarIcon")
                 .accessibilityLabel("Dimmerly")
         }
     }

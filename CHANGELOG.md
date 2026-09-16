@@ -14,6 +14,7 @@ Semantic Versioning.
      toolchain moves to Xcode 27. See documentation/RELEASE.md. -->
 
 ### Added
+- The default menu bar icon now shows when Dimmerly is adjusting your displays: it drops to four rays while any display is dimmed, warmed, or has its contrast changed, and returns to eight when everything is back to normal.
 - Saved presets now appear in Spotlight, so a preset can be found and opened straight from search.
 - Added an "Open Brightness Preset" action to Shortcuts, which opens a saved preset in the menu bar panel.
 - Menu bar display controls can now be targeted individually from Shortcuts and Spotlight on macOS 15.4 and later.

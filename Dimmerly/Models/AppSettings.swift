@@ -48,6 +48,23 @@ enum MenuBarIconStyle: String, CaseIterable, Identifiable {
         }
     }
 
+    /// Asset catalog name for the variant shown while Dimmerly is affecting the displays,
+    /// or nil for styles that stay the same regardless of state.
+    var activeAssetName: String? {
+        switch self {
+        case .defaultIcon: "MenuBarIconActive"
+        default: nil
+        }
+    }
+
+    /// Asset to render for this style given whether Dimmerly is currently affecting
+    /// the displays. Styles without an active variant keep their idle asset, and
+    /// SF Symbol styles return nil so the caller falls back to `systemImageName`.
+    func resolvedAssetName(isActive: Bool) -> String? {
+        guard isActive else { return assetName }
+        return activeAssetName ?? assetName
+    }
+
     var displayName: LocalizedStringKey {
         switch self {
         case .defaultIcon: "Default"
