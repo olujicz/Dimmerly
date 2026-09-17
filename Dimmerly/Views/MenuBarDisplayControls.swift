@@ -57,6 +57,128 @@ struct SliderSyncGate {
 
 private let displaySliderSyncTolerance = 0.0005
 
+enum SliderSettleKind: Hashable {
+    case brightness
+    case warmth
+    case contrast
+    case volume
+}
+
+enum DisplaySliderSnap {
+    static let releaseTolerance = 0.03
+
+    /// How long a non-drag adjustment (keyboard, VoiceOver) must stay still before it
+    /// settles onto an anchor. Dragging settles on release instead; keyboard input has
+    /// no release, so idling stands in for it and keeps intermediate values reachable
+    /// while the user is still pressing.
+    static let settleDelay = Duration.milliseconds(450)
+
+    // Mirrors BrightnessManager.minimumBrightness, which is main-actor isolated. The snap
+    // policy is intentionally pure so it can be exercised without crossing the main actor;
+    // testSnapMinimumBrightnessMatchesBrightnessManager guards the two against drifting.
+    static let minimumBrightness = 0.10
+    private static let brightnessAnchors = [
+        minimumBrightness,
+        0.25,
+        0.5,
+        0.75,
+        1.0,
+    ]
+    private static let warmthKelvinAnchors = [6500.0, 4500.0, 3500.0, 2700.0, 1900.0]
+    private static let contrastAnchors = [0.0, ExternalDisplay.neutralContrast, 1.0]
+    private static let volumeAnchors = [0.0, 0.25, 0.5, 0.75, 1.0]
+
+    static let brightnessMarkerPositions = [0.25, 0.5, 0.75].map(brightnessPosition)
+
+    /// Where a brightness value sits along its track, which starts at the minimum rather
+    /// than at zero. Shared by the markers and the knob so the two cannot disagree.
+    static func brightnessPosition(for value: Double) -> Double {
+        (value - minimumBrightness) / (1.0 - minimumBrightness)
+    }
+
+    /// Whether a marker is far enough from the knob to be worth drawing. Markers are drawn
+    /// over the track, so one passing beneath the knob would otherwise score a line across it.
+    static func markerIsClearOfKnob(
+        marker: Double,
+        knob: Double,
+        trackWidth: Double,
+        knobRadius: Double
+    ) -> Bool {
+        abs(marker - knob) * trackWidth >= knobRadius
+    }
+
+    static let warmthMarkerPositions = [4500.0, 3500.0, 2700.0].map(GammaMath.warmthForKelvin)
+    static let contrastMarkerPositions = [ExternalDisplay.neutralContrast]
+    static let volumeMarkerPositions = [0.25, 0.5, 0.75]
+
+    static func brightness(_ value: Double) -> Double {
+        nearestAnchor(to: value, in: brightnessAnchors)
+    }
+
+    static func warmth(_ value: Double) -> Double {
+        let anchors = warmthKelvinAnchors.map(GammaMath.warmthForKelvin)
+        return nearestAnchor(to: value, in: anchors)
+    }
+
+    static func contrast(_ value: Double) -> Double {
+        nearestAnchor(to: value, in: contrastAnchors)
+    }
+
+    static func volume(_ value: Double) -> Double {
+        nearestAnchor(to: value, in: volumeAnchors)
+    }
+
+    private static func nearestAnchor(to value: Double, in anchors: [Double]) -> Double {
+        guard let nearest = anchors.min(by: { abs($0 - value) < abs($1 - value) }) else {
+            return value
+        }
+
+        return abs(nearest - value) <= releaseTolerance ? nearest : value
+    }
+}
+
+/// Decorative snap ticks, drawn as an overlay. The native track is opaque, so a background
+/// layer would be hidden behind it; overlaying paints onto the track without touching the
+/// slider's own shape, knob or tint.
+private struct SliderSnapMarkerLayer: View {
+    let positions: [Double]
+    /// Normalised knob position, used only to skip the marker currently under the knob.
+    let knobPosition: Double
+
+    var body: some View {
+        GeometryReader { geometry in
+            // The knob travels between its own centre points, so the usable track is inset
+            // by one knob radius at each end. Deriving the radius from the layer height
+            // keeps the ticks aligned with the knob across control sizes; measuring against
+            // the raw width would drift outward toward both ends.
+            let knobRadius = geometry.size.height / 2
+            let trackWidth = max(geometry.size.width - geometry.size.height, 0)
+
+            ForEach(Array(positions.enumerated()), id: \.offset) { _, position in
+                Capsule()
+                    // Primary rather than secondary: the tick has to stay legible against
+                    // both the filled and unfilled halves of the track.
+                    .fill(.primary.opacity(0.3))
+                    .frame(width: 1, height: 5)
+                    .position(
+                        x: knobRadius + trackWidth * position,
+                        y: knobRadius
+                    )
+                    .opacity(
+                        DisplaySliderSnap.markerIsClearOfKnob(
+                            marker: position,
+                            knob: knobPosition,
+                            trackWidth: trackWidth,
+                            knobRadius: knobRadius
+                        ) ? 1 : 0
+                    )
+            }
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
 struct DisplayBrightnessRow: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -94,10 +216,37 @@ struct DisplayBrightnessRow: View {
     @State private var warmthSyncGate = SliderSyncGate()
     @State private var contrastSyncGate = SliderSyncGate()
     @State private var showAdjustments = false
+    @State private var draggingSliders: Set<SliderSettleKind> = []
+    @State private var settleTasks: [SliderSettleKind: Task<Void, Never>] = [:]
     #if !APPSTORE
         @State private var volumeValue: Double
         @State private var volumeSyncGate = SliderSyncGate()
     #endif
+
+    /// Applies the snap that a drag would have applied on release, once a keyboard or
+    /// VoiceOver adjustment has stayed still. Drags are excluded: they settle in
+    /// `onEditingChanged`, and snapping mid-drag would move the track under the pointer.
+    private func scheduleSettle(_ kind: SliderSettleKind, settle: @escaping @MainActor () -> Void) {
+        settleTasks[kind]?.cancel()
+
+        guard !draggingSliders.contains(kind) else { return }
+
+        settleTasks[kind] = Task { @MainActor in
+            try? await Task.sleep(for: DisplaySliderSnap.settleDelay)
+            guard !Task.isCancelled else { return }
+            settle()
+        }
+    }
+
+    private func setDragging(_ kind: SliderSettleKind, _ isDragging: Bool) {
+        settleTasks[kind]?.cancel()
+
+        if isDragging {
+            draggingSliders.insert(kind)
+        } else {
+            draggingSliders.remove(kind)
+        }
+    }
 
     init(
         display: ExternalDisplay,
@@ -195,8 +344,20 @@ struct DisplayBrightnessRow: View {
 
                 Slider(
                     value: $sliderValue,
-                    in: BrightnessManager.minimumBrightness ... 1
+                    in: BrightnessManager.minimumBrightness ... 1,
+                    onEditingChanged: { isEditing in
+                        setDragging(.brightness, isEditing)
+                        if !isEditing {
+                            sliderValue = DisplaySliderSnap.brightness(sliderValue)
+                        }
+                    }
                 )
+                .overlay {
+                    SliderSnapMarkerLayer(
+                        positions: DisplaySliderSnap.brightnessMarkerPositions,
+                        knobPosition: DisplaySliderSnap.brightnessPosition(for: sliderValue)
+                    )
+                }
                 .accessibilityLabel(
                     String(
                         format: NSLocalizedString(
@@ -218,6 +379,9 @@ struct DisplayBrightnessRow: View {
                 .onChange(of: sliderValue) {
                     guard brightnessSyncGate.shouldPropagateChange() else { return }
                     onChange(sliderValue)
+                    scheduleSettle(.brightness) {
+                        sliderValue = DisplaySliderSnap.brightness(sliderValue)
+                    }
                 }
 
                 Image(systemName: "sun.max")
@@ -238,30 +402,48 @@ struct DisplayBrightnessRow: View {
                             .foregroundStyle(.blue)
                             .accessibilityHidden(true)
 
-                        Slider(value: $warmthValue, in: 0 ... 1)
-                            .tint(.orange)
-                            .accessibilityLabel(
-                                String(
-                                    format: NSLocalizedString(
-                                        "%@ warmth",
-                                        comment: "Accessibility label: display warmth slider"
-                                    ),
-                                    display.name
-                                )
-                            )
-                            .accessibilityValue(
-                                String(
-                                    format: NSLocalizedString(
-                                        "%dK",
-                                        comment: "Accessibility value: warmth in Kelvin"
-                                    ),
-                                    Int(GammaMath.kelvinForWarmth(warmthValue))
-                                )
-                            )
-                            .onChange(of: warmthValue) {
-                                guard warmthSyncGate.shouldPropagateChange() else { return }
-                                onWarmthChange(warmthValue)
+                        Slider(
+                            value: $warmthValue,
+                            in: 0 ... 1,
+                            onEditingChanged: { isEditing in
+                                setDragging(.warmth, isEditing)
+                                if !isEditing {
+                                    warmthValue = DisplaySliderSnap.warmth(warmthValue)
+                                }
                             }
+                        )
+                        .overlay {
+                            SliderSnapMarkerLayer(
+                                positions: DisplaySliderSnap.warmthMarkerPositions,
+                                knobPosition: warmthValue
+                            )
+                        }
+                        .tint(.orange)
+                        .accessibilityLabel(
+                            String(
+                                format: NSLocalizedString(
+                                    "%@ warmth",
+                                    comment: "Accessibility label: display warmth slider"
+                                ),
+                                display.name
+                            )
+                        )
+                        .accessibilityValue(
+                            String(
+                                format: NSLocalizedString(
+                                    "%dK",
+                                    comment: "Accessibility value: warmth in Kelvin"
+                                ),
+                                Int(GammaMath.kelvinForWarmth(warmthValue))
+                            )
+                        )
+                        .onChange(of: warmthValue) {
+                            guard warmthSyncGate.shouldPropagateChange() else { return }
+                            onWarmthChange(warmthValue)
+                            scheduleSettle(.warmth) {
+                                warmthValue = DisplaySliderSnap.warmth(warmthValue)
+                            }
+                        }
 
                         Image(systemName: "thermometer.sun")
                             .font(.caption2)
@@ -308,29 +490,47 @@ struct DisplayBrightnessRow: View {
                         .foregroundStyle(.secondary)
                         .accessibilityHidden(true)
 
-                    Slider(value: $contrastValue, in: 0 ... 1)
-                        .accessibilityLabel(
-                            String(
-                                format: NSLocalizedString(
-                                    "%@ contrast",
-                                    comment: "Accessibility label: display contrast slider"
-                                ),
-                                display.name
-                            )
-                        )
-                        .accessibilityValue(
-                            String(
-                                format: NSLocalizedString(
-                                    "%d percent",
-                                    comment: "Accessibility value: contrast percentage"
-                                ),
-                                Int(contrastValue * 100)
-                            )
-                        )
-                        .onChange(of: contrastValue) {
-                            guard contrastSyncGate.shouldPropagateChange() else { return }
-                            onContrastChange(contrastValue)
+                    Slider(
+                        value: $contrastValue,
+                        in: 0 ... 1,
+                        onEditingChanged: { isEditing in
+                            setDragging(.contrast, isEditing)
+                            if !isEditing {
+                                contrastValue = DisplaySliderSnap.contrast(contrastValue)
+                            }
                         }
+                    )
+                    .overlay {
+                        SliderSnapMarkerLayer(
+                            positions: DisplaySliderSnap.contrastMarkerPositions,
+                            knobPosition: contrastValue
+                        )
+                    }
+                    .accessibilityLabel(
+                        String(
+                            format: NSLocalizedString(
+                                "%@ contrast",
+                                comment: "Accessibility label: display contrast slider"
+                            ),
+                            display.name
+                        )
+                    )
+                    .accessibilityValue(
+                        String(
+                            format: NSLocalizedString(
+                                "%d percent",
+                                comment: "Accessibility value: contrast percentage"
+                            ),
+                            Int(contrastValue * 100)
+                        )
+                    )
+                    .onChange(of: contrastValue) {
+                        guard contrastSyncGate.shouldPropagateChange() else { return }
+                        onContrastChange(contrastValue)
+                        scheduleSettle(.contrast) {
+                            contrastValue = DisplaySliderSnap.contrast(contrastValue)
+                        }
+                    }
 
                     Image(systemName: "circle.righthalf.filled")
                         .font(.caption2)
@@ -367,29 +567,47 @@ struct DisplayBrightnessRow: View {
                             .help(isMuted ? "Unmute" : "Mute")
                             .accessibilityLabel(isMuted ? Text("Unmute") : Text("Mute"))
 
-                            Slider(value: $volumeValue, in: 0 ... 1)
-                                .accessibilityLabel(
-                                    String(
-                                        format: NSLocalizedString(
-                                            "%@ volume",
-                                            comment: "Accessibility label: display volume slider"
-                                        ),
-                                        display.name
-                                    )
-                                )
-                                .accessibilityValue(
-                                    String(
-                                        format: NSLocalizedString(
-                                            "%d percent",
-                                            comment: "Accessibility value: volume percentage"
-                                        ),
-                                        Int(volumeValue * 100)
-                                    )
-                                )
-                                .onChange(of: volumeValue) {
-                                    guard volumeSyncGate.shouldPropagateChange() else { return }
-                                    onVolumeChange?(volumeValue)
+                            Slider(
+                                value: $volumeValue,
+                                in: 0 ... 1,
+                                onEditingChanged: { isEditing in
+                                    setDragging(.volume, isEditing)
+                                    if !isEditing {
+                                        volumeValue = DisplaySliderSnap.volume(volumeValue)
+                                    }
                                 }
+                            )
+                            .overlay {
+                                SliderSnapMarkerLayer(
+                                    positions: DisplaySliderSnap.volumeMarkerPositions,
+                                    knobPosition: volumeValue
+                                )
+                            }
+                            .accessibilityLabel(
+                                String(
+                                    format: NSLocalizedString(
+                                        "%@ volume",
+                                        comment: "Accessibility label: display volume slider"
+                                    ),
+                                    display.name
+                                )
+                            )
+                            .accessibilityValue(
+                                String(
+                                    format: NSLocalizedString(
+                                        "%d percent",
+                                        comment: "Accessibility value: volume percentage"
+                                    ),
+                                    Int(volumeValue * 100)
+                                )
+                            )
+                            .onChange(of: volumeValue) {
+                                guard volumeSyncGate.shouldPropagateChange() else { return }
+                                onVolumeChange?(volumeValue)
+                                scheduleSettle(.volume) {
+                                    volumeValue = DisplaySliderSnap.volume(volumeValue)
+                                }
+                            }
 
                             Image(systemName: "speaker.wave.3")
                                 .font(.caption2)
@@ -477,6 +695,12 @@ struct DisplayBrightnessRow: View {
         .onAppear {
             syncDisplayValuesFromModel()
         }
+        .onDisappear {
+            for task in settleTasks.values {
+                task.cancel()
+            }
+            settleTasks.removeAll()
+        }
         .onChange(of: display.brightness) {
             if abs(sliderValue - display.brightness) > displaySliderSyncTolerance {
                 brightnessSyncGate.markProgrammaticSync()
@@ -507,7 +731,9 @@ struct DisplayBrightnessRow: View {
                 onToggleBlank()
             }
             Divider()
+            Button("Set to Minimum") { onChange(BrightnessManager.minimumBrightness) }
             Button("Set to 100%") { onChange(1.0) }
+            Button("Set to 75%") { onChange(0.75) }
             Button("Set to 50%") { onChange(0.5) }
             Button("Set to 25%") { onChange(0.25) }
             Divider()
