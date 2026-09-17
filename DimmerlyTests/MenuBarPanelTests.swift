@@ -393,6 +393,129 @@ final class MenuBarPanelTests: XCTestCase {
         XCTAssertTrue(gate.shouldPropagateChange())
     }
 
+    func testBrightnessSnapUsesCommonAnchorsWithinTolerance() {
+        XCTAssertEqual(DisplaySliderSnap.brightness(0.73), 0.75, accuracy: 0.0001)
+        XCTAssertEqual(DisplaySliderSnap.brightness(0.98), 1.0, accuracy: 0.0001)
+    }
+
+    func testBrightnessSnapPreservesValuesAwayFromAnchors() {
+        XCTAssertEqual(DisplaySliderSnap.brightness(0.70), 0.70, accuracy: 0.0001)
+    }
+
+    func testWarmthSnapUsesKelvinAnchors() {
+        let nearWarmAnchor = GammaMath.warmthForKelvin(4_520)
+
+        XCTAssertEqual(
+            DisplaySliderSnap.warmth(nearWarmAnchor),
+            GammaMath.warmthForKelvin(4_500),
+            accuracy: 0.0001
+        )
+    }
+
+    func testContrastSnapCentersOnNeutralValue() {
+        XCTAssertEqual(DisplaySliderSnap.contrast(0.52), 0.5, accuracy: 0.0001)
+        XCTAssertEqual(DisplaySliderSnap.contrast(0.56), 0.56, accuracy: 0.0001)
+    }
+
+    func testVolumeSnapUsesQuarterSteps() {
+        XCTAssertEqual(DisplaySliderSnap.volume(0.74), 0.75, accuracy: 0.0001)
+        XCTAssertEqual(DisplaySliderSnap.volume(0.69), 0.69, accuracy: 0.0001)
+    }
+
+    func testSnapMarkerPositionsMatchSliderRanges() {
+        XCTAssertEqual(DisplaySliderSnap.brightnessMarkerPositions.count, 3)
+        XCTAssertEqual(DisplaySliderSnap.brightnessMarkerPositions[0], 1.0 / 6.0, accuracy: 0.0001)
+        XCTAssertEqual(DisplaySliderSnap.brightnessMarkerPositions[1], 4.0 / 9.0, accuracy: 0.0001)
+        XCTAssertEqual(DisplaySliderSnap.brightnessMarkerPositions[2], 13.0 / 18.0, accuracy: 0.0001)
+
+        XCTAssertEqual(
+            DisplaySliderSnap.warmthMarkerPositions,
+            [
+                GammaMath.warmthForKelvin(4500),
+                GammaMath.warmthForKelvin(3500),
+                GammaMath.warmthForKelvin(2700),
+            ]
+        )
+        XCTAssertEqual(DisplaySliderSnap.contrastMarkerPositions, [0.5])
+        XCTAssertEqual(DisplaySliderSnap.volumeMarkerPositions, [0.25, 0.5, 0.75])
+    }
+
+    private func menuBarDisplayControlsSource() throws -> String {
+        let repositoryURL = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let sourceURL = repositoryURL.appendingPathComponent("Dimmerly/Views/MenuBarDisplayControls.swift")
+        return try String(contentsOf: sourceURL, encoding: .utf8)
+    }
+
+    func testDisplaySlidersUseDecorativeSnapMarkerLayers() throws {
+        let source = try menuBarDisplayControlsSource()
+
+        XCTAssertTrue(source.contains("positions: DisplaySliderSnap.brightnessMarkerPositions"))
+        XCTAssertTrue(source.contains("positions: DisplaySliderSnap.warmthMarkerPositions"))
+        XCTAssertTrue(source.contains("positions: DisplaySliderSnap.contrastMarkerPositions"))
+        XCTAssertTrue(source.contains("positions: DisplaySliderSnap.volumeMarkerPositions"))
+        XCTAssertTrue(source.contains(".accessibilityHidden(true)"))
+    }
+
+    /// The native track is opaque, so a background layer is invisible behind it. Every
+    /// marker layer must overlay its slider to be seen at all.
+    func testSnapMarkerLayersOverlayTheSliderRatherThanSitBehindIt() throws {
+        let lines = try menuBarDisplayControlsSource().components(separatedBy: .newlines)
+        let markerLines = lines.indices.filter { lines[$0].contains("SliderSnapMarkerLayer(") }
+
+        XCTAssertEqual(markerLines.count, 4)
+
+        for index in markerLines {
+            XCTAssertEqual(
+                lines[index - 1].trimmingCharacters(in: .whitespaces),
+                ".overlay {",
+                "marker layer on line \(index + 1) must overlay its slider, not sit behind it"
+            )
+        }
+    }
+
+    /// A `step:` argument makes AppKit draw its own tick marks under the track, which both
+    /// changes the native slider appearance and swamps the decorative markers.
+    func testDisplaySlidersStayContinuousSoAppKitDrawsNoTickMarks() throws {
+        XCTAssertFalse(try menuBarDisplayControlsSource().contains("step:"))
+    }
+
+    @MainActor
+    func testSnapMinimumBrightnessMatchesBrightnessManager() {
+        XCTAssertEqual(
+            DisplaySliderSnap.minimumBrightness,
+            BrightnessManager.minimumBrightness,
+            accuracy: 0.0001
+        )
+    }
+
+    func testBrightnessPositionNormalisesAgainstTheMinimumBackedTrack() {
+        XCTAssertEqual(DisplaySliderSnap.brightnessPosition(for: 0.10), 0.0, accuracy: 0.0001)
+        XCTAssertEqual(DisplaySliderSnap.brightnessPosition(for: 0.55), 0.5, accuracy: 0.0001)
+        XCTAssertEqual(DisplaySliderSnap.brightnessPosition(for: 1.0), 1.0, accuracy: 0.0001)
+    }
+
+    func testMarkerIsHiddenOnlyWhileTheKnobCoversIt() {
+        // 200pt of travel, 10pt knob radius: markers within 5% of the knob are covered.
+        XCTAssertFalse(
+            DisplaySliderSnap.markerIsClearOfKnob(
+                marker: 0.5,
+                knob: 0.52,
+                trackWidth: 200,
+                knobRadius: 10
+            )
+        )
+        XCTAssertTrue(
+            DisplaySliderSnap.markerIsClearOfKnob(
+                marker: 0.5,
+                knob: 0.75,
+                trackWidth: 200,
+                knobRadius: 10
+            )
+        )
+    }
+
     #if !APPSTORE
         @MainActor
         func testDDCControlsAreHiddenWhenHardwareManagerIsDisabled() {
