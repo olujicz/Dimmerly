@@ -53,6 +53,13 @@ enum MenuBarIconStyle: String, CaseIterable, Identifiable {
 
     /// Asset catalog name for the variant shown while Dimmerly is affecting the displays,
     /// or nil for styles that stay the same regardless of state.
+    ///
+    /// Only the default style carries a state variant, and the remaining `nil`s are the
+    /// rule rather than an oversight: a style picked for a particular look keeps that look.
+    /// Someone who chose the Classic monitor glyph or one of the moons chose a mark, not a
+    /// status light, and swapping it out from under them would take away the thing they
+    /// picked. Sun (Split) makes the point most plainly - its disc already reads as half
+    /// dimmed, so dimming it further would only muddy it.
     var activeAssetName: String? {
         switch self {
         case .defaultIcon: "MenuBarIconActive"

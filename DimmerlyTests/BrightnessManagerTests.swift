@@ -1097,4 +1097,112 @@ extension BrightnessManagerTests {
 
         XCTAssertTrue(bm.isAffectingDisplays)
     }
+
+    func testIsAffectingDisplaysIgnoresBrightnessWithinTheNeutralTolerance() {
+        var barelyDimmed = neutralDisplay()
+        barelyDimmed.brightness = 0.995
+        bm.displays = [barelyDimmed]
+
+        XCTAssertFalse(
+            bm.isAffectingDisplays,
+            "Half a percent of dimming is invisible, so it should not claim the displays are being adjusted"
+        )
+    }
+
+    func testIsAffectingDisplaysIsTrueJustOutsideTheBrightnessTolerance() {
+        var dimmed = neutralDisplay()
+        dimmed.brightness = 0.98
+        bm.displays = [dimmed]
+
+        XCTAssertTrue(bm.isAffectingDisplays)
+    }
+
+    func testIsAffectingDisplaysIgnoresWarmthWithinTheNeutralTolerance() {
+        var barelyWarmed = neutralDisplay()
+        barelyWarmed.warmth = 0.005
+        bm.displays = [barelyWarmed]
+
+        XCTAssertFalse(
+            bm.isAffectingDisplays,
+            "Warmth is compared against the same tolerance as brightness and contrast, not against exact zero"
+        )
+    }
+
+    func testIsAffectingDisplaysIsTrueJustOutsideTheWarmthTolerance() {
+        var warmed = neutralDisplay()
+        warmed.warmth = 0.02
+        bm.displays = [warmed]
+
+        XCTAssertTrue(bm.isAffectingDisplays)
+    }
+
+    func testIsAffectingDisplaysIgnoresContrastWithinTheNeutralTolerance() {
+        var barelyContrasted = neutralDisplay()
+        barelyContrasted.contrast = ExternalDisplay.neutralContrast + 0.005
+        bm.displays = [barelyContrasted]
+
+        XCTAssertFalse(
+            bm.isAffectingDisplays,
+            "Contrast shares the single neutral tolerance rather than its own tighter one"
+        )
+    }
+
+    #if !APPSTORE
+        func testIsAffectingDisplaysIsFalseWhenOnlyTheBuiltInBacklightIsLowered() {
+            var builtIn = neutralDisplay()
+            builtIn.isBuiltIn = true
+            builtIn.brightness = 0.37
+            bm.displays = [builtIn]
+
+            XCTAssertFalse(
+                bm.isAffectingDisplays,
+                """
+                The built-in backlight is the system's own brightness: the app writes the \
+                same value the keyboard keys do, and polling syncs the user's own changes \
+                back into the model. Treating a panel below 100% as an adjustment would \
+                leave the menu bar stuck in the active state on every laptop.
+                """
+            )
+        }
+
+        func testIsAffectingDisplaysIsTrueWhenTheBuiltInDisplayIsWarmed() {
+            var builtIn = neutralDisplay()
+            builtIn.isBuiltIn = true
+            builtIn.brightness = 0.37
+            builtIn.warmth = 0.3
+            bm.displays = [builtIn]
+
+            XCTAssertTrue(
+                bm.isAffectingDisplays,
+                "Warmth is a gamma overlay the app owns, so it counts even on the built-in panel"
+            )
+        }
+
+        func testIsAffectingDisplaysIsFalseWhenAnExternalDisplayIsDimmedOverDDC() {
+            HardwareBrightnessManager.shared.capabilities[2] = HardwareDisplayCapability(
+                displayID: 2,
+                supportsDDC: true,
+                supportedCodes: [.brightness],
+                maxBrightness: 100,
+                maxContrast: 100,
+                maxVolume: 0
+            )
+            HardwareBrightnessManager.shared.controlMode = .hardware
+            HardwareBrightnessManager.shared.enable()
+
+            var external = neutralDisplay(id: 2)
+            external.supportsDDC = true
+            external.brightness = 0.4
+            bm.displays = [external]
+
+            XCTAssertFalse(
+                bm.isAffectingDisplays,
+                """
+                A DDC write changes the monitor's own brightness setting, which survives \
+                quitting the app. That is the monitor's state, not an overlay, so it must \
+                not drive the active icon.
+                """
+            )
+        }
+    #endif
 }

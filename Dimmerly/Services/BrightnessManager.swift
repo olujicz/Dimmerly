@@ -111,17 +111,39 @@ class BrightnessManager {
     /// Updated automatically when displays are connected/disconnected.
     var displays: [ExternalDisplay] = []
 
-    /// Tolerance below which a contrast difference is treated as neutral, so that
-    /// floating-point drift from slider input does not register as an adjustment.
-    private static let contrastNeutralTolerance: Double = 0.001
+    /// Tolerance below which a display is treated as untouched. Applied identically to
+    /// brightness, warmth and contrast, so the three cannot disagree about what neutral
+    /// means. One percent covers both floating-point drift from slider input and
+    /// adjustments too small to see, neither of which should light up the menu bar.
+    private static let neutralTolerance: Double = 0.01
 
-    /// True when Dimmerly is altering the output of any connected display, whether by
-    /// dimming, warming, or adjusting contrast. Drives the menu bar active-state icon.
+    /// True when Dimmerly is overlaying an adjustment on any connected display that would
+    /// disappear if the app quit. Drives the menu bar active-state icon.
+    ///
+    /// Brightness is read through `resolvedGammaBrightness` rather than `display.brightness`,
+    /// because the two mean different things per display. Where brightness is delivered by
+    /// hardware - the built-in backlight, or an external panel over DDC - the app writes the
+    /// display's own setting, which persists after the app quits and which the user can change
+    /// just as directly with the keyboard keys or the monitor's buttons. Backlight polling then
+    /// syncs those user-made changes back into `display.brightness`, so that value cannot tell
+    /// an adjustment made here apart from one made outside. Treating it as one left the icon
+    /// pinned to its active state on any laptop not running at exactly 100%.
+    ///
+    /// `resolvedGammaBrightness` is 1.0 on those hardware paths and carries the requested level
+    /// only when the app is dimming in software, which is precisely the overlay case. Warmth and
+    /// contrast are always gamma overlays, so they count on every display.
+    ///
+    /// Known consequence, deliberately left alone: the day temperature slider tops out at the
+    /// 6500K default, and `GammaMath.warmthForKelvin` only returns zero at exactly 6500K. A user
+    /// who moves it one notch to 6400K gets a standing warmth of about 0.022, so with automatic
+    /// colour temperature enabled this reads as active all day. That is truthful - the app really
+    /// is warming the panel the whole time - and suppressing it would mean treating a configured
+    /// day temperature as the neutral point, which this property has no business knowing about.
     var isAffectingDisplays: Bool {
         displays.contains { display in
-            display.brightness < 1.0
-                || display.warmth > 0
-                || abs(display.contrast - ExternalDisplay.neutralContrast) > Self.contrastNeutralTolerance
+            resolvedGammaBrightness(for: display) < 1.0 - Self.neutralTolerance
+                || display.warmth > Self.neutralTolerance
+                || abs(display.contrast - ExternalDisplay.neutralContrast) > Self.neutralTolerance
         }
     }
 
