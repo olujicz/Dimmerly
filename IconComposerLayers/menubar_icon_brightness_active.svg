@@ -1,14 +1,29 @@
 <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Dimmerly menu bar icon, active state: shown while Dimmerly is affecting the displays.
-       Four rays instead of the idle icon's eight - "less light" carried by ray count.
+  <!-- Dimmerly menu bar icon, active state: shown while Dimmerly is overlaying an
+       adjustment on the displays.
+
+       Same sun as the idle icon, with its rays pulled in close to the disc. This is the
+       long-rays/short-rays pairing macOS already uses for brightness in the HUD and in
+       Control Center (sun.max against sun.min), so the glyph says "less light" to someone
+       who has never opened Dimmerly and is only ever seeing one of the two states.
+
+       Earlier attempts changed the shape instead of the ray length. Four rays instead of
+       eight was too quiet to notice. A bare ring was easy to notice and impossible to
+       read: alone in the menu bar, with nothing to compare it against, it is just a
+       circle. Judge this glyph on its own, never beside the idle one - that is all a user
+       ever sees.
+
        Every stroke stays at full opacity on purpose: a faded menu bar glyph reads as a
-       disabled control, which is the opposite of what this state means. The four rays
-       are evenly spaced so the icon never looks clipped or half-drawn. -->
+       disabled control, which is the opposite of what this state means. -->
   <circle cx="18" cy="18" r="6.4" fill="#000000"/>
-  <g stroke="#000000" stroke-width="2.4" stroke-linecap="round">
-    <line x1="18" y1="3.4" x2="18" y2="7.6"/>
-    <line x1="32.6" y1="18" x2="28.4" y2="18"/>
-    <line x1="18" y1="32.6" x2="18" y2="28.4"/>
-    <line x1="3.4" y1="18" x2="7.6" y2="18"/>
+  <g stroke="#000000" stroke-width="2.8" stroke-linecap="round">
+    <line x1="18" y1="9" x2="18" y2="5.6"/>
+    <line x1="24.4" y1="11.6" x2="26.8" y2="9.2"/>
+    <line x1="27" y1="18" x2="30.4" y2="18"/>
+    <line x1="24.4" y1="24.4" x2="26.8" y2="26.8"/>
+    <line x1="18" y1="27" x2="18" y2="30.4"/>
+    <line x1="11.6" y1="24.4" x2="9.2" y2="26.8"/>
+    <line x1="9" y1="18" x2="5.6" y2="18"/>
+    <line x1="11.6" y1="11.6" x2="9.2" y2="9.2"/>
   </g>
 </svg>

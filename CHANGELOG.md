@@ -15,7 +15,7 @@ Semantic Versioning.
 
 ### Added
 - Added a "Sun (Split)" menu bar icon style, a sun whose disc is half solid and half hollow, echoing the app icon's bright-to-dim mark (seven styles total).
-- The default menu bar icon now shows when Dimmerly is adjusting your displays: it drops to four rays while any display is dimmed, warmed, or has its contrast changed, and returns to eight when everything is back to normal.
+- The default menu bar icon now shows when Dimmerly is adjusting your displays: the sun's rays pull in close to its centre while Dimmerly is dimming, warming, or shifting contrast, and stretch back out once it stops. Changing your laptop's backlight, or a monitor's own hardware brightness, leaves the icon alone, since that setting belongs to the display and outlives Dimmerly.
 - Saved presets now appear in Spotlight, so a preset can be found and opened straight from search.
 - Added an "Open Brightness Preset" action to Shortcuts, which opens a saved preset in the menu bar panel.
 - Menu bar display controls can now be targeted individually from Shortcuts and Spotlight on macOS 15.4 and later.
