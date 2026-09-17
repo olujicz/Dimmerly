@@ -5,12 +5,13 @@
 //  Unit tests for DDC/CI controller types and enumerations.
 //  Tests VCPCode, InputSource, DDCReadResult, and related model logic.
 //
-//  Note: Actual DDC I/O (read/write/capabilities) requires hardware and
-//  cannot be meaningfully unit tested. Those paths are tested via
-//  HardwareBrightnessManagerTests using injectable mocks.
+//  Note: Actual DDC service discovery requires hardware and cannot be meaningfully
+//  unit tested. The address routing and I2C operation forwarding are covered here
+//  with injectable operations; higher-level paths are tested via HardwareBrightnessManagerTests.
 //
 
 @testable import Dimmerly
+import IOKit
 import XCTest
 
 #if !APPSTORE
@@ -19,6 +20,83 @@ import XCTest
         func testAppleSiliconReadContractUsesZeroOffsetAndElevenByteReply() {
             XCTAssertEqual(DDCAppleSiliconReadContract.dataAddress, 0)
             XCTAssertEqual(DDCAppleSiliconReadContract.replyLength, 11)
+        }
+
+        func testAppleSiliconTransportUsesMCDP29xxChipAddressOnlyForMatchingProvider() {
+            XCTAssertEqual(
+                DDCAppleSiliconTransport.chipAddress(for: "AppleDCPMCDP29XX"),
+                0xB7
+            )
+            XCTAssertEqual(
+                DDCAppleSiliconTransport.chipAddress(for: "AppleDCP"),
+                0x37
+            )
+            XCTAssertEqual(
+                DDCAppleSiliconTransport.chipAddress(for: nil),
+                0x37
+            )
+        }
+
+        func testDisplayIdentityRejectsConflictingSerialForVendorAndModelMatch() {
+            XCTAssertTrue(
+                DDCDisplayIdentityMatcher.matches(
+                    candidate: DDCDisplayIdentity(
+                        vendorID: 0x1234, modelID: 0x5678, serialNumber: nil
+                    ),
+                    expected: DDCDisplayIdentity(
+                        vendorID: 0x1234, modelID: 0x5678, serialNumber: 42
+                    )
+                )
+            )
+            XCTAssertTrue(
+                DDCDisplayIdentityMatcher.matches(
+                    candidate: DDCDisplayIdentity(
+                        vendorID: 0x1234, modelID: 0x5678, serialNumber: 42
+                    ),
+                    expected: DDCDisplayIdentity(
+                        vendorID: 0x1234, modelID: 0x5678, serialNumber: 42
+                    )
+                )
+            )
+            XCTAssertFalse(
+                DDCDisplayIdentityMatcher.matches(
+                    candidate: DDCDisplayIdentity(
+                        vendorID: 0x1234, modelID: 0x5678, serialNumber: 7
+                    ),
+                    expected: DDCDisplayIdentity(
+                        vendorID: 0x1234, modelID: 0x5678, serialNumber: 42
+                    )
+                )
+            )
+        }
+
+        func testAppleSiliconI2CTransportForwardsChipAddressToReadAndWrite() {
+            var writeAddresses: [UInt32] = []
+            var readAddresses: [UInt32] = []
+            let transport = DDCAppleSiliconI2CTransport(
+                writeI2C: { address, _, _ in
+                    writeAddresses.append(address)
+                    return KERN_SUCCESS
+                },
+                readI2C: { address, _, _ in
+                    readAddresses.append(address)
+                    return KERN_SUCCESS
+                }
+            )
+
+            var writeData = [UInt8](repeating: 0, count: 4)
+            var readData = [UInt8](repeating: 0, count: 11)
+            XCTAssertEqual(
+                transport.write(&writeData, chipAddress: 0xB7, register: 0x51),
+                KERN_SUCCESS
+            )
+            XCTAssertEqual(
+                transport.read(&readData, chipAddress: 0x37, register: 0),
+                KERN_SUCCESS
+            )
+
+            XCTAssertEqual(writeAddresses, [0xB7])
+            XCTAssertEqual(readAddresses, [0x37])
         }
 
         func testPacketCodecBuildsServiceAndIntelGetRequests() {
