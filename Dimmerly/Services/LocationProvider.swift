@@ -11,6 +11,56 @@ import CoreLocation
 import Foundation
 import Observation
 
+private final class LocationRequestGate: @unchecked Sendable {
+    private let lock = NSLock()
+    private var generation: UInt64 = 0
+    private var activeRequest: UInt64?
+
+    func begin() -> UInt64 {
+        lock.withLock {
+            generation &+= 1
+            activeRequest = generation
+            return generation
+        }
+    }
+
+    @discardableResult
+    func invalidate() -> UInt64 {
+        lock.withLock {
+            generation &+= 1
+            activeRequest = nil
+            return generation
+        }
+    }
+
+    func current() -> UInt64 {
+        lock.withLock { generation }
+    }
+
+    func isCurrent(_ token: UInt64) -> Bool {
+        lock.withLock { token == generation }
+    }
+
+    func acceptsCallback(_ token: UInt64) -> Bool {
+        lock.withLock {
+            if let activeRequest {
+                return token == activeRequest && token == generation
+            }
+            // Preserve the delegate's historical direct-callback behavior before the first
+            // request, while rejecting callbacks after a manual edit, clear, or completion.
+            return generation == 0 && token == 0
+        }
+    }
+
+    func complete(_ token: UInt64) {
+        lock.withLock {
+            guard token == generation, activeRequest == token else { return }
+            activeRequest = nil
+            generation &+= 1
+        }
+    }
+}
+
 @MainActor
 @Observable
 class LocationProvider: NSObject {
@@ -21,6 +71,7 @@ class LocationProvider: NSObject {
     var authorizationStatus: CLAuthorizationStatus = .notDetermined
 
     private let locationManager = CLLocationManager()
+    private let requestGate = LocationRequestGate()
 
     /// The `UserDefaults` suite to read from and persist to. Defaults to `.standard` for
     /// production use; tests should inject an isolated suite so they don't read or overwrite
@@ -66,6 +117,7 @@ class LocationProvider: NSObject {
     /// Uses `startUpdatingLocation()` which reliably triggers the macOS
     /// authorization prompt, even for agent (LSUIElement) apps.
     func requestLocation() {
+        let requestToken = requestGate.begin()
         // `CLLocationManager.locationServicesEnabled()` can block briefly and is
         // flagged as non-main-thread-safe by Apple. Run it on a background task,
         // then hop back to @MainActor to start updating.
@@ -73,7 +125,7 @@ class LocationProvider: NSObject {
             let enabled = await Self.locationServicesAvailable()
             guard enabled else { return }
             await MainActor.run {
-                self?.beginLocationRequest()
+                self?.beginLocationRequest(token: requestToken)
             }
         }
     }
@@ -86,7 +138,8 @@ class LocationProvider: NSObject {
         }.value
     }
 
-    private func beginLocationRequest() {
+    private func beginLocationRequest(token: UInt64) {
+        guard requestGate.isCurrent(token) else { return }
         // Activate the app so the authorization dialog is visible for LSUIElement apps
         NSApp.activate()
 
@@ -106,6 +159,8 @@ class LocationProvider: NSObject {
 
     /// Sets a user-entered manual location
     func setManualLocation(latitude: Double, longitude: Double) {
+        requestGate.invalidate()
+        locationManager.stopUpdatingLocation()
         self.latitude = latitude
         self.longitude = longitude
         saveLocation()
@@ -113,6 +168,8 @@ class LocationProvider: NSObject {
 
     /// Clears the saved location
     func clearLocation() {
+        requestGate.invalidate()
+        locationManager.stopUpdatingLocation()
         latitude = nil
         longitude = nil
         defaults.removeObject(forKey: Self.latitudeKey)
@@ -143,10 +200,13 @@ extension LocationProvider: CLLocationManagerDelegate {
         guard let location = locations.last else { return }
         let lat = location.coordinate.latitude
         let lon = location.coordinate.longitude
+        let requestToken = requestGate.current()
         Task { @MainActor in
+            guard self.requestGate.acceptsCallback(requestToken) else { return }
             self.latitude = lat
             self.longitude = lon
             self.saveLocation()
+            self.requestGate.complete(requestToken)
         }
     }
 

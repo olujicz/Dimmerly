@@ -50,7 +50,7 @@ struct SetDisplayWarmthIntent: AppIntent {
             throw DisplayIntentError.warmthOutOfRange
         }
         let displayID = try ConnectedDisplayResolver.resolve(display) {
-            command.connectedDisplayIDs
+            command.connectedDisplayDescriptors
         }
         command.setWarmth(warmth / 100, for: displayID)
     }

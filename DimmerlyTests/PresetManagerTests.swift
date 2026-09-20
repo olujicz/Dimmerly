@@ -17,14 +17,25 @@ final class PresetManagerTests: XCTestCase {
     /// overwrite the developer's real saved presets in `UserDefaults.standard`.
     private var testSuiteName: String!
     private var testDefaults: UserDefaults!
+    private var widgetSuiteName: String!
+    private var widgetDefaults: UserDefaults!
+    private var widgetReloadCount = 0
 
     override func setUp() async throws {
         testSuiteName = "PresetManagerTests-\(UUID().uuidString)"
         testDefaults = UserDefaults(suiteName: testSuiteName)
         testDefaults.removePersistentDomain(forName: testSuiteName)
+        widgetSuiteName = "PresetManagerWidgetTests-\(UUID().uuidString)"
+        widgetDefaults = UserDefaults(suiteName: widgetSuiteName)
+        widgetDefaults.removePersistentDomain(forName: widgetSuiteName)
+        widgetReloadCount = 0
         manager = PresetManager(
             defaults: testDefaults,
-            mainShortcutProvider: { GlobalShortcut.default }
+            mainShortcutProvider: { GlobalShortcut.default },
+            widgetSynchronizer: AppGroupWidgetPresetSynchronizer(
+                defaults: widgetDefaults,
+                reloadAllTimelines: { self.widgetReloadCount += 1 }
+            )
         )
         bm = BrightnessManager(forTesting: true)
         // Clear presets for a clean slate
@@ -41,7 +52,9 @@ final class PresetManagerTests: XCTestCase {
         testDefaults.removePersistentDomain(forName: testSuiteName)
         testDefaults = nil
         testSuiteName = nil
-        SharedConstants.sharedDefaults?.removeObject(forKey: SharedConstants.widgetPresetsKey)
+        widgetDefaults.removePersistentDomain(forName: widgetSuiteName)
+        widgetDefaults = nil
+        widgetSuiteName = nil
         manager = nil
         bm = nil
     }
@@ -260,25 +273,41 @@ final class PresetManagerTests: XCTestCase {
     }
 
     func testWidgetPresetsAreClearedWhenAllPresetsAreDeleted() throws {
-        guard let sharedDefaults = SharedConstants.sharedDefaults else {
-            throw XCTSkip("Shared app-group defaults unavailable in test environment")
-        }
-
         let staleData = try JSONEncoder().encode([WidgetPresetInfo(id: UUID().uuidString, name: "Stale")])
-        sharedDefaults.set(staleData, forKey: SharedConstants.widgetPresetsKey)
+        widgetDefaults.set(staleData, forKey: SharedConstants.widgetPresetsKey)
+        widgetDefaults.set("sentinel", forKey: "widget-test-sentinel")
 
         bm.displays = []
+        let reloadCountBeforeSave = widgetReloadCount
         manager.saveCurrentAsPreset(name: "Live", brightnessManager: bm)
-        XCTAssertNotNil(sharedDefaults.data(forKey: SharedConstants.widgetPresetsKey))
+        let livePreset = try XCTUnwrap(manager.presets.last)
+        let widgetData = try XCTUnwrap(widgetDefaults.data(forKey: SharedConstants.widgetPresetsKey))
+        let widgetPresets = try JSONDecoder().decode([WidgetPresetInfo].self, from: widgetData)
+
+        XCTAssertEqual(widgetPresets.map(\.id), [livePreset.id.uuidString])
+        XCTAssertEqual(widgetPresets.map(\.name), [livePreset.name])
+        XCTAssertEqual(widgetReloadCount, reloadCountBeforeSave + 1)
+        let reloadCountBeforeDeletion = widgetReloadCount
 
         while !manager.presets.isEmpty {
             manager.deletePreset(id: manager.presets[0].id)
         }
 
         XCTAssertNil(
-            sharedDefaults.data(forKey: SharedConstants.widgetPresetsKey),
+            widgetDefaults.data(forKey: SharedConstants.widgetPresetsKey),
             "Widget preset cache should be removed when no presets remain"
         )
+        XCTAssertEqual(widgetDefaults.string(forKey: "widget-test-sentinel"), "sentinel")
+        XCTAssertEqual(widgetReloadCount, reloadCountBeforeDeletion + 1)
+    }
+
+    func testPresetManagerDelegatesWidgetSynchronizationAfterMutation() {
+        let reloadCountBefore = widgetReloadCount
+        bm.displays = []
+
+        manager.saveCurrentAsPreset(name: "Live", brightnessManager: bm)
+
+        XCTAssertGreaterThan(widgetReloadCount, reloadCountBefore)
     }
 
     // MARK: - restoreDefaultPresets
@@ -320,5 +349,35 @@ final class PresetManagerTests: XCTestCase {
         XCTAssertEqual(defaults[2].universalBrightness, 0.3)
         XCTAssertEqual(defaults[2].universalWarmth, 0.8)
         XCTAssertEqual(defaults[2].universalContrast, 0.5)
+    }
+}
+
+@MainActor
+final class NoOpWidgetPresetSynchronizer: WidgetPresetSynchronizing {
+    func synchronize(_: [BrightnessPreset]) {}
+}
+
+@MainActor
+final class IsolatedPresetManagerFixture {
+    let suiteName: String
+    let defaults: UserDefaults
+    let manager: PresetManager
+
+    init(widgetSynchronizer: any WidgetPresetSynchronizing = NoOpWidgetPresetSynchronizer()) {
+        suiteName = "PresetManagerTests-\(UUID().uuidString)"
+        guard let defaults = UserDefaults(suiteName: suiteName) else {
+            fatalError("Unable to create isolated UserDefaults suite")
+        }
+        self.defaults = defaults
+        defaults.removePersistentDomain(forName: suiteName)
+        manager = PresetManager(
+            defaults: defaults,
+            mainShortcutProvider: { GlobalShortcut.default },
+            widgetSynchronizer: widgetSynchronizer
+        )
+    }
+
+    func cleanup() {
+        defaults.removePersistentDomain(forName: suiteName)
     }
 }

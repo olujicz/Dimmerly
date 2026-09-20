@@ -5,14 +5,13 @@
 //  Model representing a global keyboard shortcut configuration.
 //  Supports encoding/decoding for UserDefaults persistence and widget compatibility.
 //
-//  Carbon key codes: Uses Carbon.HIToolbox constants for key code mapping (legacy but stable).
-//  Widget extension: Conditional compilation excludes AppKit/Carbon in widget target.
+//  ANSI key codes: Uses a stable numeric mapping shared by the app and widget targets.
+//  Widget extension: Conditional compilation excludes AppKit in the widget target.
 //
 
 import Foundation
 #if !WIDGET_EXTENSION
     import AppKit
-    import Carbon.HIToolbox
 #endif
 
 /// Modifier keys for keyboard shortcuts (⌘⌥⇧⌃).
@@ -31,8 +30,12 @@ enum ShortcutModifier: String, Codable, Hashable {
 /// Represents a global keyboard shortcut with a key and modifier combination.
 ///
 /// Design decisions:
-/// - **String-based keys**: Stores keys as strings ("d", "return", "f1") instead of raw codes
-///   for readability and cross-architecture stability
+/// - **Physical key semantics for newly recorded shortcuts**: Stores the ANSI key code so a
+///   shortcut remains attached to the same physical key when the keyboard layout changes.
+/// - **Layout-provided labels**: For layout-dependent printable keys, stores the event's
+///   `charactersIgnoringModifiers` value as a readable label for US, AZERTY, and QWERTZ.
+/// - **Legacy compatibility**: Older string-only values decode with a nil key code and continue
+///   using the historical ANSI character mapping until the user records them again.
 /// - **Set for modifiers**: Unordered set matches macOS behavior (Cmd+Opt = Opt+Cmd)
 /// - **Codable**: Persists to UserDefaults as JSON
 ///
@@ -48,6 +51,10 @@ struct GlobalShortcut: Codable, Equatable {
     /// Order doesn't matter (Set handles comparison correctly).
     let modifiers: Set<ShortcutModifier>
 
+    /// Physical ANSI key code for shortcuts recorded by the current version. Nil means the
+    /// value came from the legacy string-only Codable representation.
+    let keyCode: UInt16?
+
     /// The default keyboard shortcut: Cmd+Opt+Shift+D.
     /// Three modifiers reduce conflicts with system and app shortcuts.
     static let `default` = GlobalShortcut(
@@ -55,25 +62,82 @@ struct GlobalShortcut: Codable, Equatable {
         modifiers: [.command, .option, .shift]
     )
 
-    #if !WIDGET_EXTENSION
-        /// Mapping from Carbon key codes to string representations
-        private static let keyCodeMap: [Int: String] = [
-            kVK_ANSI_A: "a", kVK_ANSI_B: "b", kVK_ANSI_C: "c", kVK_ANSI_D: "d",
-            kVK_ANSI_E: "e", kVK_ANSI_F: "f", kVK_ANSI_G: "g", kVK_ANSI_H: "h",
-            kVK_ANSI_I: "i", kVK_ANSI_J: "j", kVK_ANSI_K: "k", kVK_ANSI_L: "l",
-            kVK_ANSI_M: "m", kVK_ANSI_N: "n", kVK_ANSI_O: "o", kVK_ANSI_P: "p",
-            kVK_ANSI_Q: "q", kVK_ANSI_R: "r", kVK_ANSI_S: "s", kVK_ANSI_T: "t",
-            kVK_ANSI_U: "u", kVK_ANSI_V: "v", kVK_ANSI_W: "w", kVK_ANSI_X: "x",
-            kVK_ANSI_Y: "y", kVK_ANSI_Z: "z",
-            kVK_ANSI_0: "0", kVK_ANSI_1: "1", kVK_ANSI_2: "2", kVK_ANSI_3: "3",
-            kVK_ANSI_4: "4", kVK_ANSI_5: "5", kVK_ANSI_6: "6", kVK_ANSI_7: "7",
-            kVK_ANSI_8: "8", kVK_ANSI_9: "9",
-            kVK_Return: "return", kVK_Space: "space", kVK_Escape: "escape",
-            kVK_F1: "f1", kVK_F2: "f2", kVK_F3: "f3", kVK_F4: "f4",
-            kVK_F5: "f5", kVK_F6: "f6", kVK_F7: "f7", kVK_F8: "f8",
-            kVK_F9: "f9", kVK_F10: "f10", kVK_F11: "f11", kVK_F12: "f12",
-        ]
-    #endif
+    /// Stable historical ANSI key codes shared by the app and widget targets.
+    private static let legacyKeyCodeMap: [String: UInt16] = [
+        "a": 0, "b": 11, "c": 8, "d": 2,
+        "e": 14, "f": 3, "g": 5, "h": 4,
+        "i": 34, "j": 38, "k": 40, "l": 37,
+        "m": 46, "n": 45, "o": 31, "p": 35,
+        "q": 12, "r": 15, "s": 1, "t": 17,
+        "u": 32, "v": 9, "w": 13, "x": 7,
+        "y": 16, "z": 6,
+        "0": 29, "1": 18, "2": 19, "3": 20,
+        "4": 21, "5": 23, "6": 22, "7": 26,
+        "8": 28, "9": 25,
+        "return": 36, "space": 49, "escape": 53,
+        "f1": 122, "f2": 120, "f3": 99, "f4": 118,
+        "f5": 96, "f6": 97, "f7": 98, "f8": 100,
+        "f9": 101, "f10": 109, "f11": 103, "f12": 111,
+    ]
+
+    init(key: String, modifiers: Set<ShortcutModifier>, keyCode: UInt16? = nil) {
+        self.key = key
+        self.modifiers = modifiers
+        self.keyCode = keyCode ?? Self.legacyKeyCodeMap[key]
+    }
+
+    private init(legacyKey key: String, modifiers: Set<ShortcutModifier>, keyCode: UInt16?) {
+        self.key = key
+        self.modifiers = modifiers
+        self.keyCode = keyCode
+    }
+
+    /// Canonical physical ANSI key identity for equality and conflict detection.
+    private var physicalKeyCode: UInt16? {
+        if let keyCode {
+            return keyCode
+        }
+        return Self.legacyKeyCodeMap[key]
+    }
+
+    private enum EqualityKey: Equatable {
+        case physical(UInt16)
+        case label(String)
+    }
+
+    private var equalityKey: EqualityKey {
+        if let physicalKeyCode {
+            return .physical(physicalKeyCode)
+        }
+        return .label(key)
+    }
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        guard lhs.modifiers == rhs.modifiers else { return false }
+        return lhs.equalityKey == rhs.equalityKey
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case key
+        case modifiers
+        case keyCode
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        try self.init(
+            legacyKey: container.decode(String.self, forKey: .key),
+            modifiers: container.decode(Set<ShortcutModifier>.self, forKey: .modifiers),
+            keyCode: container.decodeIfPresent(UInt16.self, forKey: .keyCode)
+        )
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(key, forKey: .key)
+        try container.encode(modifiers, forKey: .modifiers)
+        try container.encodeIfPresent(keyCode, forKey: .keyCode)
+    }
 
     /// A human-readable string representation of the shortcut (e.g., "⌘⌥⇧D").
     ///
@@ -113,15 +177,71 @@ struct GlobalShortcut: Codable, Equatable {
         /// Creates a keyboard shortcut from key code and modifier flags
         ///
         /// - Parameters:
-        ///   - keyCode: The Carbon key code
+        ///   - keyCode: The ANSI physical key code
         ///   - modifierFlags: The NSEvent.ModifierFlags
         /// - Returns: A GlobalShortcut if the key code can be mapped to a character
-        static func from(keyCode: UInt16, modifierFlags: NSEvent.ModifierFlags) -> GlobalShortcut? {
-            guard let keyString = keyCodeMap[Int(keyCode)] else {
+        static func from(
+            keyCode: UInt16,
+            modifierFlags: NSEvent.ModifierFlags,
+            charactersIgnoringModifiers: String? = nil
+        ) -> GlobalShortcut? {
+            guard let keyString = legacyKeyCodeMap.first(where: { $0.value == keyCode })?.key else {
                 return nil
             }
 
-            // Extract modifier flags
+            let keyLabel = Self.layoutDependentLabel(
+                for: keyString,
+                charactersIgnoringModifiers: charactersIgnoringModifiers
+            )
+            return GlobalShortcut(
+                key: keyLabel,
+                modifiers: Self.modifiers(from: modifierFlags),
+                keyCode: keyCode
+            )
+        }
+
+        /// Matches a raw event using the canonical physical ANSI key code.
+        func matches(
+            keyCode pressedKeyCode: UInt16,
+            modifierFlags: NSEvent.ModifierFlags
+        ) -> Bool {
+            guard modifiers == Self.modifiers(from: modifierFlags) else { return false }
+            return physicalKeyCode == pressedKeyCode
+        }
+
+        /// Checks if this shortcut matches the given NSEvent
+        ///
+        /// - Parameter event: The keyboard event to check
+        /// - Returns: true if the event matches this shortcut
+        func matches(event: NSEvent) -> Bool {
+            matches(
+                keyCode: event.keyCode,
+                modifierFlags: event.modifierFlags
+            )
+        }
+
+        private static func layoutDependentLabel(
+            for keyString: String,
+            charactersIgnoringModifiers: String?
+        ) -> String {
+            guard keyString.count == 1,
+                  let character = keyString.first,
+                  character.isLetter
+            else {
+                return keyString
+            }
+
+            guard let layoutLabel = charactersIgnoringModifiers?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .lowercased(),
+                !layoutLabel.isEmpty
+            else {
+                return keyString
+            }
+            return layoutLabel
+        }
+
+        private static func modifiers(from modifierFlags: NSEvent.ModifierFlags) -> Set<ShortcutModifier> {
             var modifiers: Set<ShortcutModifier> = []
             if modifierFlags.contains(.command) {
                 modifiers.insert(.command)
@@ -135,19 +255,7 @@ struct GlobalShortcut: Codable, Equatable {
             if modifierFlags.contains(.control) {
                 modifiers.insert(.control)
             }
-
-            return GlobalShortcut(key: keyString, modifiers: modifiers)
-        }
-
-        /// Checks if this shortcut matches the given NSEvent
-        ///
-        /// - Parameter event: The keyboard event to check
-        /// - Returns: true if the event matches this shortcut
-        func matches(event: NSEvent) -> Bool {
-            guard let shortcut = GlobalShortcut.from(keyCode: event.keyCode, modifierFlags: event.modifierFlags) else {
-                return false
-            }
-            return self == shortcut
+            return modifiers
         }
     #endif
 

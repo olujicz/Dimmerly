@@ -94,6 +94,48 @@ final class LocationProviderTests: XCTestCase {
         XCTAssertEqual(provider.longitude ?? 0, 2.3522, accuracy: 0.0001)
     }
 
+    func testLateLocationCallbackCannotOverwriteManualClear() {
+        let provider = LocationProvider(defaults: testDefaults)
+        provider.setManualLocation(latitude: 1.0, longitude: 2.0)
+
+        provider.locationManager(
+            CLLocationManager(),
+            didUpdateLocations: [CLLocation(latitude: 48.8566, longitude: 2.3522)]
+        )
+        provider.clearLocation()
+
+        let settled = expectation(description: "late location callback settled")
+        Task { @MainActor in
+            await Task.yield()
+            settled.fulfill()
+        }
+        wait(for: [settled], timeout: 1.0)
+
+        XCTAssertNil(provider.latitude)
+        XCTAssertNil(provider.longitude)
+    }
+
+    func testCallbackArrivingAfterManualClearIsIgnored() {
+        let provider = LocationProvider(defaults: testDefaults)
+        provider.setManualLocation(latitude: 1.0, longitude: 2.0)
+        provider.clearLocation()
+
+        provider.locationManager(
+            CLLocationManager(),
+            didUpdateLocations: [CLLocation(latitude: 48.8566, longitude: 2.3522)]
+        )
+
+        let settled = expectation(description: "post-clear callback settled")
+        Task { @MainActor in
+            await Task.yield()
+            settled.fulfill()
+        }
+        wait(for: [settled], timeout: 1.0)
+
+        XCTAssertNil(provider.latitude)
+        XCTAssertNil(provider.longitude)
+    }
+
     /// Drives a known status rather than comparing against `CLLocationManager`'s live value.
     /// The old version read `manager.authorizationStatus` again at assertion time, so when the
     /// system resolved authorization mid-test — `notDetermined` to `denied` on a fresh CI

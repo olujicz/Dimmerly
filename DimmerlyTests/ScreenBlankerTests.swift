@@ -34,6 +34,7 @@ final class ScreenBlankerTests: XCTestCase {
             gamma: gamma,
             cursor: cursor,
             clock: clock,
+            displays: displays,
             failures: failures
         )
     }
@@ -136,6 +137,44 @@ final class ScreenBlankerTests: XCTestCase {
         XCTAssertFalse(harness.sut.isBlanking)
         XCTAssertEqual(harness.input.stopCount, 1)
         XCTAssertEqual(harness.gamma.restoredDisplayIDs, [7, 9])
+    }
+
+    func testForcedDismissClearsPartialPerDisplayBlanking() {
+        let harness = makeHarness()
+        harness.sut.blankDisplay(7)
+
+        harness.sut.dismiss(force: true)
+
+        XCTAssertFalse(harness.sut.isBlanking)
+        XCTAssertTrue(harness.sut.blankedDisplayIDs.isEmpty)
+        XCTAssertEqual(harness.gamma.restoredDisplayIDs, [7])
+        XCTAssertTrue(harness.windows.shownDisplayIDs.isEmpty)
+    }
+
+    func testForcedDismissClearsFullPerDisplayBlanking() {
+        let harness = makeHarness()
+        harness.sut.blankDisplay(7)
+        harness.sut.blankDisplay(9)
+
+        harness.sut.dismiss(force: true)
+
+        XCTAssertFalse(harness.sut.isBlanking)
+        XCTAssertTrue(harness.sut.blankedDisplayIDs.isEmpty)
+        XCTAssertEqual(harness.gamma.restoredDisplayIDs, [7, 9])
+        XCTAssertEqual(harness.input.stopCount, 1)
+    }
+
+    func testTopologyChangeArmsRecoveryWhenTheLastVisibleDisplayDisconnects() {
+        let harness = makeHarness()
+        harness.sut.blankDisplay(7)
+
+        harness.displays.activeDisplayIDs = [7]
+        harness.sut.displayTopologyDidChange()
+
+        XCTAssertEqual(harness.sut.blankedDisplayIDs, [7])
+        XCTAssertEqual(harness.input.startPolicies, [.anyInput(ignorePointerMovement: false)])
+        XCTAssertEqual(harness.windows.beginSessionCount, 1)
+        XCTAssertEqual(harness.cursor.hideCount, 1)
     }
 
     func testMonitorStartupFailureDoesNotBlankAndPresentsFailure() {
@@ -395,6 +434,7 @@ private struct ScreenBlankerHarness {
     let gamma: FakeDisplayGammaController
     let cursor: FakeCursorController
     let clock: FakeBlankingClock
+    let displays: FakeActiveDisplayProvider
     let failures: FailureRecorder
 }
 

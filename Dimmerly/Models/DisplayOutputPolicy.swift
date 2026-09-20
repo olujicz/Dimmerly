@@ -17,9 +17,10 @@ struct DisplayOutputPolicy: Equatable, Sendable {
             isBuiltIn: Bool,
             isDDCEnabled: Bool,
             supportsDDCBrightness: Bool,
-            requestedBrightness: Double
+            requestedBrightness: Double,
+            builtInBacklightAvailable: Bool = true
         ) -> Self {
-            if isBuiltIn {
+            if isBuiltIn, builtInBacklightAvailable {
                 return Self(
                     usesBuiltInBacklight: true,
                     usesDDCBrightness: false,

@@ -10,6 +10,27 @@ import AppKit
 import Foundation
 import Observation
 
+/// Coordinates recorder overlays with the two shortcut managers. Monitoring can remain installed
+/// while a recorder is visible, but normal actions must be suppressed until every recorder exits.
+@MainActor
+final class ShortcutRecordingCoordinator {
+    static let shared = ShortcutRecordingCoordinator()
+
+    private var activeRecorderIDs: Set<UUID> = []
+
+    var isRecording: Bool {
+        !activeRecorderIDs.isEmpty
+    }
+
+    func setRecording(_ isRecording: Bool, for recorderID: UUID) {
+        if isRecording {
+            activeRecorderIDs.insert(recorderID)
+        } else {
+            activeRecorderIDs.remove(recorderID)
+        }
+    }
+}
+
 /// Manages global keyboard shortcuts for the application
 @MainActor
 @Observable
@@ -163,13 +184,9 @@ class KeyboardShortcutManager {
 
     /// Handles incoming keyboard events and triggers the callback if they match the current shortcut.
     ///
-    /// This method:
-    /// 1. Constructs a GlobalShortcut from the raw key code and modifiers
-    /// 2. Compares it to the currently registered shortcut
-    /// 3. Invokes the callback if they match
-    ///
-    /// Design note: We reconstruct a shortcut from the event rather than directly comparing
-    /// key codes and modifiers to ensure consistent comparison logic (GlobalShortcut's Equatable).
+    /// This method compares the event's physical key code and modifiers through
+    /// `GlobalShortcut.matches`, then invokes the callback if they match. Display labels and
+    /// shifted character output do not affect runtime matching.
     ///
     /// - Parameters:
     ///   - keyCode: Raw keyboard key code from NSEvent
@@ -177,11 +194,9 @@ class KeyboardShortcutManager {
     /// - Returns: `true` if the event matched the configured shortcut (and the callback fired).
     @discardableResult
     private func handleKeyEvent(keyCode: UInt16, modifierFlags: NSEvent.ModifierFlags) -> Bool {
-        guard let shortcut = GlobalShortcut.from(keyCode: keyCode, modifierFlags: modifierFlags),
-              currentShortcut == shortcut
-        else {
-            return false
-        }
+        guard !ShortcutRecordingCoordinator.shared.isRecording,
+              currentShortcut.matches(keyCode: keyCode, modifierFlags: modifierFlags)
+        else { return false }
         onShortcutTriggered?()
         return true
     }

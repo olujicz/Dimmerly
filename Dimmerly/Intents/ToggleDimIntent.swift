@@ -62,7 +62,7 @@ struct ToggleDimIntent: AppIntent {
     @MainActor
     func perform(using command: DisplayIntentCommanding) throws {
         let displayID = try ConnectedDisplayResolver.resolve(display) {
-            command.connectedDisplayIDs
+            command.connectedDisplayDescriptors
         }
         command.toggleDim(for: displayID)
     }

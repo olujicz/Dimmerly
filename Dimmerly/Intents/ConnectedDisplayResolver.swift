@@ -5,24 +5,32 @@
 
 import CoreGraphics
 
+struct ConnectedDisplayDescriptor: Equatable, Sendable {
+    let id: CGDirectDisplayID
+    let stableIdentity: String
+    let name: String
+}
+
 @MainActor
 enum ConnectedDisplayResolver {
     static func resolve(
         _ entity: DisplayEntity,
-        connectedIDs: () -> [CGDirectDisplayID]
+        connectedDescriptors: () -> [ConnectedDisplayDescriptor]
     ) throws -> CGDirectDisplayID {
-        guard let displayID = CGDirectDisplayID(entity.id),
-              connectedIDs().contains(displayID)
+        let matches = connectedDescriptors().filter { $0.stableIdentity == entity.id }
+        guard DisplayEntityIdentifier.isSafelyPersistable(entity.id),
+              matches.count == 1,
+              DisplayEntityIdentifier.isSafelyPersistable(matches[0].stableIdentity)
         else {
             throw DisplayIntentError.invalidDisplay
         }
-        return displayID
+        return matches[0].id
     }
 }
 
 @MainActor
 protocol DisplayIntentCommanding: AnyObject {
-    var connectedDisplayIDs: [CGDirectDisplayID] { get }
+    var connectedDisplayDescriptors: [ConnectedDisplayDescriptor] { get }
     func setBrightness(_ value: Double, for displayID: CGDirectDisplayID)
     func setWarmth(_ value: Double, for displayID: CGDirectDisplayID)
     func setContrast(_ value: Double, for displayID: CGDirectDisplayID)
@@ -39,8 +47,14 @@ final class LiveDisplayIntentCommand: DisplayIntentCommanding {
         self.manager = manager
     }
 
-    var connectedDisplayIDs: [CGDirectDisplayID] {
-        manager.displays.map(\.id)
+    var connectedDisplayDescriptors: [ConnectedDisplayDescriptor] {
+        manager.displays.map { display in
+            ConnectedDisplayDescriptor(
+                id: display.id,
+                stableIdentity: BrightnessManager.stableDisplayIdentity(for: display.id),
+                name: display.name
+            )
+        }
     }
 
     func setBrightness(_ value: Double, for displayID: CGDirectDisplayID) {

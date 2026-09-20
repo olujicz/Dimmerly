@@ -24,6 +24,7 @@ final class GlobalShortcutTests: XCTestCase {
         XCTAssertTrue(defaultShortcut.modifiers.contains(.option), "Should contain option modifier")
         XCTAssertTrue(defaultShortcut.modifiers.contains(.shift), "Should contain shift modifier")
         XCTAssertEqual(defaultShortcut.modifiers.count, 3, "Should have exactly 3 modifiers")
+        XCTAssertEqual(defaultShortcut.keyCode, UInt16(kVK_ANSI_D), "Default key code should be ANSI-D")
     }
 
     /// Tests display string formatting
@@ -88,6 +89,8 @@ final class GlobalShortcutTests: XCTestCase {
 
         XCTAssertEqual(decodedShortcut.key, originalShortcut.key, "Decoded key should match")
         XCTAssertEqual(decodedShortcut.modifiers, originalShortcut.modifiers, "Decoded modifiers should match")
+        XCTAssertEqual(decodedShortcut.keyCode, originalShortcut.keyCode, "Decoded key code should match")
+        XCTAssertEqual(decodedShortcut, originalShortcut, "Codable round trip should preserve equality")
     }
 
     /// Tests backwards compatibility — decoding old string-based modifier format
@@ -140,7 +143,7 @@ final class GlobalShortcutTests: XCTestCase {
     /// Tests creation from key code and modifier flags
     func testFromKeyCodeAndModifiers() {
         // Test creating shortcut from NSEvent-like data
-        // Note: Carbon.HIToolbox key codes are used
+        // Note: Stable ANSI physical key codes are used
 
         // Test Command+D (keyCode 2 is 'd')
         let modifierFlags: NSEvent.ModifierFlags = [.command]
@@ -161,6 +164,148 @@ final class GlobalShortcutTests: XCTestCase {
         } else {
             XCTFail("Should create valid shortcut with multiple modifiers")
         }
+    }
+
+    func testRecordedShortcutsUseLayoutLabelButMatchThePhysicalKey() throws {
+        let us = try XCTUnwrap(
+            GlobalShortcut.from(
+                keyCode: UInt16(kVK_ANSI_A),
+                modifierFlags: [.command],
+                charactersIgnoringModifiers: "a"
+            )
+        )
+        XCTAssertEqual(us.key, "a")
+        XCTAssertEqual(us.keyCode, UInt16(kVK_ANSI_A))
+
+        let azerty = try XCTUnwrap(
+            GlobalShortcut.from(
+                keyCode: UInt16(kVK_ANSI_A),
+                modifierFlags: [.command],
+                charactersIgnoringModifiers: "q"
+            )
+        )
+        XCTAssertEqual(azerty.key, "q")
+        XCTAssertEqual(azerty.displayString, "⌘Q")
+        XCTAssertTrue(
+            azerty.matches(
+                keyCode: UInt16(kVK_ANSI_A),
+                modifierFlags: [.command]
+            )
+        )
+        XCTAssertFalse(
+            azerty.matches(
+                keyCode: UInt16(kVK_ANSI_Q),
+                modifierFlags: [.command]
+            )
+        )
+
+        let qwertz = try XCTUnwrap(
+            GlobalShortcut.from(
+                keyCode: UInt16(kVK_ANSI_Y),
+                modifierFlags: [.command],
+                charactersIgnoringModifiers: "z"
+            )
+        )
+        XCTAssertEqual(qwertz.key, "z")
+        XCTAssertEqual(qwertz.keyCode, UInt16(kVK_ANSI_Y))
+    }
+
+    func testLayoutLabelsOnlyOverridePrintableKeys() throws {
+        let functionKeys: [(UInt16, String)] = [
+            (UInt16(kVK_F1), "f1"), (UInt16(kVK_F2), "f2"),
+            (UInt16(kVK_F3), "f3"), (UInt16(kVK_F4), "f4"),
+            (UInt16(kVK_F5), "f5"), (UInt16(kVK_F6), "f6"),
+            (UInt16(kVK_F7), "f7"), (UInt16(kVK_F8), "f8"),
+            (UInt16(kVK_F9), "f9"), (UInt16(kVK_F10), "f10"),
+            (UInt16(kVK_F11), "f11"), (UInt16(kVK_F12), "f12"),
+        ]
+        for (keyCode, keyString) in functionKeys {
+            let functionKey = try XCTUnwrap(
+                GlobalShortcut.from(
+                    keyCode: keyCode,
+                    modifierFlags: [.command],
+                    charactersIgnoringModifiers: "not-" + keyString
+                )
+            )
+            XCTAssertEqual(functionKey.key, keyString)
+        }
+
+        let returnKey = try XCTUnwrap(
+            GlobalShortcut.from(
+                keyCode: UInt16(kVK_Return),
+                modifierFlags: [.command],
+                charactersIgnoringModifiers: "x"
+            )
+        )
+        let escape = try XCTUnwrap(
+            GlobalShortcut.from(
+                keyCode: UInt16(kVK_Escape),
+                modifierFlags: [.command],
+                charactersIgnoringModifiers: "x"
+            )
+        )
+
+        XCTAssertEqual(returnKey.key, "return")
+        XCTAssertEqual(escape.key, "escape")
+    }
+
+    func testShiftedNumericKeyRetainsBasePhysicalLabel() throws {
+        let shortcut = try XCTUnwrap(
+            GlobalShortcut.from(
+                keyCode: UInt16(kVK_ANSI_1),
+                modifierFlags: [.command, .shift],
+                charactersIgnoringModifiers: "!"
+            )
+        )
+
+        XCTAssertEqual(shortcut.key, "1")
+        XCTAssertEqual(shortcut.displayString, "⇧⌘1")
+    }
+
+    func testLegacyEventMatchingUsesANSIPhysicalKeyNotLayoutLabel() throws {
+        let legacy = try JSONDecoder().decode(
+            GlobalShortcut.self,
+            from: Data(#"{"key":"q","modifiers":["command"]}"#.utf8)
+        )
+        let azertyPhysicalQEvent = try XCTUnwrap(
+            NSEvent.keyEvent(
+                with: .keyDown,
+                location: .zero,
+                modifierFlags: [.command],
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                characters: "",
+                charactersIgnoringModifiers: "a",
+                isARepeat: false,
+                keyCode: UInt16(kVK_ANSI_Q)
+            )
+        )
+        let azertyPhysicalAEvent = try XCTUnwrap(
+            NSEvent.keyEvent(
+                with: .keyDown,
+                location: .zero,
+                modifierFlags: [.command],
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                characters: "",
+                charactersIgnoringModifiers: "q",
+                isARepeat: false,
+                keyCode: UInt16(kVK_ANSI_A)
+            )
+        )
+
+        XCTAssertTrue(legacy.matches(event: azertyPhysicalQEvent))
+        XCTAssertFalse(legacy.matches(event: azertyPhysicalAEvent))
+    }
+
+    func testLegacyStringShortcutDecodesWithoutPhysicalKeyCode() throws {
+        let data = Data(#"{"key":"d","modifiers":["command"]}"#.utf8)
+        let shortcut = try JSONDecoder().decode(GlobalShortcut.self, from: data)
+
+        XCTAssertNil(shortcut.keyCode)
+        XCTAssertTrue(shortcut.matches(keyCode: UInt16(kVK_ANSI_D), modifierFlags: [.command]))
     }
 
     /// Tests that unsupported key codes return nil
@@ -236,6 +381,59 @@ final class GlobalShortcutTests: XCTestCase {
     }
 }
 
+extension GlobalShortcutTests {
+    func testLegacyAndCurrentShortcutCompareEqualForConflictDetection() throws {
+        let legacy = try JSONDecoder().decode(
+            GlobalShortcut.self,
+            from: Data(#"{"key":"d","modifiers":["command"]}"#.utf8)
+        )
+        let current = GlobalShortcut(key: "d", modifiers: [.command])
+
+        XCTAssertEqual(legacy, current)
+    }
+
+    func testLegacyShortcutEqualityUsesANSIPhysicalKeyForNonANSICurrentShortcuts() throws {
+        let legacy = try JSONDecoder().decode(
+            GlobalShortcut.self,
+            from: Data(#"{"key":"q","modifiers":["command"]}"#.utf8)
+        )
+        let azertyPhysicalQ = try XCTUnwrap(
+            GlobalShortcut.from(
+                keyCode: UInt16(kVK_ANSI_Q),
+                modifierFlags: [.command],
+                charactersIgnoringModifiers: "a"
+            )
+        )
+        let azertyPhysicalA = try XCTUnwrap(
+            GlobalShortcut.from(
+                keyCode: UInt16(kVK_ANSI_A),
+                modifierFlags: [.command],
+                charactersIgnoringModifiers: "q"
+            )
+        )
+        let samePhysicalKeyWithDifferentLabel = GlobalShortcut(
+            key: "q",
+            modifiers: [.command],
+            keyCode: UInt16(kVK_ANSI_Q)
+        )
+
+        XCTAssertEqual(legacy, azertyPhysicalQ)
+        XCTAssertEqual(azertyPhysicalQ, legacy)
+        XCTAssertEqual(azertyPhysicalQ, samePhysicalKeyWithDifferentLabel)
+        XCTAssertEqual(legacy, samePhysicalKeyWithDifferentLabel)
+        XCTAssertNotEqual(legacy, azertyPhysicalA)
+        XCTAssertNotEqual(azertyPhysicalA, legacy)
+        XCTAssertEqual(
+            legacy == azertyPhysicalQ,
+            legacy.matches(keyCode: UInt16(kVK_ANSI_Q), modifierFlags: [.command])
+        )
+        XCTAssertEqual(
+            legacy == azertyPhysicalA,
+            legacy.matches(keyCode: UInt16(kVK_ANSI_A), modifierFlags: [.command])
+        )
+    }
+}
+
 @MainActor
 final class KeyboardShortcutManagerTests: XCTestCase {
     private final class MonitorToken {}
@@ -247,7 +445,11 @@ final class KeyboardShortcutManagerTests: XCTestCase {
     /// Synthesizes a key-down `NSEvent` for feeding directly into a captured local monitor
     /// handler, matching the technique `GlobalShortcutTests.testFromKeyCodeAndModifiers` uses
     /// to validate key-code mapping (keyCode 2 is 'd' on the ANSI layout).
-    private func makeKeyDownEvent(keyCode: UInt16, modifierFlags: NSEvent.ModifierFlags) -> NSEvent {
+    private func makeKeyDownEvent(
+        keyCode: UInt16,
+        modifierFlags: NSEvent.ModifierFlags,
+        charactersIgnoringModifiers: String = ""
+    ) -> NSEvent {
         NSEvent.keyEvent(
             with: .keyDown,
             location: .zero,
@@ -256,7 +458,7 @@ final class KeyboardShortcutManagerTests: XCTestCase {
             windowNumber: 0,
             context: nil,
             characters: "",
-            charactersIgnoringModifiers: "",
+            charactersIgnoringModifiers: charactersIgnoringModifiers,
             isARepeat: false,
             keyCode: keyCode
         )!
@@ -430,5 +632,61 @@ final class KeyboardShortcutManagerTests: XCTestCase {
 
         XCTAssertNotNil(result, "A non-matching event must pass through so other UI can use it")
         XCTAssertNil(triggeredID, "No preset should be triggered")
+    }
+
+    func testBothShortcutManagersSuppressActionsWhileRecording() throws {
+        let recorderID = UUID()
+        defer {
+            ShortcutRecordingCoordinator.shared.setRecording(false, for: recorderID)
+        }
+
+        var mainHandler: ((NSEvent) -> NSEvent?)?
+        let mainManager = KeyboardShortcutManager(
+            shortcut: GlobalShortcut(key: "d", modifiers: [.command]),
+            permissionChecker: { true },
+            globalMonitorInstaller: { _ in MonitorToken() },
+            localMonitorInstaller: { handler in
+                mainHandler = handler
+                return MonitorToken()
+            },
+            monitorRemover: { _ in }
+        )
+        var mainTriggerCount = 0
+        mainManager.startMonitoring { mainTriggerCount += 1 }
+
+        var presetHandler: ((NSEvent) -> NSEvent?)?
+        let presetManager = PresetShortcutManager(
+            permissionChecker: { true },
+            globalMonitorInstaller: { _ in MonitorToken() },
+            localMonitorInstaller: { handler in
+                presetHandler = handler
+                return MonitorToken()
+            },
+            monitorRemover: { _ in }
+        )
+        let presetID = UUID()
+        var triggeredPresetID: UUID?
+        presetManager.onPresetTriggered = { triggeredPresetID = $0 }
+        presetManager.updateShortcuts(from: [
+            BrightnessPreset(
+                id: presetID,
+                name: "Night",
+                shortcut: GlobalShortcut(key: "d", modifiers: [.command])
+            ),
+        ])
+
+        let event = makeKeyDownEvent(keyCode: UInt16(kVK_ANSI_D), modifierFlags: [.command])
+        ShortcutRecordingCoordinator.shared.setRecording(true, for: recorderID)
+
+        XCTAssertNotNil(try XCTUnwrap(mainHandler)(event))
+        XCTAssertNotNil(try XCTUnwrap(presetHandler)(event))
+        XCTAssertEqual(mainTriggerCount, 0)
+        XCTAssertNil(triggeredPresetID)
+
+        ShortcutRecordingCoordinator.shared.setRecording(false, for: recorderID)
+        XCTAssertNil(try XCTUnwrap(mainHandler)(event))
+        XCTAssertNil(try XCTUnwrap(presetHandler)(event))
+        XCTAssertEqual(mainTriggerCount, 1)
+        XCTAssertEqual(triggeredPresetID, presetID)
     }
 }

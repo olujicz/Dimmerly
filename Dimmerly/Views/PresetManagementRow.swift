@@ -154,6 +154,7 @@ struct PresetShortcutRecorderButton: View {
     var onRecordingChanged: ((Bool) -> Void)?
 
     @State private var isRecording = false
+    @State private var recorderID = UUID()
 
     var body: some View {
         Button {
@@ -194,7 +195,11 @@ struct PresetShortcutRecorderButton: View {
             .opacity(0)
         )
         .onChange(of: isRecording) { _, newValue in
+            ShortcutRecordingCoordinator.shared.setRecording(newValue, for: recorderID)
             onRecordingChanged?(newValue)
+        }
+        .onDisappear {
+            ShortcutRecordingCoordinator.shared.setRecording(false, for: recorderID)
         }
         .contextMenu {
             if shortcut != nil {
@@ -262,7 +267,8 @@ private class PresetShortcutNSView: NSView {
 
         if let shortcut = GlobalShortcut.from(
             keyCode: event.keyCode,
-            modifierFlags: event.modifierFlags
+            modifierFlags: event.modifierFlags,
+            charactersIgnoringModifiers: event.charactersIgnoringModifiers
         ), shortcut.isValid {
             if shortcut.isReservedSystemShortcut {
                 onConflictDetected?(

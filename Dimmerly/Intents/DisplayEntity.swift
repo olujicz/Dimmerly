@@ -23,6 +23,49 @@ struct DisplayEntity: AppEntity {
     }
 }
 
+enum DisplayEntityIdentifier {
+    private static let stablePrefix = "display:"
+
+    static func isSafelyPersistable(_ identifier: String) -> Bool {
+        identifier.hasPrefix(stablePrefix)
+    }
+}
+
+enum DisplayEntityFactory {
+    private static func uniquelyIdentifiedDescriptors(
+        from descriptors: [ConnectedDisplayDescriptor]
+    ) -> [ConnectedDisplayDescriptor] {
+        let persistableDescriptors = descriptors.filter {
+            DisplayEntityIdentifier.isSafelyPersistable($0.stableIdentity)
+        }
+        let groupedDescriptors = Dictionary(grouping: persistableDescriptors, by: \.stableIdentity)
+        return persistableDescriptors.filter {
+            groupedDescriptors[$0.stableIdentity]?.count == 1
+        }
+    }
+
+    static func makeEntities(from descriptors: [ConnectedDisplayDescriptor]) -> [DisplayEntity] {
+        uniquelyIdentifiedDescriptors(from: descriptors).map { descriptor in
+            DisplayEntity(id: descriptor.stableIdentity, name: descriptor.name)
+        }
+    }
+
+    static func makeEntities(
+        for identifiers: [String],
+        from descriptors: [ConnectedDisplayDescriptor]
+    ) -> [DisplayEntity] {
+        let uniqueDescriptors = uniquelyIdentifiedDescriptors(from: descriptors)
+        return identifiers.compactMap { identifier in
+            guard DisplayEntityIdentifier.isSafelyPersistable(identifier) else { return nil }
+            guard let descriptor = uniqueDescriptors.first(where: { $0.stableIdentity == identifier })
+            else {
+                return nil
+            }
+            return DisplayEntity(id: identifier, name: descriptor.name)
+        }
+    }
+}
+
 struct DisplayEntityQuery: EntityQuery {
     #if compiler(>=6.4)
         @available(macOS 27.0, *)
@@ -32,16 +75,25 @@ struct DisplayEntityQuery: EntityQuery {
     @MainActor
     func entities(for identifiers: [String]) async throws -> [DisplayEntity] {
         let manager = BrightnessManager.shared
-        return identifiers.compactMap { id in
-            guard let display = manager.displays.first(where: { String($0.id) == id }) else { return nil }
-            return DisplayEntity(id: id, name: display.name)
+        let descriptors = manager.displays.map { display in
+            ConnectedDisplayDescriptor(
+                id: display.id,
+                stableIdentity: BrightnessManager.stableDisplayIdentity(for: display.id),
+                name: display.name
+            )
         }
+        return DisplayEntityFactory.makeEntities(for: identifiers, from: descriptors)
     }
 
     @MainActor
     func suggestedEntities() async throws -> [DisplayEntity] {
-        BrightnessManager.shared.displays.map { display in
-            DisplayEntity(id: String(display.id), name: display.name)
+        let descriptors = BrightnessManager.shared.displays.map { display in
+            ConnectedDisplayDescriptor(
+                id: display.id,
+                stableIdentity: BrightnessManager.stableDisplayIdentity(for: display.id),
+                name: display.name
+            )
         }
+        return DisplayEntityFactory.makeEntities(from: descriptors)
     }
 }

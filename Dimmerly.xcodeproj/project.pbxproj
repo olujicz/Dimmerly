@@ -35,6 +35,7 @@
 		AA1234560000000000000001 /* Dimmerly.icns in Resources */ = {isa = PBXBuildFile; fileRef = AA1234560000000000000002 /* Dimmerly.icns */; };
 		AA12345600000000000000A2 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = AA12345600000000000000A1 /* AppIcon.icon */; };
 		BA0000000000000000000001 /* BrightnessManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0000000000000000000002 /* BrightnessManager.swift */; };
+		CG0000000000000000000011 /* BrightnessManager+CoreGraphics.swift in Sources */ = {isa = PBXBuildFile; fileRef = CG0000000000000000000001 /* BrightnessManager+CoreGraphics.swift */; };
 		BA0000000000000000000003 /* MenuBarPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0000000000000000000004 /* MenuBarPanel.swift */; };
 		BI0000000000000000000011 /* BlankingInputMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BI0000000000000000000001 /* BlankingInputMonitor.swift */; };
 		DP0000000000000000000011 /* DisplayOutputPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = DP0000000000000000000001 /* DisplayOutputPolicy.swift */; };
@@ -68,6 +69,7 @@
 		T1B2C3D4E5F6A7B8C9D0E311 /* AppSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1B2C3D4E5F6A7B8C9D0E310 /* AppSettingsTests.swift */; };
 		T1B2C3D4E5F6A7B8C9D0E321 /* KeyboardShortcutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1B2C3D4E5F6A7B8C9D0E320 /* KeyboardShortcutTests.swift */; };
 		UT00000000000000000001 /* BrightnessManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = UT00000000000000000010 /* BrightnessManagerTests.swift */; };
+		BO0000000000000000000011 /* BrightnessManagerTests+DisplayOutput.swift in Sources */ = {isa = PBXBuildFile; fileRef = BO0000000000000000000001 /* BrightnessManagerTests+DisplayOutput.swift */; };
 		UT00000000000000000002 /* PresetManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = UT00000000000000000020 /* PresetManagerTests.swift */; };
 		UT00000000000000000003 /* MenuBarIconStyleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = UT00000000000000000030 /* MenuBarIconStyleTests.swift */; };
 		NT00000000000000000001 /* SolarCalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = NT00000000000000000010 /* SolarCalculatorTests.swift */; };
@@ -168,6 +170,7 @@
 		B1B2C3D4E5F6A7B8C9D0E1F3 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B1B2C3D4E5F6A7B8C9D0E1F4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		BA0000000000000000000002 /* BrightnessManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrightnessManager.swift; sourceTree = "<group>"; };
+		CG0000000000000000000001 /* BrightnessManager+CoreGraphics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BrightnessManager+CoreGraphics.swift"; sourceTree = "<group>"; };
 		BA0000000000000000000004 /* MenuBarPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPanel.swift; sourceTree = "<group>"; };
 		C50F163FD03D0874576E9962 /* KeyboardShortcutRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutRecorder.swift; sourceTree = "<group>"; };
 		D1B045C3D2AA639266BC0483 /* KeyboardShortcut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcut.swift; sourceTree = "<group>"; };
@@ -195,6 +198,7 @@
 		T1B2C3D4E5F6A7B8C9D0E310 /* AppSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsTests.swift; sourceTree = "<group>"; };
 		T1B2C3D4E5F6A7B8C9D0E320 /* KeyboardShortcutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutTests.swift; sourceTree = "<group>"; };
 		UT00000000000000000010 /* BrightnessManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrightnessManagerTests.swift; sourceTree = "<group>"; };
+		BO0000000000000000000001 /* BrightnessManagerTests+DisplayOutput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BrightnessManagerTests+DisplayOutput.swift"; sourceTree = "<group>"; };
 		UT00000000000000000020 /* PresetManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetManagerTests.swift; sourceTree = "<group>"; };
 		UT00000000000000000030 /* MenuBarIconStyleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarIconStyleTests.swift; sourceTree = "<group>"; };
 		NT00000000000000000010 /* SolarCalculatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolarCalculatorTests.swift; sourceTree = "<group>"; };
@@ -392,6 +396,7 @@
 				B1B2C3D4E5F6A7B8C9D0E1F2 /* DisplayController.swift */,
 				473CD46DB2D77DD4EB8463DA /* AlertPresenter.swift */,
 				BA0000000000000000000002 /* BrightnessManager.swift */,
+				CG0000000000000000000001 /* BrightnessManager+CoreGraphics.swift */,
 				CT00000000000000000001 /* ColorTemperatureManager.swift */,
 				WW00000000000000000001 /* WorkspaceWakeMonitor.swift */,
 				DC00000000000000000001 /* DDCPacketCodec.swift */,
@@ -437,6 +442,7 @@
 					FI0000000000000000000001 /* DisplayIntentTests.swift */,
 					DA00000000000000000001 /* DimmerlyAppTests.swift */,
 					UT00000000000000000010 /* BrightnessManagerTests.swift */,
+					BO0000000000000000000001 /* BrightnessManagerTests+DisplayOutput.swift */,
 					NF0000000000000000000A /* BrightnessPresetTests.swift */,
 					CT00000000000000000002 /* ColorTemperatureManagerTests.swift */,
 					HW00000000000000000004 /* DDCControllerTests.swift */,
@@ -647,6 +653,7 @@
 				VS00000000000000000015 /* SettingsAboutTab.swift in Sources */,
 				4418D8E7C90F85F1A0565B97 /* SettingsView.swift in Sources */,
 				BA0000000000000000000001 /* BrightnessManager.swift in Sources */,
+				CG0000000000000000000011 /* BrightnessManager+CoreGraphics.swift in Sources */,
 				BA0000000000000000000003 /* MenuBarPanel.swift in Sources */,
 				VM00000000000000000011 /* MenuBarPanelHost.swift in Sources */,
 				VM00000000000000000012 /* MenuBarPresetControls.swift in Sources */,
@@ -695,6 +702,7 @@
 					T1B2C3D4E5F6A7B8C9D0E321 /* KeyboardShortcutTests.swift in Sources */,
 					NF0000000000000000001A /* BrightnessPresetTests.swift in Sources */,
 					UT00000000000000000001 /* BrightnessManagerTests.swift in Sources */,
+					BO0000000000000000000011 /* BrightnessManagerTests+DisplayOutput.swift in Sources */,
 					UT00000000000000000002 /* PresetManagerTests.swift in Sources */,
 					LA00000000000000000011 /* LaunchAtLoginSettingsTests.swift in Sources */,
 					UT00000000000000000003 /* MenuBarIconStyleTests.swift in Sources */,

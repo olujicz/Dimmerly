@@ -50,7 +50,7 @@ struct SetDisplayContrastIntent: AppIntent {
             throw DisplayIntentError.contrastOutOfRange
         }
         let displayID = try ConnectedDisplayResolver.resolve(display) {
-            command.connectedDisplayIDs
+            command.connectedDisplayDescriptors
         }
         command.setContrast(contrast / 100, for: displayID)
     }

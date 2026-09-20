@@ -1280,10 +1280,16 @@
             ///
             /// On Intel Macs, each display is connected via an IOFramebuffer which exposes
             /// I2C interfaces for DDC communication. This method maps a `CGDirectDisplayID`
-            /// to the correct IOFramebuffer by matching vendor/product IDs via IODisplayConnect.
+            /// to the correct IOFramebuffer by matching vendor/product/serial identity via
+            /// IODisplayConnect. Identical model matches remain ambiguous without a serial.
             private static func findFramebufferService(for displayID: CGDirectDisplayID) -> io_service_t {
                 let vendorID = CGDisplayVendorNumber(displayID)
                 let modelID = CGDisplayModelNumber(displayID)
+                let expectedIdentity = DDCDisplayIdentity(
+                    vendorID: vendorID,
+                    modelID: modelID,
+                    serialNumber: CGDisplaySerialNumber(displayID)
+                )
 
                 var iterator: io_iterator_t = 0
                 guard IOServiceGetMatchingServices(
@@ -1295,6 +1301,7 @@
                 }
                 defer { IOObjectRelease(iterator) }
 
+                var candidates: [(service: io_service_t, identity: DDCDisplayIdentity)] = []
                 var service = IOIteratorNext(iterator)
                 while service != IO_OBJECT_NULL {
                     var properties: Unmanaged<CFMutableDictionary>?
@@ -1308,15 +1315,21 @@
                         continue
                     }
 
-                    if let vid = dict["DisplayVendorID"] as? UInt32,
-                       let pid = dict["DisplayProductID"] as? UInt32,
-                       vid == vendorID, pid == modelID
-                    {
-                        // Found matching display — get the framebuffer parent
+                    let candidateIdentity = DDCDisplayIdentity(
+                        vendorID: dict["DisplayVendorID"] as? UInt32,
+                        modelID: dict["DisplayProductID"] as? UInt32,
+                        serialNumber: (dict["DisplaySerialNumber"] as? UInt32)
+                            ?? (dict["SerialNumber"] as? UInt32)
+                    )
+                    if DDCDisplayIdentityMatcher.matches(
+                        candidate: candidateIdentity,
+                        expected: expectedIdentity
+                    ) {
+                        // Retain the framebuffer parent until the selector has established a
+                        // unique candidate. The display service itself is released immediately.
                         var framebuffer: io_service_t = 0
                         if IORegistryEntryGetParentEntry(service, kIOServicePlane, &framebuffer) == KERN_SUCCESS {
-                            IOObjectRelease(service)
-                            return framebuffer
+                            candidates.append((service: framebuffer, identity: candidateIdentity))
                         }
                     }
 
@@ -1324,7 +1337,20 @@
                     service = IOIteratorNext(iterator)
                 }
 
-                return IO_OBJECT_NULL
+                guard let selectedIndex = DDCDisplayCandidateSelector.uniqueCandidateIndex(
+                    expected: expectedIdentity,
+                    candidates: candidates.map(\.identity)
+                ) else {
+                    for candidate in candidates {
+                        IOObjectRelease(candidate.service)
+                    }
+                    return IO_OBJECT_NULL
+                }
+
+                for (index, candidate) in candidates.enumerated() where index != selectedIndex {
+                    IOObjectRelease(candidate.service)
+                }
+                return candidates[selectedIndex].service
             }
 
             /// Reads a VCP code via IOI2CRequest on Intel Macs.

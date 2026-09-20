@@ -23,6 +23,53 @@ private let presetManagerLogger = Logger(
     category: "PresetManager"
 )
 
+/// Boundary between preset persistence and the widget's shared process state. Keeping this
+/// dependency injectable prevents preset tests from mutating the real app-group suite or the
+/// process-wide WidgetKit timeline service.
+@MainActor
+protocol WidgetPresetSynchronizing {
+    func synchronize(_ presets: [BrightnessPreset])
+}
+
+@MainActor
+struct AppGroupWidgetPresetSynchronizer: WidgetPresetSynchronizing {
+    let defaults: UserDefaults?
+    let reloadAllTimelines: () -> Void
+
+    init(
+        defaults: UserDefaults? = SharedConstants.sharedDefaults,
+        reloadAllTimelines: @escaping () -> Void = { WidgetCenter.shared.reloadAllTimelines() }
+    ) {
+        self.defaults = defaults
+        self.reloadAllTimelines = reloadAllTimelines
+    }
+
+    func synchronize(_ presets: [BrightnessPreset]) {
+        guard let defaults else {
+            presetManagerLogger.error("Shared defaults unavailable; widget presets were not synchronized")
+            reloadAllTimelines()
+            return
+        }
+
+        if presets.isEmpty {
+            defaults.removeObject(forKey: SharedConstants.widgetPresetsKey)
+            reloadAllTimelines()
+            return
+        }
+
+        let widgetPresets = presets.map { WidgetPresetInfo(id: $0.id.uuidString, name: $0.name) }
+        do {
+            let data = try JSONEncoder().encode(widgetPresets)
+            defaults.set(data, forKey: SharedConstants.widgetPresetsKey)
+            reloadAllTimelines()
+        } catch {
+            presetManagerLogger.error(
+                "Failed to encode widget presets: \(error.localizedDescription, privacy: .public)"
+            )
+        }
+    }
+}
+
 enum PresetShortcutError: LocalizedError, Equatable {
     case conflictsWithMainShortcut
     case conflictsWithPreset(name: String)
@@ -76,12 +123,16 @@ class PresetManager {
     /// Resolves the current main display shortcut at assignment time.
     private let mainShortcutProvider: () -> GlobalShortcut
 
+    private let widgetSynchronizer: any WidgetPresetSynchronizing
+
     init(
         defaults: UserDefaults = .standard,
-        mainShortcutProvider: @escaping () -> GlobalShortcut = { AppSettings.shared.keyboardShortcut }
+        mainShortcutProvider: @escaping () -> GlobalShortcut = { AppSettings.shared.keyboardShortcut },
+        widgetSynchronizer: any WidgetPresetSynchronizing = AppGroupWidgetPresetSynchronizer()
     ) {
         self.defaults = defaults
         self.mainShortcutProvider = mainShortcutProvider
+        self.widgetSynchronizer = widgetSynchronizer
         loadPresets()
         seedDefaultPresetsIfNeeded()
         syncPresetsToWidget()
@@ -303,29 +354,6 @@ class PresetManager {
     ///
     /// Timeline reload: Tells WidgetKit to refresh all widget displays immediately.
     private func syncPresetsToWidget() {
-        guard let sharedDefaults = SharedConstants.sharedDefaults else {
-            presetManagerLogger.error("Shared defaults unavailable; widget presets were not synchronized")
-            WidgetCenter.shared.reloadAllTimelines()
-            return
-        }
-
-        if presets.isEmpty {
-            // No presets: remove from shared defaults so widget hides preset buttons
-            sharedDefaults.removeObject(forKey: SharedConstants.widgetPresetsKey)
-            WidgetCenter.shared.reloadAllTimelines()
-            return
-        }
-
-        // Convert to lightweight WidgetPresetInfo (ID + name only)
-        let widgetPresets = presets.map { WidgetPresetInfo(id: $0.id.uuidString, name: $0.name) }
-        do {
-            let data = try JSONEncoder().encode(widgetPresets)
-            sharedDefaults.set(data, forKey: SharedConstants.widgetPresetsKey)
-            WidgetCenter.shared.reloadAllTimelines()
-        } catch {
-            presetManagerLogger.error(
-                "Failed to encode widget presets: \(error.localizedDescription, privacy: .public)"
-            )
-        }
+        widgetSynchronizer.synchronize(presets)
     }
 }

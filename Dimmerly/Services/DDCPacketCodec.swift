@@ -73,6 +73,30 @@ import Foundation
         }
     }
 
+    /// Selects a single registry candidate for a display. Identical monitors are common, so a
+    /// vendor/model match alone is only safe when it produces one candidate. When CoreGraphics
+    /// supplies a serial number, an exact serial match wins; an ambiguous or serial-less result
+    /// is rejected instead of sending DDC traffic to an arbitrary monitor.
+    enum DDCDisplayCandidateSelector {
+        static func uniqueCandidateIndex(
+            expected: DDCDisplayIdentity,
+            candidates: [DDCDisplayIdentity]
+        ) -> Int? {
+            let compatible = candidates.enumerated().filter {
+                DDCDisplayIdentityMatcher.matches(candidate: $0.element, expected: expected)
+            }
+
+            if let expectedSerial = expected.serialNumber, expectedSerial != 0 {
+                let exact = compatible.filter {
+                    $0.element.serialNumber == expectedSerial
+                }
+                return exact.count == 1 ? exact[0].offset : nil
+            }
+
+            return compatible.count == 1 ? compatible[0].offset : nil
+        }
+    }
+
     enum DDCPacketCodec {
         private static let displayWriteAddress: UInt8 = 0x6E
         private static let hostSourceAddress: UInt8 = 0x51

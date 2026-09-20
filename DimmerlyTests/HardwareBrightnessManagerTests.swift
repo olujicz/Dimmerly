@@ -1020,4 +1020,109 @@ import XCTest
         }
     }
 
+    @MainActor
+    extension HardwareBrightnessManagerTests {
+        func testQueuedWriteForDisconnectedAndReconnectedIDNeverReachesNewConnection() async {
+            let readStarted = expectation(description: "Read started")
+            let blockingRead = BlockingDDCRead(callStarted: readStarted)
+            let writes = LockedWriteRecorder()
+            var mock = MockDDCInterface()
+            mock.readHandler = { _, _ in blockingRead.read() }
+            mock.writeHandler = { code, value, displayID in
+                writes.record(code: code, value: value, displayID: displayID)
+                return true
+            }
+
+            let manager = HardwareBrightnessManager(forTesting: true, ddcInterface: mock)
+            manager.enable()
+            manager.pollingInterval = 0.01
+            let displayID: CGDirectDisplayID = 1
+            let capability = brightnessAndVolumeCapability(displayID: displayID)
+            manager.capabilities[displayID] = capability
+            manager.startPolling()
+            await fulfillment(of: [readStarted], timeout: 1)
+            manager.stopPolling()
+
+            manager.setHardwareBrightness(for: displayID, to: 0.2)
+            try? await Task.sleep(for: .milliseconds(150))
+
+            manager.removeDisplay(displayID)
+            manager.capabilities[displayID] = capability
+            blockingRead.release()
+            try? await Task.sleep(for: .milliseconds(200))
+
+            XCTAssertTrue(writes.values.isEmpty, "The queued write belonged to the removed connection")
+
+            manager.setHardwareBrightness(for: displayID, to: 0.8)
+            try? await Task.sleep(for: .milliseconds(200))
+            XCTAssertEqual(writes.values.count, 1)
+            XCTAssertEqual(writes.values[0].value, 80)
+        }
+
+        func testAcceptedBrightnessReadSynchronizesDisplayModelWithoutEchoWrite() async {
+            let displayID: CGDirectDisplayID = 8
+            let model = BrightnessManager(forTesting: true)
+            var display = ExternalDisplay(id: displayID, name: "External", brightness: 0.8)
+            display.supportsDDC = true
+            model.displays = [display]
+
+            let publication = expectation(description: "brightness read published")
+            let writes = LockedWriteRecorder()
+            var mock = MockDDCInterface()
+            mock.readHandler = { code, _ in
+                code == .brightness ? DDCReadResult(currentValue: 20, maxValue: 100) : nil
+            }
+            mock.writeHandler = { code, value, id in
+                writes.record(code: code, value: value, displayID: id)
+                return true
+            }
+            let manager = HardwareBrightnessManager(
+                forTesting: true,
+                ddcInterface: mock,
+                hardwareBrightnessReadHandler: { id, value in
+                    model.synchronizeExternalHardwareBrightness(for: id, to: value)
+                }
+            )
+            manager.readPublicationHookForTesting = { publication.fulfill() }
+            manager.enable()
+            manager.pollingInterval = 0.01
+            manager.capabilities[displayID] = HardwareDisplayCapability(
+                displayID: displayID,
+                supportsDDC: true,
+                supportedCodes: [.brightness],
+                maxBrightness: 100,
+                maxContrast: 0,
+                maxVolume: 0
+            )
+
+            manager.startPolling()
+            await fulfillment(of: [publication], timeout: 1)
+            manager.stopPolling()
+
+            XCTAssertEqual(model.displays[0].brightness, 0.2, accuracy: 0.001)
+            XCTAssertTrue(writes.values.isEmpty)
+        }
+    }
+
+    final class LockedWriteRecorder: @unchecked Sendable {
+        struct Value: Sendable {
+            let code: VCPCode
+            let value: UInt16
+            let displayID: CGDirectDisplayID
+        }
+
+        private let lock = NSLock()
+        private var recordedValues: [Value] = []
+
+        var values: [Value] {
+            lock.withLock { recordedValues }
+        }
+
+        func record(code: VCPCode, value: UInt16, displayID: CGDirectDisplayID) {
+            lock.withLock {
+                recordedValues.append(Value(code: code, value: value, displayID: displayID))
+            }
+        }
+    }
+
 #endif // !APPSTORE

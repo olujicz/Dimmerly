@@ -159,8 +159,10 @@ class PresetShortcutManager {
     /// - Returns: `true` if the event matched a registered preset shortcut (and the callback fired).
     @discardableResult
     private func handleKeyEvent(keyCode: UInt16, modifierFlags: NSEvent.ModifierFlags) -> Bool {
-        guard let pressed = GlobalShortcut.from(keyCode: keyCode, modifierFlags: modifierFlags) else { return false }
-        for (id, shortcut) in presetShortcuts where shortcut == pressed {
+        guard !ShortcutRecordingCoordinator.shared.isRecording else { return false }
+        for (id, shortcut) in presetShortcuts
+            where shortcut.matches(keyCode: keyCode, modifierFlags: modifierFlags)
+        {
             onPresetTriggered?(id)
             return true
         }
