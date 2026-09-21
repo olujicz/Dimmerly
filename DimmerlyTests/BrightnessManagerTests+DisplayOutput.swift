@@ -11,20 +11,33 @@ import XCTest
 @MainActor
 extension BrightnessManagerTests {
     #if !APPSTORE
-        func testTransientRefreshReadFailurePreservesNativeGammaAndSkipsBacklightWrite() {
-            let displayID: CGDirectDisplayID = 42
+        /// Installs a single built-in display plus the hooks every built-in output test needs,
+        /// so each test only spells out the part that actually differs.
+        @discardableResult
+        private func installBuiltInDisplay(
+            id displayID: CGDirectDisplayID,
+            brightness: Double = 1.0,
+            warmth: Double = 0.0,
+            contrast: Double = ExternalDisplay.neutralContrast
+        ) -> ExternalDisplay {
             var builtIn = ExternalDisplay(
                 id: displayID,
                 name: "Built-in",
-                brightness: 0.37,
-                warmth: 0.2,
-                contrast: 0.6
+                brightness: brightness,
+                warmth: warmth,
+                contrast: contrast
             )
             builtIn.isBuiltIn = true
             bm.displays = [builtIn]
             bm.activeDisplayIDsHook = { [displayID] }
             bm.isBuiltInDisplayHook = { $0 == displayID }
             bm.isBuiltInBacklightAPIAvailableHook = { true }
+            return builtIn
+        }
+
+        func testTransientRefreshReadFailurePreservesNativeGammaAndSkipsBacklightWrite() {
+            let displayID: CGDirectDisplayID = 42
+            installBuiltInDisplay(id: displayID, brightness: 0.37, warmth: 0.2, contrast: 0.6)
             bm.readBuiltInBrightnessHook = { _ in nil }
             var gammaBrightness: Double?
             bm.applyGammaHook = { _, brightness, _, _ in
@@ -50,18 +63,7 @@ extension BrightnessManagerTests {
 
         func testLowSuccessfulBuiltInReadThenTransientRefreshFailureKeepsNativeGamma() {
             let displayID: CGDirectDisplayID = 43
-            var builtIn = ExternalDisplay(
-                id: displayID,
-                name: "Built-in",
-                brightness: 0.37,
-                warmth: 0.2,
-                contrast: 0.6
-            )
-            builtIn.isBuiltIn = true
-            bm.displays = [builtIn]
-            bm.activeDisplayIDsHook = { [displayID] }
-            bm.isBuiltInDisplayHook = { $0 == displayID }
-            bm.isBuiltInBacklightAPIAvailableHook = { true }
+            installBuiltInDisplay(id: displayID, brightness: 0.37, warmth: 0.2, contrast: 0.6)
 
             var nativeBrightness: Double? = 0.05
             bm.readBuiltInBrightnessHook = { _ in nativeBrightness }
@@ -94,12 +96,7 @@ extension BrightnessManagerTests {
 
         func testLowSuccessfulBuiltInReadDoesNotWriteBackDuringRefresh() {
             let displayID: CGDirectDisplayID = 48
-            var builtIn = ExternalDisplay(id: displayID, name: "Built-in", brightness: 1.0)
-            builtIn.isBuiltIn = true
-            bm.displays = [builtIn]
-            bm.activeDisplayIDsHook = { [displayID] }
-            bm.isBuiltInDisplayHook = { $0 == displayID }
-            bm.isBuiltInBacklightAPIAvailableHook = { true }
+            installBuiltInDisplay(id: displayID, brightness: 1.0)
             bm.readBuiltInBrightnessHook = { _ in 0.05 }
 
             var backlightWrites: [Double] = []
@@ -149,12 +146,7 @@ extension BrightnessManagerTests {
 
         func testFailedBuiltInWriteRefreshRetriesPreservedTarget() {
             let displayID: CGDirectDisplayID = 45
-            var builtIn = ExternalDisplay(id: displayID, name: "Built-in", brightness: 1.0)
-            builtIn.isBuiltIn = true
-            bm.displays = [builtIn]
-            bm.activeDisplayIDsHook = { [displayID] }
-            bm.isBuiltInDisplayHook = { $0 == displayID }
-            bm.isBuiltInBacklightAPIAvailableHook = { true }
+            installBuiltInDisplay(id: displayID, brightness: 1.0)
             bm.readBuiltInBrightnessHook = { _ in 0.8 }
 
             var writes: [Double] = []
@@ -173,12 +165,7 @@ extension BrightnessManagerTests {
 
         func testDisconnectedBuiltInPrunesWriteFailureFallback() {
             let displayID: CGDirectDisplayID = 46
-            var builtIn = ExternalDisplay(id: displayID, name: "Built-in", brightness: 0.35)
-            builtIn.isBuiltIn = true
-            bm.displays = [builtIn]
-            bm.activeDisplayIDsHook = { [displayID] }
-            bm.isBuiltInDisplayHook = { $0 == displayID }
-            bm.isBuiltInBacklightAPIAvailableHook = { true }
+            let builtIn = installBuiltInDisplay(id: displayID, brightness: 0.35)
             bm.readBuiltInBrightnessHook = { _ in nil }
 
             bm.setBuiltInBacklightHook = { _, _ in false }

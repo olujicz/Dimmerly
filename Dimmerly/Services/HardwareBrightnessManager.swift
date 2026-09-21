@@ -157,6 +157,17 @@
             let displayID: CGDirectDisplayID
             let vcp: VCPCode
             let incarnation: UInt64
+
+            init(vcp: VCPCode, connection: DDCDisplayConnectionToken) {
+                displayID = connection.displayID
+                self.vcp = vcp
+                incarnation = connection.incarnation
+            }
+
+            /// The connection this key was minted against.
+            var connection: DDCDisplayConnectionToken {
+                DDCDisplayConnectionToken(displayID: displayID, incarnation: incarnation)
+            }
         }
 
         private final class DDCWriteTiming: @unchecked Sendable {
@@ -424,9 +435,8 @@
                        !capability.supportedCodes.contains(recoveryWriteKey.vcp)
                     {
                         let currentRecoveryKey = WriteKey(
-                            displayID: recoveryWriteKey.displayID,
                             vcp: recoveryWriteKey.vcp,
-                            incarnation: displayConnectionGate.current(for: recoveryWriteKey.displayID).incarnation
+                            connection: displayConnectionGate.current(for: recoveryWriteKey.displayID)
                         )
                         scheduleWriteFailureRecovery(
                             for: currentRecoveryKey,
@@ -481,7 +491,7 @@
 
             let clamped = min(max(value, 0.0), 1.0)
             let connection = displayConnectionGate.current(for: displayID)
-            markLocalWrite(vcp: .brightness, for: displayID, connection: connection)
+            markLocalWrite(vcp: .brightness, connection: connection)
             hardwareBrightness[displayID] = clamped
 
             let rawValue = UInt16((clamped * Double(cap.maxBrightness)).rounded())
@@ -499,7 +509,7 @@
 
             let clamped = min(max(value, 0.0), 1.0)
             let connection = displayConnectionGate.current(for: displayID)
-            markLocalWrite(vcp: .contrast, for: displayID, connection: connection)
+            markLocalWrite(vcp: .contrast, connection: connection)
             hardwareContrast[displayID] = clamped
 
             let rawValue = UInt16((clamped * Double(cap.maxContrast)).rounded())
@@ -517,7 +527,7 @@
 
             let clamped = min(max(value, 0.0), 1.0)
             let connection = displayConnectionGate.current(for: displayID)
-            markLocalWrite(vcp: .volume, for: displayID, connection: connection)
+            markLocalWrite(vcp: .volume, connection: connection)
             hardwareVolume[displayID] = clamped
 
             let rawValue = UInt16((clamped * Double(cap.maxVolume)).rounded())
@@ -536,7 +546,7 @@
             let currentlyMuted = hardwareMute[displayID] ?? false
             let newMuted = !currentlyMuted
             let connection = displayConnectionGate.current(for: displayID)
-            markLocalWrite(vcp: .audioMute, for: displayID, connection: connection)
+            markLocalWrite(vcp: .audioMute, connection: connection)
             hardwareMute[displayID] = newMuted
 
             let rawValue: UInt16 = newMuted ? 1 : 2
@@ -553,7 +563,7 @@
             guard let cap = capabilities[displayID], cap.supportsInputSource else { return }
 
             let connection = displayConnectionGate.current(for: displayID)
-            markLocalWrite(vcp: .inputSource, for: displayID, connection: connection)
+            markLocalWrite(vcp: .inputSource, connection: connection)
             activeInputSource[displayID] = source
             debouncedWrite(vcp: .inputSource, value: source.rawValue, for: displayID, connection: connection)
         }
@@ -661,6 +671,9 @@
             sessionGate: DDCSessionGate,
             displayConnectionGate: DDCDisplayConnectionGate
         ) -> HardwareReadValues? {
+            // The display can be unplugged or DDC disabled mid-read; re-check before each
+            // transaction so an abandoned poll never publishes values from a dead connection.
+            let isLive = { sessionGate.isCurrent(session) && displayConnectionGate.isCurrent(connection) }
             var brightness: Double?
             var contrast: Double?
             var volume: Double?
@@ -668,28 +681,28 @@
             var inputSource: InputSource?
 
             if capability.supportsBrightness {
-                guard sessionGate.isCurrent(session), displayConnectionGate.isCurrent(connection) else { return nil }
+                guard isLive() else { return nil }
                 if let result = ddcInterface.read(vcp: .brightness, for: displayID) {
                     brightness = Double(result.currentValue) / Double(result.maxValue)
                 }
             }
 
             if capability.supportsContrast {
-                guard sessionGate.isCurrent(session), displayConnectionGate.isCurrent(connection) else { return nil }
+                guard isLive() else { return nil }
                 if let result = ddcInterface.read(vcp: .contrast, for: displayID) {
                     contrast = Double(result.currentValue) / Double(result.maxValue)
                 }
             }
 
             if capability.supportsVolume {
-                guard sessionGate.isCurrent(session), displayConnectionGate.isCurrent(connection) else { return nil }
+                guard isLive() else { return nil }
                 if let result = ddcInterface.read(vcp: .volume, for: displayID) {
                     volume = Double(result.currentValue) / Double(result.maxValue)
                 }
             }
 
             if capability.supportsAudioMute {
-                guard sessionGate.isCurrent(session), displayConnectionGate.isCurrent(connection) else { return nil }
+                guard isLive() else { return nil }
                 if let result = ddcInterface.read(vcp: .audioMute, for: displayID) {
                     // Non-continuous VCP: value in low byte only
                     muted = (result.currentValue & 0xFF) == 1
@@ -697,7 +710,7 @@
             }
 
             if capability.supportsInputSource {
-                guard sessionGate.isCurrent(session), displayConnectionGate.isCurrent(connection) else { return nil }
+                guard isLive() else { return nil }
                 if let result = ddcInterface.read(vcp: .inputSource, for: displayID) {
                     // Non-continuous VCP codes return the value in the low byte only
                     inputSource = InputSource(rawValue: result.currentValue & 0xFF)
@@ -746,57 +759,29 @@
                           displayConnectionGate.isCurrent(connection),
                           capabilities[displayID] == cap
                     else { return }
-                    if let brightness = values.brightness,
-                       shouldApplyRead(
-                           vcp: .brightness,
-                           for: displayID,
-                           connection: connection,
-                           readStartedAt: readStartedAt
-                       )
-                    {
+                    let canApply = { (vcp: VCPCode) in
+                        self.shouldApplyRead(
+                            vcp: vcp,
+                            connection: connection,
+                            readStartedAt: readStartedAt
+                        )
+                    }
+                    if let brightness = values.brightness, canApply(.brightness) {
                         hardwareBrightness[displayID] = brightness
                         if controlMode == .hardware {
                             hardwareBrightnessReadHandler(displayID, brightness)
                         }
                     }
-                    if let contrast = values.contrast,
-                       shouldApplyRead(
-                           vcp: .contrast,
-                           for: displayID,
-                           connection: connection,
-                           readStartedAt: readStartedAt
-                       )
-                    {
+                    if let contrast = values.contrast, canApply(.contrast) {
                         hardwareContrast[displayID] = contrast
                     }
-                    if let volume = values.volume,
-                       shouldApplyRead(
-                           vcp: .volume,
-                           for: displayID,
-                           connection: connection,
-                           readStartedAt: readStartedAt
-                       )
-                    {
+                    if let volume = values.volume, canApply(.volume) {
                         hardwareVolume[displayID] = volume
                     }
-                    if let muted = values.muted,
-                       shouldApplyRead(
-                           vcp: .audioMute,
-                           for: displayID,
-                           connection: connection,
-                           readStartedAt: readStartedAt
-                       )
-                    {
+                    if let muted = values.muted, canApply(.audioMute) {
                         hardwareMute[displayID] = muted
                     }
-                    if let inputSource = values.inputSource,
-                       shouldApplyRead(
-                           vcp: .inputSource,
-                           for: displayID,
-                           connection: connection,
-                           readStartedAt: readStartedAt
-                       )
-                    {
+                    if let inputSource = values.inputSource, canApply(.inputSource) {
                         activeInputSource[displayID] = inputSource
                     }
                 }
@@ -826,7 +811,7 @@
             guard let session = sessionGate.capture() else { return }
             guard displayConnectionGate.isCurrent(connection) else { return }
             // Cancel any pending write for this display+VCP pair
-            let writeKey = WriteKey(displayID: displayID, vcp: vcp, incarnation: connection.incarnation)
+            let writeKey = WriteKey(vcp: vcp, connection: connection)
             pendingWrites[writeKey]?.cancel()
 
             let generation = (pendingWriteGeneration[writeKey] ?? 0) + 1
@@ -913,7 +898,7 @@
             let threshold = maxWriteFailuresBeforeFallback
             let ddcQueue = ddcQueue
             let writeTiming = writeTiming
-            let writeKey = WriteKey(displayID: displayID, vcp: vcp, incarnation: connection.incarnation)
+            let writeKey = WriteKey(vcp: vcp, connection: connection)
             ddcQueue.async { [weak self] in
                 guard let self else { return }
                 guard sessionGate.isCurrent(session), displayConnectionGate.isCurrent(connection) else { return }
@@ -964,12 +949,7 @@
         ) {
             guard let delay = retryDelays.first else { return }
             guard recoveryProbeTasks[writeKey] == nil else { return }
-            guard displayConnectionGate.isCurrent(
-                DDCDisplayConnectionToken(
-                    displayID: writeKey.displayID,
-                    incarnation: writeKey.incarnation
-                )
-            ) else { return }
+            guard displayConnectionGate.isCurrent(writeKey.connection) else { return }
 
             recoveryProbeTasks[writeKey] = Task { [weak self] in
                 do {
@@ -977,12 +957,7 @@
                     try await Task.sleep(for: delay)
                     guard sessionGate.isCurrent(session) else { return }
                     guard connectedExternalDisplayIDsProvider().contains(writeKey.displayID) else { return }
-                    guard displayConnectionGate.isCurrent(
-                        DDCDisplayConnectionToken(
-                            displayID: writeKey.displayID,
-                            incarnation: writeKey.incarnation
-                        )
-                    ) else { return }
+                    guard displayConnectionGate.isCurrent(writeKey.connection) else { return }
 
                     recoveryProbeTasks.removeValue(forKey: writeKey)
                     probe(
@@ -1020,21 +995,19 @@
 
         private func markLocalWrite(
             vcp: VCPCode,
-            for displayID: CGDirectDisplayID,
             connection: DDCDisplayConnectionToken
         ) {
-            let writeKey = WriteKey(displayID: displayID, vcp: vcp, incarnation: connection.incarnation)
+            let writeKey = WriteKey(vcp: vcp, connection: connection)
             pendingHardwareWrites[writeKey, default: 0] += 1
             lastLocalWriteTime[writeKey] = Date()
         }
 
         private func shouldApplyRead(
             vcp: VCPCode,
-            for displayID: CGDirectDisplayID,
             connection: DDCDisplayConnectionToken,
             readStartedAt: Date
         ) -> Bool {
-            let writeKey = WriteKey(displayID: displayID, vcp: vcp, incarnation: connection.incarnation)
+            let writeKey = WriteKey(vcp: vcp, connection: connection)
             guard (pendingHardwareWrites[writeKey] ?? 0) == 0 else { return false }
             guard let localWriteTime = lastLocalWriteTime[writeKey] else { return true }
             return localWriteTime <= readStartedAt

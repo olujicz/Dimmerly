@@ -11,6 +11,20 @@ struct ConnectedDisplayDescriptor: Equatable, Sendable {
     let name: String
 }
 
+extension ConnectedDisplayDescriptor {
+    /// Snapshot of the connected displays in the shape App Intents and entity queries consume.
+    @MainActor
+    static func connected(from manager: BrightnessManager = .shared) -> [ConnectedDisplayDescriptor] {
+        manager.displays.map { display in
+            ConnectedDisplayDescriptor(
+                id: display.id,
+                stableIdentity: BrightnessManager.stableDisplayIdentity(for: display.id),
+                name: display.name
+            )
+        }
+    }
+}
+
 @MainActor
 enum ConnectedDisplayResolver {
     static func resolve(
@@ -18,10 +32,7 @@ enum ConnectedDisplayResolver {
         connectedDescriptors: () -> [ConnectedDisplayDescriptor]
     ) throws -> CGDirectDisplayID {
         let matches = connectedDescriptors().filter { $0.stableIdentity == entity.id }
-        guard DisplayEntityIdentifier.isSafelyPersistable(entity.id),
-              matches.count == 1,
-              DisplayEntityIdentifier.isSafelyPersistable(matches[0].stableIdentity)
-        else {
+        guard DisplayEntityIdentifier.isSafelyPersistable(entity.id), matches.count == 1 else {
             throw DisplayIntentError.invalidDisplay
         }
         return matches[0].id
@@ -48,13 +59,7 @@ final class LiveDisplayIntentCommand: DisplayIntentCommanding {
     }
 
     var connectedDisplayDescriptors: [ConnectedDisplayDescriptor] {
-        manager.displays.map { display in
-            ConnectedDisplayDescriptor(
-                id: display.id,
-                stableIdentity: BrightnessManager.stableDisplayIdentity(for: display.id),
-                name: display.name
-            )
-        }
+        ConnectedDisplayDescriptor.connected(from: manager)
     }
 
     func setBrightness(_ value: Double, for displayID: CGDirectDisplayID) {

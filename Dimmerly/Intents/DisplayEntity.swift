@@ -24,10 +24,10 @@ struct DisplayEntity: AppEntity {
 }
 
 enum DisplayEntityIdentifier {
-    private static let stablePrefix = "display:"
-
+    /// Validates against the same constant `BrightnessManager` stamps onto every stable identity,
+    /// so the generator and the validator cannot drift apart.
     static func isSafelyPersistable(_ identifier: String) -> Bool {
-        identifier.hasPrefix(stablePrefix)
+        identifier.hasPrefix(BrightnessManager.stableIdentityPrefix)
     }
 }
 
@@ -54,14 +54,12 @@ enum DisplayEntityFactory {
         for identifiers: [String],
         from descriptors: [ConnectedDisplayDescriptor]
     ) -> [DisplayEntity] {
+        // Every unique descriptor is persistable by construction, so matching one is itself
+        // proof that `identifier` passed the prefix check.
         let uniqueDescriptors = uniquelyIdentifiedDescriptors(from: descriptors)
         return identifiers.compactMap { identifier in
-            guard DisplayEntityIdentifier.isSafelyPersistable(identifier) else { return nil }
-            guard let descriptor = uniqueDescriptors.first(where: { $0.stableIdentity == identifier })
-            else {
-                return nil
-            }
-            return DisplayEntity(id: identifier, name: descriptor.name)
+            uniqueDescriptors.first { $0.stableIdentity == identifier }
+                .map { DisplayEntity(id: identifier, name: $0.name) }
         }
     }
 }
@@ -74,26 +72,11 @@ struct DisplayEntityQuery: EntityQuery {
 
     @MainActor
     func entities(for identifiers: [String]) async throws -> [DisplayEntity] {
-        let manager = BrightnessManager.shared
-        let descriptors = manager.displays.map { display in
-            ConnectedDisplayDescriptor(
-                id: display.id,
-                stableIdentity: BrightnessManager.stableDisplayIdentity(for: display.id),
-                name: display.name
-            )
-        }
-        return DisplayEntityFactory.makeEntities(for: identifiers, from: descriptors)
+        DisplayEntityFactory.makeEntities(for: identifiers, from: ConnectedDisplayDescriptor.connected())
     }
 
     @MainActor
     func suggestedEntities() async throws -> [DisplayEntity] {
-        let descriptors = BrightnessManager.shared.displays.map { display in
-            ConnectedDisplayDescriptor(
-                id: display.id,
-                stableIdentity: BrightnessManager.stableDisplayIdentity(for: display.id),
-                name: display.name
-            )
-        }
-        return DisplayEntityFactory.makeEntities(from: descriptors)
+        DisplayEntityFactory.makeEntities(from: ConnectedDisplayDescriptor.connected())
     }
 }

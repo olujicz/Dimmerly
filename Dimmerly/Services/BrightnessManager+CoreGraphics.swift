@@ -46,17 +46,10 @@ extension BrightnessManager {
         unitNumber: UInt32,
         displayID: CGDirectDisplayID
     ) -> String {
-        guard let identity = stableDisplayIdentity(
-            vendor: vendor,
-            model: model,
-            serial: serial,
-            unitNumber: unitNumber
-        ) else {
-            // Nothing stable to key on. Fall back to the legacy display-ID key rather than
-            // collapsing every metadata-less display onto one shared key.
-            return String(displayID)
-        }
-        return String(identity.dropFirst(stableIdentityPrefix.count))
+        // Nothing stable to key on. Fall back to the legacy display-ID key rather than
+        // collapsing every metadata-less display onto one shared key.
+        edidIdentityBody(vendor: vendor, model: model, serial: serial, unitNumber: unitNumber)
+            ?? String(displayID)
     }
 
     /// Builds a persistable App Intent identity from display metadata without consulting
@@ -67,12 +60,8 @@ extension BrightnessManager {
         serial: UInt32,
         unitNumber: UInt32
     ) -> String? {
-        guard isUsableDisplayMetadata(vendor), isUsableDisplayMetadata(model) else { return nil }
-        if isUsableDisplayMetadata(serial) {
-            return "\(stableIdentityPrefix)v\(vendor)m\(model)s\(serial)"
-        }
-        guard isUsableDisplayMetadata(unitNumber) else { return nil }
-        return "\(stableIdentityPrefix)v\(vendor)m\(model)u\(unitNumber)"
+        edidIdentityBody(vendor: vendor, model: model, serial: serial, unitNumber: unitNumber)
+            .map { stableIdentityPrefix + $0 }
     }
 
     /// Identity used by App Intents and other persisted integrations. Stable EDID metadata is
@@ -86,9 +75,26 @@ extension BrightnessManager {
         ) ?? "legacy:\(displayID)"
     }
 
-    /// CoreGraphics reports 0 for "not provided" and all-ones for "unknown".
-    private static let stableIdentityPrefix = "display:"
+    /// Prefix marking an identity as EDID-derived. Owned here because this is the only place
+    /// that produces one; `DisplayEntityIdentifier` validates against the same constant.
+    nonisolated static let stableIdentityPrefix = "display:"
 
+    /// The EDID-derived body shared by the persistence key and the prefixed App Intent identity.
+    private static func edidIdentityBody(
+        vendor: UInt32,
+        model: UInt32,
+        serial: UInt32,
+        unitNumber: UInt32
+    ) -> String? {
+        guard isUsableDisplayMetadata(vendor), isUsableDisplayMetadata(model) else { return nil }
+        if isUsableDisplayMetadata(serial) {
+            return "v\(vendor)m\(model)s\(serial)"
+        }
+        guard isUsableDisplayMetadata(unitNumber) else { return nil }
+        return "v\(vendor)m\(model)u\(unitNumber)"
+    }
+
+    /// CoreGraphics reports 0 for "not provided" and all-ones for "unknown".
     private static func isUsableDisplayMetadata(_ value: UInt32) -> Bool {
         value != 0 && value != UInt32.max
     }

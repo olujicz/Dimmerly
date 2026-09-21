@@ -12,6 +12,27 @@ import Carbon.HIToolbox
 import XCTest
 
 /// Tests for the GlobalShortcut model
+/// Synthesizes a key-down `NSEvent` for feeding into a captured monitor handler or straight
+/// into `GlobalShortcut.matches(event:)` (keyCode 2 is 'd' on the ANSI layout).
+private func makeKeyDownEvent(
+    keyCode: UInt16,
+    modifierFlags: NSEvent.ModifierFlags,
+    charactersIgnoringModifiers: String = ""
+) -> NSEvent {
+    NSEvent.keyEvent(
+        with: .keyDown,
+        location: .zero,
+        modifierFlags: modifierFlags,
+        timestamp: 0,
+        windowNumber: 0,
+        context: nil,
+        characters: "",
+        charactersIgnoringModifiers: charactersIgnoringModifiers,
+        isARepeat: false,
+        keyCode: keyCode
+    )!
+}
+
 final class GlobalShortcutTests: XCTestCase {
     /// Tests that the default shortcut is configured correctly
     func testDefaultShortcut() {
@@ -267,33 +288,15 @@ final class GlobalShortcutTests: XCTestCase {
             GlobalShortcut.self,
             from: Data(#"{"key":"q","modifiers":["command"]}"#.utf8)
         )
-        let azertyPhysicalQEvent = try XCTUnwrap(
-            NSEvent.keyEvent(
-                with: .keyDown,
-                location: .zero,
-                modifierFlags: [.command],
-                timestamp: 0,
-                windowNumber: 0,
-                context: nil,
-                characters: "",
-                charactersIgnoringModifiers: "a",
-                isARepeat: false,
-                keyCode: UInt16(kVK_ANSI_Q)
-            )
+        let azertyPhysicalQEvent = makeKeyDownEvent(
+            keyCode: UInt16(kVK_ANSI_Q),
+            modifierFlags: [.command],
+            charactersIgnoringModifiers: "a"
         )
-        let azertyPhysicalAEvent = try XCTUnwrap(
-            NSEvent.keyEvent(
-                with: .keyDown,
-                location: .zero,
-                modifierFlags: [.command],
-                timestamp: 0,
-                windowNumber: 0,
-                context: nil,
-                characters: "",
-                charactersIgnoringModifiers: "q",
-                isARepeat: false,
-                keyCode: UInt16(kVK_ANSI_A)
-            )
+        let azertyPhysicalAEvent = makeKeyDownEvent(
+            keyCode: UInt16(kVK_ANSI_A),
+            modifierFlags: [.command],
+            charactersIgnoringModifiers: "q"
         )
 
         XCTAssertTrue(legacy.matches(event: azertyPhysicalQEvent))
@@ -440,28 +443,6 @@ final class KeyboardShortcutManagerTests: XCTestCase {
 
     private final class PermissionProbe: @unchecked Sendable {
         var isGranted = false
-    }
-
-    /// Synthesizes a key-down `NSEvent` for feeding directly into a captured local monitor
-    /// handler, matching the technique `GlobalShortcutTests.testFromKeyCodeAndModifiers` uses
-    /// to validate key-code mapping (keyCode 2 is 'd' on the ANSI layout).
-    private func makeKeyDownEvent(
-        keyCode: UInt16,
-        modifierFlags: NSEvent.ModifierFlags,
-        charactersIgnoringModifiers: String = ""
-    ) -> NSEvent {
-        NSEvent.keyEvent(
-            with: .keyDown,
-            location: .zero,
-            modifierFlags: modifierFlags,
-            timestamp: 0,
-            windowNumber: 0,
-            context: nil,
-            characters: "",
-            charactersIgnoringModifiers: charactersIgnoringModifiers,
-            isARepeat: false,
-            keyCode: keyCode
-        )!
     }
 
     func testLocalMonitorSwallowsMatchingShortcutEvent() throws {

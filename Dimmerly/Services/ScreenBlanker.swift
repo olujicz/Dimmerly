@@ -154,31 +154,13 @@ final class ScreenBlanker {
             return
         }
 
-        do {
-            try startDismissMonitoring(action: { [weak self] in self?.unblankAllDisplays() })
-        } catch let error as BlankingInputMonitorError {
-            forceUnblankAllDisplays()
-            failurePresenter(error)
-            return
-        } catch {
-            forceUnblankAllDisplays()
-            failurePresenter(.unavailable)
-            return
-        }
-
-        isPerDisplayFullBlanked = true
-        activationTime = clock.now
-        windows.beginBlankingSession()
-        hideCursorIfNeeded()
+        startPerDisplayRecovery()
     }
 
     func unblankDisplay(_ displayID: CGDirectDisplayID) {
         guard blankedDisplayIDs.contains(displayID) else { return }
 
-        if isPerDisplayFullBlanked {
-            stopPerDisplayRecovery()
-        }
-
+        stopPerDisplayRecovery()
         restore(displayID)
         windows.removeWindow(for: displayID)
         blankedDisplayIDs.remove(displayID)
@@ -253,9 +235,7 @@ final class ScreenBlanker {
         blankedDisplayIDs.subtract(disconnectedDisplayIDs)
 
         guard !blankedDisplayIDs.isEmpty else {
-            if isPerDisplayFullBlanked {
-                stopPerDisplayRecovery()
-            }
+            stopPerDisplayRecovery()
             return
         }
 
@@ -263,24 +243,10 @@ final class ScreenBlanker {
             blankedDisplayIDs: blankedDisplayIDs,
             activeDisplayIDs: Array(activeDisplayIDs)
         )
-        if shouldRecover, !isPerDisplayFullBlanked {
-            do {
-                try startDismissMonitoring(action: { [weak self] in self?.unblankAllDisplays() })
-            } catch let error as BlankingInputMonitorError {
-                forceUnblankAllDisplays()
-                failurePresenter(error)
-                return
-            } catch {
-                forceUnblankAllDisplays()
-                failurePresenter(.unavailable)
-                return
-            }
-
-            isPerDisplayFullBlanked = true
-            activationTime = clock.now
-            windows.beginBlankingSession()
-            hideCursorIfNeeded()
-        } else if !shouldRecover, isPerDisplayFullBlanked {
+        if shouldRecover {
+            guard !isPerDisplayFullBlanked else { return }
+            startPerDisplayRecovery()
+        } else {
             stopPerDisplayRecovery()
         }
     }
@@ -419,6 +385,27 @@ final class ScreenBlanker {
         isPerDisplayFullBlanked = false
         isBlanking = false
         state = .idle
+    }
+
+    /// Mirror of `stopPerDisplayRecovery()`. Arms the dismissal monitor once every active display
+    /// is covered, tearing the whole session down if the monitor cannot start.
+    private func startPerDisplayRecovery() {
+        do {
+            try startDismissMonitoring(action: { [weak self] in self?.unblankAllDisplays() })
+        } catch let error as BlankingInputMonitorError {
+            forceUnblankAllDisplays()
+            failurePresenter(error)
+            return
+        } catch {
+            forceUnblankAllDisplays()
+            failurePresenter(.unavailable)
+            return
+        }
+
+        isPerDisplayFullBlanked = true
+        activationTime = clock.now
+        windows.beginBlankingSession()
+        hideCursorIfNeeded()
     }
 
     private func stopPerDisplayRecovery() {
