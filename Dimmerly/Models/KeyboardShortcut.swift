@@ -80,6 +80,10 @@ struct GlobalShortcut: Codable, Equatable {
         "f9": 101, "f10": 109, "f11": 103, "f12": 111,
     ]
 
+    /// Reverse of `legacyKeyCodeMap`. The key codes are distinct, so this is a faithful inverse.
+    private static let legacyKeyByCode: [UInt16: String] =
+        Dictionary(uniqueKeysWithValues: legacyKeyCodeMap.map { ($0.value, $0.key) })
+
     init(key: String, modifiers: Set<ShortcutModifier>, keyCode: UInt16? = nil) {
         self.key = key
         self.modifiers = modifiers
@@ -100,21 +104,13 @@ struct GlobalShortcut: Codable, Equatable {
         return Self.legacyKeyCodeMap[key]
     }
 
-    private enum EqualityKey: Equatable {
-        case physical(UInt16)
-        case label(String)
-    }
-
-    private var equalityKey: EqualityKey {
-        if let physicalKeyCode {
-            return .physical(physicalKeyCode)
-        }
-        return .label(key)
-    }
-
     static func == (lhs: Self, rhs: Self) -> Bool {
         guard lhs.modifiers == rhs.modifiers else { return false }
-        return lhs.equalityKey == rhs.equalityKey
+        // A physical code on either side wins, so a coded shortcut never equals a label-only one.
+        if lhs.physicalKeyCode != nil || rhs.physicalKeyCode != nil {
+            return lhs.physicalKeyCode == rhs.physicalKeyCode
+        }
+        return lhs.key == rhs.key
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -185,9 +181,7 @@ struct GlobalShortcut: Codable, Equatable {
             modifierFlags: NSEvent.ModifierFlags,
             charactersIgnoringModifiers: String? = nil
         ) -> GlobalShortcut? {
-            guard let keyString = legacyKeyCodeMap.first(where: { $0.value == keyCode })?.key else {
-                return nil
-            }
+            guard let keyString = legacyKeyByCode[keyCode] else { return nil }
 
             let keyLabel = Self.layoutDependentLabel(
                 for: keyString,
@@ -205,8 +199,8 @@ struct GlobalShortcut: Codable, Equatable {
             keyCode pressedKeyCode: UInt16,
             modifierFlags: NSEvent.ModifierFlags
         ) -> Bool {
-            guard modifiers == Self.modifiers(from: modifierFlags) else { return false }
-            return physicalKeyCode == pressedKeyCode
+            guard physicalKeyCode == pressedKeyCode else { return false }
+            return modifiers == Self.modifiers(from: modifierFlags)
         }
 
         /// Checks if this shortcut matches the given NSEvent
@@ -225,16 +219,11 @@ struct GlobalShortcut: Codable, Equatable {
             charactersIgnoringModifiers: String?
         ) -> String {
             guard keyString.count == 1,
-                  let character = keyString.first,
-                  character.isLetter
-            else {
-                return keyString
-            }
-
-            guard let layoutLabel = charactersIgnoringModifiers?
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-                .lowercased(),
-                !layoutLabel.isEmpty
+                  keyString.first?.isLetter == true,
+                  let layoutLabel = charactersIgnoringModifiers?
+                  .trimmingCharacters(in: .whitespacesAndNewlines)
+                  .lowercased(),
+                  !layoutLabel.isEmpty
             else {
                 return keyString
             }
