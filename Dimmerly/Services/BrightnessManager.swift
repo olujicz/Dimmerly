@@ -163,7 +163,9 @@ class BrightnessManager {
     private var persistTask: Task<Void, Never>?
 
     /// Active preset transition animation task (cancelled when a new transition starts)
-    private var transitionTask: Task<Void, Never>?
+    /// The in-flight preset/warmth transition together with the hardware-commit policy it was
+    /// started with, so cancelling can honour that policy instead of always committing.
+    private var activeTransition: (task: Task<Void, Never>, synchronizesHardware: Bool)?
 
     /// Coalesces system and screen wake events before reapplying display output.
     private var wakeMonitor: WorkspaceWakeMonitor?
@@ -179,8 +181,22 @@ class BrightnessManager {
         /// Test seam for simulating built-in backlight reads.
         var readBuiltInBrightnessHook: ((CGDirectDisplayID) -> Double?)?
 
+        /// Test seam for simulating DisplayServices availability.
+        var isBuiltInBacklightAPIAvailableHook: (() -> Bool)?
+
         /// Test seam for observing external DDC brightness writes without hitting hardware.
         var setExternalHardwareBrightnessHook: ((CGDirectDisplayID, Double) -> Void)?
+
+        /// Display IDs whose native backlight is unavailable or currently rejects writes. These
+        /// displays use software gamma until the API becomes available or a later native write
+        /// succeeds, while warmth and contrast continue to use their normal gamma path.
+        private var softwareBacklightFallbackDisplayIDs: Set<CGDirectDisplayID> = []
+
+        private enum BuiltInBrightnessReadResult {
+            case value(Double)
+            case unavailable
+            case failed
+        }
     #endif
 
     /// Test seam for observing gamma applications without modifying the real display state.
@@ -257,10 +273,13 @@ class BrightnessManager {
         monitor.start()
         wakeMonitor = monitor
 
-        // Detect display plug/unplug
+        // Detect display plug/unplug. Blanking reconciliation belongs here rather than in
+        // `refreshDisplays()`: that also runs at startup and after every DDC capability probe,
+        // neither of which is a topology change.
         reconfigurationToken = DisplayReconfigurationToken { [weak self] in
             Task { @MainActor in
                 self?.refreshDisplays()
+                ScreenBlanker.shared.displayTopologyDidChange()
             }
         }
 
@@ -321,18 +340,23 @@ class BrightnessManager {
     // MARK: - Built-in Display Backlight
 
     #if !APPSTORE
-        /// Reads the current hardware backlight brightness of the built-in display.
-        /// Returns nil if the display is not built-in or the API call fails.
-        func readBuiltInBrightness(for displayID: CGDirectDisplayID) -> Double? {
+        private func isBuiltInBacklightAPIAvailable() -> Bool {
+            isBuiltInBacklightAPIAvailableHook?() ?? DisplayServicesAPI.isAvailable
+        }
+
+        private func builtInBrightnessReadResult(for displayID: CGDirectDisplayID) -> BuiltInBrightnessReadResult {
             if let readBuiltInBrightnessHook {
-                return readBuiltInBrightnessHook(displayID)
+                guard let brightness = readBuiltInBrightnessHook(displayID) else {
+                    return isBuiltInBacklightAPIAvailable() ? .failed : .unavailable
+                }
+                return .value(brightness)
             }
-            guard isBuiltInDisplay(displayID),
-                  DisplayServicesAPI.isAvailable else { return nil }
+            guard isBuiltInDisplay(displayID) else { return .failed }
+            guard isBuiltInBacklightAPIAvailable() else { return .unavailable }
             var brightness: Float = 0
             let result = DisplayServicesAPI.getBrightness(displayID, &brightness)
-            guard result == 0 else { return nil }
-            return Double(brightness)
+            guard result == 0 else { return .failed }
+            return .value(Double(brightness))
         }
 
         /// Sets the hardware backlight brightness of the built-in display.
@@ -343,7 +367,7 @@ class BrightnessManager {
                 return setBuiltInBacklightHook(displayID, value)
             }
             guard CGDisplayIsBuiltin(displayID) != 0,
-                  DisplayServicesAPI.isAvailable else { return false }
+                  isBuiltInBacklightAPIAvailable() else { return false }
             let clamped = Float(min(max(value, 0.0), 1.0))
             return DisplayServicesAPI.setBrightness(displayID, clamped) == 0
         }
@@ -352,12 +376,23 @@ class BrightnessManager {
         /// Updates our model to stay in sync.
         private func syncBuiltInBrightness() {
             for i in displays.indices where displays[i].isBuiltIn {
-                if let hw = readBuiltInBrightness(for: displays[i].id) {
-                    let clamped = clampedBrightness(hw)
+                let displayID = displays[i].id
+                guard !softwareBacklightFallbackDisplayIDs.contains(displayID) else { continue }
+                switch builtInBrightnessReadResult(for: displayID) {
+                case let .value(hw):
+                    // A panel can report a native level below the app's interactive gamma
+                    // floor. Preserve that hardware value rather than brightening it during the
+                    // next poll; the user can still recover through the native backlight path.
+                    let clamped = min(max(hw, 0.0), 1.0)
                     if abs(displays[i].brightness - clamped) > 0.005 {
                         displays[i].brightness = clamped
                         debouncePersist()
                     }
+                case .unavailable:
+                    softwareBacklightFallbackDisplayIDs.insert(displayID)
+                    applyDisplayGamma(displays[i])
+                case .failed:
+                    break
                 }
             }
         }
@@ -500,6 +535,9 @@ class BrightnessManager {
         let displayIDs = activeDisplayIDsHook?() ?? Self.activeDisplayIDs()
 
         #if !APPSTORE
+            let builtInDisplayIDs = Set(displayIDs.filter { isBuiltInDisplay($0) })
+            softwareBacklightFallbackDisplayIDs.formIntersection(builtInDisplayIDs)
+
             // Clean up HardwareBrightnessManager state for displays that disappeared
             let externalDisplayIDs = Set(displayIDs.filter { !isBuiltInDisplay($0) })
             for cachedID in HardwareBrightnessManager.shared.capabilities.keys
@@ -520,48 +558,24 @@ class BrightnessManager {
             }
         #endif
 
-        let savedBrightness = loadPersistedBrightness()
-        let savedWarmth = loadPersistedWarmth()
-        let savedContrast = loadPersistedContrast()
-        let previousBrightnessByID = Dictionary(uniqueKeysWithValues: displays.map { ($0.id, $0.brightness) })
-        let previousBuiltInBrightness = displays.first(where: \.isBuiltIn)?.brightness
+        let baseline = RefreshBaseline(
+            savedBrightness: loadPersistedBrightness(),
+            savedWarmth: loadPersistedWarmth(),
+            savedContrast: loadPersistedContrast(),
+            displaysByID: Dictionary(uniqueKeysWithValues: displays.map { ($0.id, $0) }),
+            displaysByIdentity: displays.reduce(into: [String: ExternalDisplay]()) { result, display in
+                result[displayIdentity(for: display.id)] = display
+            }
+        )
         var newDisplays: [ExternalDisplay] = []
-        var builtInDisplaysWithFailedReads: Set<CGDirectDisplayID> = []
+        var builtInDisplaysWithSuppressedBacklight: Set<CGDirectDisplayID> = []
 
         for displayID in displayIDs {
-            let builtIn = isBuiltInDisplay(displayID)
-
-            let name = displayName(for: displayID)
-            // Look saved values up by stable identity: this display may have just been
-            // re-enumerated under a new CGDirectDisplayID after sleep/wake or a hot-plug.
-            let identity = displayIdentity(for: displayID)
-            let refreshedBrightness = refreshedBrightness(
-                for: displayID,
-                isBuiltIn: builtIn,
-                savedBrightness: savedValue(savedBrightness, for: displayID, identity: identity),
-                previousBrightness: previousBrightnessByID[displayID] ?? previousBuiltInBrightness
-            )
-            if refreshedBrightness.suppressBuiltInBacklight {
-                builtInDisplaysWithFailedReads.insert(displayID)
+            let refreshed = refreshedDisplay(for: displayID, baseline: baseline)
+            if refreshed.suppressBuiltInBacklight {
+                builtInDisplaysWithSuppressedBacklight.insert(displayID)
             }
-            // Clamp warmth and contrast to valid ranges
-            let warmth = min(max(savedValue(savedWarmth, for: displayID, identity: identity) ?? 0.0, 0.0), 1.0)
-            let contrast = min(max(savedValue(savedContrast, for: displayID, identity: identity) ?? 0.5, 0.0), 1.0)
-
-            var display = ExternalDisplay(
-                id: displayID, name: name, brightness: refreshedBrightness.value,
-                warmth: warmth, contrast: contrast
-            )
-            display.isBuiltIn = builtIn
-
-            #if !APPSTORE
-                // DDC is only available on external monitors
-                if !builtIn {
-                    display.supportsDDC = HardwareBrightnessManager.shared.supportsDDC(for: displayID)
-                }
-            #endif
-
-            newDisplays.append(display)
+            newDisplays.append(refreshed.display)
         }
 
         // Disambiguate identical display names by appending an index (e.g., "DELL S2723HC (1)")
@@ -593,7 +607,69 @@ class BrightnessManager {
         }
 
         displays = newDisplays
-        reapplyAfterRefresh(suppressingBuiltInBacklightFor: builtInDisplaysWithFailedReads)
+        reapplyAfterRefresh(suppressingBuiltInBacklightFor: builtInDisplaysWithSuppressedBacklight)
+    }
+
+    /// The state a refresh is reconciled against: persisted values plus the displays as they
+    /// were before re-enumeration. Grouped so `refreshedDisplay` stays a two-argument call.
+    private struct RefreshBaseline {
+        let savedBrightness: [String: Double]
+        let savedWarmth: [String: Double]
+        let savedContrast: [String: Double]
+        let displaysByID: [CGDirectDisplayID: ExternalDisplay]
+        let displaysByIdentity: [String: ExternalDisplay]
+    }
+
+    private func refreshedDisplay(
+        for displayID: CGDirectDisplayID,
+        baseline: RefreshBaseline
+    ) -> (display: ExternalDisplay, suppressBuiltInBacklight: Bool) {
+        let builtIn = isBuiltInDisplay(displayID)
+        let name = displayName(for: displayID)
+        let identity = displayIdentity(for: displayID)
+        let previousDisplay = baseline.displaysByIdentity[identity]
+            ?? baseline.displaysByID[displayID]
+            ?? (builtIn ? displays.first(where: \.isBuiltIn) : nil)
+        let refreshedBrightness = refreshedBrightness(
+            for: displayID,
+            isBuiltIn: builtIn,
+            savedBrightness: savedValue(baseline.savedBrightness, for: displayID, identity: identity),
+            previousBrightness: previousDisplay?.brightness
+        )
+        let warmth = min(
+            max(
+                previousDisplay?.warmth
+                    ?? savedValue(baseline.savedWarmth, for: displayID, identity: identity)
+                    ?? 0.0,
+                0.0
+            ),
+            1.0
+        )
+        let contrast = min(
+            max(
+                previousDisplay?.contrast
+                    ?? savedValue(baseline.savedContrast, for: displayID, identity: identity)
+                    ?? 0.5,
+                0.0
+            ),
+            1.0
+        )
+        var display = ExternalDisplay(
+            id: displayID,
+            name: name,
+            brightness: refreshedBrightness.value,
+            warmth: warmth,
+            contrast: contrast
+        )
+        display.isBuiltIn = builtIn
+        #if !APPSTORE
+            // DDC is only available on external monitors.
+            if !builtIn {
+                display.supportsDDC = HardwareBrightnessManager.shared.supportsDDC(for: displayID)
+            }
+        #endif
+
+        return (display, refreshedBrightness.suppressBuiltInBacklight)
     }
 
     private func reapplyAfterRefresh(suppressingBuiltInBacklightFor displayIDs: Set<CGDirectDisplayID>) {
@@ -610,21 +686,35 @@ class BrightnessManager {
         previousBrightness: Double?
     ) -> (value: Double, suppressBuiltInBacklight: Bool) {
         #if !APPSTORE
-            if isBuiltIn, let hardwareBrightness = readBuiltInBrightness(for: displayID) {
-                // Keep a live read exact: clamping it here and writing it back during the
-                // refresh would silently brighten a panel set below the app's gamma floor.
-                return (hardwareBrightness, false)
-            }
             if isBuiltIn {
-                // DisplayServices can be briefly unavailable during reconfiguration.
-                // Preserve the live model and do not write fallback state to the panel.
-                let fallback = previousBrightness
-                    ?? clampedBrightness(savedBrightness ?? 1.0)
-                return (fallback, true)
+                let fallback = previousBrightness ?? clampedBrightness(savedBrightness ?? 1.0)
+                let fallbackActive = softwareBacklightFallbackDisplayIDs.contains(displayID)
+                switch builtInBrightnessReadResult(for: displayID) {
+                case let .value(hardwareBrightness):
+                    if fallbackActive {
+                        // A successful read is only a retry opportunity after a write failure;
+                        // preserve the requested target until a native write accepts it.
+                        return (fallback, false)
+                    }
+                    // Keep a live read exact and do not echo it back during refresh. Writing a
+                    // low native value can fail redundantly and activate software fallback,
+                    // which would then double-dim the already-low native backlight.
+                    return (hardwareBrightness, true)
+                case .unavailable:
+                    softwareBacklightFallbackDisplayIDs.insert(displayID)
+                    // An unavailable API is confirmed software-only, so gamma must deliver the
+                    // preserved model value while native writes remain suppressed.
+                    return (fallback, true)
+                case .failed:
+                    // A transient read failure is not evidence that native control is gone.
+                    // Preserve the model, keep native gamma policy, and suppress the uncertain
+                    // refresh write.
+                    return (fallback, true)
+                }
             }
         #endif
 
-        return (clampedBrightness(savedBrightness ?? 1.0), false)
+        return (clampedBrightness(previousBrightness ?? savedBrightness ?? 1.0), false)
     }
 
     private func clampedBrightness(_ value: Double) -> Double {
@@ -716,7 +806,18 @@ class BrightnessManager {
     /// fighting the animation loop (which writes gamma each step) until the animation
     /// finished, producing a visible snap-back.
     private func cancelActiveTransition() {
-        transitionTask?.cancel()
+        guard let activeTransition else { return }
+        activeTransition.task.cancel()
+        #if !APPSTORE
+            // A cancelled animation may already have moved the model part-way toward a
+            // hardware-backed preset. Commit that intermediate value before the competing user
+            // edit wins, otherwise the model and the panel diverge until a later refresh.
+            // A transition that never intended to touch hardware is left alone.
+            if activeTransition.synchronizesHardware {
+                synchronizeHardwareBrightnessAfterAnimation()
+            }
+        #endif
+        self.activeTransition = nil
     }
 
     /// Re-applies the current brightness via gamma for a specific display.
@@ -874,7 +975,7 @@ class BrightnessManager {
     /// the previous per-method behavior. At the end, state is persisted and (for preset
     /// transitions) hardware brightness is synchronized.
     private func runTransition(targets: [TransitionTarget], synchronizeHardwareAtEnd: Bool) -> Bool {
-        transitionTask?.cancel()
+        cancelActiveTransition()
 
         let canAnimate = canAnimateTransitionsHook?() ?? (
             !ScreenBlanker.shared.isBlanking &&
@@ -884,7 +985,7 @@ class BrightnessManager {
             return false
         }
 
-        transitionTask = Task { @MainActor in
+        let task = Task { @MainActor in
             let steps = Self.transitionSteps
 
             for step in 1 ... steps {
@@ -927,7 +1028,9 @@ class BrightnessManager {
                 }
             #endif
             persistAll()
+            activeTransition = nil
         }
+        activeTransition = (task, synchronizeHardwareAtEnd)
 
         return true
     }
@@ -946,26 +1049,6 @@ class BrightnessManager {
             guard !Task.isCancelled else { return }
             self.persistAll()
         }
-    }
-
-    // MARK: - Display Enumeration
-
-    /// Returns all active display IDs. Shared helper for display enumeration.
-    ///
-    /// Queries the active display count first rather than assuming a fixed upper bound, so
-    /// setups with many displays (docks, KVMs) aren't silently truncated.
-    static func activeDisplayIDs() -> [CGDirectDisplayID] {
-        var displayCount: UInt32 = 0
-        guard CGGetActiveDisplayList(0, nil, &displayCount) == .success, displayCount > 0 else {
-            return []
-        }
-
-        var displayIDs = [CGDirectDisplayID](repeating: 0, count: Int(displayCount))
-        guard CGGetActiveDisplayList(displayCount, &displayIDs, &displayCount) == .success else {
-            return []
-        }
-
-        return Array(displayIDs.prefix(Int(displayCount)))
     }
 
     // MARK: - Gamma
@@ -1016,42 +1099,6 @@ class BrightnessManager {
     }
 
     // MARK: - Persistence
-
-    /// Builds the stable key a display's saved brightness, warmth, and contrast are stored under.
-    ///
-    /// `CGDirectDisplayID` cannot be used for this. macOS re-enumerates displays under a *new*
-    /// ID after sleep/wake and after hot-plug, so an ID-keyed lookup misses on the way back and
-    /// silently resets the display to defaults. Auto color temperature hides that for warmth on
-    /// its next recalculation; nothing restores contrast, so it would stay reset.
-    ///
-    /// Vendor, model, and serial come from the monitor's EDID and survive re-enumeration and
-    /// reboots. Serial is frequently unreported (0), so the unit number — which tracks the
-    /// physical connection — stands in to keep two identical monitors apart.
-    ///
-    /// - Returns: A key derived from EDID metadata, or the legacy display-ID string when no
-    ///   usable metadata exists.
-    static func persistenceIdentity(
-        vendor: UInt32,
-        model: UInt32,
-        serial: UInt32,
-        unitNumber: UInt32,
-        displayID: CGDirectDisplayID
-    ) -> String {
-        guard isUsableDisplayMetadata(vendor), isUsableDisplayMetadata(model) else {
-            // Nothing stable to key on. Fall back to the legacy display-ID key rather than
-            // collapsing every metadata-less display onto one shared key.
-            return String(displayID)
-        }
-        if isUsableDisplayMetadata(serial) {
-            return "v\(vendor)m\(model)s\(serial)"
-        }
-        return "v\(vendor)m\(model)u\(unitNumber)"
-    }
-
-    /// CoreGraphics reports 0 for "not provided" and all-ones for "unknown".
-    private static func isUsableDisplayMetadata(_ value: UInt32) -> Bool {
-        value != 0 && value != UInt32.max
-    }
 
     private func displayIdentity(for displayID: CGDirectDisplayID) -> String {
         if let displayIdentityHook {
@@ -1120,9 +1167,24 @@ class BrightnessManager {
                 mode: hardwareManager.controlMode,
                 isBuiltIn: display.isBuiltIn,
                 isDDCEnabled: hardwareManager.isEnabled,
-                supportsDDCBrightness: hardwareManager.supportsDDC(for: display.id),
-                requestedBrightness: display.brightness
+                supportsDDCBrightness: hardwareManager.capability(for: display.id)?.supportsBrightness ?? false,
+                requestedBrightness: display.brightness,
+                builtInBacklightAvailable: !softwareBacklightFallbackDisplayIDs.contains(display.id)
             )
+        }
+
+        /// Applies an accepted external hardware read to the authoritative display model.
+        /// This intentionally does not call `setBrightness`, so polling never echoes a DDC read
+        /// back into a write.
+        func synchronizeExternalHardwareBrightness(for displayID: CGDirectDisplayID, to value: Double) {
+            guard let index = displays.firstIndex(where: { $0.id == displayID }),
+                  !displays[index].isBuiltIn
+            else { return }
+
+            let brightness = clampedBrightness(value)
+            guard abs(displays[index].brightness - brightness) > 0.005 else { return }
+            displays[index].brightness = brightness
+            debouncePersist()
         }
 
         private func setExternalHardwareBrightness(for displayID: CGDirectDisplayID, to value: Double) {
@@ -1136,27 +1198,27 @@ class BrightnessManager {
     #endif
 
     private func resolvedGammaBrightness(for display: ExternalDisplay) -> Double {
+        resolvedOutputPolicy(for: display).gammaBrightness
+    }
+
+    /// The output policy for a display, resolved against whichever control paths this build has.
+    private func resolvedOutputPolicy(for display: ExternalDisplay) -> DisplayOutputPolicy {
         #if !APPSTORE
-            displayOutputPolicy(for: display).gammaBrightness
+            displayOutputPolicy(for: display)
         #else
-            DisplayOutputPolicy.resolve(requestedBrightness: display.brightness).gammaBrightness
+            DisplayOutputPolicy.resolve(requestedBrightness: display.brightness)
         #endif
     }
 
     private func applyDisplayGamma(_ display: ExternalDisplay, allowDuringBlanking: Bool = false) {
         guard allowDuringBlanking || !ScreenBlanker.shared.isBlanking else { return }
 
-        #if !APPSTORE
-            guard displayOutputPolicy(for: display).appliesGammaColorAdjustments else { return }
-        #else
-            guard DisplayOutputPolicy.resolve(
-                requestedBrightness: display.brightness
-            ).appliesGammaColorAdjustments else { return }
-        #endif
+        let policy = resolvedOutputPolicy(for: display)
+        guard policy.appliesGammaColorAdjustments else { return }
 
         applyGamma(
             displayID: display.id,
-            brightness: resolvedGammaBrightness(for: display),
+            brightness: policy.gammaBrightness,
             warmth: display.warmth,
             contrast: display.contrast
         )
@@ -1168,10 +1230,14 @@ class BrightnessManager {
         suppressBuiltInBacklight: Bool = false
     ) {
         #if !APPSTORE
-            let policy = displayOutputPolicy(for: display)
-            if policy.usesBuiltInBacklight, !suppressBuiltInBacklight {
-                setBuiltInBacklight(for: display.id, to: display.brightness)
-            } else if policy.usesDDCBrightness {
+            let output = displayOutputPolicy(for: display).output
+            if output.writesBuiltInBacklight, !suppressBuiltInBacklight {
+                if setBuiltInBacklight(for: display.id, to: display.brightness) {
+                    softwareBacklightFallbackDisplayIDs.remove(display.id)
+                } else {
+                    softwareBacklightFallbackDisplayIDs.insert(display.id)
+                }
+            } else if output == .ddc {
                 setExternalHardwareBrightness(for: display.id, to: display.brightness)
             }
         #endif

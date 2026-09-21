@@ -11,6 +11,53 @@ import CoreLocation
 import Foundation
 import Observation
 
+private final class LocationRequestGate: @unchecked Sendable {
+    private let lock = NSLock()
+    private var generation: UInt64 = 0
+    private var activeRequest: UInt64?
+
+    func begin() -> UInt64 {
+        lock.withLock {
+            generation &+= 1
+            activeRequest = generation
+            return generation
+        }
+    }
+
+    func invalidate() {
+        lock.withLock {
+            generation &+= 1
+            activeRequest = nil
+        }
+    }
+
+    func current() -> UInt64 {
+        lock.withLock { generation }
+    }
+
+    func isCurrent(_ token: UInt64) -> Bool {
+        lock.withLock { token == generation }
+    }
+
+    /// A callback is only honoured while the request that asked for it is still the live one.
+    /// Unsolicited deliveries, and deliveries that lost a race with a manual edit, clear, or a
+    /// newer request, are all dropped.
+    func acceptsCallback(_ token: UInt64) -> Bool {
+        lock.withLock {
+            guard let activeRequest else { return false }
+            return token == activeRequest && token == generation
+        }
+    }
+
+    func complete(_ token: UInt64) {
+        lock.withLock {
+            guard token == generation, activeRequest == token else { return }
+            activeRequest = nil
+            generation &+= 1
+        }
+    }
+}
+
 @MainActor
 @Observable
 class LocationProvider: NSObject {
@@ -21,6 +68,8 @@ class LocationProvider: NSObject {
     var authorizationStatus: CLAuthorizationStatus = .notDetermined
 
     private let locationManager = CLLocationManager()
+    private let requestGate = LocationRequestGate()
+    private let locationServicesAvailable: LocationServicesAvailabilityCheck
 
     /// The `UserDefaults` suite to read from and persist to. Defaults to `.standard` for
     /// production use; tests should inject an isolated suite so they don't read or overwrite
@@ -32,8 +81,18 @@ class LocationProvider: NSObject {
     /// Sentinel value indicating a saved coordinate (0.0 is valid, so we use key existence)
     private static let hasSavedKey = "dimmerlyLocationSaved"
 
-    init(defaults: UserDefaults = .standard) {
+    /// Whether the system has Location Services switched on. Injected so tests can drive
+    /// `requestLocation()` without reaching CoreLocation or raising an authorization prompt.
+    typealias LocationServicesAvailabilityCheck = @Sendable () async -> Bool
+
+    init(
+        defaults: UserDefaults = .standard,
+        locationServicesAvailable: @escaping LocationServicesAvailabilityCheck = {
+            await LocationProvider.systemLocationServicesEnabled()
+        }
+    ) {
         self.defaults = defaults
+        self.locationServicesAvailable = locationServicesAvailable
         super.init()
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyKilometer
@@ -53,6 +112,7 @@ class LocationProvider: NSObject {
     ///   - defaults: Isolated suite so the test doesn't touch the developer's saved location.
     init(forTesting _: Bool, defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        locationServicesAvailable = { false }
         super.init()
         loadSavedLocation()
     }
@@ -66,27 +126,28 @@ class LocationProvider: NSObject {
     /// Uses `startUpdatingLocation()` which reliably triggers the macOS
     /// authorization prompt, even for agent (LSUIElement) apps.
     func requestLocation() {
+        let requestToken = requestGate.begin()
         // `CLLocationManager.locationServicesEnabled()` can block briefly and is
         // flagged as non-main-thread-safe by Apple. Run it on a background task,
         // then hop back to @MainActor to start updating.
-        Task { [weak self] in
-            let enabled = await Self.locationServicesAvailable()
-            guard enabled else { return }
+        Task { [weak self, locationServicesAvailable] in
+            guard await locationServicesAvailable() else { return }
             await MainActor.run {
-                self?.beginLocationRequest()
+                self?.beginLocationRequest(token: requestToken)
             }
         }
     }
 
     /// Off-main helper that calls the CLLocationManager class method Apple
     /// recommends not be invoked from the main thread.
-    private static func locationServicesAvailable() async -> Bool {
+    private static func systemLocationServicesEnabled() async -> Bool {
         await Task.detached(priority: .userInitiated) {
             CLLocationManager.locationServicesEnabled()
         }.value
     }
 
-    private func beginLocationRequest() {
+    private func beginLocationRequest(token: UInt64) {
+        guard requestGate.isCurrent(token) else { return }
         // Activate the app so the authorization dialog is visible for LSUIElement apps
         NSApp.activate()
 
@@ -106,6 +167,8 @@ class LocationProvider: NSObject {
 
     /// Sets a user-entered manual location
     func setManualLocation(latitude: Double, longitude: Double) {
+        requestGate.invalidate()
+        locationManager.stopUpdatingLocation()
         self.latitude = latitude
         self.longitude = longitude
         saveLocation()
@@ -113,6 +176,8 @@ class LocationProvider: NSObject {
 
     /// Clears the saved location
     func clearLocation() {
+        requestGate.invalidate()
+        locationManager.stopUpdatingLocation()
         latitude = nil
         longitude = nil
         defaults.removeObject(forKey: Self.latitudeKey)
@@ -143,10 +208,13 @@ extension LocationProvider: CLLocationManagerDelegate {
         guard let location = locations.last else { return }
         let lat = location.coordinate.latitude
         let lon = location.coordinate.longitude
+        let requestToken = requestGate.current()
         Task { @MainActor in
+            guard self.requestGate.acceptsCallback(requestToken) else { return }
             self.latitude = lat
             self.longitude = lon
             self.saveLocation()
+            self.requestGate.complete(requestToken)
         }
     }
 

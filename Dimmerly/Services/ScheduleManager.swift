@@ -82,8 +82,21 @@ class ScheduleManager {
     /// the developer's real saved schedules.
     private let defaults: UserDefaults
 
-    init(defaults: UserDefaults = .standard) {
+    /// Supplies coordinates for solar trigger resolution. The seam keeps schedule tests
+    /// deterministic and makes the source-day/occurrence-day boundary explicit.
+    private let locationCoordinatesProvider: () -> (latitude: Double, longitude: Double)?
+
+    init(
+        defaults: UserDefaults = .standard,
+        locationCoordinates: @escaping () -> (latitude: Double, longitude: Double)? = {
+            guard let latitude = LocationProvider.shared.latitude,
+                  let longitude = LocationProvider.shared.longitude
+            else { return nil }
+            return (latitude, longitude)
+        }
+    ) {
         self.defaults = defaults
+        locationCoordinatesProvider = locationCoordinates
         loadSchedules()
     }
 
@@ -224,7 +237,6 @@ class ScheduleManager {
 
         for (scheduleIndex, schedule) in schedules.enumerated() where schedule.isEnabled {
             for day in daysToCheck {
-                let dayString = Self.dateString(for: day)
                 guard let triggerDate = resolveTriggerDate(schedule.trigger, on: day) else { continue }
                 guard triggerDate > previousCheck, triggerDate <= now else { continue }
 
@@ -232,7 +244,10 @@ class ScheduleManager {
                     triggerDate: triggerDate,
                     scheduleIndex: scheduleIndex,
                     schedule: schedule,
-                    dayString: dayString
+                    // A solar offset can move the trigger into the previous/next calendar day.
+                    // Deduplication must follow the actual occurrence, not the source date used
+                    // for the solar calculation.
+                    dayString: Self.dateString(for: triggerDate)
                 )
                 if candidatesByScheduleID[schedule.id]?.triggerDate ?? .distantPast < triggerDate {
                     candidatesByScheduleID[schedule.id] = candidate
@@ -250,8 +265,10 @@ class ScheduleManager {
 
     private static func daysInRange(from start: Date, through end: Date) -> [Date] {
         let calendar = Calendar.current
-        var day = calendar.startOfDay(for: start)
-        let endDay = calendar.startOfDay(for: end)
+        let startDay = calendar.startOfDay(for: start)
+        var day = calendar.date(byAdding: .day, value: -1, to: startDay) ?? startDay
+        let endDay = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: end))
+            ?? calendar.startOfDay(for: end)
         var days: [Date] = []
 
         while day <= endDay {
@@ -317,12 +334,7 @@ class ScheduleManager {
     /// - Returns: Latitude and longitude tuple, or `nil` if location unavailable
     ///   (permissions denied or not yet determined)
     private func locationCoordinates() -> (latitude: Double, longitude: Double)? {
-        guard let lat = LocationProvider.shared.latitude,
-              let lon = LocationProvider.shared.longitude
-        else {
-            return nil
-        }
-        return (lat, lon)
+        locationCoordinatesProvider()
     }
 
     private static let dayFormatter: DateFormatter = {

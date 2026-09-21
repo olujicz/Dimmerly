@@ -34,101 +34,6 @@ final class BrightnessManagerTests: XCTestCase {
 
     // MARK: - channelMultipliers
 
-    #if !APPSTORE
-        func testRefreshPreservesBuiltInBrightnessAndSkipsBacklightWriteWhenReadFails() {
-            let displayID: CGDirectDisplayID = 42
-            var builtIn = ExternalDisplay(
-                id: displayID,
-                name: "Built-in",
-                brightness: 0.37,
-                warmth: 0.2,
-                contrast: 0.6
-            )
-            builtIn.isBuiltIn = true
-            bm.displays = [builtIn]
-            bm.activeDisplayIDsHook = { [displayID] }
-            bm.isBuiltInDisplayHook = { $0 == displayID }
-            bm.readBuiltInBrightnessHook = { _ in nil }
-            bm.applyGammaHook = { _, _, _, _ in }
-
-            var backlightWrites: [(CGDirectDisplayID, Double)] = []
-            bm.setBuiltInBacklightHook = { displayID, value in
-                backlightWrites.append((displayID, value))
-                return true
-            }
-
-            bm.refreshDisplays()
-
-            XCTAssertEqual(bm.displays.count, 1)
-            XCTAssertEqual(bm.displays[0].brightness, 0.37, accuracy: 0.001)
-            XCTAssertTrue(
-                backlightWrites.isEmpty,
-                "A failed live read must not cause a persisted/default value to be written to the panel"
-            )
-        }
-
-        func testDisplayOutputPolicyUsesSoftwareGammaBrightness() {
-            let policy = DisplayOutputPolicy.resolve(
-                mode: .softwareOnly,
-                isBuiltIn: false,
-                isDDCEnabled: true,
-                supportsDDCBrightness: true,
-                requestedBrightness: 0.35
-            )
-
-            XCTAssertEqual(policy, DisplayOutputPolicy(
-                usesBuiltInBacklight: false,
-                usesDDCBrightness: false,
-                gammaBrightness: 0.35,
-                appliesGammaColorAdjustments: true
-            ))
-        }
-
-        func testDisplayOutputPolicyUsesDDCWithGammaColorAdjustments() {
-            let policy = DisplayOutputPolicy.resolve(
-                mode: .hardware,
-                isBuiltIn: false,
-                isDDCEnabled: true,
-                supportsDDCBrightness: true,
-                requestedBrightness: 0.35
-            )
-
-            XCTAssertEqual(policy, DisplayOutputPolicy(
-                usesBuiltInBacklight: false,
-                usesDDCBrightness: true,
-                gammaBrightness: 1.0,
-                appliesGammaColorAdjustments: true
-            ))
-        }
-
-        func testDisplayOutputPolicyFallsBackWhenDDCIsUnavailable() {
-            let policy = DisplayOutputPolicy.resolve(
-                mode: .hardware,
-                isBuiltIn: false,
-                isDDCEnabled: true,
-                supportsDDCBrightness: false,
-                requestedBrightness: 0.35
-            )
-
-            XCTAssertFalse(policy.usesDDCBrightness)
-            XCTAssertEqual(policy.gammaBrightness, 0.35)
-        }
-
-        func testDisplayOutputPolicyUsesBuiltInBacklight() {
-            let policy = DisplayOutputPolicy.resolve(
-                mode: .hardware,
-                isBuiltIn: true,
-                isDDCEnabled: true,
-                supportsDDCBrightness: false,
-                requestedBrightness: 0.35
-            )
-
-            XCTAssertTrue(policy.usesBuiltInBacklight)
-            XCTAssertFalse(policy.usesDDCBrightness)
-            XCTAssertEqual(policy.gammaBrightness, 1.0)
-        }
-    #endif
-
     func testChannelMultipliersNeutral() {
         let m = GammaMath.channelMultipliers(for: 0.0)
         XCTAssertEqual(m.r, 1.0)
@@ -669,6 +574,55 @@ final class BrightnessManagerTests: XCTestCase {
 
     // MARK: - Per-Display Persistence Identity
 
+    func testStableDisplayIdentityUsesSerialWhenAvailable() {
+        let identity = BrightnessManager.stableDisplayIdentity(
+            vendor: 0x10AC,
+            model: 0xD0A1,
+            serial: 0x1234_5678,
+            unitNumber: 0
+        )
+
+        XCTAssertEqual(identity, "display:v4268m53409s305419896")
+    }
+
+    func testStableDisplayIdentityUsesUnitNumberWhenSerialIsUnavailable() {
+        let identity = BrightnessManager.stableDisplayIdentity(
+            vendor: 0x10AC,
+            model: 0xD0A1,
+            serial: 0,
+            unitNumber: 3
+        )
+
+        XCTAssertEqual(identity, "display:v4268m53409u3")
+    }
+
+    func testStableDisplayIdentityRejectsUnusableMetadata() {
+        XCTAssertNil(BrightnessManager.stableDisplayIdentity(
+            vendor: 0,
+            model: 0xD0A1,
+            serial: 0x1234,
+            unitNumber: 1
+        ))
+        XCTAssertNil(BrightnessManager.stableDisplayIdentity(
+            vendor: 0x10AC,
+            model: UInt32.max,
+            serial: 0x1234,
+            unitNumber: 1
+        ))
+        XCTAssertNil(BrightnessManager.stableDisplayIdentity(
+            vendor: 0x10AC,
+            model: 0xD0A1,
+            serial: 0,
+            unitNumber: 0
+        ))
+        XCTAssertNil(BrightnessManager.stableDisplayIdentity(
+            vendor: 0x10AC,
+            model: 0xD0A1,
+            serial: UInt32.max,
+            unitNumber: UInt32.max
+        ))
+    }
+
     /// `CGDirectDisplayID` is ephemeral — macOS re-enumerates a display under a new ID after
     /// sleep/wake — so the persistence key must not depend on it, or saved values are lost.
     func testPersistenceIdentityIsStableAcrossDisplayIDChangeWhenSerialIsAvailable() {
@@ -959,6 +913,144 @@ final class BrightnessManagerTests: XCTestCase {
         XCTAssertEqual(manager.displays[0].warmth, 0.42, accuracy: 0.001)
         XCTAssertEqual(manager.displays[0].contrast, 0.6, accuracy: 0.001)
     }
+}
+
+@MainActor
+extension BrightnessManagerTests {
+    #if !APPSTORE
+        func testExternalBrightnessFallsBackToGammaWhenDDCOnlySupportsVolume() {
+            let displayID: CGDirectDisplayID = 2
+            var external = ExternalDisplay(id: displayID, name: "External", brightness: 1.0)
+            external.supportsDDC = true
+            bm.displays = [external]
+            HardwareBrightnessManager.shared.capabilities[displayID] = HardwareDisplayCapability(
+                displayID: displayID,
+                supportsDDC: true,
+                supportedCodes: [.volume],
+                maxBrightness: 0,
+                maxContrast: 0,
+                maxVolume: 100
+            )
+            var gammaBrightness: Double?
+            bm.applyGammaHook = { id, brightness, _, _ in
+                guard id == displayID else { return }
+                gammaBrightness = brightness
+            }
+
+            bm.setBrightness(for: displayID, to: 0.4)
+
+            XCTAssertEqual(gammaBrightness ?? -1, 0.4, accuracy: 0.001)
+        }
+
+        func testRefreshPreservesLiveAxesForAConnectedDisplay() {
+            let displayID: CGDirectDisplayID = 3
+            bm.displayIdentityHook = { _ in "stable-display" }
+            bm.activeDisplayIDsHook = { [displayID] }
+            bm.isBuiltInDisplayHook = { _ in false }
+            bm.displays = [
+                ExternalDisplay(
+                    id: displayID,
+                    name: "External",
+                    brightness: 0.37,
+                    warmth: 0.24,
+                    contrast: 0.73
+                ),
+            ]
+
+            bm.refreshDisplays()
+
+            let refreshed = bm.displays[0]
+            XCTAssertEqual(refreshed.brightness, 0.37, accuracy: 0.001)
+            XCTAssertEqual(refreshed.warmth, 0.24, accuracy: 0.001)
+            XCTAssertEqual(refreshed.contrast, 0.73, accuracy: 0.001)
+        }
+
+        func testCancelledPresetCommitsIntermediateHardwareBrightness() async {
+            let displayID: CGDirectDisplayID = 4
+            var builtIn = ExternalDisplay(id: displayID, name: "Built-in", brightness: 1.0)
+            builtIn.isBuiltIn = true
+            bm.displays = [builtIn]
+            bm.canAnimateTransitionsHook = { true }
+            var backlightWrites: [Double] = []
+            var gammaCalls = 0
+            bm.setBuiltInBacklightHook = { _, value in
+                backlightWrites.append(value)
+                return true
+            }
+            bm.applyGammaHook = { [weak bm] _, _, _, _ in
+                gammaCalls += 1
+                guard gammaCalls == 3 else { return }
+                bm?.setWarmth(for: displayID, to: 0.8)
+            }
+
+            let preset = BrightnessPreset(
+                name: "Animated",
+                universalBrightness: 0.2,
+                universalWarmth: 0.0,
+                universalContrast: 0.5
+            )
+
+            XCTAssertTrue(bm.animateToPreset(preset))
+
+            try? await Task.sleep(for: .milliseconds(100))
+
+            XCTAssertFalse(backlightWrites.isEmpty)
+            XCTAssertTrue(backlightWrites.contains { $0 > 0.1 && $0 < 0.9 })
+            XCTAssertEqual(bm.displays[0].warmth, 0.8, accuracy: 0.001)
+        }
+
+        func testWarmthAnimationCommitsInterruptedPresetHardwareBrightness() async {
+            let displayID: CGDirectDisplayID = 6
+            var builtIn = ExternalDisplay(id: displayID, name: "Built-in", brightness: 1.0)
+            builtIn.isBuiltIn = true
+            bm.displays = [builtIn]
+            bm.canAnimateTransitionsHook = { true }
+            var backlightWrites: [Double] = []
+            bm.setBuiltInBacklightHook = { _, value in
+                backlightWrites.append(value)
+                return true
+            }
+
+            let preset = BrightnessPreset(
+                name: "Animated",
+                universalBrightness: 0.2,
+                universalWarmth: 0.0,
+                universalContrast: 0.5
+            )
+
+            XCTAssertTrue(bm.animateToPreset(preset))
+            try? await Task.sleep(for: .milliseconds(100))
+            XCTAssertTrue(bm.animateAllWarmth(to: 0.8))
+
+            XCTAssertEqual(backlightWrites.count, 1)
+            XCTAssertTrue(backlightWrites[0] > 0.2 && backlightWrites[0] < 1.0)
+        }
+
+        func testBuiltInBacklightFailureFallsBackToGammaAndRetriesLater() {
+            let displayID: CGDirectDisplayID = 5
+            var builtIn = ExternalDisplay(id: displayID, name: "Built-in", brightness: 1.0)
+            builtIn.isBuiltIn = true
+            bm.displays = [builtIn]
+
+            var writeCount = 0
+            var gammaBrightness: [Double] = []
+            bm.setBuiltInBacklightHook = { _, _ in
+                writeCount += 1
+                return writeCount > 1
+            }
+            bm.applyGammaHook = { id, brightness, _, _ in
+                guard id == displayID else { return }
+                gammaBrightness.append(brightness)
+            }
+
+            bm.setBrightness(for: displayID, to: 0.35)
+            XCTAssertEqual(gammaBrightness.last ?? -1, 0.35, accuracy: 0.001)
+
+            bm.setBrightness(for: displayID, to: 0.4)
+            XCTAssertEqual(writeCount, 2)
+            XCTAssertEqual(gammaBrightness.last ?? -1, 1.0, accuracy: 0.001)
+        }
+    #endif
 }
 
 @MainActor

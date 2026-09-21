@@ -67,7 +67,9 @@ final class BrightnessPresetTests: XCTestCase {
 
     /// Tests PresetManager max preset limit
     func testMaxPresetLimit() {
-        let manager = PresetManager()
+        let fixture = IsolatedPresetManagerFixture()
+        defer { fixture.cleanup() }
+        let manager = fixture.manager
         // Clear any existing presets
         while !manager.presets.isEmpty {
             manager.deletePreset(id: manager.presets[0].id)
@@ -93,7 +95,9 @@ final class BrightnessPresetTests: XCTestCase {
 
     /// Tests delete operation
     func testDeletePreset() {
-        let manager = PresetManager()
+        let fixture = IsolatedPresetManagerFixture()
+        defer { fixture.cleanup() }
+        let manager = fixture.manager
         let bm = BrightnessManager(forTesting: true)
 
         manager.saveCurrentAsPreset(name: "To Delete", brightnessManager: bm)
@@ -109,7 +113,9 @@ final class BrightnessPresetTests: XCTestCase {
 
     /// Tests rename operation
     func testRenamePreset() {
-        let manager = PresetManager()
+        let fixture = IsolatedPresetManagerFixture()
+        defer { fixture.cleanup() }
+        let manager = fixture.manager
         let bm = BrightnessManager(forTesting: true)
 
         manager.saveCurrentAsPreset(name: "Original", brightnessManager: bm)

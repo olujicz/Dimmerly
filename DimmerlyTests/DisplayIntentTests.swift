@@ -11,29 +11,137 @@ import XCTest
 
 @MainActor
 final class DisplayIntentTests: XCTestCase {
-    func testResolverRejectsMalformedAndDisconnectedIdentifiers() {
+    func testStableResolverRejectsMalformedAndDisconnectedIdentifiers() {
         XCTAssertThrowsError(try ConnectedDisplayResolver.resolve(
             DisplayEntity(id: "not-a-display", name: "Invalid"),
-            connectedIDs: { [42] }
+            connectedDescriptors: {
+                [ConnectedDisplayDescriptor(id: 42, stableIdentity: "display:v123m456s789", name: "External")]
+            }
         ))
         XCTAssertThrowsError(try ConnectedDisplayResolver.resolve(
-            DisplayEntity(id: "42", name: "Disconnected"),
-            connectedIDs: { [7] }
+            DisplayEntity(id: "display:v123m456s999", name: "Disconnected"),
+            connectedDescriptors: {
+                [ConnectedDisplayDescriptor(id: 42, stableIdentity: "display:v123m456s789", name: "External")]
+            }
         ))
     }
 
-    func testResolverReturnsConnectedDisplay() throws {
-        let resolved = try ConnectedDisplayResolver.resolve(
-            DisplayEntity(id: "42", name: "Connected"),
-            connectedIDs: { [7, 42] }
+    func testStableResolverMapsPersistedIdentityToAChangedNumericID() throws {
+        let entity = DisplayEntity(id: "display:v123m456s789", name: "External")
+        let resolved = try ConnectedDisplayResolver.resolve(entity) {
+            [ConnectedDisplayDescriptor(id: 77, stableIdentity: "display:v123m456s789", name: "External")]
+        }
+
+        XCTAssertEqual(resolved, 77)
+    }
+
+    func testStableResolverRejectsLegacyNumericIDAfterDisplayIDReuse() {
+        let entity = DisplayEntity(id: "42", name: "Former Display")
+        XCTAssertThrowsError(try ConnectedDisplayResolver.resolve(entity) {
+            [ConnectedDisplayDescriptor(id: 42, stableIdentity: "display:v123m456s789", name: "Different")]
+        })
+    }
+
+    func testStableResolverRejectsNumericIdentifierEvenWhenDescriptorMatches() {
+        let entity = DisplayEntity(id: "42", name: "Former Display")
+
+        XCTAssertThrowsError(try ConnectedDisplayResolver.resolve(entity) {
+            [ConnectedDisplayDescriptor(id: 42, stableIdentity: "42", name: "Reused Display")]
+        })
+    }
+
+    func testDisplayEntityIdentifierOnlyAcceptsStableDescriptors() {
+        XCTAssertTrue(DisplayEntityIdentifier.isSafelyPersistable("display:v123m456s789"))
+        XCTAssertFalse(DisplayEntityIdentifier.isSafelyPersistable("legacy:42"))
+        XCTAssertFalse(DisplayEntityIdentifier.isSafelyPersistable("42"))
+    }
+
+    func testDisplayEntityFactoryFiltersUnstableSuggestedEntities() throws {
+        let stableIdentity = try XCTUnwrap(BrightnessManager.stableDisplayIdentity(
+            vendor: 123,
+            model: 456,
+            serial: 789,
+            unitNumber: 1
+        ))
+        let entities = DisplayEntityFactory.makeEntities(from: [
+            ConnectedDisplayDescriptor(id: 42, stableIdentity: stableIdentity, name: "Stable"),
+            ConnectedDisplayDescriptor(id: 43, stableIdentity: "43", name: "Legacy"),
+        ])
+
+        XCTAssertEqual(entities.map(\.id), [stableIdentity])
+        XCTAssertEqual(entities.map(\.name), ["Stable"])
+    }
+
+    func testDisplayEntityFactoryFiltersUnstableEntityIdentifiers() throws {
+        let stableIdentity = try XCTUnwrap(BrightnessManager.stableDisplayIdentity(
+            vendor: 123,
+            model: 456,
+            serial: 789,
+            unitNumber: 1
+        ))
+        let descriptors = [
+            ConnectedDisplayDescriptor(id: 42, stableIdentity: stableIdentity, name: "Stable"),
+            ConnectedDisplayDescriptor(id: 43, stableIdentity: "43", name: "Legacy"),
+        ]
+
+        let entities = DisplayEntityFactory.makeEntities(
+            for: [stableIdentity, "43"],
+            from: descriptors
         )
 
-        XCTAssertEqual(resolved, 42)
+        XCTAssertEqual(entities.map(\.id), [stableIdentity])
+        XCTAssertEqual(entities.map(\.name), ["Stable"])
+    }
+
+    func testDisplayEntityFactoryFiltersDuplicateStableSuggestedEntities() throws {
+        let stableIdentity = try XCTUnwrap(BrightnessManager.stableDisplayIdentity(
+            vendor: 123,
+            model: 456,
+            serial: 789,
+            unitNumber: 1
+        ))
+        let entities = DisplayEntityFactory.makeEntities(from: [
+            ConnectedDisplayDescriptor(id: 42, stableIdentity: stableIdentity, name: "First"),
+            ConnectedDisplayDescriptor(id: 43, stableIdentity: stableIdentity, name: "Second"),
+        ])
+
+        XCTAssertTrue(entities.isEmpty)
+    }
+
+    func testDisplayEntityFactoryFiltersDuplicateStableEntityIdentifiers() throws {
+        let stableIdentity = try XCTUnwrap(BrightnessManager.stableDisplayIdentity(
+            vendor: 123,
+            model: 456,
+            serial: 789,
+            unitNumber: 1
+        ))
+        let descriptors = [
+            ConnectedDisplayDescriptor(id: 42, stableIdentity: stableIdentity, name: "First"),
+            ConnectedDisplayDescriptor(id: 43, stableIdentity: stableIdentity, name: "Second"),
+        ]
+
+        let entities = DisplayEntityFactory.makeEntities(for: [stableIdentity], from: descriptors)
+
+        XCTAssertTrue(entities.isEmpty)
+    }
+
+    func testStableResolverRejectsDuplicateStableIdentity() {
+        let entity = DisplayEntity(id: "display:v123m456s789", name: "Duplicate")
+        XCTAssertThrowsError(try ConnectedDisplayResolver.resolve(entity) {
+            [
+                ConnectedDisplayDescriptor(id: 7, stableIdentity: entity.id, name: "A"),
+                ConnectedDisplayDescriptor(id: 8, stableIdentity: entity.id, name: "B"),
+            ]
+        })
     }
 
     func testDisplayIntentsExecuteAgainstConnectedDisplay() throws {
-        let command = DisplayIntentCommandSpy(connectedDisplayIDs: [42])
-        let entity = DisplayEntity(id: "42", name: "External")
+        let entity = DisplayEntity(id: "display:v123m456s789", name: "External")
+        let command = DisplayIntentCommandSpy(
+            connectedDisplayDescriptors: [
+                ConnectedDisplayDescriptor(id: 42, stableIdentity: entity.id, name: entity.name),
+            ]
+        )
 
         let brightnessIntent = SetDisplayBrightnessIntent()
         brightnessIntent.display = entity
@@ -61,7 +169,7 @@ final class DisplayIntentTests: XCTestCase {
     }
 
     func testStaleDimIntentFailsWithoutInvokingCommand() {
-        let command = DisplayIntentCommandSpy(connectedDisplayIDs: [])
+        let command = DisplayIntentCommandSpy(connectedDisplayDescriptors: [])
         let intent = ToggleDimIntent()
         intent.display = DisplayEntity(id: "42", name: "Former Display")
 
@@ -70,9 +178,14 @@ final class DisplayIntentTests: XCTestCase {
     }
 
     func testBrightnessIntentAcceptsSharedRangeBoundaries() throws {
-        let command = DisplayIntentCommandSpy(connectedDisplayIDs: [42])
+        let entity = DisplayEntity(id: "display:v123m456s789", name: "External")
+        let command = DisplayIntentCommandSpy(
+            connectedDisplayDescriptors: [
+                ConnectedDisplayDescriptor(id: 42, stableIdentity: entity.id, name: entity.name),
+            ]
+        )
         let intent = SetDisplayBrightnessIntent()
-        intent.display = DisplayEntity(id: "42", name: "External")
+        intent.display = entity
 
         intent.brightness = 10
         try intent.perform(using: command)
@@ -82,21 +195,37 @@ final class DisplayIntentTests: XCTestCase {
         XCTAssertEqual(command.brightnessCalls.map(\.value), [0.1, 1.0])
     }
 
-    func testBrightnessIntentRejectsValuesOutsideSharedRange() {
-        let command = DisplayIntentCommandSpy(connectedDisplayIDs: [42])
+    func testBrightnessIntentRejectsValuesOutsideSharedRange() throws {
+        let stableIdentity = try XCTUnwrap(BrightnessManager.stableDisplayIdentity(
+            vendor: 123,
+            model: 456,
+            serial: 789,
+            unitNumber: 1
+        ))
+        let command = DisplayIntentCommandSpy(connectedDisplayDescriptors: [
+            ConnectedDisplayDescriptor(id: 42, stableIdentity: stableIdentity, name: "External"),
+        ])
         let intent = SetDisplayBrightnessIntent()
-        intent.display = DisplayEntity(id: "42", name: "External")
+        intent.display = DisplayEntity(id: stableIdentity, name: "External")
 
         intent.brightness = 9
-        XCTAssertThrowsError(try intent.perform(using: command))
+        XCTAssertThrowsError(try intent.perform(using: command)) { error in
+            guard case .brightnessOutOfRange = error as? DisplayIntentError else {
+                return XCTFail("Expected brightnessOutOfRange, got \(error)")
+            }
+        }
         intent.brightness = 101
-        XCTAssertThrowsError(try intent.perform(using: command))
+        XCTAssertThrowsError(try intent.perform(using: command)) { error in
+            guard case .brightnessOutOfRange = error as? DisplayIntentError else {
+                return XCTFail("Expected brightnessOutOfRange, got \(error)")
+            }
+        }
 
         XCTAssertTrue(command.brightnessCalls.isEmpty)
     }
 
     func testContrastIntentRejectsValuesOutsideSharedRange() {
-        let command = DisplayIntentCommandSpy(connectedDisplayIDs: [42])
+        let command = DisplayIntentCommandSpy(connectedDisplayDescriptors: [])
         let intent = SetDisplayContrastIntent()
         intent.display = DisplayEntity(id: "42", name: "External")
 
@@ -113,9 +242,14 @@ final class DisplayIntentTests: XCTestCase {
     }
 
     func testContrastIntentAcceptsSharedRangeBoundaries() throws {
-        let command = DisplayIntentCommandSpy(connectedDisplayIDs: [42])
+        let entity = DisplayEntity(id: "display:v123m456s789", name: "External")
+        let command = DisplayIntentCommandSpy(
+            connectedDisplayDescriptors: [
+                ConnectedDisplayDescriptor(id: 42, stableIdentity: entity.id, name: entity.name),
+            ]
+        )
         let intent = SetDisplayContrastIntent()
-        intent.display = DisplayEntity(id: "42", name: "External")
+        intent.display = entity
 
         intent.contrast = 0
         try intent.perform(using: command)
@@ -126,7 +260,7 @@ final class DisplayIntentTests: XCTestCase {
     }
 
     func testWarmthIntentRejectsValuesOutsideSharedRange() {
-        let command = DisplayIntentCommandSpy(connectedDisplayIDs: [42])
+        let command = DisplayIntentCommandSpy(connectedDisplayDescriptors: [])
         let intent = SetDisplayWarmthIntent()
         intent.display = DisplayEntity(id: "42", name: "External")
 
@@ -143,9 +277,14 @@ final class DisplayIntentTests: XCTestCase {
     }
 
     func testWarmthIntentAcceptsSharedRangeBoundaries() throws {
-        let command = DisplayIntentCommandSpy(connectedDisplayIDs: [42])
+        let entity = DisplayEntity(id: "display:v123m456s789", name: "External")
+        let command = DisplayIntentCommandSpy(
+            connectedDisplayDescriptors: [
+                ConnectedDisplayDescriptor(id: 42, stableIdentity: entity.id, name: entity.name),
+            ]
+        )
         let intent = SetDisplayWarmthIntent()
-        intent.display = DisplayEntity(id: "42", name: "External")
+        intent.display = entity
 
         intent.warmth = 0
         try intent.perform(using: command)
@@ -171,14 +310,9 @@ final class DisplayIntentTests: XCTestCase {
     }
 
     func testOpenPresetIntentPresentsSelectedPreset() throws {
-        let suiteName = "DisplayIntentTests-\(UUID().uuidString)"
-        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
-        defer { defaults.removePersistentDomain(forName: suiteName) }
-
-        let presetManager = PresetManager(
-            defaults: defaults,
-            mainShortcutProvider: { GlobalShortcut.default }
-        )
+        let fixture = IsolatedPresetManagerFixture()
+        defer { fixture.cleanup() }
+        let presetManager = fixture.manager
         let preset = BrightnessPreset(name: "Evening")
         presetManager.presets = [preset]
         let coordinator = MenuBarPanelCoordinator()
@@ -250,14 +384,16 @@ private final class DisplayIntentCommandSpy: DisplayIntentCommanding {
         let displayID: CGDirectDisplayID
     }
 
-    var connectedDisplayIDs: [CGDirectDisplayID]
+    var connectedDisplayDescriptors: [ConnectedDisplayDescriptor]
     private(set) var brightnessCalls: [ValueCall] = []
     private(set) var warmthCalls: [ValueCall] = []
     private(set) var contrastCalls: [ValueCall] = []
     private(set) var dimCalls: [CGDirectDisplayID] = []
 
-    init(connectedDisplayIDs: [CGDirectDisplayID]) {
-        self.connectedDisplayIDs = connectedDisplayIDs
+    init(
+        connectedDisplayDescriptors: [ConnectedDisplayDescriptor]
+    ) {
+        self.connectedDisplayDescriptors = connectedDisplayDescriptors
     }
 
     func setBrightness(_ value: Double, for displayID: CGDirectDisplayID) {

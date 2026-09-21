@@ -70,6 +70,51 @@ import XCTest
             )
         }
 
+        func testIntelCandidateSelectorUsesExactSerialWhenModelsAreIdentical() {
+            let expected = DDCDisplayIdentity(vendorID: 0x1234, modelID: 0x5678, serialNumber: 42)
+            let candidates = [
+                DDCDisplayIdentity(vendorID: 0x1234, modelID: 0x5678, serialNumber: 7),
+                DDCDisplayIdentity(vendorID: 0x1234, modelID: 0x5678, serialNumber: 42),
+            ]
+
+            XCTAssertEqual(
+                DDCDisplayCandidateSelector.uniqueCandidateIndex(
+                    expected: expected,
+                    candidates: candidates
+                ),
+                1
+            )
+        }
+
+        func testIntelCandidateSelectorRefusesAmbiguousModelOnlyMatch() {
+            let expected = DDCDisplayIdentity(vendorID: 0x1234, modelID: 0x5678, serialNumber: nil)
+            let candidates = [
+                DDCDisplayIdentity(vendorID: 0x1234, modelID: 0x5678, serialNumber: 7),
+                DDCDisplayIdentity(vendorID: 0x1234, modelID: 0x5678, serialNumber: 42),
+            ]
+
+            XCTAssertNil(
+                DDCDisplayCandidateSelector.uniqueCandidateIndex(
+                    expected: expected,
+                    candidates: candidates
+                )
+            )
+        }
+
+        func testIntelCandidateSelectorRefusesExpectedSerialWithoutExactCandidate() {
+            let expected = DDCDisplayIdentity(vendorID: 0x1234, modelID: 0x5678, serialNumber: 42)
+            let candidates = [
+                DDCDisplayIdentity(vendorID: 0x1234, modelID: 0x5678, serialNumber: nil),
+            ]
+
+            XCTAssertNil(
+                DDCDisplayCandidateSelector.uniqueCandidateIndex(
+                    expected: expected,
+                    candidates: candidates
+                )
+            )
+        }
+
         func testAppleSiliconI2CTransportForwardsChipAddressToReadAndWrite() {
             var writeAddresses: [UInt32] = []
             var readAddresses: [UInt32] = []

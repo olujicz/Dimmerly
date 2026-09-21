@@ -5,6 +5,7 @@
 
 #if !APPSTORE
 
+    import CoreGraphics
     import Foundation
 
     struct DDCSession: Equatable, Sendable {
@@ -42,6 +43,43 @@
                 guard enabled, session.generation == generation else { return }
                 enabled = false
                 generation &+= 1
+            }
+        }
+    }
+
+    /// Identifies one physical connection for a CoreGraphics display ID. The numeric ID may be
+    /// reused after a disconnect, so queued DDC work must validate this token in addition to its
+    /// global session.
+    struct DDCDisplayConnectionToken: Equatable, Sendable {
+        let displayID: CGDirectDisplayID
+        let incarnation: UInt64
+    }
+
+    final class DDCDisplayConnectionGate: @unchecked Sendable {
+        private let lock = NSLock()
+        private var incarnations: [CGDirectDisplayID: UInt64] = [:]
+
+        func current(for displayID: CGDirectDisplayID) -> DDCDisplayConnectionToken {
+            lock.withLock {
+                DDCDisplayConnectionToken(
+                    displayID: displayID,
+                    incarnation: incarnations[displayID] ?? 0
+                )
+            }
+        }
+
+        @discardableResult
+        func advance(for displayID: CGDirectDisplayID) -> DDCDisplayConnectionToken {
+            lock.withLock {
+                let next = (incarnations[displayID] ?? 0) &+ 1
+                incarnations[displayID] = next
+                return DDCDisplayConnectionToken(displayID: displayID, incarnation: next)
+            }
+        }
+
+        func isCurrent(_ token: DDCDisplayConnectionToken) -> Bool {
+            lock.withLock {
+                (incarnations[token.displayID] ?? 0) == token.incarnation
             }
         }
     }

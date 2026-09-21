@@ -21,7 +21,10 @@ final class ScheduleManagerTests: XCTestCase {
         testSuiteName = "ScheduleManagerTests-\(UUID().uuidString)"
         testDefaults = UserDefaults(suiteName: testSuiteName)
         testDefaults.removePersistentDomain(forName: testSuiteName)
-        manager = ScheduleManager(defaults: testDefaults)
+        manager = ScheduleManager(
+            defaults: testDefaults,
+            locationCoordinates: { (latitude: 0.0, longitude: -40.0) }
+        )
         manager.schedules = []
     }
 
@@ -185,6 +188,55 @@ final class ScheduleManagerTests: XCTestCase {
         manager.checkSchedules(now: afterWake)
 
         XCTAssertEqual(firedPresets, [presetID], "Should fire yesterday's missed trigger after overnight sleep")
+    }
+
+    func testSolarOffsetCrossingMidnightChecksTheAdjacentSourceDay() throws {
+        var longitude = 0.0
+        let solarManager = ScheduleManager(
+            defaults: testDefaults,
+            locationCoordinates: { (latitude: 0.0, longitude: longitude) }
+        )
+        let sourceDay = makeDate(day: 1, hour: 12, minute: 0)
+        let trigger: Date = try XCTUnwrap(
+            stride(from: -180, through: 180, by: 1).lazy.compactMap { candidateLongitude in
+                longitude = Double(candidateLongitude)
+                guard let trigger = solarManager.resolveTriggerDate(
+                    .sunset(offsetMinutes: 120),
+                    on: sourceDay
+                ) else { return nil }
+                return Calendar.current.isDate(trigger, inSameDayAs: sourceDay) ? nil : trigger
+            }.first
+        )
+
+        var firedPresets: [UUID] = []
+        solarManager.onScheduleTriggered = { firedPresets.append($0) }
+
+        let presetID = UUID()
+        solarManager.addSchedule(
+            DimmingSchedule(
+                name: "Late sunset",
+                trigger: .sunset(offsetMinutes: 120),
+                presetID: presetID
+            )
+        )
+
+        let beforeTrigger = trigger.addingTimeInterval(-30)
+        let afterTrigger = trigger.addingTimeInterval(30)
+        XCTAssertEqual(
+            Calendar.current.component(.day, from: beforeTrigger),
+            Calendar.current.component(.day, from: afterTrigger),
+            "The fixture must keep the polling window on the trigger's occurrence day"
+        )
+        XCTAssertNotEqual(
+            Calendar.current.component(.day, from: sourceDay),
+            Calendar.current.component(.day, from: trigger),
+            "The solar offset must cross midnight for this regression"
+        )
+
+        solarManager.checkSchedules(now: beforeTrigger)
+        solarManager.checkSchedules(now: afterTrigger)
+
+        XCTAssertEqual(firedPresets, [presetID])
     }
 
     func testCheckSchedulesCatchesUpOnlyMostRecentMissedTrigger() {

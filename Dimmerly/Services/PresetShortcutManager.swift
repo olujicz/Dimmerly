@@ -35,6 +35,9 @@ class PresetShortcutManager {
     typealias GlobalMonitorInstaller = @MainActor (@escaping (NSEvent) -> Void) -> Any?
     typealias LocalMonitorInstaller = @MainActor (@escaping (NSEvent) -> NSEvent?) -> Any?
     typealias MonitorRemover = @MainActor (Any) -> Void
+    /// Whether a recorder overlay is capturing keys, in which case normal actions stay suppressed.
+    /// Injected like the monitor seams so `handleKeyEvent` is testable without the shared coordinator.
+    typealias RecordingSuppressionChecker = @MainActor () -> Bool
 
     /// Callback invoked when a preset shortcut is pressed (passes preset ID)
     var onPresetTriggered: ((UUID) -> Void)?
@@ -64,6 +67,7 @@ class PresetShortcutManager {
     private let globalMonitorInstaller: GlobalMonitorInstaller
     private let localMonitorInstaller: LocalMonitorInstaller
     private let monitorRemover: MonitorRemover
+    private let isRecordingSuppressed: RecordingSuppressionChecker
 
     init(
         permissionChecker: @escaping PermissionChecker = KeyboardShortcutManager.checkAccessibilityPermission,
@@ -75,12 +79,16 @@ class PresetShortcutManager {
         },
         monitorRemover: @escaping MonitorRemover = { monitor in
             NSEvent.removeMonitor(monitor)
+        },
+        isRecordingSuppressed: @escaping RecordingSuppressionChecker = {
+            ShortcutRecordingCoordinator.shared.isRecording
         }
     ) {
         self.permissionChecker = permissionChecker
         self.globalMonitorInstaller = globalMonitorInstaller
         self.localMonitorInstaller = localMonitorInstaller
         self.monitorRemover = monitorRemover
+        self.isRecordingSuppressed = isRecordingSuppressed
     }
 
     /// Updates the registered shortcuts from the current preset list.
@@ -159,8 +167,10 @@ class PresetShortcutManager {
     /// - Returns: `true` if the event matched a registered preset shortcut (and the callback fired).
     @discardableResult
     private func handleKeyEvent(keyCode: UInt16, modifierFlags: NSEvent.ModifierFlags) -> Bool {
-        guard let pressed = GlobalShortcut.from(keyCode: keyCode, modifierFlags: modifierFlags) else { return false }
-        for (id, shortcut) in presetShortcuts where shortcut == pressed {
+        guard !isRecordingSuppressed() else { return false }
+        for (id, shortcut) in presetShortcuts
+            where shortcut.matches(keyCode: keyCode, modifierFlags: modifierFlags)
+        {
             onPresetTriggered?(id)
             return true
         }

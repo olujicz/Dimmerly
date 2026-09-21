@@ -156,6 +156,18 @@
         private struct WriteKey: Hashable {
             let displayID: CGDirectDisplayID
             let vcp: VCPCode
+            let incarnation: UInt64
+
+            init(vcp: VCPCode, connection: DDCDisplayConnectionToken) {
+                displayID = connection.displayID
+                self.vcp = vcp
+                incarnation = connection.incarnation
+            }
+
+            /// The connection this key was minted against.
+            var connection: DDCDisplayConnectionToken {
+                DDCDisplayConnectionToken(displayID: displayID, incarnation: incarnation)
+            }
         }
 
         private final class DDCWriteTiming: @unchecked Sendable {
@@ -206,7 +218,7 @@
         /// Monotonic connection incarnation per display ID. A CoreGraphics display ID can be
         /// reused after a disconnect, so capability equality alone cannot identify the same
         /// physical connection.
-        private var displayIncarnation: [CGDirectDisplayID: UInt64] = [:]
+        private let displayConnectionGate = DDCDisplayConnectionGate()
 
         /// Monotonic per-key counter so a debounced write's own completion can tell whether
         /// it's still the current pending attempt for its key before clearing `pendingWrites`
@@ -243,6 +255,10 @@
         /// Injected in tests to avoid touching live display gamma state.
         private let displayRefreshHandler: () -> Void
 
+        /// Publishes an accepted external brightness read to the authoritative display model.
+        /// Kept injectable so hardware-manager tests do not need the process-wide singleton.
+        private let hardwareBrightnessReadHandler: @MainActor (CGDirectDisplayID, Double) -> Void
+
         /// Short retry window for a newly connected display whose DDC service is still starting.
         private let automaticProbeRetryDelays: [Duration] = [.milliseconds(250), .seconds(1)]
 
@@ -255,11 +271,15 @@
             },
             displayRefreshHandler: @escaping () -> Void = {
                 BrightnessManager.shared.refreshDisplays()
+            },
+            hardwareBrightnessReadHandler: @escaping @MainActor (CGDirectDisplayID, Double) -> Void = {
+                BrightnessManager.shared.synchronizeExternalHardwareBrightness(for: $0, to: $1)
             }
         ) {
             self.ddcInterface = ddcInterface
             self.connectedExternalDisplayIDsProvider = connectedExternalDisplayIDsProvider
             self.displayRefreshHandler = displayRefreshHandler
+            self.hardwareBrightnessReadHandler = hardwareBrightnessReadHandler
         }
 
         /// Test-only initializer that accepts a mock DDC interface.
@@ -271,11 +291,15 @@
             },
             displayRefreshHandler: @escaping () -> Void = {
                 BrightnessManager.shared.refreshDisplays()
+            },
+            hardwareBrightnessReadHandler: @escaping @MainActor (CGDirectDisplayID, Double) -> Void = {
+                BrightnessManager.shared.synchronizeExternalHardwareBrightness(for: $0, to: $1)
             }
         ) {
             self.ddcInterface = ddcInterface
             self.connectedExternalDisplayIDsProvider = connectedExternalDisplayIDsProvider
             self.displayRefreshHandler = displayRefreshHandler
+            self.hardwareBrightnessReadHandler = hardwareBrightnessReadHandler
         }
 
         // MARK: - Public API
@@ -361,13 +385,19 @@
         ) {
             let ddcIO = ddcInterface
             let ddcQueue = ddcQueue
+            let connectionTokens = Dictionary(uniqueKeysWithValues: displayIDs.map {
+                ($0, displayConnectionGate.current(for: $0))
+            })
 
             ddcQueue.async { [weak self] in
                 guard let self else { return }
                 var results: [CGDirectDisplayID: HardwareDisplayCapability] = [:]
 
                 for displayID in displayIDs {
-                    guard sessionGate.isCurrent(session) else { return }
+                    guard let connectionToken = connectionTokens[displayID],
+                          sessionGate.isCurrent(session),
+                          displayConnectionGate.isCurrent(connectionToken)
+                    else { return }
                     let capability = ddcIO.probeCapabilities(for: displayID)
                     results[displayID] = capability
                 }
@@ -376,7 +406,10 @@
                     guard let self, sessionGate.isCurrent(session) else { return }
                     let stillConnected = Set(connectedExternalDisplayIDsProvider())
                     for (displayID, cap) in results where stillConnected.contains(displayID) {
-                        advanceDisplayIncarnation(for: displayID)
+                        guard let connectionToken = connectionTokens[displayID],
+                              displayConnectionGate.isCurrent(connectionToken)
+                        else { continue }
+                        advanceDisplayConnection(for: displayID)
                         capabilities[displayID] = cap
                         cancelRecoveryProbes(for: displayID)
                         // A fresh probe gets a fresh failure budget — otherwise a display that
@@ -398,10 +431,15 @@
                     }
                     if let recoveryWriteKey,
                        let capability = results[recoveryWriteKey.displayID],
+                       stillConnected.contains(recoveryWriteKey.displayID),
                        !capability.supportedCodes.contains(recoveryWriteKey.vcp)
                     {
+                        let currentRecoveryKey = WriteKey(
+                            vcp: recoveryWriteKey.vcp,
+                            connection: displayConnectionGate.current(for: recoveryWriteKey.displayID)
+                        )
                         scheduleWriteFailureRecovery(
-                            for: recoveryWriteKey,
+                            for: currentRecoveryKey,
                             session: session,
                             retryDelays: remainingRecoveryDelays
                         )
@@ -452,11 +490,12 @@
             guard let cap = capabilities[displayID], cap.supportsBrightness else { return }
 
             let clamped = min(max(value, 0.0), 1.0)
-            markLocalWrite(vcp: .brightness, for: displayID)
+            let connection = displayConnectionGate.current(for: displayID)
+            markLocalWrite(vcp: .brightness, connection: connection)
             hardwareBrightness[displayID] = clamped
 
             let rawValue = UInt16((clamped * Double(cap.maxBrightness)).rounded())
-            debouncedWrite(vcp: .brightness, value: rawValue, for: displayID)
+            debouncedWrite(vcp: .brightness, value: rawValue, for: displayID, connection: connection)
         }
 
         /// Sets the hardware contrast for a display via DDC/CI.
@@ -469,11 +508,12 @@
             guard let cap = capabilities[displayID], cap.supportsContrast else { return }
 
             let clamped = min(max(value, 0.0), 1.0)
-            markLocalWrite(vcp: .contrast, for: displayID)
+            let connection = displayConnectionGate.current(for: displayID)
+            markLocalWrite(vcp: .contrast, connection: connection)
             hardwareContrast[displayID] = clamped
 
             let rawValue = UInt16((clamped * Double(cap.maxContrast)).rounded())
-            debouncedWrite(vcp: .contrast, value: rawValue, for: displayID)
+            debouncedWrite(vcp: .contrast, value: rawValue, for: displayID, connection: connection)
         }
 
         /// Sets the hardware volume for a display via DDC/CI.
@@ -486,11 +526,12 @@
             guard let cap = capabilities[displayID], cap.supportsVolume else { return }
 
             let clamped = min(max(value, 0.0), 1.0)
-            markLocalWrite(vcp: .volume, for: displayID)
+            let connection = displayConnectionGate.current(for: displayID)
+            markLocalWrite(vcp: .volume, connection: connection)
             hardwareVolume[displayID] = clamped
 
             let rawValue = UInt16((clamped * Double(cap.maxVolume)).rounded())
-            debouncedWrite(vcp: .volume, value: rawValue, for: displayID)
+            debouncedWrite(vcp: .volume, value: rawValue, for: displayID, connection: connection)
         }
 
         /// Toggles audio mute for a display via DDC/CI.
@@ -504,11 +545,12 @@
 
             let currentlyMuted = hardwareMute[displayID] ?? false
             let newMuted = !currentlyMuted
-            markLocalWrite(vcp: .audioMute, for: displayID)
+            let connection = displayConnectionGate.current(for: displayID)
+            markLocalWrite(vcp: .audioMute, connection: connection)
             hardwareMute[displayID] = newMuted
 
             let rawValue: UInt16 = newMuted ? 1 : 2
-            debouncedWrite(vcp: .audioMute, value: rawValue, for: displayID)
+            debouncedWrite(vcp: .audioMute, value: rawValue, for: displayID, connection: connection)
         }
 
         /// Sets the input source for a display via DDC/CI.
@@ -520,9 +562,10 @@
             guard sessionGate.capture() != nil else { return }
             guard let cap = capabilities[displayID], cap.supportsInputSource else { return }
 
-            markLocalWrite(vcp: .inputSource, for: displayID)
+            let connection = displayConnectionGate.current(for: displayID)
+            markLocalWrite(vcp: .inputSource, connection: connection)
             activeInputSource[displayID] = source
-            debouncedWrite(vcp: .inputSource, value: source.rawValue, for: displayID)
+            debouncedWrite(vcp: .inputSource, value: source.rawValue, for: displayID, connection: connection)
         }
 
         /// Returns the available input sources for a display.
@@ -581,23 +624,14 @@
 
         /// Cleans up state for disconnected displays.
         func removeDisplay(_ displayID: CGDirectDisplayID) {
-            advanceDisplayIncarnation(for: displayID)
+            advanceDisplayConnection(for: displayID)
             capabilities.removeValue(forKey: displayID)
             hardwareBrightness.removeValue(forKey: displayID)
             hardwareContrast.removeValue(forKey: displayID)
             hardwareVolume.removeValue(forKey: displayID)
             hardwareMute.removeValue(forKey: displayID)
             activeInputSource.removeValue(forKey: displayID)
-            // Cancel and remove all pending writes for this display (any VCP code)
-            for key in pendingWrites.keys where key.displayID == displayID {
-                pendingWrites[key]?.cancel()
-                pendingWrites.removeValue(forKey: key)
-            }
-            pendingWriteGeneration = pendingWriteGeneration.filter { $0.key.displayID != displayID }
-            pendingHardwareWrites = pendingHardwareWrites.filter { $0.key.displayID != displayID }
-            lastLocalWriteTime = lastLocalWriteTime.filter { $0.key.displayID != displayID }
             writeTiming.removeDisplay(displayID)
-            consecutiveWriteFailures = consecutiveWriteFailures.filter { $0.key.displayID != displayID }
             cancelRecoveryProbes(for: displayID)
         }
 
@@ -618,7 +652,79 @@
 
         // MARK: - Private: DDC Read
 
-        // swiftlint:disable cyclomatic_complexity
+        private struct HardwareReadValues {
+            let brightness: Double?
+            let contrast: Double?
+            let volume: Double?
+            let muted: Bool?
+            let inputSource: InputSource?
+        }
+
+        // The helper carries the immutable gates and I/O seam needed by the background queue.
+        // swiftlint:disable:next function_parameter_count
+        private nonisolated static func readHardwareValues(
+            for displayID: CGDirectDisplayID,
+            capability: HardwareDisplayCapability,
+            session: DDCSession,
+            connection: DDCDisplayConnectionToken,
+            ddcInterface: any DDCInterface,
+            sessionGate: DDCSessionGate,
+            displayConnectionGate: DDCDisplayConnectionGate
+        ) -> HardwareReadValues? {
+            // The display can be unplugged or DDC disabled mid-read; re-check before each
+            // transaction so an abandoned poll never publishes values from a dead connection.
+            let isLive = { sessionGate.isCurrent(session) && displayConnectionGate.isCurrent(connection) }
+            var brightness: Double?
+            var contrast: Double?
+            var volume: Double?
+            var muted: Bool?
+            var inputSource: InputSource?
+
+            if capability.supportsBrightness {
+                guard isLive() else { return nil }
+                if let result = ddcInterface.read(vcp: .brightness, for: displayID) {
+                    brightness = Double(result.currentValue) / Double(result.maxValue)
+                }
+            }
+
+            if capability.supportsContrast {
+                guard isLive() else { return nil }
+                if let result = ddcInterface.read(vcp: .contrast, for: displayID) {
+                    contrast = Double(result.currentValue) / Double(result.maxValue)
+                }
+            }
+
+            if capability.supportsVolume {
+                guard isLive() else { return nil }
+                if let result = ddcInterface.read(vcp: .volume, for: displayID) {
+                    volume = Double(result.currentValue) / Double(result.maxValue)
+                }
+            }
+
+            if capability.supportsAudioMute {
+                guard isLive() else { return nil }
+                if let result = ddcInterface.read(vcp: .audioMute, for: displayID) {
+                    // Non-continuous VCP: value in low byte only
+                    muted = (result.currentValue & 0xFF) == 1
+                }
+            }
+
+            if capability.supportsInputSource {
+                guard isLive() else { return nil }
+                if let result = ddcInterface.read(vcp: .inputSource, for: displayID) {
+                    // Non-continuous VCP codes return the value in the low byte only
+                    inputSource = InputSource(rawValue: result.currentValue & 0xFF)
+                }
+            }
+
+            return HardwareReadValues(
+                brightness: brightness,
+                contrast: contrast,
+                volume: volume,
+                muted: muted,
+                inputSource: inputSource
+            )
+        }
 
         /// Reads all supported VCP values for a display.
         ///
@@ -628,86 +734,59 @@
         private func readAllValues(for displayID: CGDirectDisplayID) {
             guard let session = sessionGate.capture() else { return }
             guard let cap = capabilities[displayID], cap.supportsDDC else { return }
-            let incarnation = displayIncarnation[displayID] ?? 0
+            let connection = displayConnectionGate.current(for: displayID)
 
             let ddcIO = ddcInterface
             let ddcQueue = ddcQueue
             ddcQueue.async { [weak self] in
                 guard let self else { return }
                 let readStartedAt = Date()
-                var brightness: Double?
-                var contrast: Double?
-                var volume: Double?
-                var muted: Bool?
-                var inputSource: InputSource?
-
-                if cap.supportsBrightness {
-                    guard sessionGate.isCurrent(session) else { return }
-                    if let result = ddcIO.read(vcp: .brightness, for: displayID) {
-                        brightness = Double(result.currentValue) / Double(result.maxValue)
-                    }
-                }
-
-                if cap.supportsContrast {
-                    guard sessionGate.isCurrent(session) else { return }
-                    if let result = ddcIO.read(vcp: .contrast, for: displayID) {
-                        contrast = Double(result.currentValue) / Double(result.maxValue)
-                    }
-                }
-
-                if cap.supportsVolume {
-                    guard sessionGate.isCurrent(session) else { return }
-                    if let result = ddcIO.read(vcp: .volume, for: displayID) {
-                        volume = Double(result.currentValue) / Double(result.maxValue)
-                    }
-                }
-
-                if cap.supportsAudioMute {
-                    guard sessionGate.isCurrent(session) else { return }
-                    if let result = ddcIO.read(vcp: .audioMute, for: displayID) {
-                        // Non-continuous VCP: value in low byte only
-                        muted = (result.currentValue & 0xFF) == 1
-                    }
-                }
-
-                if cap.supportsInputSource {
-                    guard sessionGate.isCurrent(session) else { return }
-                    if let result = ddcIO.read(vcp: .inputSource, for: displayID) {
-                        // Non-continuous VCP codes return the value in the low byte only
-                        inputSource = InputSource(rawValue: result.currentValue & 0xFF)
-                    }
-                }
+                guard let values = Self.readHardwareValues(
+                    for: displayID,
+                    capability: cap,
+                    session: session,
+                    connection: connection,
+                    ddcInterface: ddcIO,
+                    sessionGate: sessionGate,
+                    displayConnectionGate: displayConnectionGate
+                ) else { return }
 
                 // Apply all read values on the main actor in a single hop
                 Task { @MainActor [weak self] in
                     guard let self else { return }
                     defer { readPublicationHookForTesting?() }
                     guard sessionGate.isCurrent(session),
-                          capabilities[displayID] == cap,
-                          displayIncarnation[displayID] == incarnation
+                          displayConnectionGate.isCurrent(connection),
+                          capabilities[displayID] == cap
                     else { return }
-                    if let brightness, shouldApplyRead(vcp: .brightness, for: displayID, readStartedAt: readStartedAt) {
-                        hardwareBrightness[displayID] = brightness
+                    let canApply = { (vcp: VCPCode) in
+                        self.shouldApplyRead(
+                            vcp: vcp,
+                            connection: connection,
+                            readStartedAt: readStartedAt
+                        )
                     }
-                    if let contrast, shouldApplyRead(vcp: .contrast, for: displayID, readStartedAt: readStartedAt) {
+                    if let brightness = values.brightness, canApply(.brightness) {
+                        hardwareBrightness[displayID] = brightness
+                        if controlMode == .hardware {
+                            hardwareBrightnessReadHandler(displayID, brightness)
+                        }
+                    }
+                    if let contrast = values.contrast, canApply(.contrast) {
                         hardwareContrast[displayID] = contrast
                     }
-                    if let volume, shouldApplyRead(vcp: .volume, for: displayID, readStartedAt: readStartedAt) {
+                    if let volume = values.volume, canApply(.volume) {
                         hardwareVolume[displayID] = volume
                     }
-                    if let muted, shouldApplyRead(vcp: .audioMute, for: displayID, readStartedAt: readStartedAt) {
+                    if let muted = values.muted, canApply(.audioMute) {
                         hardwareMute[displayID] = muted
                     }
-                    if let inputSource,
-                       shouldApplyRead(vcp: .inputSource, for: displayID, readStartedAt: readStartedAt)
-                    {
+                    if let inputSource = values.inputSource, canApply(.inputSource) {
                         activeInputSource[displayID] = inputSource
                     }
                 }
             }
         }
-
-        // swiftlint:enable cyclomatic_complexity
 
         /// Polls all DDC-capable displays for updated values.
         private func pollAllDisplays() {
@@ -723,10 +802,16 @@
         /// When the user drags a slider, this coalesces rapid changes into a single
         /// DDC write after the debounce delay. A per-display pending task ensures
         /// the last value wins.
-        private func debouncedWrite(vcp: VCPCode, value: UInt16, for displayID: CGDirectDisplayID) {
+        private func debouncedWrite(
+            vcp: VCPCode,
+            value: UInt16,
+            for displayID: CGDirectDisplayID,
+            connection: DDCDisplayConnectionToken
+        ) {
             guard let session = sessionGate.capture() else { return }
+            guard displayConnectionGate.isCurrent(connection) else { return }
             // Cancel any pending write for this display+VCP pair
-            let writeKey = WriteKey(displayID: displayID, vcp: vcp)
+            let writeKey = WriteKey(vcp: vcp, connection: connection)
             pendingWrites[writeKey]?.cancel()
 
             let generation = (pendingWriteGeneration[writeKey] ?? 0) + 1
@@ -749,14 +834,23 @@
                     return
                 }
 
-                guard let self, sessionGate.isCurrent(session) else {
+                guard let self,
+                      sessionGate.isCurrent(session),
+                      displayConnectionGate.isCurrent(connection)
+                else {
                     self?.decrementPendingHardwareWrite(writeKey)
                     self?.clearPendingWriteSlotIfCurrent(writeKey, generation: generation)
                     return
                 }
 
                 // Perform the write
-                performWrite(vcp: vcp, value: value, for: displayID, session: session)
+                performWrite(
+                    vcp: vcp,
+                    value: value,
+                    for: displayID,
+                    session: session,
+                    connection: connection
+                )
                 clearPendingWriteSlotIfCurrent(writeKey, generation: generation)
             }
         }
@@ -796,23 +890,27 @@
             vcp: VCPCode,
             value: UInt16,
             for displayID: CGDirectDisplayID,
-            session: DDCSession
+            session: DDCSession,
+            connection: DDCDisplayConnectionToken
         ) {
             let ddcIO = ddcInterface
             let minInterval = minimumWriteInterval
             let threshold = maxWriteFailuresBeforeFallback
             let ddcQueue = ddcQueue
             let writeTiming = writeTiming
-            let writeKey = WriteKey(displayID: displayID, vcp: vcp)
+            let writeKey = WriteKey(vcp: vcp, connection: connection)
             ddcQueue.async { [weak self] in
                 guard let self else { return }
-                guard sessionGate.isCurrent(session) else { return }
+                guard sessionGate.isCurrent(session), displayConnectionGate.isCurrent(connection) else { return }
                 writeTiming.waitUntilReady(for: displayID, minimumInterval: minInterval)
-                guard sessionGate.isCurrent(session) else { return }
+                guard sessionGate.isCurrent(session), displayConnectionGate.isCurrent(connection) else { return }
                 let success = ddcIO.write(vcp: vcp, value: value, for: displayID)
 
                 Task { @MainActor [weak self] in
-                    guard let self, sessionGate.isCurrent(session) else { return }
+                    guard let self,
+                          sessionGate.isCurrent(session),
+                          displayConnectionGate.isCurrent(connection)
+                    else { return }
                     decrementPendingHardwareWrite(writeKey)
 
                     if success {
@@ -851,6 +949,7 @@
         ) {
             guard let delay = retryDelays.first else { return }
             guard recoveryProbeTasks[writeKey] == nil else { return }
+            guard displayConnectionGate.isCurrent(writeKey.connection) else { return }
 
             recoveryProbeTasks[writeKey] = Task { [weak self] in
                 do {
@@ -858,6 +957,7 @@
                     try await Task.sleep(for: delay)
                     guard sessionGate.isCurrent(session) else { return }
                     guard connectedExternalDisplayIDsProvider().contains(writeKey.displayID) else { return }
+                    guard displayConnectionGate.isCurrent(writeKey.connection) else { return }
 
                     recoveryProbeTasks.removeValue(forKey: writeKey)
                     probe(
@@ -880,22 +980,34 @@
             }
         }
 
-        private func advanceDisplayIncarnation(for displayID: CGDirectDisplayID) {
-            displayIncarnation[displayID] = (displayIncarnation[displayID] ?? 0) &+ 1
+        @discardableResult
+        private func advanceDisplayConnection(for displayID: CGDirectDisplayID) -> DDCDisplayConnectionToken {
+            for key in pendingWrites.keys where key.displayID == displayID {
+                pendingWrites[key]?.cancel()
+            }
+            pendingWrites = pendingWrites.filter { $0.key.displayID != displayID }
+            pendingWriteGeneration = pendingWriteGeneration.filter { $0.key.displayID != displayID }
+            pendingHardwareWrites = pendingHardwareWrites.filter { $0.key.displayID != displayID }
+            lastLocalWriteTime = lastLocalWriteTime.filter { $0.key.displayID != displayID }
+            consecutiveWriteFailures = consecutiveWriteFailures.filter { $0.key.displayID != displayID }
+            return displayConnectionGate.advance(for: displayID)
         }
 
-        private func markLocalWrite(vcp: VCPCode, for displayID: CGDirectDisplayID) {
-            let writeKey = WriteKey(displayID: displayID, vcp: vcp)
+        private func markLocalWrite(
+            vcp: VCPCode,
+            connection: DDCDisplayConnectionToken
+        ) {
+            let writeKey = WriteKey(vcp: vcp, connection: connection)
             pendingHardwareWrites[writeKey, default: 0] += 1
             lastLocalWriteTime[writeKey] = Date()
         }
 
         private func shouldApplyRead(
             vcp: VCPCode,
-            for displayID: CGDirectDisplayID,
+            connection: DDCDisplayConnectionToken,
             readStartedAt: Date
         ) -> Bool {
-            let writeKey = WriteKey(displayID: displayID, vcp: vcp)
+            let writeKey = WriteKey(vcp: vcp, connection: connection)
             guard (pendingHardwareWrites[writeKey] ?? 0) == 0 else { return false }
             guard let localWriteTime = lastLocalWriteTime[writeKey] else { return true }
             return localWriteTime <= readStartedAt

@@ -50,7 +50,7 @@ struct SetDisplayBrightnessIntent: AppIntent {
             throw DisplayIntentError.brightnessOutOfRange
         }
         let displayID = try ConnectedDisplayResolver.resolve(display) {
-            command.connectedDisplayIDs
+            command.connectedDisplayDescriptors
         }
         command.setBrightness(brightness / 100, for: displayID)
     }

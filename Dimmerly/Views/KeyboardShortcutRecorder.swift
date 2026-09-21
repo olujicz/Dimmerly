@@ -19,6 +19,7 @@ struct KeyboardShortcutRecorder: View {
 
     /// Whether the recorder is actively listening for input
     @State private var isRecording = false
+    @State private var recorderID = UUID()
 
     /// Warning message shown when a reserved shortcut is attempted
     @State private var conflictMessage: String?
@@ -95,7 +96,11 @@ struct KeyboardShortcutRecorder: View {
             }
         }
         .onChange(of: isRecording) { _, newValue in
+            ShortcutRecordingCoordinator.shared.setRecording(newValue, for: recorderID)
             onRecordingChanged?(newValue)
+        }
+        .onDisappear {
+            ShortcutRecordingCoordinator.shared.setRecording(false, for: recorderID)
         }
     }
 }
@@ -166,7 +171,11 @@ private class ShortcutCaptureView: NSView {
         }
 
         // Try to create a shortcut from the event
-        if let shortcut = GlobalShortcut.from(keyCode: event.keyCode, modifierFlags: event.modifierFlags) {
+        if let shortcut = GlobalShortcut.from(
+            keyCode: event.keyCode,
+            modifierFlags: event.modifierFlags,
+            charactersIgnoringModifiers: event.charactersIgnoringModifiers
+        ) {
             if shortcut.isValid {
                 if shortcut.isReservedSystemShortcut {
                     onConflictDetected?(
