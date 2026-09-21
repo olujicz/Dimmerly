@@ -271,10 +271,13 @@ class BrightnessManager {
         monitor.start()
         wakeMonitor = monitor
 
-        // Detect display plug/unplug
+        // Detect display plug/unplug. Blanking reconciliation belongs here rather than in
+        // `refreshDisplays()`: that also runs at startup and after every DDC capability probe,
+        // neither of which is a topology change.
         reconfigurationToken = DisplayReconfigurationToken { [weak self] in
             Task { @MainActor in
                 self?.refreshDisplays()
+                ScreenBlanker.shared.displayTopologyDidChange()
             }
         }
 
@@ -602,7 +605,6 @@ class BrightnessManager {
         }
 
         displays = newDisplays
-        ScreenBlanker.shared.displayTopologyDidChange()
         reapplyAfterRefresh(suppressingBuiltInBacklightFor: builtInDisplaysWithSuppressedBacklight)
     }
 

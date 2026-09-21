@@ -177,6 +177,7 @@ final class ScreenBlanker {
     /// Global blanking also needs to remove disconnected windows and cover newly-arrived displays
     /// while the session is still active.
     func displayTopologyDidChange() {
+        guard isBlanking || !blankedDisplayIDs.isEmpty || isPerDisplayFullBlanked else { return }
         let activeDisplayIDs = Set(displays.activeDisplayIDs)
 
         if isBlanking {
