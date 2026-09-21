@@ -13,11 +13,42 @@ import Observation
 final class ScreenBlanker {
     static let shared = ScreenBlanker()
 
-    private enum State: Equatable {
-        case idle
+    /// How far along a global blanking session is, if one is running at all.
+    private enum GlobalBlankingPhase: Equatable {
+        case none
+        /// Fading to black. The set is what the fade targets.
         case fading(Set<CGDirectDisplayID>)
+        /// Covered, windows up.
         case blanked(Set<CGDirectDisplayID>)
-        case restoring
+    }
+
+    /// The whole blanking picture in one value, so the global session, the individually blanked
+    /// displays, and the recovery arming can never disagree with one another.
+    ///
+    /// Global and per-display blanking are tracked side by side rather than as alternatives: a
+    /// global blank can start on top of a partial per-display one, and the way out has to restore
+    /// both.
+    private struct BlankingState: Equatable {
+        var global: GlobalBlankingPhase = .none
+        /// Displays blanked one at a time, independent of any global session.
+        var perDisplayCovered: Set<CGDirectDisplayID> = []
+        /// True once every active display is covered per-display and the dismissal monitor is armed.
+        var recoveryArmed = false
+
+        var isGlobal: Bool {
+            switch global {
+            case .none: false
+            case .fading, .blanked: true
+            }
+        }
+
+        /// The displays the global session has put windows up for.
+        var globalCovered: Set<CGDirectDisplayID> {
+            switch global {
+            case .none: []
+            case let .fading(ids), let .blanked(ids): ids
+            }
+        }
     }
 
     private let inputMonitor: BlankingInputMonitoring
@@ -29,14 +60,26 @@ final class ScreenBlanker {
     private let failurePresenter: @MainActor (BlankingInputMonitorError) -> Void
     private let gracePeriod: TimeInterval
 
-    private var state: State = .idle
+    private var state = BlankingState()
     private var activationTime: TimeInterval = 0
     private var fadeTask: Task<Void, Never>?
     private var isCursorHidden = false
-    private var isPerDisplayFullBlanked = false
 
-    private(set) var isBlanking = false
-    private(set) var blankedDisplayIDs: Set<CGDirectDisplayID> = []
+    /// True while a global blanking session is active. Per-display blanking deliberately does not
+    /// count: it is dismissed differently and does not gate gamma writes the same way.
+    var isBlanking: Bool {
+        state.isGlobal
+    }
+
+    /// The displays blanked individually. A global session can start on top of these, so this is
+    /// not necessarily empty while `isBlanking` is true.
+    var blankedDisplayIDs: Set<CGDirectDisplayID> {
+        state.perDisplayCovered
+    }
+
+    private var isPerDisplayFullBlanked: Bool {
+        state.recoveryArmed
+    }
 
     var onDismiss: (() -> Void)?
     var ignoreMouseMovement = false
@@ -102,15 +145,13 @@ final class ScreenBlanker {
         }
 
         activationTime = clock.now
-        isBlanking = true
+        let displaySet = Set(displayIDs)
+        state.global = useFadeTransition ? .fading(displaySet) : .blanked(displaySet)
         hideCursorIfNeeded()
 
-        let displaySet = Set(displayIDs)
         if useFadeTransition {
-            state = .fading(displaySet)
             fadeToBlack(displayIDs)
         } else {
-            state = .blanked(displaySet)
             guard showWindowsAndBlank(displayIDs) else {
                 restoreAllAndFinish()
                 failurePresenter(.unavailable)
@@ -121,7 +162,7 @@ final class ScreenBlanker {
     }
 
     func dismiss(force: Bool = false) {
-        if isBlanking {
+        if state.isGlobal {
             guard force || clock.now - activationTime >= gracePeriod else { return }
             restoreAllAndFinish()
             return
@@ -129,14 +170,14 @@ final class ScreenBlanker {
 
         // Per-display blanking does not set `isBlanking` until every active display is covered.
         // A forced wake must still clear a partial or fully-covered per-display session.
-        guard force, !blankedDisplayIDs.isEmpty else { return }
+        guard force, !state.perDisplayCovered.isEmpty else { return }
         forceUnblankAllDisplays()
         onDismiss?()
     }
 
     func blankDisplay(_ displayID: CGDirectDisplayID) {
-        guard !isBlanking,
-              !blankedDisplayIDs.contains(displayID),
+        guard !state.isGlobal,
+              !state.perDisplayCovered.contains(displayID),
               displays.activeDisplayIDs.contains(displayID),
               displays.hasScreen(for: displayID),
               windows.showWindow(for: displayID, showsEscapeHint: requireEscapeToDismiss)
@@ -145,10 +186,10 @@ final class ScreenBlanker {
         }
 
         gamma.blank(displayID)
-        blankedDisplayIDs.insert(displayID)
+        state.perDisplayCovered.insert(displayID)
 
         guard Self.shouldEnablePerDisplayRecovery(
-            blankedDisplayIDs: blankedDisplayIDs,
+            blankedDisplayIDs: state.perDisplayCovered,
             activeDisplayIDs: displays.activeDisplayIDs
         ) else {
             return
@@ -158,16 +199,16 @@ final class ScreenBlanker {
     }
 
     func unblankDisplay(_ displayID: CGDirectDisplayID) {
-        guard blankedDisplayIDs.contains(displayID) else { return }
+        guard state.perDisplayCovered.contains(displayID) else { return }
 
         stopPerDisplayRecovery()
         restore(displayID)
         windows.removeWindow(for: displayID)
-        blankedDisplayIDs.remove(displayID)
+        state.perDisplayCovered.remove(displayID)
     }
 
     func isDisplayBlanked(_ displayID: CGDirectDisplayID) -> Bool {
-        blankedDisplayIDs.contains(displayID)
+        state.perDisplayCovered.contains(displayID)
     }
 
     /// Reconciles blanking state after CoreGraphics reports a display topology change.
@@ -177,10 +218,10 @@ final class ScreenBlanker {
     /// Global blanking also needs to remove disconnected windows and cover newly-arrived displays
     /// while the session is still active.
     func displayTopologyDidChange() {
-        guard isBlanking || !blankedDisplayIDs.isEmpty || isPerDisplayFullBlanked else { return }
+        guard state.isGlobal || !state.perDisplayCovered.isEmpty || state.recoveryArmed else { return }
         let activeDisplayIDs = Set(displays.activeDisplayIDs)
 
-        if isBlanking {
+        if state.isGlobal {
             reconcileGlobalBlanking(for: activeDisplayIDs)
             return
         }
@@ -189,11 +230,7 @@ final class ScreenBlanker {
     }
 
     private func reconcileGlobalBlanking(for activeDisplayIDs: Set<CGDirectDisplayID>) {
-        let globallyBlankedIDs: Set<CGDirectDisplayID> = switch state {
-        case let .fading(ids), let .blanked(ids): ids
-        default: []
-        }
-        for displayID in globallyBlankedIDs.subtracting(activeDisplayIDs) {
+        for displayID in state.globalCovered.subtracting(activeDisplayIDs) {
             windows.removeWindow(for: displayID)
         }
 
@@ -202,7 +239,7 @@ final class ScreenBlanker {
             return
         }
 
-        switch state {
+        switch state.global {
         case .fading:
             // The fade task owns a snapshot of the old topology. Finish the transition
             // synchronously so a newly-arrived display cannot remain visible during it.
@@ -214,7 +251,7 @@ final class ScreenBlanker {
                 return
             }
             windows.beginBlankingSession()
-            state = .blanked(activeDisplayIDs)
+            state.global = .blanked(activeDisplayIDs)
         case let .blanked(currentlyBlanked):
             let missingDisplayIDs = activeDisplayIDs.subtracting(currentlyBlanked)
             guard missingDisplayIDs.isEmpty || showWindowsAndBlank(missingDisplayIDs.sorted()) else {
@@ -222,30 +259,30 @@ final class ScreenBlanker {
                 failurePresenter(.unavailable)
                 return
             }
-            state = .blanked(activeDisplayIDs)
-        default:
+            state.global = .blanked(activeDisplayIDs)
+        case .none:
             break
         }
     }
 
     private func reconcilePerDisplayBlanking(for activeDisplayIDs: Set<CGDirectDisplayID>) {
-        let disconnectedDisplayIDs = blankedDisplayIDs.subtracting(activeDisplayIDs)
+        let disconnectedDisplayIDs = state.perDisplayCovered.subtracting(activeDisplayIDs)
         for displayID in disconnectedDisplayIDs {
             windows.removeWindow(for: displayID)
         }
-        blankedDisplayIDs.subtract(disconnectedDisplayIDs)
+        state.perDisplayCovered.subtract(disconnectedDisplayIDs)
 
-        guard !blankedDisplayIDs.isEmpty else {
+        guard !state.perDisplayCovered.isEmpty else {
             stopPerDisplayRecovery()
             return
         }
 
         let shouldRecover = Self.shouldEnablePerDisplayRecovery(
-            blankedDisplayIDs: blankedDisplayIDs,
+            blankedDisplayIDs: state.perDisplayCovered,
             activeDisplayIDs: Array(activeDisplayIDs)
         )
         if shouldRecover {
-            guard !isPerDisplayFullBlanked else { return }
+            guard !state.recoveryArmed else { return }
             startPerDisplayRecovery()
         } else {
             stopPerDisplayRecovery()
@@ -323,69 +360,64 @@ final class ScreenBlanker {
                 }
             }
 
-            guard !Task.isCancelled, isBlanking else { return }
+            guard !Task.isCancelled, state.isGlobal else { return }
             guard showWindowsAndBlank(displayIDs) else {
                 restoreAllAndFinish()
                 failurePresenter(.unavailable)
                 return
             }
             windows.beginBlankingSession()
-            state = .blanked(Set(displayIDs))
+            state.global = .blanked(Set(displayIDs))
             fadeTask = nil
         }
     }
 
     private func restoreAllAndFinish() {
-        guard isBlanking else { return }
-        state = .restoring
+        guard state.isGlobal else { return }
         fadeTask?.cancel()
         fadeTask = nil
         inputMonitor.stop()
 
-        let idsToRestore = Set(displays.activeDisplayIDs).union(blankedDisplayIDs)
+        // A global session can sit on top of displays that were already blanked individually,
+        // so both sets have to be restored. This runs before the state is cleared: `restore`
+        // calls out to `restoreDisplay`, which reads `isBlanking` to decide how to re-apply.
+        let idsToRestore = Set(displays.activeDisplayIDs).union(state.perDisplayCovered)
         for displayID in idsToRestore.sorted() {
             restore(displayID)
         }
 
         windows.removeAllWindows()
-        blankedDisplayIDs.removeAll()
         windows.endBlankingSession()
         unhideCursorIfNeeded()
-        isPerDisplayFullBlanked = false
-        isBlanking = false
-        state = .idle
+        state = BlankingState()
         onDismiss?()
     }
 
     private func unblankAllDisplays() {
-        guard isPerDisplayFullBlanked,
-              clock.now - activationTime >= gracePeriod
-        else {
-            return
-        }
+        guard state.recoveryArmed, clock.now - activationTime >= gracePeriod else { return }
 
         forceUnblankAllDisplays()
         onDismiss?()
     }
 
     private func forceUnblankAllDisplays() {
-        let hadRecoverySession = isPerDisplayFullBlanked
-        if hadRecoverySession {
+        // Only a session that was actually armed has a window session and hidden cursor to undo;
+        // a partial per-display session has neither. This cannot delegate to
+        // `stopPerDisplayRecovery()`, which would end the window session before the windows come
+        // down rather than after.
+        let hadArmedSession = state.recoveryArmed
+        if hadArmedSession {
             inputMonitor.stop()
         }
-        let idsToUnblank = blankedDisplayIDs.sorted()
-        for displayID in idsToUnblank {
+        for displayID in state.perDisplayCovered.sorted() {
             restore(displayID)
             windows.removeWindow(for: displayID)
         }
-        blankedDisplayIDs.removeAll()
-        if hadRecoverySession {
+        if hadArmedSession {
             windows.endBlankingSession()
             unhideCursorIfNeeded()
         }
-        isPerDisplayFullBlanked = false
-        isBlanking = false
-        state = .idle
+        state = BlankingState()
     }
 
     /// Mirror of `stopPerDisplayRecovery()`. Arms the dismissal monitor once every active display
@@ -403,18 +435,18 @@ final class ScreenBlanker {
             return
         }
 
-        isPerDisplayFullBlanked = true
+        state.recoveryArmed = true
         activationTime = clock.now
         windows.beginBlankingSession()
         hideCursorIfNeeded()
     }
 
     private func stopPerDisplayRecovery() {
-        guard isPerDisplayFullBlanked else { return }
+        guard state.recoveryArmed else { return }
         inputMonitor.stop()
         windows.endBlankingSession()
         unhideCursorIfNeeded()
-        isPerDisplayFullBlanked = false
+        state.recoveryArmed = false
     }
 
     private func restore(_ displayID: CGDirectDisplayID) {
