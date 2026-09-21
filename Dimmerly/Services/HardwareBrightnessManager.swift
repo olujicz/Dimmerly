@@ -621,16 +621,7 @@
             hardwareVolume.removeValue(forKey: displayID)
             hardwareMute.removeValue(forKey: displayID)
             activeInputSource.removeValue(forKey: displayID)
-            // Cancel and remove all pending writes for this display (any VCP code)
-            for key in pendingWrites.keys where key.displayID == displayID {
-                pendingWrites[key]?.cancel()
-                pendingWrites.removeValue(forKey: key)
-            }
-            pendingWriteGeneration = pendingWriteGeneration.filter { $0.key.displayID != displayID }
-            pendingHardwareWrites = pendingHardwareWrites.filter { $0.key.displayID != displayID }
-            lastLocalWriteTime = lastLocalWriteTime.filter { $0.key.displayID != displayID }
             writeTiming.removeDisplay(displayID)
-            consecutiveWriteFailures = consecutiveWriteFailures.filter { $0.key.displayID != displayID }
             cancelRecoveryProbes(for: displayID)
         }
 
@@ -753,8 +744,7 @@
                     defer { readPublicationHookForTesting?() }
                     guard sessionGate.isCurrent(session),
                           displayConnectionGate.isCurrent(connection),
-                          capabilities[displayID] == cap,
-                          connection == displayConnectionGate.current(for: displayID)
+                          capabilities[displayID] == cap
                     else { return }
                     if let brightness = values.brightness,
                        shouldApplyRead(

@@ -335,13 +335,6 @@ class BrightnessManager {
     // MARK: - Built-in Display Backlight
 
     #if !APPSTORE
-        /// Reads the current hardware backlight brightness of the built-in display.
-        /// Returns nil if the display is not built-in or the API call fails.
-        func readBuiltInBrightness(for displayID: CGDirectDisplayID) -> Double? {
-            guard case let .value(brightness) = builtInBrightnessReadResult(for: displayID) else { return nil }
-            return brightness
-        }
-
         private func isBuiltInBacklightAPIAvailable() -> Bool {
             isBuiltInBacklightAPIAvailableHook?() ?? DisplayServicesAPI.isAvailable
         }
@@ -560,27 +553,20 @@ class BrightnessManager {
             }
         #endif
 
-        let savedBrightness = loadPersistedBrightness()
-        let savedWarmth = loadPersistedWarmth()
-        let savedContrast = loadPersistedContrast()
-        let previousDisplaysByID = Dictionary(uniqueKeysWithValues: displays.map { ($0.id, $0) })
-        let previousDisplaysByIdentity = displays.reduce(into: [String: ExternalDisplay]()) { result, display in
-            result[displayIdentity(for: display.id)] = display
-        }
-        let previousBuiltInBrightness = displays.first(where: \.isBuiltIn)?.brightness
+        let baseline = RefreshBaseline(
+            savedBrightness: loadPersistedBrightness(),
+            savedWarmth: loadPersistedWarmth(),
+            savedContrast: loadPersistedContrast(),
+            displaysByID: Dictionary(uniqueKeysWithValues: displays.map { ($0.id, $0) }),
+            displaysByIdentity: displays.reduce(into: [String: ExternalDisplay]()) { result, display in
+                result[displayIdentity(for: display.id)] = display
+            }
+        )
         var newDisplays: [ExternalDisplay] = []
         var builtInDisplaysWithSuppressedBacklight: Set<CGDirectDisplayID> = []
 
         for displayID in displayIDs {
-            let refreshed = refreshedDisplay(
-                for: displayID,
-                savedBrightness: savedBrightness,
-                savedWarmth: savedWarmth,
-                savedContrast: savedContrast,
-                previousDisplaysByID: previousDisplaysByID,
-                previousDisplaysByIdentity: previousDisplaysByIdentity,
-                previousBuiltInBrightness: previousBuiltInBrightness
-            )
+            let refreshed = refreshedDisplay(for: displayID, baseline: baseline)
             if refreshed.suppressBuiltInBacklight {
                 builtInDisplaysWithSuppressedBacklight.insert(displayID)
             }
@@ -620,34 +606,48 @@ class BrightnessManager {
         reapplyAfterRefresh(suppressingBuiltInBacklightFor: builtInDisplaysWithSuppressedBacklight)
     }
 
-    // swiftlint:disable:next function_parameter_count
+    /// The state a refresh is reconciled against: persisted values plus the displays as they
+    /// were before re-enumeration. Grouped so `refreshedDisplay` stays a two-argument call.
+    private struct RefreshBaseline {
+        let savedBrightness: [String: Double]
+        let savedWarmth: [String: Double]
+        let savedContrast: [String: Double]
+        let displaysByID: [CGDirectDisplayID: ExternalDisplay]
+        let displaysByIdentity: [String: ExternalDisplay]
+    }
+
     private func refreshedDisplay(
         for displayID: CGDirectDisplayID,
-        savedBrightness: [String: Double],
-        savedWarmth: [String: Double],
-        savedContrast: [String: Double],
-        previousDisplaysByID: [CGDirectDisplayID: ExternalDisplay],
-        previousDisplaysByIdentity: [String: ExternalDisplay],
-        previousBuiltInBrightness: Double?
+        baseline: RefreshBaseline
     ) -> (display: ExternalDisplay, suppressBuiltInBacklight: Bool) {
         let builtIn = isBuiltInDisplay(displayID)
         let name = displayName(for: displayID)
         let identity = displayIdentity(for: displayID)
-        let previousDisplay = previousDisplaysByIdentity[identity]
-            ?? previousDisplaysByID[displayID]
+        let previousDisplay = baseline.displaysByIdentity[identity]
+            ?? baseline.displaysByID[displayID]
             ?? (builtIn ? displays.first(where: \.isBuiltIn) : nil)
         let refreshedBrightness = refreshedBrightness(
             for: displayID,
             isBuiltIn: builtIn,
-            savedBrightness: savedValue(savedBrightness, for: displayID, identity: identity),
-            previousBrightness: previousDisplay?.brightness ?? (builtIn ? previousBuiltInBrightness : nil)
+            savedBrightness: savedValue(baseline.savedBrightness, for: displayID, identity: identity),
+            previousBrightness: previousDisplay?.brightness
         )
         let warmth = min(
-            max(previousDisplay?.warmth ?? savedValue(savedWarmth, for: displayID, identity: identity) ?? 0.0, 0.0),
+            max(
+                previousDisplay?.warmth
+                    ?? savedValue(baseline.savedWarmth, for: displayID, identity: identity)
+                    ?? 0.0,
+                0.0
+            ),
             1.0
         )
         let contrast = min(
-            max(previousDisplay?.contrast ?? savedValue(savedContrast, for: displayID, identity: identity) ?? 0.5, 0.0),
+            max(
+                previousDisplay?.contrast
+                    ?? savedValue(baseline.savedContrast, for: displayID, identity: identity)
+                    ?? 0.5,
+                0.0
+            ),
             1.0
         )
         var display = ExternalDisplay(
