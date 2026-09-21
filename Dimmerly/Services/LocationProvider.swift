@@ -24,12 +24,10 @@ private final class LocationRequestGate: @unchecked Sendable {
         }
     }
 
-    @discardableResult
-    func invalidate() -> UInt64 {
+    func invalidate() {
         lock.withLock {
             generation &+= 1
             activeRequest = nil
-            return generation
         }
     }
 
@@ -41,14 +39,13 @@ private final class LocationRequestGate: @unchecked Sendable {
         lock.withLock { token == generation }
     }
 
+    /// A callback is only honoured while the request that asked for it is still the live one.
+    /// Unsolicited deliveries, and deliveries that lost a race with a manual edit, clear, or a
+    /// newer request, are all dropped.
     func acceptsCallback(_ token: UInt64) -> Bool {
         lock.withLock {
-            if let activeRequest {
-                return token == activeRequest && token == generation
-            }
-            // Preserve the delegate's historical direct-callback behavior before the first
-            // request, while rejecting callbacks after a manual edit, clear, or completion.
-            return generation == 0 && token == 0
+            guard let activeRequest else { return false }
+            return token == activeRequest && token == generation
         }
     }
 
@@ -72,6 +69,7 @@ class LocationProvider: NSObject {
 
     private let locationManager = CLLocationManager()
     private let requestGate = LocationRequestGate()
+    private let locationServicesAvailable: LocationServicesAvailabilityCheck
 
     /// The `UserDefaults` suite to read from and persist to. Defaults to `.standard` for
     /// production use; tests should inject an isolated suite so they don't read or overwrite
@@ -83,8 +81,18 @@ class LocationProvider: NSObject {
     /// Sentinel value indicating a saved coordinate (0.0 is valid, so we use key existence)
     private static let hasSavedKey = "dimmerlyLocationSaved"
 
-    init(defaults: UserDefaults = .standard) {
+    /// Whether the system has Location Services switched on. Injected so tests can drive
+    /// `requestLocation()` without reaching CoreLocation or raising an authorization prompt.
+    typealias LocationServicesAvailabilityCheck = @Sendable () async -> Bool
+
+    init(
+        defaults: UserDefaults = .standard,
+        locationServicesAvailable: @escaping LocationServicesAvailabilityCheck = {
+            await LocationProvider.systemLocationServicesEnabled()
+        }
+    ) {
         self.defaults = defaults
+        self.locationServicesAvailable = locationServicesAvailable
         super.init()
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyKilometer
@@ -104,6 +112,7 @@ class LocationProvider: NSObject {
     ///   - defaults: Isolated suite so the test doesn't touch the developer's saved location.
     init(forTesting _: Bool, defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        locationServicesAvailable = { false }
         super.init()
         loadSavedLocation()
     }
@@ -121,9 +130,8 @@ class LocationProvider: NSObject {
         // `CLLocationManager.locationServicesEnabled()` can block briefly and is
         // flagged as non-main-thread-safe by Apple. Run it on a background task,
         // then hop back to @MainActor to start updating.
-        Task { [weak self] in
-            let enabled = await Self.locationServicesAvailable()
-            guard enabled else { return }
+        Task { [weak self, locationServicesAvailable] in
+            guard await locationServicesAvailable() else { return }
             await MainActor.run {
                 self?.beginLocationRequest(token: requestToken)
             }
@@ -132,7 +140,7 @@ class LocationProvider: NSObject {
 
     /// Off-main helper that calls the CLLocationManager class method Apple
     /// recommends not be invoked from the main thread.
-    private static func locationServicesAvailable() async -> Bool {
+    private static func systemLocationServicesEnabled() async -> Bool {
         await Task.detached(priority: .userInitiated) {
             CLLocationManager.locationServicesEnabled()
         }.value
