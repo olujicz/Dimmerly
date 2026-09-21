@@ -163,7 +163,9 @@ class BrightnessManager {
     private var persistTask: Task<Void, Never>?
 
     /// Active preset transition animation task (cancelled when a new transition starts)
-    private var transitionTask: Task<Void, Never>?
+    /// The in-flight preset/warmth transition together with the hardware-commit policy it was
+    /// started with, so cancelling can honour that policy instead of always committing.
+    private var activeTransition: (task: Task<Void, Never>, synchronizesHardware: Bool)?
 
     /// Coalesces system and screen wake events before reapplying display output.
     private var wakeMonitor: WorkspaceWakeMonitor?
@@ -804,15 +806,18 @@ class BrightnessManager {
     /// fighting the animation loop (which writes gamma each step) until the animation
     /// finished, producing a visible snap-back.
     private func cancelActiveTransition() {
-        guard transitionTask != nil else { return }
-        transitionTask?.cancel()
+        guard let activeTransition else { return }
+        activeTransition.task.cancel()
         #if !APPSTORE
             // A cancelled animation may already have moved the model part-way toward a
             // hardware-backed preset. Commit that intermediate value before the competing user
             // edit wins, otherwise the model and the panel diverge until a later refresh.
-            synchronizeHardwareBrightnessAfterAnimation()
+            // A transition that never intended to touch hardware is left alone.
+            if activeTransition.synchronizesHardware {
+                synchronizeHardwareBrightnessAfterAnimation()
+            }
         #endif
-        transitionTask = nil
+        self.activeTransition = nil
     }
 
     /// Re-applies the current brightness via gamma for a specific display.
@@ -980,7 +985,7 @@ class BrightnessManager {
             return false
         }
 
-        transitionTask = Task { @MainActor in
+        let task = Task { @MainActor in
             let steps = Self.transitionSteps
 
             for step in 1 ... steps {
@@ -1023,8 +1028,9 @@ class BrightnessManager {
                 }
             #endif
             persistAll()
-            transitionTask = nil
+            activeTransition = nil
         }
+        activeTransition = (task, synchronizeHardwareAtEnd)
 
         return true
     }
