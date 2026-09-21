@@ -39,6 +39,9 @@ class KeyboardShortcutManager {
     typealias GlobalMonitorInstaller = @MainActor (@escaping (NSEvent) -> Void) -> Any?
     typealias LocalMonitorInstaller = @MainActor (@escaping (NSEvent) -> NSEvent?) -> Any?
     typealias MonitorRemover = @MainActor (Any) -> Void
+    /// Whether a recorder overlay is capturing keys, in which case normal actions stay suppressed.
+    /// Injected like the monitor seams so `handleKeyEvent` is testable without the shared coordinator.
+    typealias RecordingSuppressionChecker = @MainActor () -> Bool
 
     /// The currently registered keyboard shortcut
     var currentShortcut: GlobalShortcut
@@ -58,6 +61,7 @@ class KeyboardShortcutManager {
     private let globalMonitorInstaller: GlobalMonitorInstaller
     private let localMonitorInstaller: LocalMonitorInstaller
     private let monitorRemover: MonitorRemover
+    private let isRecordingSuppressed: RecordingSuppressionChecker
 
     /// Initializes the manager with a keyboard shortcut
     ///
@@ -73,6 +77,9 @@ class KeyboardShortcutManager {
         },
         monitorRemover: @escaping MonitorRemover = { monitor in
             NSEvent.removeMonitor(monitor)
+        },
+        isRecordingSuppressed: @escaping RecordingSuppressionChecker = {
+            ShortcutRecordingCoordinator.shared.isRecording
         }
     ) {
         currentShortcut = shortcut
@@ -80,6 +87,7 @@ class KeyboardShortcutManager {
         self.globalMonitorInstaller = globalMonitorInstaller
         self.localMonitorInstaller = localMonitorInstaller
         self.monitorRemover = monitorRemover
+        self.isRecordingSuppressed = isRecordingSuppressed
         hasAccessibilityPermission = permissionChecker()
     }
 
@@ -194,7 +202,7 @@ class KeyboardShortcutManager {
     /// - Returns: `true` if the event matched the configured shortcut (and the callback fired).
     @discardableResult
     private func handleKeyEvent(keyCode: UInt16, modifierFlags: NSEvent.ModifierFlags) -> Bool {
-        guard !ShortcutRecordingCoordinator.shared.isRecording,
+        guard !isRecordingSuppressed(),
               currentShortcut.matches(keyCode: keyCode, modifierFlags: modifierFlags)
         else { return false }
         onShortcutTriggered?()
