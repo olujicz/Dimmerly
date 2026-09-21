@@ -228,8 +228,7 @@ extension BrightnessManagerTests {
             )
 
             XCTAssertEqual(policy, DisplayOutputPolicy(
-                usesBuiltInBacklight: false,
-                usesDDCBrightness: false,
+                output: .gamma,
                 gammaBrightness: 0.35,
                 appliesGammaColorAdjustments: true
             ))
@@ -245,8 +244,7 @@ extension BrightnessManagerTests {
             )
 
             XCTAssertEqual(policy, DisplayOutputPolicy(
-                usesBuiltInBacklight: false,
-                usesDDCBrightness: true,
+                output: .ddc,
                 gammaBrightness: 1.0,
                 appliesGammaColorAdjustments: true
             ))
@@ -261,7 +259,7 @@ extension BrightnessManagerTests {
                 requestedBrightness: 0.35
             )
 
-            XCTAssertFalse(policy.usesDDCBrightness)
+            XCTAssertEqual(policy.output, .gamma)
             XCTAssertEqual(policy.gammaBrightness, 0.35)
         }
 
@@ -274,9 +272,27 @@ extension BrightnessManagerTests {
                 requestedBrightness: 0.35
             )
 
-            XCTAssertTrue(policy.usesBuiltInBacklight)
-            XCTAssertFalse(policy.usesDDCBrightness)
+            XCTAssertEqual(policy.output, .builtInBacklight)
+            XCTAssertTrue(policy.output.writesBuiltInBacklight)
             XCTAssertEqual(policy.gammaBrightness, 1.0)
+        }
+
+        func testDisplayOutputPolicyKeepsWritingBuiltInBacklightWhileInSoftwareFallback() {
+            let policy = DisplayOutputPolicy.resolve(
+                mode: .hardware,
+                isBuiltIn: true,
+                isDDCEnabled: true,
+                supportsDDCBrightness: false,
+                requestedBrightness: 0.35,
+                builtInBacklightAvailable: false
+            )
+
+            XCTAssertEqual(policy.output, .builtInBacklightFallback)
+            XCTAssertTrue(
+                policy.output.writesBuiltInBacklight,
+                "A panel in fallback must keep being written to, otherwise it can never recover"
+            )
+            XCTAssertEqual(policy.gammaBrightness, 0.35, "Gamma carries brightness while the panel is unhealthy")
         }
 
     #endif

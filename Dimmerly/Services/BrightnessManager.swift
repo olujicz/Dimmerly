@@ -1190,27 +1190,27 @@ class BrightnessManager {
     #endif
 
     private func resolvedGammaBrightness(for display: ExternalDisplay) -> Double {
+        resolvedOutputPolicy(for: display).gammaBrightness
+    }
+
+    /// The output policy for a display, resolved against whichever control paths this build has.
+    private func resolvedOutputPolicy(for display: ExternalDisplay) -> DisplayOutputPolicy {
         #if !APPSTORE
-            displayOutputPolicy(for: display).gammaBrightness
+            displayOutputPolicy(for: display)
         #else
-            DisplayOutputPolicy.resolve(requestedBrightness: display.brightness).gammaBrightness
+            DisplayOutputPolicy.resolve(requestedBrightness: display.brightness)
         #endif
     }
 
     private func applyDisplayGamma(_ display: ExternalDisplay, allowDuringBlanking: Bool = false) {
         guard allowDuringBlanking || !ScreenBlanker.shared.isBlanking else { return }
 
-        #if !APPSTORE
-            guard displayOutputPolicy(for: display).appliesGammaColorAdjustments else { return }
-        #else
-            guard DisplayOutputPolicy.resolve(
-                requestedBrightness: display.brightness
-            ).appliesGammaColorAdjustments else { return }
-        #endif
+        let policy = resolvedOutputPolicy(for: display)
+        guard policy.appliesGammaColorAdjustments else { return }
 
         applyGamma(
             displayID: display.id,
-            brightness: resolvedGammaBrightness(for: display),
+            brightness: policy.gammaBrightness,
             warmth: display.warmth,
             contrast: display.contrast
         )
@@ -1222,15 +1222,14 @@ class BrightnessManager {
         suppressBuiltInBacklight: Bool = false
     ) {
         #if !APPSTORE
-            let policy = displayOutputPolicy(for: display)
-            if display.isBuiltIn, !suppressBuiltInBacklight {
-                let success = setBuiltInBacklight(for: display.id, to: display.brightness)
-                if success {
+            let output = displayOutputPolicy(for: display).output
+            if output.writesBuiltInBacklight, !suppressBuiltInBacklight {
+                if setBuiltInBacklight(for: display.id, to: display.brightness) {
                     softwareBacklightFallbackDisplayIDs.remove(display.id)
                 } else {
                     softwareBacklightFallbackDisplayIDs.insert(display.id)
                 }
-            } else if policy.usesDDCBrightness {
+            } else if output == .ddc {
                 setExternalHardwareBrightness(for: display.id, to: display.brightness)
             }
         #endif
