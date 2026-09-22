@@ -90,18 +90,9 @@ struct GlobalShortcut: Codable, Equatable {
         self.keyCode = keyCode ?? Self.legacyKeyCodeMap[key]
     }
 
-    private init(legacyKey key: String, modifiers: Set<ShortcutModifier>, keyCode: UInt16?) {
-        self.key = key
-        self.modifiers = modifiers
-        self.keyCode = keyCode
-    }
-
     /// Canonical physical ANSI key identity for equality and conflict detection.
     private var physicalKeyCode: UInt16? {
-        if let keyCode {
-            return keyCode
-        }
-        return Self.legacyKeyCodeMap[key]
+        keyCode ?? Self.legacyKeyCodeMap[key]
     }
 
     static func == (lhs: Self, rhs: Self) -> Bool {
@@ -111,28 +102,6 @@ struct GlobalShortcut: Codable, Equatable {
             return lhs.physicalKeyCode == rhs.physicalKeyCode
         }
         return lhs.key == rhs.key
-    }
-
-    private enum CodingKeys: String, CodingKey {
-        case key
-        case modifiers
-        case keyCode
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        try self.init(
-            legacyKey: container.decode(String.self, forKey: .key),
-            modifiers: container.decode(Set<ShortcutModifier>.self, forKey: .modifiers),
-            keyCode: container.decodeIfPresent(UInt16.self, forKey: .keyCode)
-        )
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(key, forKey: .key)
-        try container.encode(modifiers, forKey: .modifiers)
-        try container.encodeIfPresent(keyCode, forKey: .keyCode)
     }
 
     /// A human-readable string representation of the shortcut (e.g., "⌘⌥⇧D").

@@ -818,28 +818,18 @@
             pendingWriteGeneration[writeKey] = generation
 
             pendingWrites[writeKey] = Task { [weak self] in
-                // Wait for debounce period
-                try? await Task.sleep(for: .seconds(self?.writeDebounceDelay ?? 0.1))
-                guard !Task.isCancelled else {
-                    // This scheduled attempt was superseded before it ever reached the
-                    // hardware — undo its `markLocalWrite` increment here, in the same task
-                    // that observes the cancellation, rather than at the `.cancel()` call
-                    // site. `Task.cancel()` is cooperative: if the previous task had already
-                    // passed this checkpoint (i.e. is already inside `performWrite`), calling
-                    // `.cancel()` on it is a no-op, and only `performWrite`'s own completion
-                    // decrements — deciding it here, atomically with the cancellation check,
-                    // is the only way to avoid double-decrementing that case.
-                    self?.decrementPendingHardwareWrite(writeKey)
-                    self?.clearPendingWriteSlotIfCurrent(writeKey, generation: generation)
-                    return
-                }
+                defer { self?.clearPendingWriteSlotIfCurrent(writeKey, generation: generation) }
 
-                guard let self,
+                try? await Task.sleep(for: .seconds(self?.writeDebounceDelay ?? 0.1))
+                guard !Task.isCancelled,
+                      let self,
                       sessionGate.isCurrent(session),
                       displayConnectionGate.isCurrent(connection)
                 else {
+                    // Undo the pending count only when this task observes cancellation or
+                    // invalidation before enqueueing I/O. Once enqueued, performWrite owns
+                    // the decrement, so cancelling a task cannot double-decrement it.
                     self?.decrementPendingHardwareWrite(writeKey)
-                    self?.clearPendingWriteSlotIfCurrent(writeKey, generation: generation)
                     return
                 }
 
@@ -851,7 +841,6 @@
                     session: session,
                     connection: connection
                 )
-                clearPendingWriteSlotIfCurrent(writeKey, generation: generation)
             }
         }
 
