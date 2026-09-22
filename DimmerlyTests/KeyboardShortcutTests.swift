@@ -130,6 +130,21 @@ final class GlobalShortcutTests: XCTestCase {
         XCTAssertEqual(shortcut.modifiers, [.command, .option, .shift])
     }
 
+    func testLegacyKeyCodeRemainsAbsentWhenReencoded() throws {
+        for json in [
+            #"{"key":"d","modifiers":["command"]}"#,
+            #"{"key":"d","modifiers":["command"],"keyCode":null}"#,
+        ] {
+            let shortcut = try JSONDecoder().decode(GlobalShortcut.self, from: Data(json.utf8))
+            XCTAssertNil(shortcut.keyCode)
+
+            let data = try JSONEncoder().encode(shortcut)
+            let object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+            XCTAssertNil(object["keyCode"])
+            XCTAssertEqual(object["key"] as? String, "d")
+        }
+    }
+
     /// Tests Equatable conformance
     func testEquatableConformance() {
         // Given: Two identical shortcuts

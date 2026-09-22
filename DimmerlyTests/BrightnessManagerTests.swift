@@ -225,6 +225,18 @@ final class BrightnessManagerTests: XCTestCase {
         XCTAssertEqual(snap.count, 2)
     }
 
+    func testSnapshotsKeepLastValueForDuplicateIdentity() {
+        bm.displayIdentityHook = { _ in "shared-identity" }
+        bm.displays = [
+            ExternalDisplay(id: 1, name: "A", brightness: 0.2, warmth: 0.3, contrast: 0.4),
+            ExternalDisplay(id: 2, name: "B", brightness: 0.6, warmth: 0.7, contrast: 0.8),
+        ]
+
+        XCTAssertEqual(bm.currentBrightnessSnapshot(), ["shared-identity": 0.6])
+        XCTAssertEqual(bm.currentWarmthSnapshot(), ["shared-identity": 0.7])
+        XCTAssertEqual(bm.currentContrastSnapshot(), ["shared-identity": 0.8])
+    }
+
     func testBrightnessSnapshotEmpty() {
         bm.displays = []
         XCTAssertTrue(bm.currentBrightnessSnapshot().isEmpty)
