@@ -78,6 +78,8 @@
 		LA00000000000000000011 /* LaunchAtLoginSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = LA00000000000000000010 /* LaunchAtLoginSettingsTests.swift */; };
 		CT00000000000000000011 /* ColorTemperatureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CT00000000000000000001 /* ColorTemperatureManager.swift */; };
 		WW00000000000000000011 /* WorkspaceWakeMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = WW00000000000000000001 /* WorkspaceWakeMonitor.swift */; };
+		PT00000000000000000011 /* PollingTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = PT00000000000000000001 /* PollingTimer.swift */; };
+		PT00000000000000000012 /* PollingTimerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = PT00000000000000000002 /* PollingTimerTests.swift */; };
 		CT00000000000000000012 /* ColorTemperatureManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CT00000000000000000002 /* ColorTemperatureManagerTests.swift */; };
 		HW00000000000000000011 /* DDCController.swift in Sources */ = {isa = PBXBuildFile; fileRef = HW00000000000000000001 /* DDCController.swift */; };
 		DC00000000000000000011 /* DDCPacketCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC00000000000000000001 /* DDCPacketCodec.swift */; };
@@ -207,6 +209,8 @@
 		LA00000000000000000010 /* LaunchAtLoginSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginSettingsTests.swift; sourceTree = "<group>"; };
 		CT00000000000000000001 /* ColorTemperatureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorTemperatureManager.swift; sourceTree = "<group>"; };
 		WW00000000000000000001 /* WorkspaceWakeMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceWakeMonitor.swift; sourceTree = "<group>"; };
+		PT00000000000000000001 /* PollingTimer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollingTimer.swift; sourceTree = "<group>"; };
+		PT00000000000000000002 /* PollingTimerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollingTimerTests.swift; sourceTree = "<group>"; };
 		CT00000000000000000002 /* ColorTemperatureManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorTemperatureManagerTests.swift; sourceTree = "<group>"; };
 		HW00000000000000000001 /* DDCController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DDCController.swift; sourceTree = "<group>"; };
 		DC00000000000000000001 /* DDCPacketCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DDCPacketCodec.swift; sourceTree = "<group>"; };
@@ -403,6 +407,7 @@
 				HW00000000000000000001 /* DDCController.swift */,
 				HW00000000000000000003 /* HardwareBrightnessManager.swift */,
 				NF00000000000000000003 /* IdleTimerManager.swift */,
+				PT00000000000000000001 /* PollingTimer.swift */,
 				15EF8DD088138249EA3B9ED2 /* LaunchAtLoginManager.swift */,
 				SC00000000000000000003 /* LocationProvider.swift */,
 				4938628BCBDB203349940ACE /* KeyboardShortcutManager.swift */,
@@ -455,6 +460,7 @@
 					UT00000000000000000030 /* MenuBarIconStyleTests.swift */,
 					MB00000000000000000001 /* MenuBarPanelTests.swift */,
 					UT00000000000000000020 /* PresetManagerTests.swift */,
+					PT00000000000000000002 /* PollingTimerTests.swift */,
 					NT00000000000000000030 /* ScheduleManagerTests.swift */,
 					SB00000000000000000001 /* ScreenBlankerTests.swift */,
 					SH00000000000000000001 /* SharedConstantsTests.swift */,
@@ -682,6 +688,7 @@
 				SC00000000000000000015 /* ScheduleViews.swift in Sources */,
 				CT00000000000000000011 /* ColorTemperatureManager.swift in Sources */,
 				WW00000000000000000011 /* WorkspaceWakeMonitor.swift in Sources */,
+				PT00000000000000000011 /* PollingTimer.swift in Sources */,
 				DC00000000000000000011 /* DDCPacketCodec.swift in Sources */,
 				HW00000000000000000011 /* DDCController.swift in Sources */,
 				HW00000000000000000012 /* HardwareDisplayCapability.swift in Sources */,
@@ -709,6 +716,7 @@
 					NT00000000000000000001 /* SolarCalculatorTests.swift in Sources */,
 				NT00000000000000000002 /* DimmingScheduleTests.swift in Sources */,
 				NT00000000000000000003 /* ScheduleManagerTests.swift in Sources */,
+				PT00000000000000000012 /* PollingTimerTests.swift in Sources */,
 				DN00000000000000000012 /* DisplayNameResolverTests.swift in Sources */,
 				CT00000000000000000012 /* ColorTemperatureManagerTests.swift in Sources */,
 				HW00000000000000000014 /* DDCControllerTests.swift in Sources */,

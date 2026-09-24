@@ -45,13 +45,8 @@ class ScheduleManager {
     /// Called with the preset ID that should be applied.
     var onScheduleTriggered: ((UUID) -> Void)?
 
-    /// Timer for periodic schedule checking (fires every 30 seconds).
-    private var timer: Timer?
-
-    /// Incremented by `stopPolling()`, so each timer's callbacks carry the generation they were
-    /// scheduled under. `Timer` isn't `Sendable` and so can't be compared across the hop to the
-    /// main actor; an `Int` can. Readable for tests, writable only here.
-    private(set) var timerGeneration = 0
+    /// Checks schedules every 30 seconds.
+    private let pollingTimer = PollingTimer()
 
     /// Tracks which schedules have fired today to prevent duplicate execution.
     /// Key: schedule ID, Value: date string in "yyyy-MM-dd" format.
@@ -117,63 +112,20 @@ class ScheduleManager {
     // MARK: - Polling
 
     /// Starts the polling timer and performs an immediate schedule check.
-    ///
-    /// Timer configuration:
-    /// - Interval: 30 seconds (adequate for minute-resolution schedules)
-    /// - Repeating: Yes (runs until stopPolling() is called)
-    /// - Thread: Main thread (all callbacks execute on main actor)
-    ///
-    /// Always calls stopPolling() first to prevent duplicate timers if called multiple times.
     private func startPolling() {
         stopPolling()
         // 30-second interval is sufficient for minute-resolution schedules
         // (worst-case delay: 30 seconds after trigger time)
-        //
-        // Added to `.common` run loop modes (not just the `.default` mode that
-        // `Timer.scheduledTimer` uses) so schedule checks keep firing while the main
-        // run loop is in a different mode — e.g. a modal alert (`.modalPanel`) or menu
-        // tracking/slider dragging (`.eventTracking`) — instead of silently pausing.
-        // The inner `[weak self]` matters: without it the hop would hold a strong reference
-        // to this manager for the hop's duration. `generation` is captured immutably, so the
-        // callback carries the identity of the timer that scheduled it.
-        let generation = timerGeneration
-        let newTimer = Timer(timeInterval: 30, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                self?.handleTimerFired(generation: generation)
-            }
+        pollingTimer.start(interval: 30) { [weak self] in
+            self?.checkSchedules()
         }
-        RunLoop.main.add(newTimer, forMode: .common)
-        timer = newTimer
         // Also check immediately to handle schedules that should fire right now
         checkSchedules()
     }
 
-    /// Runs a schedule check on behalf of the polling timer, after the hop to the main actor.
-    ///
-    /// Comparing generations discards callbacks from a timer that `stopPolling()` invalidated, or
-    /// that a restart has since replaced: `startPolling()` repopulates `timer`, so a plain
-    /// `!= nil` check would let a stale callback run against a reset `lastCheckDate`. Callbacks
-    /// already in flight when `stopPolling()` runs are the reachable case — the timer fires on
-    /// the main thread and enqueues a hop, which `stopPolling()` can beat to the main actor.
-    ///
-    /// - Parameters:
-    ///   - generation: The `timerGeneration` in effect when the firing timer was scheduled.
-    ///   - now: Current date/time (injectable for testing, as in `checkSchedules(now:)`).
-    func handleTimerFired(generation: Int, now: Date = Date()) {
-        guard generation == timerGeneration else { return }
-        checkSchedules(now: now)
-    }
-
     /// Stops the polling timer and resets the last check date.
-    ///
-    /// Called when:
-    /// - Schedules are disabled in settings
-    /// - Before starting polling (to prevent duplicate timers)
     private func stopPolling() {
-        timer?.invalidate()
-        timer = nil
-        // Retires the outgoing timer's generation so any callback still in flight is discarded.
-        timerGeneration += 1
+        pollingTimer.stop()
         lastCheckDate = nil
     }
 
@@ -197,9 +149,8 @@ class ScheduleManager {
         let previousCheck = effectivePreviousCheckDate(for: now)
 
         for candidate in fireCandidates(previousCheck: previousCheck, now: now) {
-            guard firedToday[candidate.schedule.id] != todayString,
-                  firedToday[candidate.schedule.id] != candidate.dayString
-            else { continue }
+            let lastFiredDay = firedToday[candidate.schedule.id]
+            guard lastFiredDay != todayString, lastFiredDay != candidate.dayString else { continue }
             firedToday[candidate.schedule.id] = candidate.dayString
             onScheduleTriggered?(candidate.schedule.presetID)
         }
@@ -256,10 +207,7 @@ class ScheduleManager {
         }
 
         return candidatesByScheduleID.values.sorted {
-            if $0.triggerDate == $1.triggerDate {
-                return $0.scheduleIndex < $1.scheduleIndex
-            }
-            return $0.triggerDate < $1.triggerDate
+            ($0.triggerDate, $0.scheduleIndex) < ($1.triggerDate, $1.scheduleIndex)
         }
     }
 
@@ -298,43 +246,28 @@ class ScheduleManager {
     func resolveTriggerDate(_ trigger: ScheduleTrigger, on date: Date) -> Date? {
         let calendar = Calendar.current
 
+        let offsetMinutes: Int
+        let isSunrise: Bool
         switch trigger {
         case let .fixedTime(hour, minute):
-            // Simple case: set hour and minute on the given day
             return calendar.date(bySettingHour: hour, minute: minute, second: 0, of: date)
-
-        case let .sunrise(offsetMinutes):
-            // Solar sunrise requires location permissions
-            guard let location = locationCoordinates() else { return nil }
-            let solar = SolarCalculator.sunriseSunset(
-                latitude: location.latitude,
-                longitude: location.longitude,
-                date: date
-            )
-            guard let sunrise = solar.sunrise else { return nil }
-            // Apply offset (negative = before sunrise, positive = after sunrise)
-            return calendar.date(byAdding: .minute, value: offsetMinutes, to: sunrise)
-
-        case let .sunset(offsetMinutes):
-            // Solar sunset requires location permissions
-            guard let location = locationCoordinates() else { return nil }
-            let solar = SolarCalculator.sunriseSunset(
-                latitude: location.latitude,
-                longitude: location.longitude,
-                date: date
-            )
-            guard let sunset = solar.sunset else { return nil }
-            // Apply offset (negative = before sunset, positive = after sunset)
-            return calendar.date(byAdding: .minute, value: offsetMinutes, to: sunset)
+        case let .sunrise(offset):
+            offsetMinutes = offset
+            isSunrise = true
+        case let .sunset(offset):
+            offsetMinutes = offset
+            isSunrise = false
         }
-    }
 
-    /// Returns the user's current location coordinates from LocationProvider.
-    ///
-    /// - Returns: Latitude and longitude tuple, or `nil` if location unavailable
-    ///   (permissions denied or not yet determined)
-    private func locationCoordinates() -> (latitude: Double, longitude: Double)? {
-        locationCoordinatesProvider()
+        guard let location = locationCoordinatesProvider() else { return nil }
+        let solar = SolarCalculator.sunriseSunset(
+            latitude: location.latitude,
+            longitude: location.longitude,
+            date: date
+        )
+        guard let solarTime = isSunrise ? solar.sunrise : solar.sunset else { return nil }
+        // Negative offsets fire before the solar event; positive offsets fire after it.
+        return calendar.date(byAdding: .minute, value: offsetMinutes, to: solarTime)
     }
 
     private static let dayFormatter: DateFormatter = {

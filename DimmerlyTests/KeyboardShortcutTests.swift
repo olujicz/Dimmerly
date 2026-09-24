@@ -572,6 +572,66 @@ final class KeyboardShortcutManagerTests: XCTestCase {
         XCTAssertEqual(localMonitorInstallCount, 1)
     }
 
+    func testPresetShortcutUpdateDoesNotRestartMonitorForUnchangedBindings() {
+        var installCount = 0
+        var removalCount = 0
+        let manager = PresetShortcutManager(
+            permissionChecker: { true },
+            globalMonitorInstaller: { _ in
+                installCount += 1
+                return MonitorToken()
+            },
+            localMonitorInstaller: { _ in
+                installCount += 1
+                return MonitorToken()
+            },
+            monitorRemover: { _ in removalCount += 1 }
+        )
+        let preset = BrightnessPreset(
+            name: "Night",
+            shortcut: GlobalShortcut(key: "1", modifiers: [.command, .option])
+        )
+
+        manager.updateShortcuts(from: [preset])
+        var renamedPreset = preset
+        renamedPreset.name = "Evening"
+        manager.updateShortcuts(from: [renamedPreset])
+
+        XCTAssertEqual(installCount, 2)
+        XCTAssertEqual(removalCount, 0)
+    }
+
+    func testPresetShortcutUpdateRestartsMonitorWhenBindingsAreReordered() {
+        var installCount = 0
+        var removalCount = 0
+        let manager = PresetShortcutManager(
+            permissionChecker: { true },
+            globalMonitorInstaller: { _ in
+                installCount += 1
+                return MonitorToken()
+            },
+            localMonitorInstaller: { _ in
+                installCount += 1
+                return MonitorToken()
+            },
+            monitorRemover: { _ in removalCount += 1 }
+        )
+        let night = BrightnessPreset(
+            name: "Night",
+            shortcut: GlobalShortcut(key: "1", modifiers: [.command, .option])
+        )
+        let day = BrightnessPreset(
+            name: "Day",
+            shortcut: GlobalShortcut(key: "2", modifiers: [.command, .option])
+        )
+
+        manager.updateShortcuts(from: [night, day])
+        manager.updateShortcuts(from: [day, night])
+
+        XCTAssertEqual(installCount, 4)
+        XCTAssertEqual(removalCount, 2)
+    }
+
     func testPresetLocalMonitorSwallowsMatchingShortcutEvent() throws {
         var capturedHandler: ((NSEvent) -> NSEvent?)?
         let manager = PresetShortcutManager(
