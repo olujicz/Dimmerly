@@ -34,13 +34,8 @@ class IdleTimerManager {
     /// Callback invoked once when the idle threshold is reached
     var onIdleThresholdReached: (() -> Void)?
 
-    /// Polling timer (fires every 10 seconds to check idle time)
-    private var timer: Timer?
-
-    /// Incremented by `stop()`, so each timer's callbacks carry the generation they were
-    /// scheduled under. `Timer` isn't `Sendable` and so can't be compared across the hop to the
-    /// main actor; an `Int` can. Readable for tests, writable only here.
-    private(set) var timerGeneration = 0
+    /// Polls idle time every 10 seconds.
+    private let pollingTimer = PollingTimer()
 
     /// Idle threshold in seconds (converted from user setting in minutes)
     private var thresholdSeconds: TimeInterval = 300 // 5 minutes default
@@ -83,42 +78,14 @@ class IdleTimerManager {
     func start(thresholdMinutes: Int) {
         stop()
         thresholdSeconds = TimeInterval(thresholdMinutes * 60)
-        hasFiredForCurrentIdle = false
-
-        // Poll every 10 seconds. Added to `.common` run loop modes so idle checks (and the
-        // auto-dim they trigger) keep firing during a modal alert or menu tracking/slider
-        // dragging, not just while the run loop is in its default mode.
-        // The inner `[weak self]` matters: without it the hop would hold a strong reference
-        // to this manager for the hop's duration. `generation` is captured immutably, so the
-        // callback carries the identity of the timer that scheduled it.
-        let generation = timerGeneration
-        let newTimer = Timer(timeInterval: 10, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                self?.handleTimerFired(generation: generation)
-            }
+        pollingTimer.start(interval: 10) { [weak self] in
+            self?.checkIdleTime()
         }
-        RunLoop.main.add(newTimer, forMode: .common)
-        timer = newTimer
-    }
-
-    /// Runs an idle check on behalf of the polling timer, after the hop to the main actor.
-    ///
-    /// Comparing generations discards callbacks from a timer that `stop()` invalidated, or that
-    /// `start()` has since replaced: a restart repopulates `timer`, so a plain `!= nil` check
-    /// would let a stale callback measure idle time against a freshly reset threshold. Callbacks
-    /// already in flight when `stop()` runs are the reachable case — the timer fires on the main
-    /// thread and enqueues a hop, which `stop()` can beat to the main actor.
-    func handleTimerFired(generation: Int) {
-        guard generation == timerGeneration else { return }
-        checkIdleTime()
     }
 
     /// Stops monitoring idle time
     func stop() {
-        timer?.invalidate()
-        timer = nil
-        // Retires the outgoing timer's generation so any callback still in flight is discarded.
-        timerGeneration += 1
+        pollingTimer.stop()
         hasFiredForCurrentIdle = false
     }
 
