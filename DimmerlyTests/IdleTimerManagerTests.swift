@@ -30,6 +30,19 @@ final class IdleTimerManagerTests: XCTestCase {
         XCTAssertEqual(fireCount, 0)
     }
 
+    func testInvalidIdleTimeDoesNotTriggerAutoDim() {
+        let box = IdleSecondsBox()
+        var fireCount = 0
+        let manager = IdleTimerManager(idleSecondsProvider: { box.value })
+        manager.onIdleThresholdReached = { fireCount += 1 }
+        manager.start(thresholdMinutes: 5)
+
+        box.value = .nan
+        manager.checkIdleTime()
+
+        XCTAssertEqual(fireCount, 0)
+    }
+
     func testFiresExactlyOnceWhenThresholdCrossed() {
         let box = IdleSecondsBox()
         var fireCount = 0

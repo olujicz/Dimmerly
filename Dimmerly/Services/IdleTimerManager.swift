@@ -151,16 +151,13 @@ class IdleTimerManager {
         // Query system for seconds since last HID event (keyboard, mouse, trackpad)
         let idleSeconds = idleSecondsProvider()
 
-        if idleSeconds >= thresholdSeconds {
-            if !hasFiredForCurrentIdle {
-                hasFiredForCurrentIdle = true
-                onIdleThresholdReached?()
-            }
-            // User is still idle: do nothing (already fired once)
-        } else {
-            // User became active again — reset for next idle period
+        guard idleSeconds >= thresholdSeconds else {
             hasFiredForCurrentIdle = false
+            return
         }
+        guard !hasFiredForCurrentIdle else { return }
+        hasFiredForCurrentIdle = true
+        onIdleThresholdReached?()
     }
 
     // MARK: - Lifecycle

@@ -197,9 +197,8 @@ class ScheduleManager {
         let previousCheck = effectivePreviousCheckDate(for: now)
 
         for candidate in fireCandidates(previousCheck: previousCheck, now: now) {
-            guard firedToday[candidate.schedule.id] != todayString,
-                  firedToday[candidate.schedule.id] != candidate.dayString
-            else { continue }
+            let lastFiredDay = firedToday[candidate.schedule.id]
+            guard lastFiredDay != todayString, lastFiredDay != candidate.dayString else { continue }
             firedToday[candidate.schedule.id] = candidate.dayString
             onScheduleTriggered?(candidate.schedule.presetID)
         }
@@ -256,10 +255,7 @@ class ScheduleManager {
         }
 
         return candidatesByScheduleID.values.sorted {
-            if $0.triggerDate == $1.triggerDate {
-                return $0.scheduleIndex < $1.scheduleIndex
-            }
-            return $0.triggerDate < $1.triggerDate
+            ($0.triggerDate, $0.scheduleIndex) < ($1.triggerDate, $1.scheduleIndex)
         }
     }
 
@@ -298,43 +294,28 @@ class ScheduleManager {
     func resolveTriggerDate(_ trigger: ScheduleTrigger, on date: Date) -> Date? {
         let calendar = Calendar.current
 
+        let offsetMinutes: Int
+        let isSunrise: Bool
         switch trigger {
         case let .fixedTime(hour, minute):
-            // Simple case: set hour and minute on the given day
             return calendar.date(bySettingHour: hour, minute: minute, second: 0, of: date)
-
-        case let .sunrise(offsetMinutes):
-            // Solar sunrise requires location permissions
-            guard let location = locationCoordinates() else { return nil }
-            let solar = SolarCalculator.sunriseSunset(
-                latitude: location.latitude,
-                longitude: location.longitude,
-                date: date
-            )
-            guard let sunrise = solar.sunrise else { return nil }
-            // Apply offset (negative = before sunrise, positive = after sunrise)
-            return calendar.date(byAdding: .minute, value: offsetMinutes, to: sunrise)
-
-        case let .sunset(offsetMinutes):
-            // Solar sunset requires location permissions
-            guard let location = locationCoordinates() else { return nil }
-            let solar = SolarCalculator.sunriseSunset(
-                latitude: location.latitude,
-                longitude: location.longitude,
-                date: date
-            )
-            guard let sunset = solar.sunset else { return nil }
-            // Apply offset (negative = before sunset, positive = after sunset)
-            return calendar.date(byAdding: .minute, value: offsetMinutes, to: sunset)
+        case let .sunrise(offset):
+            offsetMinutes = offset
+            isSunrise = true
+        case let .sunset(offset):
+            offsetMinutes = offset
+            isSunrise = false
         }
-    }
 
-    /// Returns the user's current location coordinates from LocationProvider.
-    ///
-    /// - Returns: Latitude and longitude tuple, or `nil` if location unavailable
-    ///   (permissions denied or not yet determined)
-    private func locationCoordinates() -> (latitude: Double, longitude: Double)? {
-        locationCoordinatesProvider()
+        guard let location = locationCoordinatesProvider() else { return nil }
+        let solar = SolarCalculator.sunriseSunset(
+            latitude: location.latitude,
+            longitude: location.longitude,
+            date: date
+        )
+        guard let solarTime = isSunrise ? solar.sunrise : solar.sunset else { return nil }
+        // Negative offsets fire before the solar event; positive offsets fire after it.
+        return calendar.date(byAdding: .minute, value: offsetMinutes, to: solarTime)
     }
 
     private static let dayFormatter: DateFormatter = {

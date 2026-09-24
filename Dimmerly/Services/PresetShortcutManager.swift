@@ -24,8 +24,8 @@ import Observation
 /// - Stops monitoring when no presets have shortcuts assigned
 /// - Requires accessibility permissions (same as KeyboardShortcutManager)
 ///
-/// Change detection: Uses JSON encoding comparison to detect preset changes.
-/// This catches all modifications: shortcut changes, preset deletion, reordering.
+/// Change detection: Compares the ordered (preset ID, shortcut) bindings, so shortcut
+/// changes, deletions, and reordering restart monitoring while unrelated edits do not.
 ///
 /// Thread safety: All methods must be called from the main actor.
 @MainActor
@@ -42,26 +42,20 @@ class PresetShortcutManager {
     /// Callback invoked when a preset shortcut is pressed (passes preset ID)
     var onPresetTriggered: ((UUID) -> Void)?
 
-    /// Currently registered preset shortcuts (filtered from full preset list).
-    /// Only includes presets that have a shortcut assigned.
-    private var presetShortcuts: [(id: UUID, shortcut: GlobalShortcut)] = []
-
     /// Global event monitor (active when app is not frontmost)
     private var globalEventMonitor: Any?
 
     /// Local event monitor (active when app is frontmost)
     private var localEventMonitor: Any?
 
-    /// Representation of a (preset, shortcut) pair used to short-circuit identical
-    /// updates so unrelated preset edits don't needlessly restart monitoring.
-    /// Only Equatable is needed — arrays of Equatable elements are themselves Equatable.
     private struct ShortcutBinding: Equatable {
         let presetID: UUID
         let shortcut: GlobalShortcut
     }
 
-    /// Cached signature of the last applied shortcut set.
-    private var lastShortcutSignature: [ShortcutBinding] = []
+    /// Active bindings, in preset order. Also compared against incoming bindings so
+    /// unrelated preset edits don't needlessly restart monitoring.
+    private var presetShortcuts: [ShortcutBinding] = []
 
     private let permissionChecker: PermissionChecker
     private let globalMonitorInstaller: GlobalMonitorInstaller
@@ -98,9 +92,8 @@ class PresetShortcutManager {
             return ShortcutBinding(presetID: preset.id, shortcut: shortcut)
         }
 
-        guard bindings != lastShortcutSignature else { return }
-        lastShortcutSignature = bindings
-        presetShortcuts = bindings.map { (id: $0.presetID, shortcut: $0.shortcut) }
+        guard bindings != presetShortcuts else { return }
+        presetShortcuts = bindings
 
         if presetShortcuts.isEmpty {
             stopMonitoring()
@@ -167,19 +160,18 @@ class PresetShortcutManager {
     /// - Returns: `true` if the event matched a registered preset shortcut (and the callback fired).
     @discardableResult
     private func handleKeyEvent(keyCode: UInt16, modifierFlags: NSEvent.ModifierFlags) -> Bool {
-        guard !isRecordingSuppressed() else { return false }
-        for (id, shortcut) in presetShortcuts
-            where shortcut.matches(keyCode: keyCode, modifierFlags: modifierFlags)
-        {
-            onPresetTriggered?(id)
-            return true
-        }
-        return false
+        guard !isRecordingSuppressed(),
+              let binding = presetShortcuts.first(where: {
+                  $0.shortcut.matches(keyCode: keyCode, modifierFlags: modifierFlags)
+              })
+        else { return false }
+        onPresetTriggered?(binding.presetID)
+        return true
     }
 
     // MARK: - Lifecycle
 
     // Note: deinit intentionally omitted to avoid @MainActor data race warnings in Swift 6.
-    // This manager is held by @StateObject in DimmerlyApp for the app's lifetime, so deinit
+    // This manager is held by @State in DimmerlyApp for the app's lifetime, so deinit
     // never executes. Cleanup is handled explicitly via stopMonitoring() when presets are empty.
 }
