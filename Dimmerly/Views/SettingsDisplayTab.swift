@@ -183,61 +183,19 @@ struct DisplaySettingsTab: View {
             if settings.autoColorTempEnabled {
                 LocationPickerRow()
 
-                LabeledContent("Day:") {
-                    HStack(spacing: 4) {
-                        Text("Warm")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .frame(width: 34, alignment: .trailing)
-                            .accessibilityHidden(true)
-                        Slider(
-                            value: Binding(
-                                get: { Double(settings.dayTemperature) },
-                                set: { settings.dayTemperature = Int($0) }
-                            ),
-                            in: 2700 ... 6500,
-                            step: 100
-                        )
-                        .accessibilityLabel("Day color temperature")
-                        .accessibilityValue("\(settings.dayTemperature) Kelvin")
-                        Text("Cool")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .accessibilityHidden(true)
-                        Text("\(settings.dayTemperature)K")
-                            .monospacedDigit()
-                            .frame(width: 50, alignment: .trailing)
-                            .accessibilityHidden(true)
-                    }
-                }
+                TemperatureSliderRow(
+                    label: "Day:",
+                    accessibilityLabel: "Day color temperature",
+                    temperature: $settings.dayTemperature,
+                    range: 2700 ... 6500
+                )
 
-                LabeledContent("Night:") {
-                    HStack(spacing: 4) {
-                        Text("Warm")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .frame(width: 34, alignment: .trailing)
-                            .accessibilityHidden(true)
-                        Slider(
-                            value: Binding(
-                                get: { Double(settings.nightTemperature) },
-                                set: { settings.nightTemperature = Int($0) }
-                            ),
-                            in: 1900 ... 4500,
-                            step: 100
-                        )
-                        .accessibilityLabel("Night color temperature")
-                        .accessibilityValue("\(settings.nightTemperature) Kelvin")
-                        Text("Cool")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .accessibilityHidden(true)
-                        Text("\(settings.nightTemperature)K")
-                            .monospacedDigit()
-                            .frame(width: 50, alignment: .trailing)
-                            .accessibilityHidden(true)
-                    }
-                }
+                TemperatureSliderRow(
+                    label: "Night:",
+                    accessibilityLabel: "Night color temperature",
+                    temperature: $settings.nightTemperature,
+                    range: 1900 ... 4500
+                )
 
                 Stepper(value: $settings.colorTempTransitionMinutes, in: 10 ... 120, step: 10) {
                     Text(
@@ -438,4 +396,41 @@ struct DisplaySettingsTab: View {
             )
         }
     #endif
+}
+
+private struct TemperatureSliderRow: View {
+    let label: LocalizedStringKey
+    let accessibilityLabel: LocalizedStringKey
+    @Binding var temperature: Int
+    let range: ClosedRange<Double>
+
+    var body: some View {
+        LabeledContent(label) {
+            HStack(spacing: 4) {
+                Text("Warm")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 34, alignment: .trailing)
+                    .accessibilityHidden(true)
+                Slider(
+                    value: Binding(
+                        get: { Double(temperature) },
+                        set: { temperature = Int($0) }
+                    ),
+                    in: range,
+                    step: 100
+                )
+                .accessibilityLabel(accessibilityLabel)
+                .accessibilityValue("\(temperature) Kelvin")
+                Text("Cool")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+                Text("\(temperature)K")
+                    .monospacedDigit()
+                    .frame(width: 50, alignment: .trailing)
+                    .accessibilityHidden(true)
+            }
+        }
+    }
 }
