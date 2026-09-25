@@ -64,7 +64,7 @@ struct ExternalDisplay: Identifiable {
     /// Core Graphics display identifier (unique hardware ID)
     let id: CGDirectDisplayID
     /// Human-readable display name (e.g., "LG UltraFine 5K" or "Built-in Retina Display")
-    let name: String
+    var name: String
     /// Current brightness level (0.0 = dimmest allowed, 1.0 = full brightness)
     var brightness: Double
     /// Color temperature shift (0.0 = neutral/6500K, 1.0 = warmest/1900K)
@@ -578,18 +578,7 @@ class BrightnessManager {
                 guard duplicatedNames.contains(name) else { continue }
                 let index = (nameIndex[name] ?? 0) + 1
                 nameIndex[name] = index
-                var renamed = ExternalDisplay(
-                    id: newDisplays[i].id,
-                    name: "\(name) (\(index))",
-                    brightness: newDisplays[i].brightness,
-                    warmth: newDisplays[i].warmth,
-                    contrast: newDisplays[i].contrast
-                )
-                renamed.isBuiltIn = newDisplays[i].isBuiltIn
-                #if !APPSTORE
-                    renamed.supportsDDC = newDisplays[i].supportsDDC
-                #endif
-                newDisplays[i] = renamed
+                newDisplays[i].name = "\(name) (\(index))"
             }
         }
 
@@ -612,7 +601,7 @@ class BrightnessManager {
         baseline: RefreshBaseline
     ) -> (display: ExternalDisplay, suppressBuiltInBacklight: Bool) {
         let builtIn = isBuiltInDisplay(displayID)
-        let name = displayName(for: displayID)
+        let name = DisplayNameResolver.name(for: displayID)
         let identity = displayIdentity(for: displayID)
         let previousDisplay = baseline.displaysByIdentity[identity]
             ?? baseline.displaysByID[displayID]
@@ -1074,15 +1063,6 @@ class BrightnessManager {
 
         // Return value intentionally ignored — no recovery action if gamma set fails
         CGSetDisplayTransferByTable(displayID, 256, &rTable, &gTable, &bTable)
-    }
-
-    // MARK: - Display Name (extracted to DisplayNameResolver)
-
-    ///
-    /// A stub remains so the `refreshDisplays` call site stays readable. The real logic
-    /// lives in `DisplayNameResolver.name(for:)` in this directory.
-    private func displayName(for displayID: CGDirectDisplayID) -> String {
-        DisplayNameResolver.name(for: displayID)
     }
 
     // MARK: - Persistence

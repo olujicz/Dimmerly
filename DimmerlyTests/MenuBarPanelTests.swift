@@ -451,20 +451,19 @@ final class MenuBarPanelTests: XCTestCase {
     func testDisplaySlidersUseDecorativeSnapMarkerLayers() throws {
         let source = try menuBarDisplayControlsSource()
 
-        XCTAssertTrue(source.contains("positions: DisplaySliderSnap.brightnessMarkerPositions"))
-        XCTAssertTrue(source.contains("positions: DisplaySliderSnap.warmthMarkerPositions"))
-        XCTAssertTrue(source.contains("positions: DisplaySliderSnap.contrastMarkerPositions"))
-        XCTAssertTrue(source.contains("positions: DisplaySliderSnap.volumeMarkerPositions"))
+        XCTAssertTrue(source.contains("markerPositions: DisplaySliderSnap.brightnessMarkerPositions"))
+        XCTAssertTrue(source.contains("markerPositions: DisplaySliderSnap.warmthMarkerPositions"))
+        XCTAssertTrue(source.contains("markerPositions: DisplaySliderSnap.contrastMarkerPositions"))
+        XCTAssertTrue(source.contains("markerPositions: DisplaySliderSnap.volumeMarkerPositions"))
         XCTAssertTrue(source.contains(".accessibilityHidden(true)"))
     }
 
-    /// The native track is opaque, so a background layer is invisible behind it. Every
-    /// marker layer must overlay its slider to be seen at all.
+    /// The native track is opaque, so the shared marker layer must overlay its slider.
     func testSnapMarkerLayersOverlayTheSliderRatherThanSitBehindIt() throws {
         let lines = try menuBarDisplayControlsSource().components(separatedBy: .newlines)
         let markerLines = lines.indices.filter { lines[$0].contains("SliderSnapMarkerLayer(") }
 
-        XCTAssertEqual(markerLines.count, 4)
+        XCTAssertEqual(markerLines.count, 1)
 
         for index in markerLines {
             XCTAssertEqual(
