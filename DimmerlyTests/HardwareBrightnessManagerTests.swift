@@ -1022,6 +1022,49 @@ import XCTest
 
     @MainActor
     extension HardwareBrightnessManagerTests {
+        func testCapabilityReprobePreservesPendingVolumeWrite() async {
+            let displayID: CGDirectDisplayID = 1
+            let capability = brightnessAndVolumeCapability(displayID: displayID)
+            let probeStarted = expectation(description: "Capability probe started")
+            let probePublished = expectation(description: "Capability probe published")
+            let volumeWritten = expectation(description: "Pending volume reached hardware")
+            let blockingProbe = BlockingDDCRecorder(firstCallStarted: probeStarted)
+            let writes = LockedWriteRecorder()
+            var mock = MockDDCInterface()
+            mock.probeHandler = { _ in
+                blockingProbe.record(.brightness)
+                return capability
+            }
+            mock.readHandler = { code, _ in
+                code == .volume ? DDCReadResult(currentValue: 20, maxValue: 100) : nil
+            }
+            mock.writeHandler = { code, value, id in
+                writes.record(code: code, value: value, displayID: id)
+                volumeWritten.fulfill()
+                return true
+            }
+
+            let manager = HardwareBrightnessManager(
+                forTesting: true,
+                ddcInterface: mock,
+                connectedExternalDisplayIDsProvider: { [displayID] },
+                displayRefreshHandler: { probePublished.fulfill() }
+            )
+            manager.enable()
+            manager.capabilities[displayID] = capability
+            manager.probeAllDisplays()
+            await fulfillment(of: [probeStarted], timeout: 1)
+
+            manager.setHardwareVolume(for: displayID, to: 0.7)
+            blockingProbe.releaseFirstCall()
+            await fulfillment(of: [probePublished, volumeWritten], timeout: 1)
+
+            XCTAssertEqual(writes.values.count, 1)
+            XCTAssertEqual(writes.values.first?.code, .volume)
+            XCTAssertEqual(writes.values.first?.value, 70)
+            XCTAssertEqual(manager.hardwareVolume[displayID], 0.7)
+        }
+
         func testQueuedWriteForDisconnectedAndReconnectedIDNeverReachesNewConnection() async {
             let readStarted = expectation(description: "Read started")
             let blockingRead = BlockingDDCRead(callStarted: readStarted)
