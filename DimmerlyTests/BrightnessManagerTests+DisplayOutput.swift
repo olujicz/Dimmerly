@@ -10,6 +10,55 @@ import XCTest
 
 @MainActor
 extension BrightnessManagerTests {
+    func testPersistenceIdentityPreservesLegacyKeysForMissingUnitNumbers() {
+        for unitNumber in [UInt32(0), UInt32.max] {
+            let key = BrightnessManager.persistenceIdentity(
+                vendor: 0x10AC, model: 0xD0A1, serial: 0, unitNumber: unitNumber, displayID: 11
+            )
+
+            XCTAssertEqual(key, "v4268m53409u\(unitNumber)")
+            XCTAssertNil(BrightnessManager.stableDisplayIdentity(
+                vendor: 0x10AC, model: 0xD0A1, serial: 0, unitNumber: unitNumber
+            ))
+        }
+    }
+
+    func testRefreshAndPresetsRestoreLegacyMissingUnitNumberKeysAfterIDChange() throws {
+        for unitNumber in [UInt32(0), UInt32.max] {
+            let suiteName = "BrightnessManagerTests-\(UUID().uuidString)"
+            let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+            defer { defaults.removePersistentDomain(forName: suiteName) }
+            let legacyKey = "v4268m53409u\(unitNumber)"
+            defaults.set([legacyKey: 0.35], forKey: "dimmerlyDisplayBrightness")
+            defaults.set([legacyKey: 0.47], forKey: "dimmerlyDisplayWarmth")
+            defaults.set([legacyKey: 0.8], forKey: "dimmerlyDisplayContrast")
+
+            let manager = BrightnessManager(forTesting: true, defaults: defaults)
+            manager.applyGammaHook = { _, _, _, _ in }
+            manager.isBuiltInDisplayHook = { _ in false }
+            manager.displayIdentityHook = { displayID in
+                BrightnessManager.persistenceIdentity(
+                    vendor: 0x10AC, model: 0xD0A1, serial: 0,
+                    unitNumber: unitNumber, displayID: displayID
+                )
+            }
+            manager.activeDisplayIDsHook = { [11] }
+            manager.refreshDisplays()
+
+            XCTAssertEqual(manager.displays[0].brightness, 0.35, accuracy: 0.0001)
+            XCTAssertEqual(manager.displays[0].warmth, 0.47, accuracy: 0.0001)
+            XCTAssertEqual(manager.displays[0].contrast, 0.8, accuracy: 0.0001)
+
+            manager.applyBrightnessValues([legacyKey: 0.6])
+            manager.applyWarmthValues([legacyKey: 0.2])
+            manager.applyContrastValues([legacyKey: 0.7])
+
+            XCTAssertEqual(manager.displays[0].brightness, 0.6, accuracy: 0.0001)
+            XCTAssertEqual(manager.displays[0].warmth, 0.2, accuracy: 0.0001)
+            XCTAssertEqual(manager.displays[0].contrast, 0.7, accuracy: 0.0001)
+        }
+    }
+
     #if !APPSTORE
         /// Installs a single built-in display plus the hooks every built-in output test needs,
         /// so each test only spells out the part that actually differs.

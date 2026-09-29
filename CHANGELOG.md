@@ -18,11 +18,16 @@ Semantic Versioning.
 - Menu bar display controls can now be targeted individually from Shortcuts and Spotlight on macOS 15.4 and later.
 
 ### Changed
+- Per-display Shortcuts now use stable monitor identities instead of numeric display IDs. Existing Shortcuts saved with a display selected must have that display reselected once after upgrading.
 - The app icon is now authored in Icon Composer, so on macOS 26 and later it picks up the system's layered mask, shadow, and specular treatment. Older versions fall back to a flattened icon that matches the previous artwork's sizes.
 - On macOS 27, Shortcuts actions now run inside Dimmerly rather than in a separate helper process, so they act on the app's current display state.
 
 ### Fixed
 - Fixed public website deployment after the app icon moved to Icon Composer.
+- Preserved saved brightness, warmth, contrast, and per-display presets for monitors that do not report a serial or unit number when upgrading.
+- Fixed capability re-probes canceling pending volume, mute, or input-source changes on a connected monitor.
+- Fixed delayed slider snapping overwriting a newer preset, schedule, or hardware brightness value.
+- Fixed individual display controls exposing an identifier that Shortcuts and Spotlight could not resolve.
 - Fixed the Settings and Quit buttons in the menu bar panel not highlighting when the pointer moved over them.
 - Fixed full-screen and per-display blanking being able to run at the same time, and displays sometimes staying stuck blanked after a per-display recovery.
 - Fixed manual warmth overrides not clearing at the next day/night boundary when set while location was temporarily unavailable.

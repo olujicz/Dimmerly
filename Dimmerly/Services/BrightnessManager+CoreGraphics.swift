@@ -46,10 +46,15 @@ extension BrightnessManager {
         unitNumber: UInt32,
         displayID: CGDirectDisplayID
     ) -> String {
-        // Nothing stable to key on. Fall back to the legacy display-ID key rather than
-        // collapsing every metadata-less display onto one shared key.
-        edidIdentityBody(vendor: vendor, model: model, serial: serial, unitNumber: unitNumber)
-            ?? String(displayID)
+        guard isUsableDisplayMetadata(vendor), isUsableDisplayMetadata(model) else {
+            return String(displayID)
+        }
+        if isUsableDisplayMetadata(serial) {
+            return "v\(vendor)m\(model)s\(serial)"
+        }
+        // Preserve existing settings and presets, including keys written when the unit
+        // number was unavailable. Persisted App Intent targets use stricter validation.
+        return "v\(vendor)m\(model)u\(unitNumber)"
     }
 
     /// Builds a persistable App Intent identity from display metadata without consulting
@@ -79,7 +84,7 @@ extension BrightnessManager {
     /// that produces one; `DisplayEntityIdentifier` validates against the same constant.
     nonisolated static let stableIdentityPrefix = "display:"
 
-    /// The EDID-derived body shared by the persistence key and the prefixed App Intent identity.
+    /// The EDID-derived body used by the prefixed App Intent identity.
     private static func edidIdentityBody(
         vendor: UInt32,
         model: UInt32,

@@ -37,6 +37,8 @@ Use version increments this way:
 | New user-facing feature or meaningful enhancement | MINOR | `1.4.2` -> `1.5.0` |
 | Bug fix, localization fix, small polish, or release infrastructure fix | PATCH | `1.4.2` -> `1.4.3` |
 
+For version 1.2.0, the maintainer approved an exception to the major-version rule for the switch to stable per-display Shortcuts identities. Existing Shortcuts with a display selected need that display reselected once after upgrading. Keep this compatibility note in the curated release notes.
+
 Apple bundle versions are mapped as:
 
 | Xcode setting | Required value |

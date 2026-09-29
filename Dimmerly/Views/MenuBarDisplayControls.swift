@@ -7,8 +7,15 @@ import AppIntents
 import AppKit
 import SwiftUI
 
+enum DisplayEntityContextIdentifier {
+    static func make(for descriptor: ConnectedDisplayDescriptor) -> String? {
+        guard DisplayEntityIdentifier.isSafelyPersistable(descriptor.stableIdentity) else { return nil }
+        return descriptor.stableIdentity
+    }
+}
+
 private struct DisplayEntityContextModifier: ViewModifier {
-    let identifier: EntityIdentifier
+    let identifier: EntityIdentifier?
 
     func body(content: Content) -> some View {
         #if compiler(>=6.4)
@@ -56,6 +63,33 @@ struct SliderSyncGate {
 }
 
 private let displaySliderSyncTolerance = 0.0005
+
+@MainActor
+final class DisplaySliderSettleTask {
+    private var task: Task<Void, Never>?
+
+    func synchronize(value: Double, modelValue: Double?, apply: (Double) -> Void) {
+        guard let modelValue, abs(value - modelValue) > displaySliderSyncTolerance else { return }
+        cancel()
+        apply(modelValue)
+    }
+
+    func schedule(isDragging: Bool, action: @escaping @MainActor () -> Void) {
+        cancel()
+        guard !isDragging else { return }
+
+        task = Task { @MainActor in
+            try? await Task.sleep(for: DisplaySliderSnap.settleDelay)
+            guard !Task.isCancelled else { return }
+            action()
+        }
+    }
+
+    func cancel() {
+        task?.cancel()
+        task = nil
+    }
+}
 
 enum DisplaySliderSnap {
     static let releaseTolerance = 0.03
@@ -187,11 +221,11 @@ private struct DisplayControlSlider: View {
 
     @State private var syncGate = SliderSyncGate()
     @State private var isDragging = false
-    @State private var settleTask: Task<Void, Never>?
+    @State private var settleTask = DisplaySliderSettleTask()
 
     var body: some View {
         Slider(value: $value, in: range) { isEditing in
-            settleTask?.cancel()
+            settleTask.cancel()
             isDragging = isEditing
             if !isEditing {
                 value = snap(value)
@@ -215,25 +249,20 @@ private struct DisplayControlSlider: View {
             scheduleSettle()
         }
         .onDisappear {
-            settleTask?.cancel()
-            settleTask = nil
+            settleTask.cancel()
         }
     }
 
     private func syncFromModel() {
-        guard let modelValue, abs(value - modelValue) > displaySliderSyncTolerance else { return }
-        syncGate.markProgrammaticSync()
-        value = modelValue
+        settleTask.synchronize(value: value, modelValue: modelValue) { modelValue in
+            syncGate.markProgrammaticSync()
+            value = modelValue
+        }
     }
 
     /// Keyboard and VoiceOver edits have no drag release, so settle after inactivity.
     private func scheduleSettle() {
-        settleTask?.cancel()
-        guard !isDragging else { return }
-
-        settleTask = Task { @MainActor in
-            try? await Task.sleep(for: DisplaySliderSnap.settleDelay)
-            guard !Task.isCancelled else { return }
+        settleTask.schedule(isDragging: isDragging) {
             value = snap(value)
         }
     }
@@ -666,7 +695,11 @@ struct DisplayBrightnessRow: View {
         }
         .modifier(
             DisplayEntityContextModifier(
-                identifier: EntityIdentifier(for: DisplayEntity.self, identifier: String(display.id))
+                identifier: DisplayEntityContextIdentifier.make(for: ConnectedDisplayDescriptor(
+                    id: display.id,
+                    stableIdentity: BrightnessManager.stableDisplayIdentity(for: display.id),
+                    name: display.name
+                )).map { EntityIdentifier(for: DisplayEntity.self, identifier: $0) }
             )
         )
     }

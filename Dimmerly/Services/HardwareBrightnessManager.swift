@@ -409,7 +409,8 @@
                         guard let connectionToken = connectionTokens[displayID],
                               displayConnectionGate.isCurrent(connectionToken)
                         else { continue }
-                        advanceDisplayConnection(for: displayID)
+                        // A capability refresh keeps the same physical connection. Preserve
+                        // pending user writes and their protection against stale initial reads.
                         capabilities[displayID] = cap
                         cancelRecoveryProbes(for: displayID)
                         // A fresh probe gets a fresh failure budget — otherwise a display that
