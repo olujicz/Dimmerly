@@ -37,6 +37,8 @@ Use version increments this way:
 | New user-facing feature or meaningful enhancement | MINOR | `1.4.2` -> `1.5.0` |
 | Bug fix, localization fix, small polish, or release infrastructure fix | PATCH | `1.4.2` -> `1.4.3` |
 
+For version 1.2.0, the maintainer approved an exception to the major-version rule for the switch to stable per-display Shortcuts identities. Existing Shortcuts with a display selected need that display reselected once after upgrading. Keep this compatibility note in the curated release notes.
+
 Apple bundle versions are mapped as:
 
 | Xcode setting | Required value |
@@ -45,8 +47,6 @@ Apple bundle versions are mapped as:
 | `CURRENT_PROJECT_VERSION` | Monotonically increasing positive integer build number |
 
 Pre-release suffixes such as `1.1.0-rc.1` are not used for public macOS app versions because `MARKETING_VERSION` should remain a numeric bundle short version. Release candidates are produced with `workflow_dispatch` from a release-prep commit and are distributed only as GitHub Actions artifacts.
-
-The first public release should normalize the project from the current `1.0` marketing version to `1.0.0` before running the release workflow.
 
 ## Branch And Tag Policy
 
@@ -134,22 +134,20 @@ Do not mix feature work into the release-prep PR. Merge it only after CI passes 
 
 Use the manual workflow first to prove signing, notarization, and packaging before creating a public tag. Run it from the release-prep commit after it is on `main`:
 
-The Release workflow uses GitHub's `macos-26` runner and explicitly selects Xcode 26.6 for both the quality gate and signed DMG build. The archive uses manual signing with the imported Developer ID Application identity so clean runners do not create disposable Apple Development certificates. Keep these settings aligned with `.github/workflows/release.yml` when upgrading the release environment.
+The Release workflow uses GitHub's `xcode-27` Apple silicon runner and explicitly selects released Xcode 27.0 (`27A266a`) for both the quality gate and signed DMG build. The archive uses manual signing with the imported Developer ID Application identity so clean runners do not create disposable Apple Development certificates. Keep these settings aligned with `.github/workflows/release.yml` when upgrading the release environment.
 
-### Toolchain Split Between CI And Release
-
-CI (`.github/workflows/ci.yml`) and the Release workflow deliberately run different toolchains:
+### Shared CI And Release Toolchain
 
 | Workflow | Runner | Xcode |
 | --- | --- | --- |
-| CI `test` and `build-appstore` | `xcode-27` | 27.0 (beta) |
-| Release quality gate and DMG build | `macos-26` | 26.6 |
+| CI `test` and `build-appstore` | `xcode-27` | 27.0 (`27A266a`, released) |
+| Release quality gate and DMG build | `xcode-27` | 27.0 (`27A266a`, released) |
 
-The macOS 27 intents, Spotlight preset indexing, and `appEntityIdentifier` wiring are behind `#if compiler(>=6.4)`. Xcode 26.6 predates Swift 6.4, so that code is excluded from anything it builds. CI runs on Xcode 27 so the gated code is actually compiled and tested, and each macOS job asserts the Swift version so an older toolchain fails loudly instead of silently producing a hollow but green build.
+The runner image remains a GitHub public preview, but the selected Xcode is a released toolchain, not a beta. CI sets `DEVELOPER_DIR` and Release selects `/Applications/Xcode_27.0.app/Contents/Developer`. Both invoke `.github/scripts/verify-xcode.sh`, which rejects any other Xcode version or build, an unrecognized or older Swift compiler, and a macOS SDK older than 27.0. The scope job tests this gate on every CI run.
 
-Release stays on Xcode 26.6 because the `xcode-27` image is a GitHub public preview carrying a beta Xcode, which is not a suitable toolchain for signed, notarized public builds.
+Apple lists [Xcode 27 build 27A266a as released on September 14, 2026](https://developer.apple.com/news/releases/). GitHub documents the installed toolchains in its [Xcode 27 runner manifest](https://github.com/actions/runner-images/blob/main/images/macos/xcode-27-arm64-Readme.md). Before changing the pin, verify the replacement is a released Xcode build and update the workflows, gate, tests, and this runbook together.
 
-**Consequence:** a DMG built today does not contain the macOS 27 features. Before releasing them, move the Release workflow to a non-beta Xcode 27 image and update this runbook in the same change.
+Swift 6.4 includes the code behind `#if compiler(>=6.4)`: macOS 27 intent execution targets and preset reindexing, plus display-control `appEntityIdentifier` wiring. Runtime availability checks still apply: macOS 27 behavior requires macOS 27, while display-control targeting requires macOS 15.4 or later. The app's deployment target remains macOS 15.0.
 
 1. Open GitHub Actions.
 2. Run the `Release` workflow manually.

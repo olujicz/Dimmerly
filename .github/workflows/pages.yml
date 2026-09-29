@@ -7,7 +7,7 @@ on:
       - "documentation/**"
       - "images/image1.png"
       - "images/github-social-preview.jpg"
-      - "Dimmerly/Resources/Assets.xcassets/AppIcon.appiconset/icon_256.png"
+      - "IconComposerLayers/AppIcon-IconComposer/rendered/icon_128x128@2x.png"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -50,7 +50,7 @@ jobs:
           cp documentation/sitemap.xml build/pages/sitemap.xml
           cp images/image1.png build/pages/assets/dimmerly-menu.png
           cp images/github-social-preview.jpg build/pages/assets/dimmerly-social-preview.jpg
-          cp Dimmerly/Resources/Assets.xcassets/AppIcon.appiconset/icon_256.png build/pages/assets/dimmerly-icon.png
+          cp IconComposerLayers/AppIcon-IconComposer/rendered/icon_128x128@2x.png build/pages/assets/dimmerly-icon.png
           touch build/pages/.nojekyll
 
       - name: Inject Cloudflare Web Analytics token

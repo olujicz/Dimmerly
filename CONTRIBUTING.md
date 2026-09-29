@@ -44,9 +44,9 @@ Feature suggestions are welcome! Please:
 
 ### Prerequisites
 
-- macOS 15.0 (Sequoia) or later
-- Xcode 26.0 or later
-- Swift 6.2 or later
+- An Apple silicon Mac running a supported macOS version for Xcode 27
+- Released Xcode 27.0 (`27A266a`) with the macOS 27 SDK
+- Swift 6.4 or later
 - Optional: [just](https://github.com/casey/just) command runner
 - Optional: [SwiftLint](https://github.com/realm/SwiftLint) and [SwiftFormat](https://github.com/nicklockwood/SwiftFormat)
 

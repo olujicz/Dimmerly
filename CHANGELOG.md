@@ -7,13 +7,10 @@ Semantic Versioning.
 
 ## [Unreleased]
 
-<!-- Release note: `allowedExecutionTargets`, the `IndexedEntityQuery` reindex path, and
-     `appEntityIdentifier` are behind `#if compiler(>=6.4)`. The Release workflow still
-     builds on Xcode 26.6, which excludes them. Do not move the entries marked "macOS 27"
-     or the display-control targeting line into a release heading until the release
-     toolchain moves to Xcode 27. See documentation/RELEASE.md. -->
+## [1.2.0] - 2026-09-29
 
 ### Added
+- Added snap markers to display sliders for selecting common brightness, warmth, contrast, and volume values.
 - Added a "Sun (Split)" menu bar icon style, a sun whose disc is half solid and half hollow, echoing the app icon's bright-to-dim mark (seven styles total).
 - The default menu bar icon now shows when Dimmerly is adjusting your displays: the sun's rays pull in close to its centre while Dimmerly is dimming, warming, or shifting contrast, and stretch back out once it stops. Changing your laptop's backlight, or a monitor's own hardware brightness, leaves the icon alone, since that setting belongs to the display and outlives Dimmerly.
 - Saved presets now appear in Spotlight, so a preset can be found and opened straight from search.
@@ -26,6 +23,7 @@ Semantic Versioning.
 - On macOS 27, Shortcuts actions now run inside Dimmerly rather than in a separate helper process, so they act on the app's current display state.
 
 ### Fixed
+- Fixed public website deployment after the app icon moved to Icon Composer.
 - Preserved saved brightness, warmth, contrast, and per-display presets for monitors that do not report a serial or unit number when upgrading.
 - Fixed capability re-probes canceling pending volume, mute, or input-source changes on a connected monitor.
 - Fixed delayed slider snapping overwriting a newer preset, schedule, or hardware brightness value.
