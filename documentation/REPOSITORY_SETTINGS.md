@@ -69,7 +69,7 @@ GitHub Pages must use **GitHub Actions** as its publishing source. The
 - `images/image1.png`, published as `assets/dimmerly-menu.png`
 - `images/github-social-preview.jpg`, published as
   `assets/dimmerly-social-preview.jpg`
-- `Dimmerly/Resources/Assets.xcassets/AppIcon.appiconset/icon_256.png`, published
+- `IconComposerLayers/AppIcon-IconComposer/rendered/icon_128x128@2x.png`, published
   as `assets/dimmerly-icon.png`
 
 The rest of `documentation/` remains visible in the repository but is not
