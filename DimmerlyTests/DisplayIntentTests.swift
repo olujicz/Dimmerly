@@ -11,6 +11,26 @@ import XCTest
 
 @MainActor
 final class DisplayIntentTests: XCTestCase {
+    func testDisplayContextIdentifierResolvesThroughEntityFactoryAndResolver() throws {
+        let descriptor = ConnectedDisplayDescriptor(
+            id: 77,
+            stableIdentity: "display:v123m456s789",
+            name: "External"
+        )
+        let identifier = try XCTUnwrap(DisplayEntityContextIdentifier.make(for: descriptor))
+        let entities = DisplayEntityFactory.makeEntities(for: [identifier], from: [descriptor])
+        let entity = try XCTUnwrap(entities.first)
+
+        XCTAssertEqual(identifier, descriptor.stableIdentity)
+        XCTAssertEqual(try ConnectedDisplayResolver.resolve(entity) { [descriptor] }, descriptor.id)
+    }
+
+    func testDisplayContextIdentifierOmitsDisplaysWithoutStableMetadata() {
+        let descriptor = ConnectedDisplayDescriptor(id: 77, stableIdentity: "77", name: "External")
+
+        XCTAssertNil(DisplayEntityContextIdentifier.make(for: descriptor))
+    }
+
     func testStableResolverRejectsMalformedAndDisconnectedIdentifiers() {
         XCTAssertThrowsError(try ConnectedDisplayResolver.resolve(
             DisplayEntity(id: "not-a-display", name: "Invalid"),

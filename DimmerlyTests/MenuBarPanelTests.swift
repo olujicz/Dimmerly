@@ -46,6 +46,51 @@ private final class PopoverSpy: NSPopover {
 }
 
 final class MenuBarPanelTests: XCTestCase {
+    @MainActor
+    func testExternalModelUpdateCancelsPendingSliderSnap() async throws {
+        let settleTask = DisplaySliderSettleTask()
+        defer { settleTask.cancel() }
+        var value = 0.26
+        var propagatedValues: [Double] = []
+        var syncGate = SliderSyncGate()
+        settleTask.schedule(isDragging: false) {
+            value = DisplaySliderSnap.brightness(value)
+            if syncGate.shouldPropagateChange() {
+                propagatedValues.append(value)
+            }
+        }
+
+        settleTask.synchronize(value: value, modelValue: 0.48) { modelValue in
+            syncGate.markProgrammaticSync()
+            value = modelValue
+        }
+        XCTAssertFalse(syncGate.shouldPropagateChange())
+
+        try await Task.sleep(for: DisplaySliderSnap.settleDelay + .milliseconds(150))
+
+        XCTAssertEqual(value, 0.48, accuracy: 0.00001)
+        XCTAssertTrue(propagatedValues.isEmpty)
+    }
+
+    @MainActor
+    func testOwnModelEchoPreservesPendingSliderSnap() async {
+        let settleTask = DisplaySliderSettleTask()
+        defer { settleTask.cancel() }
+        var value = 0.26
+        let settled = expectation(description: "Keyboard edit settles after its model echo")
+        settleTask.schedule(isDragging: false) {
+            value = DisplaySliderSnap.brightness(value)
+            settled.fulfill()
+        }
+
+        settleTask.synchronize(value: value, modelValue: value) { _ in
+            XCTFail("An unchanged model echo should not synchronize the slider")
+        }
+
+        await fulfillment(of: [settled], timeout: 2)
+        XCTAssertEqual(value, 0.25, accuracy: 0.00001)
+    }
+
     func testAutoTemperatureBadgeUsesAdaptiveHighContrastTreatment() throws {
         let repositoryURL = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
