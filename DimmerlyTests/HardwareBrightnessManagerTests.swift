@@ -1126,7 +1126,11 @@ import XCTest
                     model.synchronizeExternalHardwareBrightness(for: id, to: value)
                 }
             )
-            manager.readPublicationHookForTesting = { publication.fulfill() }
+            let firstPublication = FirstCallGate()
+            manager.readPublicationHookForTesting = {
+                guard firstPublication.consume() else { return }
+                publication.fulfill()
+            }
             manager.enable()
             manager.pollingInterval = 0.01
             manager.capabilities[displayID] = HardwareDisplayCapability(
