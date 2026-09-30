@@ -147,6 +147,20 @@ It also includes small and medium desktop widgets for quick dimming and preset
 access. On macOS 26 and later, Dimmerly also provides a Control Center button
 for quick dimming.
 
+Starting with Dimmerly 1.2.0, saved presets can be found by name in Spotlight.
+The **Open Brightness Preset** Shortcuts action opens a preset in the menu bar
+panel. Use **Apply Brightness Preset** to apply its saved display settings.
+Individual menu bar display controls can also be targeted from Shortcuts and
+Spotlight on macOS 15.4 and later.
+
+### Upgrading to 1.2.0
+
+Existing Shortcuts with a specific display selected need that display reselected
+once after upgrading. Open each affected shortcut in the Shortcuts app, select
+the connected display again in its Dimmerly action, and save the shortcut.
+The new display identities prevent a shortcut from targeting another monitor
+when macOS reuses a numeric display ID.
+
 ## Known limitations
 
 - Hardware monitor controls require a DDC/CI-capable display and connection.
