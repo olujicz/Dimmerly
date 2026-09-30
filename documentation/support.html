@@ -103,6 +103,16 @@
             <li>If the shortcut still doesn&rsquo;t work, try changing it in Settings &rsaquo; Shortcuts to avoid conflicts with other apps.</li>
         </ol>
 
+        <h3 id="shortcuts-upgrade">A per-display Shortcuts action stops working after upgrading to 1.2.0</h3>
+        <p>Dimmerly 1.2.0 changes how Shortcuts identifies displays. Existing shortcuts with a specific display selected need that display reselected once after upgrading.</p>
+        <ol>
+            <li>Connect the display and open Dimmerly.</li>
+            <li>Open the affected shortcut in the Shortcuts app.</li>
+            <li>Select the display again in each affected Dimmerly action, then save the shortcut.</li>
+            <li>Run the shortcut to confirm it controls the intended display.</li>
+        </ol>
+        <p>The new identities prevent a shortcut from targeting another monitor when macOS reuses a display ID.</p>
+
         <h3>Brightness slider has no effect</h3>
         <ul>
             <li>The App Store version uses software brightness through gamma tables. Some displays, HDR modes, or color profiles may limit the visible effect.</li>
