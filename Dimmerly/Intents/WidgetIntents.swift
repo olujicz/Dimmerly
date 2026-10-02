@@ -120,3 +120,100 @@ struct ApplyPresetWidgetIntent: AppIntent {
         return .result()
     }
 }
+
+/// Backs the Control Center dim toggle. `value` is the state the user switched the toggle to.
+///
+/// "Dimmed" means Dimmerly is blanking at least one display (`ScreenBlanker.isBlankingAnyDisplay`).
+/// See `DisplayAction.setDimmed(_:settings:)` for what each direction does.
+struct SetDimmingWidgetIntent: SetValueIntent {
+    static let title: LocalizedStringResource = "Dim Displays (Control)"
+    static let description: IntentDescription = "Dims all connected displays, or wakes the displays Dimmerly dimmed."
+    static let isDiscoverable: Bool = false
+
+    /// Keep the legacy behavior for macOS 15–25. macOS 26 and later prefer
+    /// supportedModes, while older systems continue to use openAppWhenRun.
+    @available(macOS, deprecated: 26.0, message: "Use supportedModes on macOS 26 and later")
+    static let openAppWhenRun: Bool = true
+
+    @available(macOS 26.0, *)
+    static let supportedModes: IntentModes = .foreground(.immediate)
+
+    #if compiler(>=6.4)
+        #if WIDGET_EXTENSION
+            @available(macOS 27.0, *)
+            static let allowedExecutionTargets: IntentExecutionTargets = .widgetKitExtension
+        #else
+            @available(macOS 27.0, *)
+            static let allowedExecutionTargets: IntentExecutionTargets = .main
+        #endif
+    #endif
+
+    @Parameter(title: "Dimmed")
+    var value: Bool
+
+    init() {}
+
+    init(value: Bool) {
+        self.value = value
+    }
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        #if WIDGET_EXTENSION
+            SharedConstants.storeWidgetDimStateCommand(value)
+            DistributedNotificationCenter.default().postNotificationName(
+                SharedConstants.dimStateNotification, object: nil, userInfo: nil, deliverImmediately: true
+            )
+        #else
+            handleWidgetDimStateCommand(settings: AppSettings.shared, consumeCommand: { value })
+        #endif
+        return .result()
+    }
+}
+
+/// Backs the Control Center Auto Warmth toggle. `value` is the state the user switched it to.
+struct SetAutoWarmthWidgetIntent: SetValueIntent {
+    static let title: LocalizedStringResource = "Auto Warmth (Control)"
+    static let description: IntentDescription = "Turns automatic display warmth on or off."
+    static let isDiscoverable: Bool = false
+
+    /// Keep the legacy behavior for macOS 15–25. macOS 26 and later prefer
+    /// supportedModes, while older systems continue to use openAppWhenRun.
+    @available(macOS, deprecated: 26.0, message: "Use supportedModes on macOS 26 and later")
+    static let openAppWhenRun: Bool = true
+
+    @available(macOS 26.0, *)
+    static let supportedModes: IntentModes = .foreground(.immediate)
+
+    #if compiler(>=6.4)
+        #if WIDGET_EXTENSION
+            @available(macOS 27.0, *)
+            static let allowedExecutionTargets: IntentExecutionTargets = .widgetKitExtension
+        #else
+            @available(macOS 27.0, *)
+            static let allowedExecutionTargets: IntentExecutionTargets = .main
+        #endif
+    #endif
+
+    @Parameter(title: "Enabled")
+    var value: Bool
+
+    init() {}
+
+    init(value: Bool) {
+        self.value = value
+    }
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        #if WIDGET_EXTENSION
+            SharedConstants.storeWidgetAutoWarmthCommand(value)
+            DistributedNotificationCenter.default().postNotificationName(
+                SharedConstants.autoWarmthNotification, object: nil, userInfo: nil, deliverImmediately: true
+            )
+        #else
+            handleWidgetAutoWarmthCommand(settings: AppSettings.shared, consumeCommand: { value })
+        #endif
+        return .result()
+    }
+}

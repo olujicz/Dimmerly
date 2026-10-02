@@ -35,25 +35,34 @@ protocol WidgetPresetSynchronizing {
 struct AppGroupWidgetPresetSynchronizer: WidgetPresetSynchronizing {
     let defaults: UserDefaults?
     let reloadAllTimelines: () -> Void
+    /// Control Center preset controls are not timelines, so `reloadAllTimelines` leaves them alone.
+    let reloadPresetControls: () -> Void
 
     init(
         defaults: UserDefaults? = SharedConstants.sharedDefaults,
-        reloadAllTimelines: @escaping () -> Void = { WidgetCenter.shared.reloadAllTimelines() }
+        reloadAllTimelines: @escaping () -> Void = { WidgetCenter.shared.reloadAllTimelines() },
+        reloadPresetControls: @escaping () -> Void = { ControlCenterStatePublisher.live.refreshPresetControls() }
     ) {
         self.defaults = defaults
         self.reloadAllTimelines = reloadAllTimelines
+        self.reloadPresetControls = reloadPresetControls
+    }
+
+    private func reloadWidgets() {
+        reloadAllTimelines()
+        reloadPresetControls()
     }
 
     func synchronize(_ presets: [BrightnessPreset]) {
         guard let defaults else {
             presetManagerLogger.error("Shared defaults unavailable; widget presets were not synchronized")
-            reloadAllTimelines()
+            reloadWidgets()
             return
         }
 
         if presets.isEmpty {
             defaults.removeObject(forKey: SharedConstants.widgetPresetsKey)
-            reloadAllTimelines()
+            reloadWidgets()
             return
         }
 
@@ -61,7 +70,7 @@ struct AppGroupWidgetPresetSynchronizer: WidgetPresetSynchronizing {
         do {
             let data = try JSONEncoder().encode(widgetPresets)
             defaults.set(data, forKey: SharedConstants.widgetPresetsKey)
-            reloadAllTimelines()
+            reloadWidgets()
         } catch {
             presetManagerLogger.error(
                 "Failed to encode widget presets: \(error.localizedDescription, privacy: .public)"

@@ -164,6 +164,44 @@ final class ScreenBlankerTests: XCTestCase {
         XCTAssertEqual(harness.input.stopCount, 1)
     }
 
+    // MARK: - Control Center dim toggle
+
+    func testBlankingAnyDisplayCoversGlobalAndPerDisplaySessions() {
+        let global = makeHarness()
+        XCTAssertFalse(global.sut.isBlankingAnyDisplay)
+        global.sut.blank()
+        XCTAssertTrue(global.sut.isBlankingAnyDisplay)
+
+        let perDisplay = makeHarness()
+        perDisplay.sut.blankDisplay(7)
+        XCTAssertFalse(perDisplay.sut.isBlanking, "A single blanked display is not a global session")
+        XCTAssertTrue(perDisplay.sut.isBlankingAnyDisplay)
+    }
+
+    func testSetDimmedOffWakesEveryDisplayTheBlankerCovered() {
+        let harness = makeHarness()
+        harness.sut.blankDisplay(7)
+        var sleepCount = 0
+
+        DisplayAction.setDimmed(false, settings: AppSettings(), blanker: harness.sut) { _ in sleepCount += 1 }
+
+        XCTAssertFalse(harness.sut.isBlankingAnyDisplay)
+        XCTAssertEqual(harness.gamma.restoredDisplayIDs, [7])
+        XCTAssertEqual(sleepCount, 0)
+    }
+
+    func testSetDimmedOnRunsTheSharedDimActionOnlyWhenNothingIsBlanked() {
+        let harness = makeHarness()
+        var sleepCount = 0
+
+        DisplayAction.setDimmed(true, settings: AppSettings(), blanker: harness.sut) { _ in sleepCount += 1 }
+        XCTAssertEqual(sleepCount, 1)
+
+        harness.sut.blankDisplay(7)
+        DisplayAction.setDimmed(true, settings: AppSettings(), blanker: harness.sut) { _ in sleepCount += 1 }
+        XCTAssertEqual(sleepCount, 1, "A toggle that already reads as on must not start a second session")
+    }
+
     func testTopologyChangeArmsRecoveryWhenTheLastVisibleDisplayDisconnects() {
         let harness = makeHarness()
         harness.sut.blankDisplay(7)

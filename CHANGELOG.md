@@ -7,6 +7,9 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+### Added
+- On macOS 26 and later, Control Center and the menu bar offer three more Dimmerly controls: a Display Dimming toggle that stays on while Dimmerly is blanking a display and wakes it when switched off, an Auto Warmth toggle, and an Apply Preset button that applies a preset you choose.
+
 ### Changed
 - On macOS 26 and later, the menu bar panel now uses the system's Liquid Glass background instead of a custom material. Earlier macOS versions keep the existing look.
 
