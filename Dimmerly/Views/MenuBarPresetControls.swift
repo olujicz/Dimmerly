@@ -216,18 +216,11 @@ struct FooterLabel: View {
 
     let title: LocalizedStringKey
     let icon: String
-    let shortcut: String?
     let isHovered: Bool
 
-    init(
-        _ title: LocalizedStringKey,
-        icon: String,
-        shortcut: String? = nil,
-        isHovered: Bool = false
-    ) {
+    init(_ title: LocalizedStringKey, icon: String, isHovered: Bool = false) {
         self.title = title
         self.icon = icon
-        self.shortcut = shortcut
         self.isHovered = isHovered
     }
 
@@ -236,11 +229,6 @@ struct FooterLabel: View {
             Image(systemName: icon)
                 .font(.caption)
             Text(title)
-            if let shortcut {
-                Text(shortcut)
-                    .foregroundStyle(.tertiary)
-                    .font(.caption)
-            }
         }
         .padding(.vertical, 4)
         .padding(.horizontal, 6)

@@ -37,7 +37,7 @@ struct GeneralSettingsTab: View {
 
                 menuBarIconPicker
             } header: {
-                Label("General", systemImage: "gear")
+                Label("General", systemImage: "gearshape")
             }
         }
         .formStyle(.grouped)
