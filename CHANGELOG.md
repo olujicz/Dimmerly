@@ -7,6 +7,9 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+### Changed
+- On macOS 26 and later, the menu bar panel now uses the system's Liquid Glass background instead of a custom material. Earlier macOS versions keep the existing look.
+
 ## [1.2.0] - 2026-09-29
 
 ### Added
