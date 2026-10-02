@@ -324,7 +324,7 @@ struct MenuBarPanel: View {
                 Spacer()
                 Toggle("", isOn: $settings.autoColorTempEnabled)
                     .toggleStyle(.switch)
-                    .controlSize(.mini)
+                    .controlSize(.small)
                     .labelsHidden()
                     .accessibilityLabel(Text("Auto Warmth"))
             }
@@ -396,9 +396,6 @@ struct MenuBarPanel: View {
                     Text(settings.preventScreenLock ? "Dim Displays" : "Turn Displays Off")
                 #endif
                 Spacer()
-                Text("↩")
-                    .font(.callout)
-                    .foregroundStyle(.tertiary)
             }
             .frame(maxWidth: .infinity)
         }
@@ -406,8 +403,10 @@ struct MenuBarPanel: View {
         .keyboardShortcut(.return, modifiers: [])
         #if APPSTORE
             .accessibilityLabel(Text("Dim all displays"))
+            .help("Dim all displays (↩)")
         #else
             .accessibilityLabel(settings.preventScreenLock ? Text("Dim all displays") : Text("Turn off all displays"))
+            .help(settings.preventScreenLock ? Text("Dim all displays (↩)") : Text("Turn off all displays (↩)"))
         #endif
     }
 
@@ -418,11 +417,11 @@ struct MenuBarPanel: View {
             Button {
                 openSettingsAction()
             } label: {
-                FooterLabel("Settings", icon: "gear", shortcut: "⌘,", isHovered: isSettingsHovered)
+                FooterLabel("Settings", icon: "gearshape", isHovered: isSettingsHovered)
             }
             .buttonStyle(.borderless)
             .keyboardShortcut(",", modifiers: .command)
-            .help("Open Dimmerly settings")
+            .help("Open Dimmerly settings (⌘,)")
             .onHover { isSettingsHovered = $0 }
 
             Spacer()
@@ -430,11 +429,11 @@ struct MenuBarPanel: View {
             Button {
                 NSApplication.shared.terminate(nil)
             } label: {
-                FooterLabel("Quit", icon: "power", shortcut: "⌘Q", isHovered: isQuitHovered)
+                FooterLabel("Quit", icon: "power", isHovered: isQuitHovered)
             }
             .buttonStyle(.borderless)
             .keyboardShortcut("q", modifiers: .command)
-            .help("Quit Dimmerly")
+            .help("Quit Dimmerly (⌘Q)")
             .onHover { isQuitHovered = $0 }
         }
         .font(.callout)

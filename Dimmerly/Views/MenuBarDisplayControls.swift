@@ -360,10 +360,11 @@ struct DisplayBrightnessRow: View {
 
                 #if !APPSTORE
                     if hasDDC {
-                        Text("HW")
+                        Image(systemName: "cable.connector.horizontal")
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
                             .help("Hardware control via DDC/CI")
+                            .accessibilityLabel(Text("Hardware Control"))
                     }
                 #endif
 

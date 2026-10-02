@@ -9,6 +9,7 @@ Semantic Versioning.
 
 ### Changed
 - On macOS 26 and later, the menu bar panel now uses the system's Liquid Glass background instead of a custom material. Earlier macOS versions keep the existing look.
+- Polished the menu bar panel and Settings to match macOS conventions: keyboard shortcuts for the main, Settings, and Quit buttons now appear in their tooltips instead of on the buttons, the "HW" badge is now a small connector icon, the Auto Warmth switch is larger, and Settings labels no longer end in colons.
 
 ## [1.2.0] - 2026-09-29
 

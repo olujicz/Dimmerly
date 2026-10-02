@@ -1,13 +1,13 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "Brightness control:" : {
+    "Brightness Control" : {
       "comment" : "Label for DDC brightness control picker",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Brightness control:"
+            "value" : "Brightness Control"
           }
         }
       }
@@ -1288,9 +1288,6 @@
     },
     "%dK" : {
       "comment" : "Accessibility value: warmth in Kelvin"
-    },
-    "↩" : {
-      "shouldTranslate" : false
     },
     "⌘%@" : {
 
@@ -5162,74 +5159,74 @@
         }
       }
     },
-    "Day:" : {
+    "Day" : {
       "comment" : "Label for day color temperature slider",
       "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tag:"
+            "value" : "Tag"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Day:"
+            "value" : "Day"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Día:"
+            "value" : "Día"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Jour :"
+            "value" : "Jour"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Giorno:"
+            "value" : "Giorno"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "昼:"
+            "value" : "昼"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "낮:"
+            "value" : "낮"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dag:"
+            "value" : "Dag"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dia:"
+            "value" : "Dia"
           }
         },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dan:"
+            "value" : "Dan"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "白天："
+            "value" : "白天"
           }
         }
       }
@@ -6164,6 +6161,77 @@
     "Dim all displays" : {
 
     },
+    "Dim all displays (↩)" : {
+      "comment" : "Help text for the dim button in the menu bar panel, with its keyboard shortcut",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle Bildschirme dimmen (↩)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dim all displays (↩)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atenuar todas las pantallas (↩)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Assombrir tous les écrans (↩)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oscura tutti gli schermi (↩)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべての画面を暗くする（↩）"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모든 화면 어둡게 (↩)"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle schermen dimmen (↩)"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escurecer todas as telas (↩)"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zatamni sve ekrane (↩)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "调暗所有显示器（↩）"
+          }
+        }
+      }
+    },
     "Dim display" : {
       "localizations" : {
         "de" : {
@@ -6371,76 +6439,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "调暗显示器"
-          }
-        }
-      }
-    },
-    "Dim Displays:" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bildschirme dimmen:"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dim Displays:"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Atenuar pantallas:"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Assombrir les écrans :"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Oscura schermi:"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "画面を暗くする："
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "화면 어둡게:"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Schermen dimmen:"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Escurecer telas:"
-          }
-        },
-        "sr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zatamni ekrane:"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "调暗显示器："
           }
         }
       }
@@ -9196,9 +9194,6 @@
         }
       }
     },
-    "HW" : {
-
-    },
     "Idle Timer" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -10123,77 +10118,6 @@
         }
       }
     },
-    "Menu Bar Icon:" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Menüleistensymbol:"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Menu Bar Icon:"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Icono de barra de menús:"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Icône de la barre des menus :"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Icona della barra dei menu:"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "メニューバーアイコン:"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "메뉴 막대 아이콘:"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Menubalkicoon:"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ícone da barra de menus:"
-          }
-        },
-        "sr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ikona trake menija:"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "菜单栏图标："
-          }
-        }
-      }
-    },
     "Minimum delay between DDC writes (increase if monitor is unresponsive)" : {
       "comment" : "Help text for DDC write delay stepper",
       "extractionState" : "stale",
@@ -10619,78 +10543,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "夜间色温"
-          }
-        }
-      }
-    },
-    "Night:" : {
-      "comment" : "Label for night color temperature slider",
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nacht:"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Night:"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Noche:"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nuit :"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Notte:"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "夜:"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "밤:"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nacht:"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Noite:"
-          }
-        },
-        "sr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Noć:"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "夜晚："
           }
         }
       }
@@ -11335,74 +11187,73 @@
         }
       }
     },
-    "Open Dimmerly settings" : {
-      "comment" : "Help text for Settings button in footer",
-      "extractionState" : "stale",
+    "Open Dimmerly settings (⌘,)" : {
+      "comment" : "Help text for Settings button in footer, with its keyboard shortcut",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmerly-Einstellungen öffnen"
+            "value" : "Dimmerly-Einstellungen öffnen (⌘,)"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Open Dimmerly settings"
+            "value" : "Open Dimmerly settings (⌘,)"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Abrir ajustes de Dimmerly"
+            "value" : "Abrir ajustes de Dimmerly (⌘,)"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ouvrir les réglages de Dimmerly"
+            "value" : "Ouvrir les réglages de Dimmerly (⌘,)"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Apri impostazioni di Dimmerly"
+            "value" : "Apri impostazioni di Dimmerly (⌘,)"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmerlyの設定を開く"
+            "value" : "Dimmerlyの設定を開く（⌘,）"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmerly 설정 열기"
+            "value" : "Dimmerly 설정 열기 (⌘,)"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmerly-instellingen openen"
+            "value" : "Dimmerly-instellingen openen (⌘,)"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Abrir configurações do Dimmerly"
+            "value" : "Abrir configurações do Dimmerly (⌘,)"
           }
         },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Otvori podešavanja programa Dimmerly"
+            "value" : "Otvori podešavanja programa Dimmerly (⌘,)"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "打开 Dimmerly 设置"
+            "value" : "打开 Dimmerly 设置（⌘,）"
           }
         }
       }
@@ -12545,6 +12396,77 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "退出 Dimmerly"
+          }
+        }
+      }
+    },
+    "Quit Dimmerly (⌘Q)" : {
+      "comment" : "Help text for Quit button in footer, with its keyboard shortcut",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly beenden (⌘Q)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quit Dimmerly (⌘Q)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salir de Dimmerly (⌘Q)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quitter Dimmerly (⌘Q)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esci da Dimmerly (⌘Q)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerlyを終了（⌘Q）"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly 종료 (⌘Q)"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly stoppen (⌘Q)"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Encerrar Dimmerly (⌘Q)"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zatvori Dimmerly (⌘Q)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "退出 Dimmerly（⌘Q）"
           }
         }
       }
@@ -14968,77 +14890,6 @@
         }
       }
     },
-    "Sleep Displays:" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Displays in den Ruhezustand:"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sleep Displays:"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apagar pantallas:"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mettre les écrans en veille :"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sospendi i display:"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ディスプレイをスリープ:"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "디스플레이 잠자기:"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Beeldschermen in sluimerstand:"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Colocar monitores em repouso:"
-          }
-        },
-        "sr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Uspavaj ekrane:"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "让显示器休眠："
-          }
-        }
-      }
-    },
     "Software brightness" : {
       "comment" : "DDC display status: software brightness fallback",
       "localizations" : {
@@ -16473,79 +16324,79 @@
         }
       }
     },
-    "Turn Displays Off:" : {
-      "extractionState" : "stale",
+    "Turn off all displays" : {
+
+    },
+    "Turn off all displays (↩)" : {
+      "comment" : "Help text for the turn-off button in the menu bar panel, with its keyboard shortcut",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bildschirme ausschalten:"
+            "value" : "Alle Displays ausschalten (↩)"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Turn Displays Off:"
+            "value" : "Turn off all displays (↩)"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Apagar pantallas:"
+            "value" : "Apagar todas las pantallas (↩)"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Éteindre les écrans :"
+            "value" : "Éteindre tous les écrans (↩)"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Spegni schermi:"
+            "value" : "Spegni tutti i display (↩)"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ディスプレイをオフにする："
+            "value" : "すべてのディスプレイをオフにする（↩）"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "디스플레이 끄기:"
+            "value" : "모든 디스플레이 끄기 (↩)"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Beeldschermen uitschakelen:"
+            "value" : "Alle beeldschermen uitzetten (↩)"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Desligar telas:"
+            "value" : "Desligar todos os monitores (↩)"
           }
         },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Isključi ekrane:"
+            "value" : "Isključi sve ekrane (↩)"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "关闭显示器："
+            "value" : "关闭所有显示器（↩）"
           }
         }
       }
-    },
-    "Turn off all displays" : {
-
     },
     "Turns off all displays and locks your Mac, just like closing the lid. To control how quickly your password is required, adjust your Lock Screen settings." : {
       "comment" : "A description of the \"Turn Displays Off:\" option in the General Settings tab, explaining that it locks the screen and dims displays.",
@@ -17624,73 +17475,73 @@
         }
       }
     },
-    "Wake Displays:" : {
+    "Wake Displays" : {
       "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bildschirme aufwecken:"
+            "value" : "Bildschirme aufwecken"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wake Displays:"
+            "value" : "Wake Displays"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Activar pantallas:"
+            "value" : "Activar pantallas"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Réactiver les écrans :"
+            "value" : "Réactiver les écrans"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Riattiva schermi:"
+            "value" : "Riattiva schermi"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "画面の復帰:"
+            "value" : "画面の復帰"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "디스플레이 깨우기:"
+            "value" : "디스플레이 깨우기"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Schermen wekken:"
+            "value" : "Schermen wekken"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Reativar telas:"
+            "value" : "Reativar telas"
           }
         },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Buđenje ekrana:"
+            "value" : "Buđenje ekrana"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "唤醒显示器："
+            "value" : "唤醒显示器"
           }
         }
       }

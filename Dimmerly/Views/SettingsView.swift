@@ -206,7 +206,7 @@ struct SettingsView: View {
     var body: some View {
         TabView {
             GeneralSettingsTab()
-                .tabItem { Label("General", systemImage: "gear") }
+                .tabItem { Label("General", systemImage: "gearshape") }
 
             DisplaySettingsTab()
                 .tabItem { Label("Displays", systemImage: "display") }
