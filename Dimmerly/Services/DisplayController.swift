@@ -55,6 +55,33 @@ enum DisplayAction {
         #endif
     }
 
+    /// Turns dimming on or off for the Control Center dim toggle.
+    ///
+    /// Turning it on runs the same action as every other "dim" entry point, so the toggle and the
+    /// Dim Displays button never disagree. Turning it off wakes every display Dimmerly is blanking,
+    /// whether blanked globally or one at a time. Real display sleep through `pmset` leaves nothing
+    /// for Dimmerly to undo, since macOS wakes the displays itself on input.
+    ///
+    /// - Parameters:
+    ///   - isDimmed: The state the toggle asked for.
+    ///   - settings: Current app settings, used when dimming.
+    ///   - blanker: The blanker to wake. Injectable for tests.
+    ///   - performSleep: The dim action. Injectable for tests.
+    @MainActor
+    static func setDimmed(
+        _ isDimmed: Bool,
+        settings: AppSettings,
+        blanker: ScreenBlanker = .shared,
+        performSleep: (AppSettings) -> Void = { DisplayAction.performSleep(settings: $0) }
+    ) {
+        if isDimmed {
+            guard !blanker.isBlankingAnyDisplay else { return }
+            performSleep(settings)
+        } else {
+            blanker.dismiss(force: true)
+        }
+    }
+
     /// Configures ScreenBlanker from app settings and triggers blanking.
     @MainActor
     private static func blankWithSettings(_ settings: AppSettings) {

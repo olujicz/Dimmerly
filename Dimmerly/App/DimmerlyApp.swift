@@ -74,6 +74,18 @@ struct DimmerlyApp: App {
     /// Distributed notification observer for widget preset application
     @State private var widgetPresetObserver: NSObjectProtocol?
 
+    /// Distributed notification observer for the Control Center dim toggle
+    @State private var widgetDimStateObserver: NSObjectProtocol?
+
+    /// Distributed notification observer for the Control Center Auto Warmth toggle
+    @State private var widgetAutoWarmthObserver: NSObjectProtocol?
+
+    /// Clears the published dim state on quit, since blanking ends with the process.
+    @State private var terminationObserver: NSObjectProtocol?
+
+    /// Blanking state, observed so the Control Center dim toggle can follow it.
+    @State private var screenBlanker = ScreenBlanker.shared
+
     var body: some Scene {
         @Bindable var menuBarPanelCoordinator = menuBarPanelCoordinator
 
@@ -138,6 +150,10 @@ struct DimmerlyApp: App {
                 }
                 .onChange(of: settings.autoColorTempEnabled) { _, _ in
                     colorTempManager.apply(enabled: settings.autoColorTempEnabled)
+                    ControlCenterStatePublisher.live.publishAutoWarmthState(settings.autoColorTempEnabled)
+                }
+                .onChange(of: screenBlanker.isBlankingAnyDisplay, initial: true) { _, isBlanking in
+                    ControlCenterStatePublisher.live.publishDimState(isBlanking)
                 }
                 .onChange(of: presetManager.presets) { _, newValue in
                     presetShortcutManager.updateShortcuts(from: newValue)
@@ -262,9 +278,11 @@ struct DimmerlyApp: App {
     /// - Distributed notifications (trigger actions)
     /// - Shared UserDefaults container (pass parameters)
     ///
-    /// Two notification types:
+    /// Notification types:
     /// 1. **Dim notification**: Widget's "Sleep Displays" button was tapped
     /// 2. **Preset notification**: Widget's preset button was tapped (preset ID in shared defaults)
+    /// 3. **Dim state notification**: Control Center dim toggle was switched (state in shared defaults)
+    /// 4. **Auto Warmth notification**: Control Center Auto Warmth toggle was switched (state in shared defaults)
     ///
     /// Design note: Using DistributedNotificationCenter instead of Darwin notifications
     /// provides better type safety and automatic main queue dispatch.
@@ -293,6 +311,36 @@ struct DimmerlyApp: App {
                 presetManager.applyPreset(preset, to: brightnessManager, animated: true)
             }
         }
+
+        // Control Center dim toggle (requested state passed via shared defaults)
+        widgetDimStateObserver = DistributedNotificationCenter.default().addObserver(
+            forName: SharedConstants.dimStateNotification,
+            object: nil, queue: .main
+        ) { [settings] _ in
+            Task { @MainActor in
+                handleWidgetDimStateCommand(settings: settings)
+            }
+        }
+
+        // Control Center Auto Warmth toggle (requested state passed via shared defaults)
+        widgetAutoWarmthObserver = DistributedNotificationCenter.default().addObserver(
+            forName: SharedConstants.autoWarmthNotification,
+            object: nil, queue: .main
+        ) { [settings] _ in
+            Task { @MainActor in
+                handleWidgetAutoWarmthCommand(settings: settings)
+            }
+        }
+
+        // Blanking cannot outlive the app, so the dim toggle must not keep showing it as on.
+        terminationObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.willTerminateNotification,
+            object: nil, queue: .main
+        ) { _ in
+            MainActor.assumeIsolated {
+                ControlCenterStatePublisher.live.publishDimState(false)
+            }
+        }
     }
 
     /// Drains widget commands that were written before this process had observers registered.
@@ -300,6 +348,9 @@ struct DimmerlyApp: App {
         if SharedConstants.consumeWidgetDimCommand() {
             DisplayAction.performSleep(settings: settings)
         }
+
+        handleWidgetDimStateCommand(settings: settings)
+        handleWidgetAutoWarmthCommand(settings: settings)
 
         guard let presetID = SharedConstants.consumeWidgetPresetCommand(),
               let preset = presetManager.presets.first(where: { $0.id == presetID })
@@ -338,6 +389,7 @@ struct DimmerlyApp: App {
         )
         scheduleManager.apply(enabled: settings.scheduleEnabled)
         colorTempManager.apply(enabled: settings.autoColorTempEnabled)
+        ControlCenterStatePublisher.live.publishAutoWarmthState(settings.autoColorTempEnabled)
         presetShortcutManager.updateShortcuts(from: presetManager.presets)
     }
 

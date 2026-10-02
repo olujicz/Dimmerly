@@ -20,6 +20,7 @@ final class PresetManagerTests: XCTestCase {
     private var widgetSuiteName: String!
     private var widgetDefaults: UserDefaults!
     private var widgetReloadCount = 0
+    private var presetControlReloadCount = 0
 
     override func setUp() async throws {
         testSuiteName = "PresetManagerTests-\(UUID().uuidString)"
@@ -29,12 +30,14 @@ final class PresetManagerTests: XCTestCase {
         widgetDefaults = UserDefaults(suiteName: widgetSuiteName)
         widgetDefaults.removePersistentDomain(forName: widgetSuiteName)
         widgetReloadCount = 0
+        presetControlReloadCount = 0
         manager = PresetManager(
             defaults: testDefaults,
             mainShortcutProvider: { GlobalShortcut.default },
             widgetSynchronizer: AppGroupWidgetPresetSynchronizer(
                 defaults: widgetDefaults,
-                reloadAllTimelines: { self.widgetReloadCount += 1 }
+                reloadAllTimelines: { self.widgetReloadCount += 1 },
+                reloadPresetControls: { self.presetControlReloadCount += 1 }
             )
         )
         bm = BrightnessManager(forTesting: true)
@@ -308,6 +311,19 @@ final class PresetManagerTests: XCTestCase {
         manager.saveCurrentAsPreset(name: "Live", brightnessManager: bm)
 
         XCTAssertGreaterThan(widgetReloadCount, reloadCountBefore)
+    }
+
+    /// Preset controls show the preset name from the shared list, so a rename or deletion has to
+    /// redraw them as well as the widget timelines.
+    func testPresetMutationReloadsPresetControls() throws {
+        bm.displays = []
+        manager.saveCurrentAsPreset(name: "Live", brightnessManager: bm)
+        let preset = try XCTUnwrap(manager.presets.last)
+        let reloadCountBeforeDeletion = presetControlReloadCount
+
+        manager.deletePreset(id: preset.id)
+
+        XCTAssertEqual(presetControlReloadCount, reloadCountBeforeDeletion + 1)
     }
 
     // MARK: - restoreDefaultPresets
