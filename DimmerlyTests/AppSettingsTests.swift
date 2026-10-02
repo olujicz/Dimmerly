@@ -89,7 +89,7 @@ final class AppSettingsTests: XCTestCase {
             XCTAssertTrue(source.contains("Hardware controls aren’t available"))
             XCTAssertTrue(source.contains("Dimmerly is using software brightness"))
             XCTAssertTrue(source.contains("if hardwareControlModesAvailable"))
-            XCTAssertTrue(source.contains("Brightness control:"))
+            XCTAssertTrue(source.contains("Brightness Control"))
             XCTAssertTrue(source.contains("Display compatibility"))
         }
 

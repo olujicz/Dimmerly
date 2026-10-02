@@ -63,7 +63,7 @@ struct GeneralSettingsTab: View {
     // MARK: - Menu Bar Icon Picker
 
     private var menuBarIconPicker: some View {
-        LabeledContent("Menu Bar Icon:") {
+        LabeledContent("Menu Bar Icon") {
             HStack(spacing: 8) {
                 ForEach(MenuBarIconStyle.allCases) { style in
                     let isSelected = settings.menuBarIconRaw == style.rawValue

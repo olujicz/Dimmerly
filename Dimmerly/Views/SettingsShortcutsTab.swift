@@ -40,9 +40,9 @@ struct ShortcutsSettingsTab: View {
         Section {
             HStack {
                 #if APPSTORE
-                    Text("Dim Displays:")
+                    Text("Dim Displays")
                 #else
-                    Text(settings.preventScreenLock ? "Dim Displays:" : "Sleep Displays:")
+                    Text(settings.preventScreenLock ? "Dim Displays" : "Sleep Displays")
                 #endif
                 KeyboardShortcutRecorder(
                     shortcut: Binding(
