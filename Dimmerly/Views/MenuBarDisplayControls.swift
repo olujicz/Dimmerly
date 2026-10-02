@@ -379,6 +379,7 @@ struct DisplayBrightnessRow: View {
                 } label: {
                     Image(systemName: isBlanked ? "moon.fill" : "moon")
                         .font(.caption2)
+                        .symbolReplaceTransition(value: isBlanked)
                         .frame(width: 12)
                         .foregroundStyle(isBlanked ? .primary : .secondary)
                 }

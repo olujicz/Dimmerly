@@ -2,9 +2,10 @@
 //  MenuBarIconStyleTests.swift
 //  DimmerlyTests
 //
-//  Unit tests for MenuBarIconStyle enum.
+//  Unit tests for MenuBarIconStyle enum and the custom symbols it names.
 //
 
+import AppKit
 @testable import Dimmerly
 import XCTest
 
@@ -101,5 +102,28 @@ final class MenuBarIconStyleTests: XCTestCase {
     func testResolvedAssetNameIsNilForSymbolBackedStyles() {
         XCTAssertNil(MenuBarIconStyle.monitor.resolvedAssetName(isActive: true))
         XCTAssertNil(MenuBarIconStyle.moonFilled.resolvedAssetName(isActive: false))
+    }
+
+    /// Every asset the styles name must exist in the app's asset catalog as a template
+    /// symbol, so it tints with the menu bar and scales like a system symbol.
+    @MainActor
+    func testEveryCustomIconLoadsAsATemplateSymbol() throws {
+        let names = Set(MenuBarIconStyle.allCases.flatMap { [$0.assetName, $0.activeAssetName] }.compactMap(\.self))
+        XCTAssertEqual(names, ["MenuBarIcon", "MenuBarIconActive", "MenuBarIconClassic", "MenuBarIconSplit"])
+
+        for name in names.sorted() {
+            let image = try XCTUnwrap(NSImage(named: name), "\(name) is missing from the asset catalog")
+            XCTAssertTrue(image.isTemplate, "\(name) must render as a template image")
+
+            // A bitmap keeps its size under a symbol configuration; a symbol is redrawn at
+            // the requested point size.
+            let small = try XCTUnwrap(image.withSymbolConfiguration(.init(pointSize: 13, weight: .regular)))
+            let large = try XCTUnwrap(image.withSymbolConfiguration(.init(pointSize: 26, weight: .regular)))
+            XCTAssertGreaterThan(large.size.width, small.size.width * 1.8, "\(name) should be a scalable symbol")
+
+            // At the 13 pt default that MenuBarExtra draws with, each icon stays as wide as
+            // the 18 pt image it replaced, so the status item keeps its footprint.
+            XCTAssertEqual(image.size.width, 18, accuracy: 0.5, "\(name) changed its menu bar width")
+        }
     }
 }
