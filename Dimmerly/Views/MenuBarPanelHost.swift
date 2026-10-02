@@ -237,6 +237,24 @@ extension View {
         background(MenuBarPanelScrollStyleConfigurator())
     }
 
+    /// Applies the panel background for the running OS. See `MenuBarPanelBackground`.
+    ///
+    /// With `.systemGlass` the content is returned untouched: the `MenuBarExtra`
+    /// window's default container background and `NSPopover`'s own background are
+    /// already Liquid Glass, so drawing a material here would stack glass on glass.
+    @ViewBuilder
+    func menuBarPanelBackground(_ background: MenuBarPanelBackground = .current) -> some View {
+        switch background {
+        case .systemGlass:
+            self
+        case .visualEffectMaterial:
+            menuBarPanelHostGlass()
+                .menuBarPanelChrome()
+        }
+    }
+}
+
+private extension View {
     /// Let `MenuBarExtra` draw the only rounded window chrome.
     func menuBarPanelChrome() -> some View {
         containerBackground(.clear, for: .window)
@@ -245,7 +263,8 @@ extension View {
 
 // MARK: - Host Glass Configuration
 
-/// Glass window styling shared by the system MenuBarExtra and the public AppKit popover.
+/// Fallback glass window styling shared by the system MenuBarExtra and the public
+/// AppKit popover. Only used for `MenuBarPanelBackground.visualEffectMaterial`.
 @MainActor
 enum MenuBarPanelHostGlass {
     static let glassIdentifier = NSUserInterfaceItemIdentifier("DimmerlyMenuBarPanelGlass")
@@ -365,7 +384,8 @@ private struct MenuBarPanelGlassBackground: NSViewRepresentable {
     }
 }
 
-extension View {
+private extension View {
+    /// Fallback material for macOS 15 through 25 (`.visualEffectMaterial`).
     func menuBarPanelHostGlass() -> some View {
         background(MenuBarPanelGlassBackground())
             .background(MenuBarPanelWindowConfigurator())
