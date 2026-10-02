@@ -93,6 +93,36 @@ final class DimmerlyAppTests: XCTestCase {
         }
     }
 
+    func testStatusItemAccessibilityValueFollowsDisplayState() {
+        let button = NSButton()
+        let accessibility = StatusItemAccessibility()
+        let idle = StatusItemAccessibility.value(isAffectingDisplays: false)
+        let active = StatusItemAccessibility.value(isAffectingDisplays: true)
+        XCTAssertNotEqual(idle, active)
+
+        accessibility.attach(button: { button })
+        XCTAssertEqual(button.accessibilityValue() as? String, idle)
+
+        accessibility.update(isAffectingDisplays: true)
+        XCTAssertEqual(button.accessibilityValue() as? String, active)
+
+        accessibility.update(isAffectingDisplays: false)
+        XCTAssertEqual(button.accessibilityValue() as? String, idle)
+    }
+
+    func testStatusItemAccessibilityAppliesStateReportedBeforeTheButtonAttaches() {
+        let button = NSButton()
+        let accessibility = StatusItemAccessibility()
+
+        accessibility.update(isAffectingDisplays: true)
+        accessibility.attach(button: { button })
+
+        XCTAssertEqual(
+            button.accessibilityValue() as? String,
+            StatusItemAccessibility.value(isAffectingDisplays: true)
+        )
+    }
+
     @available(macOS, deprecated: 26.0)
     func testWidgetIntentsKeepTheLegacyForegroundFallback() {
         XCTAssertTrue(DimDisplaysWidgetIntent.openAppWhenRun)
