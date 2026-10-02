@@ -362,6 +362,7 @@ struct MenuBarPanel: View {
                     Text("Dim Displays")
                 #else
                     Image(systemName: settings.preventScreenLock ? "sun.min.fill" : "moon.fill")
+                        .symbolReplaceTransition(value: settings.preventScreenLock)
                     Text(settings.preventScreenLock ? "Dim Displays" : "Turn Displays Off")
                 #endif
                 Spacer()
