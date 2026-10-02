@@ -31,8 +31,11 @@ struct SmallWidgetView: View {
     var body: some View {
         Button(intent: DimDisplaysWidgetIntent()) {
             VStack(spacing: 8) {
+                // largeTitle is 26 pt on macOS; the large symbol scale brings
+                // the glyph back to roughly the previous fixed 32 pt.
                 Image(systemName: "moon.fill")
-                    .font(.system(size: 32, weight: .medium))
+                    .font(.largeTitle.weight(.medium))
+                    .imageScale(.large)
                     .widgetAccentable()
                 Text("Dim Displays")
                     .font(.system(.callout, weight: .semibold))
@@ -67,16 +70,13 @@ struct MediumWidgetView: View {
         Button(intent: DimDisplaysWidgetIntent()) {
             VStack(spacing: 6) {
                 Image(systemName: "moon.fill")
-                    .font(.system(size: 26, weight: .medium))
+                    .font(.largeTitle.weight(.medium))
                     .widgetAccentable()
                 Text("Dim Displays")
                     .font(.system(.caption, weight: .semibold))
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(.blue.opacity(0.1))
-            )
+            .background(WidgetButtonBackground(cornerRadius: 10, tint: .blue))
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text("Dim Displays"))
@@ -110,14 +110,63 @@ struct MediumWidgetView: View {
                     }
                     .padding(.horizontal, 8)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(.orange.opacity(0.1))
-                    )
+                    .background(WidgetButtonBackground(cornerRadius: 8, tint: .orange))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(Text("Apply \(preset.name)"))
             }
         }
     }
+}
+
+// MARK: - Button Background
+
+/// Rounded fill behind a widget button.
+///
+/// In full color it keeps the light brand tint. In the accented and vibrant
+/// modes the system strips or remaps color, so a faint fixed hue would turn
+/// into an arbitrary gray; a semantic fill adapts to those modes instead.
+/// The fill is left out of the accent group so only the glyphs pick up the
+/// accent color.
+private struct WidgetButtonBackground: View {
+    @Environment(\.widgetRenderingMode) private var renderingMode
+
+    let cornerRadius: CGFloat
+    let tint: Color
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        if renderingMode == .fullColor {
+            shape.fill(tint.opacity(0.1))
+        } else {
+            shape.fill(.fill.quaternary)
+        }
+    }
+}
+
+// MARK: - Preview
+
+#Preview("Small", as: .systemSmall) {
+    DimmerlyWidget()
+} timeline: {
+    PresetEntry(date: .now, presets: [])
+}
+
+#Preview("Medium", as: .systemMedium) {
+    DimmerlyWidget()
+} timeline: {
+    PresetEntry(
+        date: .now,
+        presets: [
+            WidgetPresetInfo(id: "movie-night", name: "Movie Night"),
+            WidgetPresetInfo(id: "work", name: "Work"),
+            WidgetPresetInfo(id: "bright", name: "Bright"),
+        ]
+    )
+}
+
+#Preview("Medium, No Presets", as: .systemMedium) {
+    DimmerlyWidget()
+} timeline: {
+    PresetEntry(date: .now, presets: [])
 }
