@@ -4,10 +4,212 @@
     "Brightness Control" : {
       "comment" : "Label for DDC brightness control picker",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Helligkeitssteuerung"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Brightness Control"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Control de brillo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contrôle de la luminosité"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controllo luminosità"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "明るさの制御"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "밝기 제어"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Helderheidsregeling"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controle de brilho"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontrola osvetljenosti"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "亮度控制"
+          }
+        }
+      }
+    },
+    "Dimmerly could not open to control your displays." : {
+      "comment" : "Error shown when a widget or Control Center action cannot open Dimmerly",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly konnte nicht geöffnet werden, um die Bildschirme zu steuern."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly could not open to control your displays."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo abrir Dimmerly para controlar las pantallas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d’ouvrir Dimmerly pour contrôler vos écrans."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile aprire Dimmerly per controllare gli schermi."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画面を操作するためにDimmerlyを開けませんでした。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "화면을 제어하기 위해 Dimmerly를 열 수 없습니다."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly kon niet worden geopend om de schermen te bedienen."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível abrir o Dimmerly para controlar as telas."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly nije mogao da se otvori radi upravljanja ekranima."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法打开 Dimmerly 来控制显示器。"
+          }
+        }
+      }
+    },
+    "Dimmerly did not complete the display action. Try again." : {
+      "comment" : "Error shown when Dimmerly does not confirm a widget or Control Center action",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly hat die Bildschirmaktion nicht abgeschlossen. Bitte erneut versuchen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly did not complete the display action. Try again."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly no completó la acción de pantalla. Inténtalo de nuevo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly n’a pas terminé l’action sur les écrans. Réessayez."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly non ha completato l’azione sugli schermi. Riprova."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerlyは画面の操作を完了できませんでした。もう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly가 화면 작업을 완료하지 못했습니다. 다시 시도하세요."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly heeft de schermactie niet voltooid. Probeer het opnieuw."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Dimmerly não concluiu a ação nas telas. Tente novamente."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly nije završio radnju sa ekranima. Pokušaj ponovo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly 未能完成显示器操作。请重试。"
           }
         }
       }
@@ -6159,7 +6361,75 @@
       }
     },
     "Dim all displays" : {
-
+      "comment" : "Accessibility label for the dim button in the menu bar panel",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle Bildschirme dimmen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dim all displays"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atenuar todas las pantallas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Assombrir tous les écrans"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oscura tutti gli schermi"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべての画面を暗くする"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모든 화면 어둡게"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle schermen dimmen"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escurecer todas as telas"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zatamni sve ekrane"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "调暗所有显示器"
+          }
+        }
+      }
     },
     "Dim all displays (↩)" : {
       "comment" : "Help text for the dim button in the menu bar panel, with its keyboard shortcut",
@@ -11205,7 +11475,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Abrir ajustes de Dimmerly (⌘,)"
+            "value" : "Abrir la configuración de Dimmerly (⌘,)"
           }
         },
         "fr" : {
@@ -11217,7 +11487,7 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Apri impostazioni di Dimmerly (⌘,)"
+            "value" : "Apri le impostazioni di Dimmerly (⌘,)"
           }
         },
         "ja" : {
@@ -11241,7 +11511,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Abrir configurações do Dimmerly (⌘,)"
+            "value" : "Abrir Ajustes do Dimmerly (⌘,)"
           }
         },
         "sr" : {
@@ -12448,7 +12718,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmerly stoppen (⌘Q)"
+            "value" : "Stop Dimmerly (⌘Q)"
           }
         },
         "pt-BR" : {
@@ -12460,7 +12730,7 @@
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zatvori Dimmerly (⌘Q)"
+            "value" : "Izađi iz programa Dimmerly (⌘Q)"
           }
         },
         "zh-Hans" : {
@@ -16325,7 +16595,75 @@
       }
     },
     "Turn off all displays" : {
-
+      "comment" : "Accessibility label for the turn-off button in the menu bar panel",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle Displays ausschalten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn off all displays"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apagar todas las pantallas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Éteindre tous les écrans"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spegni tutti i display"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべてのディスプレイをオフにする"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모든 디스플레이 끄기"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle beeldschermen uitzetten"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desligar todos os monitores"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Isključi sve ekrane"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭所有显示器"
+          }
+        }
+      }
     },
     "Turn off all displays (↩)" : {
       "comment" : "Help text for the turn-off button in the menu bar panel, with its keyboard shortcut",
