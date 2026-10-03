@@ -20,6 +20,19 @@ func handleWidgetDimNotification(
     performSleep(settings)
 }
 
+/// An acknowledgement follows the action and its state publication, never just receipt.
+@MainActor
+func handleWidgetActionRequest(
+    _ id: UUID,
+    defaults: UserDefaults? = SharedConstants.sharedDefaults,
+    now: Date = Date(),
+    performCommand: (WidgetActionCommand) -> Void
+) {
+    guard let request = SharedConstants.consumeWidgetActionRequest(id, from: defaults, now: now) else { return }
+    performCommand(request.command)
+    SharedConstants.acknowledgeWidgetAction(id, in: defaults)
+}
+
 @main
 struct DimmerlyApp: App {
     /// Application settings shared across all views
@@ -63,6 +76,9 @@ struct DimmerlyApp: App {
     /// Handles the right-click quick actions menu on the status bar icon.
     @State private var statusItemQuickActions = StatusItemQuickActions()
 
+    /// Reports on the status item whether Dimmerly is currently adjusting the displays.
+    @State private var statusItemAccessibility = StatusItemAccessibility()
+
     @Environment(\.openSettings) private var openSettings
 
     /// Distributed notification observer for widget "Sleep Displays" action
@@ -70,6 +86,21 @@ struct DimmerlyApp: App {
 
     /// Distributed notification observer for widget preset application
     @State private var widgetPresetObserver: NSObjectProtocol?
+
+    /// Distributed notification observer for the Control Center dim toggle
+    @State private var widgetDimStateObserver: NSObjectProtocol?
+
+    /// Distributed notification observer for the Control Center Auto Warmth toggle
+    @State private var widgetAutoWarmthObserver: NSObjectProtocol?
+
+    /// Acknowledged widget/control actions from extensions on older macOS versions.
+    @State private var widgetActionObserver: NSObjectProtocol?
+
+    /// Clears the published dim state on quit, since blanking ends with the process.
+    @State private var terminationObserver: NSObjectProtocol?
+
+    /// Blanking state, observed so the Control Center dim toggle can follow it.
+    @State private var screenBlanker = ScreenBlanker.shared
 
     var body: some Scene {
         @Bindable var menuBarPanelCoordinator = menuBarPanelCoordinator
@@ -103,7 +134,7 @@ struct DimmerlyApp: App {
                     configurePresetShortcuts()
                     configureScheduleManager()
                     observeWidgetNotifications()
-                    processPendingWidgetCommands()
+                    SharedConstants.discardLegacyWidgetCommands()
                     AppEntityIndexingService.shared.reindexPresets(presetManager.presets)
                     // Initial sync for settings-driven managers. `.onChange` below
                     // keeps them current for subsequent edits without needing each
@@ -135,10 +166,17 @@ struct DimmerlyApp: App {
                 }
                 .onChange(of: settings.autoColorTempEnabled) { _, _ in
                     colorTempManager.apply(enabled: settings.autoColorTempEnabled)
+                    ControlCenterStatePublisher.live.publishAutoWarmthState(settings.autoColorTempEnabled)
+                }
+                .onChange(of: screenBlanker.isBlankingAnyDisplay, initial: true) { _, isBlanking in
+                    ControlCenterStatePublisher.live.publishDimState(isBlanking)
                 }
                 .onChange(of: presetManager.presets) { _, newValue in
                     presetShortcutManager.updateShortcuts(from: newValue)
                     AppEntityIndexingService.shared.reindexPresets(newValue)
+                }
+                .onChange(of: brightnessManager.isAffectingDisplays, initial: true) { _, isAffecting in
+                    statusItemAccessibility.update(isAffectingDisplays: isAffecting)
                 }
         }
         .menuBarExtraAccess(isPresented: $menuBarPanelCoordinator.isPresented) { statusItem in
@@ -187,6 +225,7 @@ struct DimmerlyApp: App {
                     NSApp.activate()
                 }
             )
+            statusItemAccessibility.attach(to: statusItem)
         }
         .menuBarExtraStyle(.window)
 
@@ -210,8 +249,14 @@ struct DimmerlyApp: App {
     /// Menu bar icon view that adapts to the user's selected icon style, and to
     /// whether Dimmerly is currently affecting the displays.
     ///
-    /// Displays either an SF Symbol (for built-in styles) or a custom asset. Asset-backed
-    /// styles that define an active variant switch to it while displays are being adjusted.
+    /// Displays either a system SF Symbol or one of Dimmerly's custom symbols from the asset
+    /// catalog. Custom styles that define an active variant switch to it while displays are
+    /// being adjusted.
+    ///
+    /// The label is handed to AppKit as a flat status item image, so it cannot carry an
+    /// accessibility value or a symbol content transition: SwiftUI forwards only the
+    /// accessibility label, and swaps the image in a single step. The value is set on the
+    /// status item itself by `StatusItemAccessibility`.
     @ViewBuilder
     private var menuBarLabel: some View {
         if let systemImage = settings.menuBarIcon.systemImageName {
@@ -249,13 +294,39 @@ struct DimmerlyApp: App {
     /// - Distributed notifications (trigger actions)
     /// - Shared UserDefaults container (pass parameters)
     ///
-    /// Two notification types:
+    /// Notification types:
     /// 1. **Dim notification**: Widget's "Sleep Displays" button was tapped
     /// 2. **Preset notification**: Widget's preset button was tapped (preset ID in shared defaults)
+    /// 3. **Dim state notification**: Control Center dim toggle was switched (state in shared defaults)
+    /// 4. **Auto Warmth notification**: Control Center Auto Warmth toggle was switched (state in shared defaults)
     ///
     /// Design note: Using DistributedNotificationCenter instead of Darwin notifications
     /// provides better type safety and automatic main queue dispatch.
     private func observeWidgetNotifications() {
+        widgetActionObserver = DistributedNotificationCenter.default().addObserver(
+            forName: SharedConstants.widgetActionNotification,
+            object: nil, queue: .main
+        ) { [settings, presetManager, brightnessManager] notification in
+            guard let idString = notification.object as? String, let id = UUID(uuidString: idString) else { return }
+            Task { @MainActor in
+                handleWidgetActionRequest(id) { command in
+                    switch command {
+                    case .dimDisplays:
+                        DisplayAction.performSleep(settings: settings)
+                    case let .applyPreset(presetID):
+                        guard let uuid = UUID(uuidString: presetID),
+                              let preset = presetManager.presets.first(where: { $0.id == uuid })
+                        else { return }
+                        presetManager.applyPreset(preset, to: brightnessManager, animated: true)
+                    case let .setDimming(value):
+                        handleWidgetDimStateCommand(settings: settings, consumeCommand: { value })
+                    case let .setAutoWarmth(value):
+                        handleWidgetAutoWarmthCommand(settings: settings, consumeCommand: { value })
+                    }
+                }
+            }
+        }
+
         // Widget "Sleep Displays" button
         widgetDimObserver = DistributedNotificationCenter.default().addObserver(
             forName: SharedConstants.dimNotification,
@@ -280,20 +351,36 @@ struct DimmerlyApp: App {
                 presetManager.applyPreset(preset, to: brightnessManager, animated: true)
             }
         }
-    }
 
-    /// Drains widget commands that were written before this process had observers registered.
-    private func processPendingWidgetCommands() {
-        if SharedConstants.consumeWidgetDimCommand() {
-            DisplayAction.performSleep(settings: settings)
+        // Control Center dim toggle (requested state passed via shared defaults)
+        widgetDimStateObserver = DistributedNotificationCenter.default().addObserver(
+            forName: SharedConstants.dimStateNotification,
+            object: nil, queue: .main
+        ) { [settings] _ in
+            Task { @MainActor in
+                handleWidgetDimStateCommand(settings: settings)
+            }
         }
 
-        guard let presetID = SharedConstants.consumeWidgetPresetCommand(),
-              let preset = presetManager.presets.first(where: { $0.id == presetID })
-        else {
-            return
+        // Control Center Auto Warmth toggle (requested state passed via shared defaults)
+        widgetAutoWarmthObserver = DistributedNotificationCenter.default().addObserver(
+            forName: SharedConstants.autoWarmthNotification,
+            object: nil, queue: .main
+        ) { [settings] _ in
+            Task { @MainActor in
+                handleWidgetAutoWarmthCommand(settings: settings)
+            }
         }
-        presetManager.applyPreset(preset, to: brightnessManager, animated: true)
+
+        // Blanking cannot outlive the app, so the dim toggle must not keep showing it as on.
+        terminationObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.willTerminateNotification,
+            object: nil, queue: .main
+        ) { _ in
+            MainActor.assumeIsolated {
+                ControlCenterStatePublisher.live.publishDimState(false)
+            }
+        }
     }
 
     /// Wires the schedule-triggered callback. `.onChange` on `settings.scheduleEnabled`
@@ -325,6 +412,7 @@ struct DimmerlyApp: App {
         )
         scheduleManager.apply(enabled: settings.scheduleEnabled)
         colorTempManager.apply(enabled: settings.autoColorTempEnabled)
+        ControlCenterStatePublisher.live.publishAutoWarmthState(settings.autoColorTempEnabled)
         presetShortcutManager.updateShortcuts(from: presetManager.presets)
     }
 
@@ -352,6 +440,51 @@ struct DimmerlyApp: App {
             hardwareManager.startPolling()
         }
     #endif
+}
+
+/// Tells VoiceOver whether Dimmerly is currently adjusting the displays, as the
+/// accessibility value of the status item ("Dimmerly, Adjusting displays").
+///
+/// Only the default icon style shows this state, so the value carries it whatever icon
+/// is chosen. `MenuBarExtra` drops an `.accessibilityValue` set on its label, so the
+/// value goes straight onto the status item's button, which SwiftUI leaves alone when
+/// it redraws the label.
+@MainActor
+final class StatusItemAccessibility {
+    private var button: () -> NSButton? = { nil }
+    private var isAffectingDisplays = false
+
+    /// Starts reporting on `statusItem`. The button is looked up on each update rather
+    /// than captured, in case `MenuBarExtraAccess` ever hands over a recreated one.
+    func attach(to statusItem: NSStatusItem) {
+        attach(button: { [weak statusItem] in statusItem?.button })
+    }
+
+    func attach(button: @escaping () -> NSButton?) {
+        self.button = button
+        apply()
+    }
+
+    func update(isAffectingDisplays: Bool) {
+        self.isAffectingDisplays = isAffectingDisplays
+        apply()
+    }
+
+    static func value(isAffectingDisplays: Bool) -> String {
+        isAffectingDisplays
+            ? String(
+                localized: "Adjusting displays",
+                comment: "Menu bar item accessibility value while Dimmerly is dimming, warming, or changing contrast"
+            )
+            : String(
+                localized: "Not adjusting displays",
+                comment: "Menu bar item accessibility value while Dimmerly leaves every display untouched"
+            )
+    }
+
+    private func apply() {
+        button()?.setAccessibilityValue(Self.value(isAffectingDisplays: isAffectingDisplays))
+    }
 }
 
 /// Selects the menu presentation path supported by the current macOS release.

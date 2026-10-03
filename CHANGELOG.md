@@ -7,6 +7,18 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+### Added
+- On macOS 26 and later, Control Center and the menu bar offer three more Dimmerly controls: a Display Dimming toggle that stays on while Dimmerly is blanking a display and wakes it when switched off, an Auto Warmth toggle, and an Apply Preset button that applies a preset you choose.
+- VoiceOver now reports whether Dimmerly is currently adjusting your displays when it reads the menu bar icon.
+- Applying a preset from the menu bar panel briefly shows a checkmark next to it, and the panel's dim icons switch between sun and moon with a short animation. Both stay still when Reduce Motion is on.
+
+### Changed
+- On macOS 26 and later, the menu bar panel now uses the system's Liquid Glass background instead of a custom material. Earlier macOS versions keep the existing look.
+- Polished the menu bar panel and Settings to match macOS conventions: keyboard shortcuts for the main, Settings, and Quit buttons now appear in their tooltips instead of on the buttons, the "HW" badge is now a small connector icon, the Auto Warmth switch is larger, and Settings labels no longer end in colons.
+- The custom menu bar icons are now drawn as symbols, so they stay sharp at every size and match the weight of the system's menu bar icons. The Classic icon loses its faint glow ring.
+- The app icon now has its own dark and tinted versions on macOS 26 and later: in dark mode the sun's rays stay white on a deeper blue instead of turning bright blue, and the tinted and clear styles keep the sun easier to see.
+- The desktop widget's buttons now follow the system's tinted and clear widget styles instead of always showing blue and orange fills.
+
 ## [1.2.0] - 2026-09-29
 
 ### Added

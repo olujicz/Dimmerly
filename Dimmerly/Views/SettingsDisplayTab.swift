@@ -43,7 +43,7 @@ struct DisplaySettingsTab: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             #else
-                Picker("Turn Displays Off:", selection: Binding(
+                Picker("Turn Displays Off", selection: Binding(
                     get: { settings.preventScreenLock ? 1 : 0 },
                     set: { settings.preventScreenLock = $0 == 1 }
                 )) {
@@ -92,7 +92,7 @@ struct DisplaySettingsTab: View {
                 Toggle("Fade transition", isOn: $settings.fadeTransition)
                     .help(Text("Gradually dims displays instead of turning them off instantly"))
 
-                Picker("Wake Displays:", selection: $settings.requireEscapeToDismiss) {
+                Picker("Wake Displays", selection: $settings.requireEscapeToDismiss) {
                     Text("Any input").tag(false)
                     Text("Escape key only").tag(true)
                 }
@@ -184,14 +184,14 @@ struct DisplaySettingsTab: View {
                 LocationPickerRow()
 
                 TemperatureSliderRow(
-                    label: "Day:",
+                    label: "Day",
                     accessibilityLabel: "Day color temperature",
                     temperature: $settings.dayTemperature,
                     range: 2700 ... 6500
                 )
 
                 TemperatureSliderRow(
-                    label: "Night:",
+                    label: "Night",
                     accessibilityLabel: "Night color temperature",
                     temperature: $settings.nightTemperature,
                     range: 1900 ... 4500
@@ -246,7 +246,7 @@ struct DisplaySettingsTab: View {
                     )
 
                     if hardwareControlModesAvailable {
-                        Picker("Brightness control:", selection: Binding(
+                        Picker("Brightness Control", selection: Binding(
                             get: { settings.ddcControlMode },
                             set: { settings.ddcControlMode = $0 }
                         )) {

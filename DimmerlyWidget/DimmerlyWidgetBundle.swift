@@ -13,6 +13,9 @@ struct DimmerlyWidgetBundle: WidgetBundle {
         #if compiler(>=6.2)
             if #available(macOS 26.0, *) {
                 DimmerlyControlWidget()
+                DimmerlyDimToggleControl()
+                DimmerlyAutoWarmthControl()
+                DimmerlyPresetControl()
             }
         #endif
     }

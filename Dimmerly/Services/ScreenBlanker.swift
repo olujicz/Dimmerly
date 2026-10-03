@@ -77,6 +77,13 @@ final class ScreenBlanker {
         state.perDisplayCovered
     }
 
+    /// True while any display is blanked, whether by a global session or one display at a time.
+    /// This is what the Control Center dim toggle reports, because it is exactly what
+    /// `dismiss(force: true)` undoes.
+    var isBlankingAnyDisplay: Bool {
+        state.isGlobal || !state.perDisplayCovered.isEmpty
+    }
+
     private var isPerDisplayFullBlanked: Bool {
         state.recoveryArmed
     }

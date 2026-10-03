@@ -108,6 +108,37 @@ enum MenuBarDisplayAction {
     }
 }
 
+/// Where the panel's translucent background comes from.
+enum MenuBarPanelBackground: Equatable {
+    /// macOS 26 and later: the host draws native Liquid Glass. The `MenuBarExtra`
+    /// window keeps its default container background and `NSPopover` draws its own
+    /// glass, so the panel adds no material, window tweaks, or background clearing.
+    case systemGlass
+    /// macOS 15 through 25: the panel clears the host window and draws its own
+    /// rounded `.menu` `NSVisualEffectView`, styled by `MenuBarPanelGlassStyle`.
+    case visualEffectMaterial
+
+    static var current: Self {
+        resolve(supportsNativeGlass: supportsNativeGlass)
+    }
+
+    static func resolve(supportsNativeGlass: Bool) -> Self {
+        supportsNativeGlass ? .systemGlass : .visualEffectMaterial
+    }
+
+    /// Native glass needs both the macOS 26 SDK (Swift 6.2) and a macOS 26 runtime.
+    /// An app built with an older SDK runs without Liquid Glass even on macOS 26.
+    private static var supportsNativeGlass: Bool {
+        #if compiler(>=6.2)
+            if #available(macOS 26.0, *) {
+                return true
+            }
+        #endif
+        return false
+    }
+}
+
+/// Styling for the `.visualEffectMaterial` fallback background.
 enum MenuBarPanelGlassStyle {
     static let windowMaterial: NSVisualEffectView.Material = .menu
     static let blendingMode: NSVisualEffectView.BlendingMode = .behindWindow
@@ -221,8 +252,7 @@ struct MenuBarPanel: View {
             }
         }
         .frame(width: 300)
-        .menuBarPanelHostGlass()
-        .menuBarPanelChrome()
+        .menuBarPanelBackground()
     }
 
     private func scrollToSelectedPreset(using proxy: ScrollViewProxy) {
@@ -294,7 +324,7 @@ struct MenuBarPanel: View {
                 Spacer()
                 Toggle("", isOn: $settings.autoColorTempEnabled)
                     .toggleStyle(.switch)
-                    .controlSize(.mini)
+                    .controlSize(.small)
                     .labelsHidden()
                     .accessibilityLabel(Text("Auto Warmth"))
             }
@@ -362,12 +392,10 @@ struct MenuBarPanel: View {
                     Text("Dim Displays")
                 #else
                     Image(systemName: settings.preventScreenLock ? "sun.min.fill" : "moon.fill")
+                        .symbolReplaceTransition(value: settings.preventScreenLock)
                     Text(settings.preventScreenLock ? "Dim Displays" : "Turn Displays Off")
                 #endif
                 Spacer()
-                Text("↩")
-                    .font(.callout)
-                    .foregroundStyle(.tertiary)
             }
             .frame(maxWidth: .infinity)
         }
@@ -375,8 +403,10 @@ struct MenuBarPanel: View {
         .keyboardShortcut(.return, modifiers: [])
         #if APPSTORE
             .accessibilityLabel(Text("Dim all displays"))
+            .help("Dim all displays (↩)")
         #else
             .accessibilityLabel(settings.preventScreenLock ? Text("Dim all displays") : Text("Turn off all displays"))
+            .help(settings.preventScreenLock ? Text("Dim all displays (↩)") : Text("Turn off all displays (↩)"))
         #endif
     }
 
@@ -387,11 +417,11 @@ struct MenuBarPanel: View {
             Button {
                 openSettingsAction()
             } label: {
-                FooterLabel("Settings", icon: "gear", shortcut: "⌘,", isHovered: isSettingsHovered)
+                FooterLabel("Settings", icon: "gearshape", isHovered: isSettingsHovered)
             }
             .buttonStyle(.borderless)
             .keyboardShortcut(",", modifiers: .command)
-            .help("Open Dimmerly settings")
+            .help("Open Dimmerly settings (⌘,)")
             .onHover { isSettingsHovered = $0 }
 
             Spacer()
@@ -399,11 +429,11 @@ struct MenuBarPanel: View {
             Button {
                 NSApplication.shared.terminate(nil)
             } label: {
-                FooterLabel("Quit", icon: "power", shortcut: "⌘Q", isHovered: isQuitHovered)
+                FooterLabel("Quit", icon: "power", isHovered: isQuitHovered)
             }
             .buttonStyle(.borderless)
             .keyboardShortcut("q", modifiers: .command)
-            .help("Quit Dimmerly")
+            .help("Quit Dimmerly (⌘Q)")
             .onHover { isQuitHovered = $0 }
         }
         .font(.callout)

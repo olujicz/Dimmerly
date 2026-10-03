@@ -360,10 +360,11 @@ struct DisplayBrightnessRow: View {
 
                 #if !APPSTORE
                     if hasDDC {
-                        Text("HW")
+                        Image(systemName: "cable.connector.horizontal")
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
                             .help("Hardware control via DDC/CI")
+                            .accessibilityLabel(Text("Hardware Control"))
                     }
                 #endif
 
@@ -379,6 +380,7 @@ struct DisplayBrightnessRow: View {
                 } label: {
                     Image(systemName: isBlanked ? "moon.fill" : "moon")
                         .font(.caption2)
+                        .symbolReplaceTransition(value: isBlanked)
                         .frame(width: 12)
                         .foregroundStyle(isBlanked ? .primary : .secondary)
                 }

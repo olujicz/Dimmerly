@@ -242,6 +242,71 @@ final class MenuBarPanelTests: XCTestCase {
         XCTAssertFalse(source.contains(".stroke(.separator.opacity(0.45), lineWidth: 0.75)"))
     }
 
+    func testMenuBarPanelBodyAppliesBackgroundThroughSingleOSAwareEntryPoint() throws {
+        let sourceURL = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Dimmerly/Views/MenuBarPanel.swift")
+        let source = try String(contentsOf: sourceURL, encoding: .utf8)
+
+        XCTAssertTrue(source.contains(".menuBarPanelBackground()"))
+        XCTAssertFalse(
+            source.contains(".menuBarPanelHostGlass()"),
+            "The fallback material must only be applied through menuBarPanelBackground()"
+        )
+        XCTAssertFalse(source.contains(".menuBarPanelChrome()"))
+    }
+
+    // MARK: - Background Selection
+
+    func testBackgroundUsesSystemGlassWhenNativeGlassIsSupported() {
+        XCTAssertEqual(MenuBarPanelBackground.resolve(supportsNativeGlass: true), .systemGlass)
+    }
+
+    func testBackgroundFallsBackToVisualEffectMaterialWithoutNativeGlass() {
+        XCTAssertEqual(
+            MenuBarPanelBackground.resolve(supportsNativeGlass: false),
+            .visualEffectMaterial
+        )
+    }
+
+    func testCurrentBackgroundMatchesRunningOSAndCompiler() {
+        var expected = MenuBarPanelBackground.visualEffectMaterial
+        #if compiler(>=6.2)
+            if #available(macOS 26.0, *) {
+                expected = .systemGlass
+            }
+        #endif
+
+        XCTAssertEqual(MenuBarPanelBackground.current, expected)
+    }
+
+    @MainActor
+    func testSystemGlassBackgroundLeavesHostWindowAndContentUntouched() {
+        let (window, hostingView) = Self.hostPanelBackground(.systemGlass)
+
+        XCTAssertTrue(Self.glassEffectViews(in: hostingView).isEmpty)
+        XCTAssertFalse(Self.containsView(of: MenuBarPanelWindowConfiguratorView.self, in: hostingView))
+        XCTAssertFalse(Self.containsView(of: MenuBarPanelHostRefreshConfiguratorView.self, in: hostingView))
+        XCTAssertTrue(window.isOpaque)
+        XCTAssertNotEqual(window.backgroundColor, .clear)
+    }
+
+    @MainActor
+    func testVisualEffectFallbackKeepsMenuMaterialAndTransparentHostWindow() {
+        let (window, hostingView) = Self.hostPanelBackground(.visualEffectMaterial)
+
+        let effectViews = Self.glassEffectViews(in: hostingView)
+        XCTAssertEqual(effectViews.count, 1)
+        XCTAssertEqual(effectViews.first?.material, .menu)
+        XCTAssertEqual(effectViews.first?.blendingMode, .behindWindow)
+        XCTAssertEqual(effectViews.first?.state, .active)
+        XCTAssertEqual(effectViews.first?.layer?.cornerRadius, 22)
+        XCTAssertTrue(Self.containsView(of: MenuBarPanelHostRefreshConfiguratorView.self, in: hostingView))
+        XCTAssertFalse(window.isOpaque)
+        XCTAssertEqual(window.backgroundColor, .clear)
+    }
+
     func testMenuBarPanelGlassStyleUsesSingleMenuMaterialLayer() {
         XCTAssertEqual(MenuBarPanelGlassStyle.windowMaterial, .menu)
         XCTAssertEqual(MenuBarPanelGlassStyle.blendingMode, .behindWindow)
@@ -668,6 +733,43 @@ final class MenuBarPanelTests: XCTestCase {
         drainMainRunLoop()
 
         XCTAssertEqual(configuratorView.refreshCount, 1)
+    }
+
+    @MainActor
+    private static func hostPanelBackground(
+        _ background: MenuBarPanelBackground
+    ) -> (NSWindow, NSView) {
+        let window = makeTestWindow()
+        let hostingView = NSHostingView(
+            rootView: Color.clear
+                .frame(width: 300, height: 200)
+                .menuBarPanelBackground(background)
+        )
+        hostingView.frame = NSRect(x: 0, y: 0, width: 300, height: 200)
+        window.contentView = hostingView
+        hostingView.layoutSubtreeIfNeeded()
+        drainMainRunLoop()
+        return (window, hostingView)
+    }
+
+    @MainActor
+    private static func glassEffectViews(in view: NSView) -> [NSVisualEffectView] {
+        let ownMatch = (view as? NSVisualEffectView).flatMap {
+            $0.identifier == MenuBarPanelHostGlass.glassIdentifier ? [$0] : nil
+        } ?? []
+        return ownMatch + view.subviews.flatMap { glassEffectViews(in: $0) }
+    }
+
+    @MainActor
+    private static func containsView(of type: (some NSView).Type, in view: NSView) -> Bool {
+        view.isKind(of: type) || view.subviews.contains { containsView(of: type, in: $0) }
+    }
+
+    @MainActor
+    private static func drainMainRunLoop(iterations: Int = 12) {
+        for _ in 0 ..< iterations {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.01))
+        }
     }
 
     @MainActor

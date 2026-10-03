@@ -28,7 +28,7 @@ enum MenuBarIconStyle: String, CaseIterable, Identifiable {
         rawValue
     }
 
-    /// SF Symbol name, or nil for a custom asset (see `assetName`)
+    /// System SF Symbol name, or nil for one of Dimmerly's custom symbols (see `assetName`)
     var systemImageName: String? {
         switch self {
         case .defaultIcon: nil
@@ -41,7 +41,8 @@ enum MenuBarIconStyle: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Asset catalog name for styles backed by a custom template image, or nil for SF Symbol styles
+    /// Asset catalog name of the custom symbol (a `.symbolset` drawn by
+    /// `IconComposerLayers/generate_menubar_symbols.py`), or nil for system SF Symbol styles
     var assetName: String? {
         switch self {
         case .defaultIcon: "MenuBarIcon"

@@ -37,11 +37,6 @@ struct DimmerlyWidgetProvider: TimelineProvider {
     }
 
     private func loadPresets() -> [WidgetPresetInfo] {
-        guard let data = SharedConstants.sharedDefaults?.data(forKey: SharedConstants.widgetPresetsKey),
-              let presets = try? JSONDecoder().decode([WidgetPresetInfo].self, from: data)
-        else {
-            return []
-        }
-        return presets
+        SharedConstants.widgetPresets()
     }
 }

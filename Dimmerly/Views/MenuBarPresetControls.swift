@@ -16,6 +16,12 @@ struct PresetsSectionView: View {
     @State private var isAddingPreset = false
     @State private var newPresetName = ""
     @State private var hoveredPresetID: UUID?
+    /// The preset just applied from this panel, briefly marked with a checkmark in place
+    /// of its shortcut hint so a click or ⌘N press visibly lands.
+    @State private var confirmedPresetID: UUID?
+    /// Bumped on every apply so the checkmark bounces again when the same preset is reapplied.
+    @State private var confirmationCount = 0
+    @State private var confirmationReset: Task<Void, Never>?
     @FocusState private var isPresetNameFieldFocused: Bool
 
     init(selectedPresetID: UUID? = nil) {
@@ -79,21 +85,25 @@ struct PresetsSectionView: View {
     private func presetRow(_ preset: BrightnessPreset, index: Int) -> some View {
         Button {
             presetManager.applyPreset(preset, to: brightnessManager, animated: true)
+            confirmApplied(preset)
         } label: {
             HStack {
                 Text(preset.name)
                     .font(.callout)
                     .lineLimit(1)
                 Spacer()
-                if let shortcut = preset.shortcut {
-                    Text(shortcut.displayString)
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                } else {
-                    Text("\u{2318}\((index + 1) % 10)")
-                        .font(.caption)
-                        .foregroundStyle(.quaternary)
+                ZStack(alignment: .trailing) {
+                    shortcutHint(for: preset, index: index)
+                        .opacity(confirmedPresetID == preset.id ? 0 : 1)
+                    // Always in the hierarchy, only faded in, so the bounce has a view to run on.
+                    Image(systemName: "checkmark")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.tint)
+                        .symbolEffect(.bounce, value: reduceMotion ? 0 : confirmationCount)
+                        .opacity(confirmedPresetID == preset.id ? 1 : 0)
+                        .accessibilityHidden(true)
                 }
+                .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: confirmedPresetID)
             }
             .padding(.vertical, 3)
             .padding(.horizontal, 6)
@@ -130,6 +140,30 @@ struct PresetsSectionView: View {
     }
 
     @ViewBuilder
+    private func shortcutHint(for preset: BrightnessPreset, index: Int) -> some View {
+        if let shortcut = preset.shortcut {
+            Text(shortcut.displayString)
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        } else {
+            Text("\u{2318}\((index + 1) % 10)")
+                .font(.caption)
+                .foregroundStyle(.quaternary)
+        }
+    }
+
+    private func confirmApplied(_ preset: BrightnessPreset) {
+        confirmedPresetID = preset.id
+        confirmationCount += 1
+        confirmationReset?.cancel()
+        confirmationReset = Task {
+            try? await Task.sleep(for: .seconds(1.5))
+            guard !Task.isCancelled else { return }
+            confirmedPresetID = nil
+        }
+    }
+
+    @ViewBuilder
     private func presetRowBackground(for preset: BrightnessPreset) -> some View {
         if selectedPresetID == preset.id {
             RoundedRectangle(cornerRadius: 8)
@@ -153,6 +187,28 @@ struct PresetsSectionView: View {
     }
 }
 
+// MARK: - Symbol Replacement
+
+extension View {
+    /// Swaps a changing SF Symbol with the system's replace animation, or instantly when
+    /// Reduce Motion is on. Carries its own animation for `value`, so the swap animates even
+    /// when the state behind it changes outside an animation transaction.
+    func symbolReplaceTransition(value: some Equatable) -> some View {
+        modifier(SymbolReplaceTransition(value: value))
+    }
+}
+
+private struct SymbolReplaceTransition<Value: Equatable>: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    let value: Value
+
+    func body(content: Content) -> some View {
+        content
+            .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))
+            .animation(reduceMotion ? nil : .default, value: value)
+    }
+}
+
 // MARK: - Footer Label
 
 struct FooterLabel: View {
@@ -160,18 +216,11 @@ struct FooterLabel: View {
 
     let title: LocalizedStringKey
     let icon: String
-    let shortcut: String?
     let isHovered: Bool
 
-    init(
-        _ title: LocalizedStringKey,
-        icon: String,
-        shortcut: String? = nil,
-        isHovered: Bool = false
-    ) {
+    init(_ title: LocalizedStringKey, icon: String, isHovered: Bool = false) {
         self.title = title
         self.icon = icon
-        self.shortcut = shortcut
         self.isHovered = isHovered
     }
 
@@ -180,11 +229,6 @@ struct FooterLabel: View {
             Image(systemName: icon)
                 .font(.caption)
             Text(title)
-            if let shortcut {
-                Text(shortcut)
-                    .foregroundStyle(.tertiary)
-                    .font(.caption)
-            }
         }
         .padding(.vertical, 4)
         .padding(.horizontal, 6)
