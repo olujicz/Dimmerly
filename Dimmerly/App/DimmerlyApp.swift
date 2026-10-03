@@ -20,6 +20,19 @@ func handleWidgetDimNotification(
     performSleep(settings)
 }
 
+/// An acknowledgement follows the action and its state publication, never just receipt.
+@MainActor
+func handleWidgetActionRequest(
+    _ id: UUID,
+    defaults: UserDefaults? = SharedConstants.sharedDefaults,
+    now: Date = Date(),
+    performCommand: (WidgetActionCommand) -> Void
+) {
+    guard let request = SharedConstants.consumeWidgetActionRequest(id, from: defaults, now: now) else { return }
+    performCommand(request.command)
+    SharedConstants.acknowledgeWidgetAction(id, in: defaults)
+}
+
 @main
 struct DimmerlyApp: App {
     /// Application settings shared across all views
@@ -80,6 +93,9 @@ struct DimmerlyApp: App {
     /// Distributed notification observer for the Control Center Auto Warmth toggle
     @State private var widgetAutoWarmthObserver: NSObjectProtocol?
 
+    /// Acknowledged widget/control actions from extensions on older macOS versions.
+    @State private var widgetActionObserver: NSObjectProtocol?
+
     /// Clears the published dim state on quit, since blanking ends with the process.
     @State private var terminationObserver: NSObjectProtocol?
 
@@ -118,7 +134,7 @@ struct DimmerlyApp: App {
                     configurePresetShortcuts()
                     configureScheduleManager()
                     observeWidgetNotifications()
-                    processPendingWidgetCommands()
+                    SharedConstants.discardLegacyWidgetCommands()
                     AppEntityIndexingService.shared.reindexPresets(presetManager.presets)
                     // Initial sync for settings-driven managers. `.onChange` below
                     // keeps them current for subsequent edits without needing each
@@ -287,6 +303,30 @@ struct DimmerlyApp: App {
     /// Design note: Using DistributedNotificationCenter instead of Darwin notifications
     /// provides better type safety and automatic main queue dispatch.
     private func observeWidgetNotifications() {
+        widgetActionObserver = DistributedNotificationCenter.default().addObserver(
+            forName: SharedConstants.widgetActionNotification,
+            object: nil, queue: .main
+        ) { [settings, presetManager, brightnessManager] notification in
+            guard let idString = notification.object as? String, let id = UUID(uuidString: idString) else { return }
+            Task { @MainActor in
+                handleWidgetActionRequest(id) { command in
+                    switch command {
+                    case .dimDisplays:
+                        DisplayAction.performSleep(settings: settings)
+                    case let .applyPreset(presetID):
+                        guard let uuid = UUID(uuidString: presetID),
+                              let preset = presetManager.presets.first(where: { $0.id == uuid })
+                        else { return }
+                        presetManager.applyPreset(preset, to: brightnessManager, animated: true)
+                    case let .setDimming(value):
+                        handleWidgetDimStateCommand(settings: settings, consumeCommand: { value })
+                    case let .setAutoWarmth(value):
+                        handleWidgetAutoWarmthCommand(settings: settings, consumeCommand: { value })
+                    }
+                }
+            }
+        }
+
         // Widget "Sleep Displays" button
         widgetDimObserver = DistributedNotificationCenter.default().addObserver(
             forName: SharedConstants.dimNotification,
@@ -341,23 +381,6 @@ struct DimmerlyApp: App {
                 ControlCenterStatePublisher.live.publishDimState(false)
             }
         }
-    }
-
-    /// Drains widget commands that were written before this process had observers registered.
-    private func processPendingWidgetCommands() {
-        if SharedConstants.consumeWidgetDimCommand() {
-            DisplayAction.performSleep(settings: settings)
-        }
-
-        handleWidgetDimStateCommand(settings: settings)
-        handleWidgetAutoWarmthCommand(settings: settings)
-
-        guard let presetID = SharedConstants.consumeWidgetPresetCommand(),
-              let preset = presetManager.presets.first(where: { $0.id == presetID })
-        else {
-            return
-        }
-        presetManager.applyPreset(preset, to: brightnessManager, animated: true)
     }
 
     /// Wires the schedule-triggered callback. `.onChange` on `settings.scheduleEnabled`

@@ -21,6 +21,9 @@ enum SharedConstants {
     static let widgetPresetCommandKey = "widgetPresetCommand"
     static let widgetDimStateCommandKey = "widgetDimStateCommand"
     static let widgetAutoWarmthCommandKey = "widgetAutoWarmthCommand"
+    static let widgetActionNotification = Notification.Name("rs.in.olujic.dimmerly.widgetAction")
+    private static let widgetActionRequestPrefix = "widgetActionRequest."
+    private static let widgetActionAcknowledgementPrefix = "widgetActionAcknowledgement."
 
     /// State the main app publishes for the Control Center toggles to read. The extension
     /// never writes these keys, so a toggle can only show what the running app really did.
@@ -110,6 +113,57 @@ enum SharedConstants {
         return groups?.first
     }
 
+    static func storeWidgetActionRequest(_ request: WidgetActionRequest, in defaults: UserDefaults) throws {
+        try defaults.set(JSONEncoder().encode(request), forKey: widgetActionRequestPrefix + request.id.uuidString)
+        defaults.synchronize()
+    }
+
+    /// The main app serializes consumption on MainActor and removes each request before
+    /// applying it. Retried notifications therefore cannot apply an action twice.
+    static func consumeWidgetActionRequest(
+        _ id: UUID,
+        from defaults: UserDefaults? = sharedDefaults,
+        now: Date = Date()
+    ) -> WidgetActionRequest? {
+        let key = widgetActionRequestPrefix + id.uuidString
+        defaults?.synchronize()
+        guard let data = defaults?.data(forKey: key) else { return nil }
+        defaults?.removeObject(forKey: key)
+        guard let request = try? JSONDecoder().decode(WidgetActionRequest.self, from: data),
+              request.id == id, request.expiresAt > now
+        else { return nil }
+        return request
+    }
+
+    static func acknowledgeWidgetAction(_ id: UUID, in defaults: UserDefaults? = sharedDefaults) {
+        defaults?.set(true, forKey: widgetActionAcknowledgementPrefix + id.uuidString)
+        defaults?.synchronize()
+    }
+
+    static func widgetActionWasAcknowledged(_ id: UUID, in defaults: UserDefaults) -> Bool {
+        defaults.synchronize()
+        return defaults.bool(forKey: widgetActionAcknowledgementPrefix + id.uuidString)
+    }
+
+    static func removeWidgetActionRequest(_ id: UUID, from defaults: UserDefaults) {
+        defaults.removeObject(forKey: widgetActionRequestPrefix + id.uuidString)
+        defaults.removeObject(forKey: widgetActionAcknowledgementPrefix + id.uuidString)
+        defaults.synchronize()
+    }
+
+    /// Drop commands left by older extensions. Actions now execute directly or through acknowledged requests;
+    /// a normal launch must never apply a tap made during a previous session.
+    static func discardLegacyWidgetCommands(in defaults: UserDefaults? = sharedDefaults) {
+        for key in [
+            widgetDimCommandKey,
+            widgetPresetCommandKey,
+            widgetDimStateCommandKey,
+            widgetAutoWarmthCommandKey,
+        ] {
+            defaults?.removeObject(forKey: key)
+        }
+    }
+
     /// Flushes a just-written widget command to `cfprefsd` before the caller signals the main app.
     ///
     /// `synchronize()` is documented as unnecessary for ordinary use, and it is — but this is the
@@ -117,8 +171,8 @@ enum SharedConstants {
     /// posts a distributed notification, so the main app reads the suite from another process
     /// microseconds later. Without an explicit flush, the read can lose the race against the
     /// asynchronous transfer to `cfprefsd`; the tap then silently does nothing and the orphaned
-    /// key sits in the suite until `processPendingWidgetCommands()` replays it at the next
-    /// launch, dimming displays the user never asked to dim.
+    /// key can otherwise sit in the suite until it is discarded at the next launch.
+    /// These helpers remain for notifications from older widget extensions.
     ///
     /// Keep this until the command channel stops depending on cross-process read-after-write.
     private static func flushWidgetCommand(_ defaults: UserDefaults?) {
@@ -222,4 +276,25 @@ enum SharedConstants {
 struct WidgetPresetInfo: Codable, Identifiable, Equatable {
     let id: String
     let name: String
+}
+
+/// Codable operations shared by the extension and the app. Values travel with their
+/// request ID, so simultaneous taps cannot overwrite one another's parameters.
+enum WidgetActionCommand: Codable, Equatable {
+    case dimDisplays
+    case applyPreset(String)
+    case setDimming(Bool)
+    case setAutoWarmth(Bool)
+}
+
+struct WidgetActionRequest: Codable {
+    let id: UUID
+    let command: WidgetActionCommand
+    let expiresAt: Date
+
+    init(id: UUID = UUID(), command: WidgetActionCommand, expiresAt: Date) {
+        self.id = id
+        self.command = command
+        self.expiresAt = expiresAt
+    }
 }

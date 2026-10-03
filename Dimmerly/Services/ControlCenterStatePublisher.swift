@@ -28,9 +28,15 @@ struct ControlCenterStatePublisher {
         self.reloadControls = reloadControls
     }
 
-    /// Publishes whether any display is blanked. Reloads the dim toggle only when the value changed.
-    func publishDimState(_ isDimming: Bool) {
-        publish(isDimming, forKey: SharedConstants.controlDimStateKey, kind: SharedConstants.dimToggleControlKind)
+    /// Publishes whether any display is blanked. Commands can also reload an unchanged value
+    /// to reset Control Center's optimistic toggle state.
+    func publishDimState(_ isDimming: Bool, forceReload: Bool = false) {
+        publish(
+            isDimming,
+            forKey: SharedConstants.controlDimStateKey,
+            kind: SharedConstants.dimToggleControlKind,
+            forceReload: forceReload
+        )
     }
 
     /// Publishes whether Auto Warmth is on. Reloads the Auto Warmth toggle only when the value changed.
@@ -61,8 +67,9 @@ struct ControlCenterStatePublisher {
         reloadControls(SharedConstants.presetControlKind)
     }
 
-    private func publish(_ isOn: Bool, forKey key: String, kind: String) {
-        guard SharedConstants.publishControlState(isOn, forKey: key, in: defaults) else { return }
+    private func publish(_ isOn: Bool, forKey key: String, kind: String, forceReload: Bool = false) {
+        let didChange = SharedConstants.publishControlState(isOn, forKey: key, in: defaults)
+        guard didChange || forceReload else { return }
         reloadControls(kind)
     }
 
@@ -76,16 +83,18 @@ struct ControlCenterStatePublisher {
 }
 
 /// Applies a pending dim toggle command written by the Control Center extension.
+/// Publishes actual blanking state before reloading, even when the action leaves it unchanged.
 @MainActor
 func handleWidgetDimStateCommand(
     settings: AppSettings,
     consumeCommand: () -> Bool? = { SharedConstants.consumeWidgetDimStateCommand() },
     setDimmed: (Bool, AppSettings) -> Void = { DisplayAction.setDimmed($0, settings: $1) },
+    isBlankingAnyDisplay: () -> Bool = { ScreenBlanker.shared.isBlankingAnyDisplay },
     publisher: ControlCenterStatePublisher = .live
 ) {
     guard let isDimmed = consumeCommand() else { return }
     setDimmed(isDimmed, settings)
-    publisher.refreshDimToggle()
+    publisher.publishDimState(isBlankingAnyDisplay(), forceReload: true)
 }
 
 /// Applies a pending Auto Warmth toggle command written by the Control Center extension.

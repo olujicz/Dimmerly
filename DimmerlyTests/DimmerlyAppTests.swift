@@ -123,6 +123,198 @@ final class DimmerlyAppTests: XCTestCase {
         )
     }
 
+    func testDiscardingLegacyWidgetCommandsPreservesPublishedStateAndPresets() throws {
+        let suiteName = "WidgetLaunchTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        SharedConstants.storeWidgetDimCommand(in: defaults)
+        SharedConstants.storeWidgetPresetCommand(UUID().uuidString, in: defaults)
+        SharedConstants.storeWidgetDimStateCommand(true, in: defaults)
+        SharedConstants.storeWidgetAutoWarmthCommand(false, in: defaults)
+        SharedConstants.publishControlState(true, forKey: SharedConstants.controlAutoWarmthStateKey, in: defaults)
+        defaults.set(Data([1, 2, 3]), forKey: SharedConstants.widgetPresetsKey)
+
+        SharedConstants.discardLegacyWidgetCommands(in: defaults)
+
+        XCTAssertFalse(SharedConstants.consumeWidgetDimCommand(from: defaults))
+        XCTAssertNil(SharedConstants.consumeWidgetPresetCommand(from: defaults))
+        XCTAssertNil(SharedConstants.consumeWidgetDimStateCommand(from: defaults))
+        XCTAssertNil(SharedConstants.consumeWidgetAutoWarmthCommand(from: defaults))
+        XCTAssertTrue(SharedConstants.publishedAutoWarmthState(in: defaults))
+        XCTAssertEqual(defaults.data(forKey: SharedConstants.widgetPresetsKey), Data([1, 2, 3]))
+    }
+
+    func testWidgetRequestLaunchesAppAndRetriesUntilItsObserverIsReady() async throws {
+        let suiteName = "WidgetRequestTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        var didLaunch = false
+        var signals = 0
+        var appliedCommands: [WidgetActionCommand] = []
+        var requestID: UUID?
+
+        try await WidgetActionExecution.perform(
+            .setAutoWarmth(true),
+            defaults: defaults,
+            launchApp: { didLaunch = true },
+            signalApp: { id in
+                XCTAssertTrue(didLaunch)
+                requestID = id
+                signals += 1
+                guard signals == 3 else { return }
+                handleWidgetActionRequest(id, defaults: defaults) { appliedCommands.append($0) }
+            },
+            wait: {}
+        )
+
+        XCTAssertEqual(signals, 3)
+        XCTAssertEqual(appliedCommands, [.setAutoWarmth(true)])
+        let id = try XCTUnwrap(requestID)
+        XCTAssertNil(SharedConstants.consumeWidgetActionRequest(id, from: defaults))
+        XCTAssertFalse(SharedConstants.widgetActionWasAcknowledged(id, in: defaults))
+    }
+
+    func testWidgetRequestAcceptsAcknowledgementArrivingDuringItsFinalWait() async throws {
+        let suiteName = "WidgetBoundaryTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        var now = Date()
+        var requestID: UUID?
+
+        try await WidgetActionExecution.perform(
+            .dimDisplays,
+            defaults: defaults,
+            launchApp: {},
+            signalApp: { requestID = $0 },
+            now: { now },
+            wait: {
+                try SharedConstants.acknowledgeWidgetAction(XCTUnwrap(requestID), in: defaults)
+                now = now.addingTimeInterval(6)
+            }
+        )
+
+        let id = try XCTUnwrap(requestID)
+        XCTAssertNil(SharedConstants.consumeWidgetActionRequest(id, from: defaults))
+        XCTAssertFalse(SharedConstants.widgetActionWasAcknowledged(id, in: defaults))
+    }
+
+    func testWidgetRequestTimesOutAndCleansOnlyItsOwnCommand() async throws {
+        let suiteName = "WidgetTimeoutTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        var now = Date()
+        let otherRequest = WidgetActionRequest(command: .setDimming(false), expiresAt: now.addingTimeInterval(30))
+        try SharedConstants.storeWidgetActionRequest(otherRequest, in: defaults)
+        var requestID: UUID?
+
+        do {
+            try await WidgetActionExecution.perform(
+                .setDimming(true),
+                defaults: defaults,
+                launchApp: {},
+                signalApp: { requestID = $0 },
+                now: { now },
+                wait: { now = now.addingTimeInterval(6) }
+            )
+            XCTFail("An action without an acknowledgement must not return success")
+        } catch WidgetActionExecution.Failure.didNotComplete {
+            // Expected: the app never handled this request.
+        }
+
+        let id = try XCTUnwrap(requestID)
+        XCTAssertNil(SharedConstants.consumeWidgetActionRequest(id, from: defaults))
+        XCTAssertFalse(SharedConstants.widgetActionWasAcknowledged(id, in: defaults))
+        XCTAssertEqual(
+            SharedConstants.consumeWidgetActionRequest(otherRequest.id, from: defaults)?.command,
+            .setDimming(false)
+        )
+    }
+
+    func testCancelledWidgetRequestCleansItsCommandAndAcknowledgement() async throws {
+        let suiteName = "WidgetCancellationTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        var requestID: UUID?
+
+        do {
+            try await WidgetActionExecution.perform(
+                .dimDisplays,
+                defaults: defaults,
+                launchApp: {},
+                signalApp: { requestID = $0 },
+                wait: { throw CancellationError() }
+            )
+            XCTFail("Cancellation must not return success")
+        } catch is CancellationError {
+            // Expected.
+        }
+
+        let id = try XCTUnwrap(requestID)
+        XCTAssertNil(SharedConstants.consumeWidgetActionRequest(id, from: defaults))
+        XCTAssertFalse(SharedConstants.widgetActionWasAcknowledged(id, in: defaults))
+    }
+
+    func testFailedAppLaunchDoesNotLeaveAWidgetRequest() async throws {
+        let suiteName = "WidgetLaunchFailureTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        var didSignal = false
+
+        do {
+            try await WidgetActionExecution.perform(
+                .dimDisplays,
+                defaults: defaults,
+                launchApp: { throw WidgetActionExecution.Failure.unavailable },
+                signalApp: { _ in didSignal = true },
+                wait: {}
+            )
+            XCTFail("Failed launch must not return success")
+        } catch WidgetActionExecution.Failure.unavailable {
+            // Expected.
+        }
+
+        XCTAssertFalse(didSignal)
+        XCTAssertTrue((defaults.persistentDomain(forName: suiteName) ?? [:]).isEmpty)
+    }
+
+    func testWidgetRequestAcknowledgesAfterStatePublicationAndAppliesOnlyOnce() throws {
+        let suiteName = "WidgetAcknowledgementTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let request = WidgetActionRequest(command: .setDimming(true), expiresAt: Date().addingTimeInterval(5))
+        try SharedConstants.storeWidgetActionRequest(request, in: defaults)
+        var actions = 0
+        let apply: (WidgetActionCommand) -> Void = { command in
+            XCTAssertEqual(command, .setDimming(true))
+            XCTAssertFalse(SharedConstants.widgetActionWasAcknowledged(request.id, in: defaults))
+            actions += 1
+            SharedConstants.publishControlState(true, forKey: SharedConstants.controlDimStateKey, in: defaults)
+        }
+
+        handleWidgetActionRequest(request.id, defaults: defaults, performCommand: apply)
+        handleWidgetActionRequest(request.id, defaults: defaults, performCommand: apply)
+
+        XCTAssertEqual(actions, 1)
+        XCTAssertTrue(SharedConstants.publishedDimState(in: defaults))
+        XCTAssertTrue(SharedConstants.widgetActionWasAcknowledged(request.id, in: defaults))
+    }
+
+    func testExpiredWidgetRequestNeverAppliesOrAcknowledges() throws {
+        let suiteName = "ExpiredWidgetRequestTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let now = Date()
+        let request = WidgetActionRequest(command: .dimDisplays, expiresAt: now)
+        try SharedConstants.storeWidgetActionRequest(request, in: defaults)
+        var didApply = false
+
+        handleWidgetActionRequest(request.id, defaults: defaults, now: now) { _ in didApply = true }
+
+        XCTAssertFalse(didApply)
+        XCTAssertFalse(SharedConstants.widgetActionWasAcknowledged(request.id, in: defaults))
+        XCTAssertNil(SharedConstants.consumeWidgetActionRequest(request.id, from: defaults, now: now))
+    }
+
     @available(macOS, deprecated: 26.0)
     func testWidgetIntentsKeepTheLegacyForegroundFallback() {
         XCTAssertTrue(DimDisplaysWidgetIntent.openAppWhenRun)
@@ -131,22 +323,11 @@ final class DimmerlyAppTests: XCTestCase {
 
     #if compiler(>=6.4)
         @available(macOS 27.0, *)
-        func testWidgetIntentExecutionPolicyMapsAppAndExtensionTargets() {
-            XCTAssertEqual(
-                WidgetIntentExecutionPolicy.mainApp.intentExecutionTargets,
-                .main
-            )
-            XCTAssertEqual(
-                WidgetIntentExecutionPolicy.widgetKitExtension.intentExecutionTargets,
-                .widgetKitExtension
-            )
-            XCTAssertEqual(WidgetIntentExecutionPolicy.current, .mainApp)
-        }
-
-        @available(macOS 27.0, *)
         func testWidgetIntentsTargetTheMainAppOnMacOS27() {
             XCTAssertEqual(DimDisplaysWidgetIntent.allowedExecutionTargets, .main)
             XCTAssertEqual(ApplyPresetWidgetIntent.allowedExecutionTargets, .main)
+            XCTAssertEqual(SetDimmingWidgetIntent.allowedExecutionTargets, .main)
+            XCTAssertEqual(SetAutoWarmthWidgetIntent.allowedExecutionTargets, .main)
         }
 
         @available(macOS 27.0, *)

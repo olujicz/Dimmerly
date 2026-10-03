@@ -148,6 +148,7 @@ final class ControlCenterControlTests: XCTestCase {
             settings: settings,
             consumeCommand: { true },
             setDimmed: { isDimmed, _ in requested.append(isDimmed) },
+            isBlankingAnyDisplay: { false },
             publisher: makePublisher()
         )
 
@@ -164,11 +165,100 @@ final class ControlCenterControlTests: XCTestCase {
             settings: AppSettings(defaults: settingsDefaults),
             consumeCommand: { nil },
             setDimmed: { isDimmed, _ in requested.append(isDimmed) },
+            isBlankingAnyDisplay: {
+                XCTFail("Missing commands must not query or publish display state")
+                return false
+            },
             publisher: makePublisher()
         )
 
         XCTAssertTrue(requested.isEmpty)
         XCTAssertTrue(reloadedKinds.isEmpty)
+    }
+
+    func testDimStateCommandPublishesOffBeforeReloadAndReturning() {
+        sharedDefaults.set(true, forKey: SharedConstants.controlDimStateKey)
+        var publishedValuesAtReload: [Bool] = []
+        let publisher = ControlCenterStatePublisher(defaults: sharedDefaults) { kind in
+            XCTAssertEqual(kind, SharedConstants.dimToggleControlKind)
+            publishedValuesAtReload.append(SharedConstants.publishedDimState(in: self.sharedDefaults))
+        }
+
+        handleWidgetDimStateCommand(
+            settings: AppSettings(defaults: settingsDefaults),
+            consumeCommand: { false },
+            setDimmed: { _, _ in },
+            isBlankingAnyDisplay: { false },
+            publisher: publisher
+        )
+
+        XCTAssertEqual(publishedValuesAtReload, [false])
+        XCTAssertFalse(SharedConstants.publishedDimState(in: sharedDefaults))
+    }
+
+    func testDimStateCommandPublishesOnBeforeReloadAndReturning() {
+        assertDimStatePublication(publishedBefore: false, actualBefore: false, requested: true, actualAfter: true)
+    }
+
+    func testDimStateCommandPublishesOffAfterWakingDisplays() {
+        assertDimStatePublication(publishedBefore: true, actualBefore: true, requested: false, actualAfter: false)
+    }
+
+    func testDimStateCommandRefreshesUnchangedPartialBlankingStateOnce() {
+        // A partial blanking session counts as on even though global blanking is off.
+        assertDimStatePublication(publishedBefore: true, actualBefore: true, requested: true, actualAfter: true)
+    }
+
+    func testDimStateCommandPublishesActualOffAfterFailedBlanking() {
+        assertDimStatePublication(publishedBefore: true, actualBefore: false, requested: true, actualAfter: false)
+    }
+
+    func testDimStateCommandRefreshesOffAfterDisplaySleepWithoutTrackedBlanking() {
+        // pmset leaves no blanking session for the app to report, despite requesting on.
+        assertDimStatePublication(publishedBefore: false, actualBefore: false, requested: true, actualAfter: false)
+    }
+
+    private func assertDimStatePublication(
+        publishedBefore: Bool,
+        actualBefore: Bool,
+        requested: Bool,
+        actualAfter: Bool,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        sharedDefaults.set(publishedBefore, forKey: SharedConstants.controlDimStateKey)
+        var actualState = actualBefore
+        var events: [String] = []
+        var publishedValuesAtReload: [Bool] = []
+        let publisher = ControlCenterStatePublisher(defaults: sharedDefaults) { kind in
+            XCTAssertEqual(kind, SharedConstants.dimToggleControlKind, file: file, line: line)
+            events.append("reload")
+            publishedValuesAtReload.append(SharedConstants.publishedDimState(in: self.sharedDefaults))
+        }
+
+        handleWidgetDimStateCommand(
+            settings: AppSettings(defaults: settingsDefaults),
+            consumeCommand: { requested },
+            setDimmed: { value, _ in
+                XCTAssertEqual(value, requested, file: file, line: line)
+                events.append("action")
+                actualState = actualAfter
+            },
+            isBlankingAnyDisplay: {
+                events.append("state")
+                return actualState
+            },
+            publisher: publisher
+        )
+
+        XCTAssertEqual(events, ["action", "state", "reload"], file: file, line: line)
+        XCTAssertEqual(publishedValuesAtReload, [actualAfter], file: file, line: line)
+        XCTAssertEqual(SharedConstants.publishedDimState(in: sharedDefaults), actualAfter, file: file, line: line)
+
+        publisher.publishDimState(actualAfter)
+        XCTAssertEqual(
+            publishedValuesAtReload.count, 1, "Later observation must not reload again", file: file, line: line
+        )
     }
 
     func testAutoWarmthCommandUpdatesSettingAndPublishesIt() {
