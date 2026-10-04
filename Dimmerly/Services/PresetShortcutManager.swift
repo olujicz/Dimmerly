@@ -16,162 +16,194 @@ import AppKit
 import Foundation
 import Observation
 
-/// Manages keyboard shortcuts for individual brightness presets.
-///
-/// This manager:
-/// - Monitors all preset shortcuts simultaneously
-/// - Updates automatically when presets change (add/remove/edit shortcuts)
-/// - Stops monitoring when no presets have shortcuts assigned
-/// - Requires accessibility permissions (same as KeyboardShortcutManager)
-///
-/// Change detection: Compares the ordered (preset ID, shortcut) bindings, so shortcut
-/// changes, deletions, and reordering restart monitoring while unrelated edits do not.
-///
-/// Thread safety: All methods must be called from the main actor.
-@MainActor
-@Observable
-class PresetShortcutManager {
-    typealias PermissionChecker = @MainActor () -> Bool
-    typealias GlobalMonitorInstaller = @MainActor (@escaping (NSEvent) -> Void) -> Any?
-    typealias LocalMonitorInstaller = @MainActor (@escaping (NSEvent) -> NSEvent?) -> Any?
-    typealias MonitorRemover = @MainActor (Any) -> Void
-    /// Whether a recorder overlay is capturing keys, in which case normal actions stay suppressed.
-    /// Injected like the monitor seams so `handleKeyEvent` is testable without the shared coordinator.
-    typealias RecordingSuppressionChecker = @MainActor () -> Bool
+#if !APPSTORE
+    /// Manages keyboard shortcuts for individual brightness presets.
+    ///
+    /// This manager:
+    /// - Monitors all preset shortcuts simultaneously
+    /// - Updates automatically when presets change (add/remove/edit shortcuts)
+    /// - Stops monitoring when no presets have shortcuts assigned
+    /// - Requires accessibility permissions (same as KeyboardShortcutManager)
+    ///
+    /// Change detection: Compares the ordered (preset ID, shortcut) bindings, so shortcut
+    /// changes, deletions, and reordering restart monitoring while unrelated edits do not.
+    ///
+    /// Thread safety: All methods must be called from the main actor.
+    @MainActor
+    @Observable
+    class PresetShortcutManager {
+        typealias PermissionChecker = @MainActor () -> Bool
+        typealias GlobalMonitorInstaller = @MainActor (@escaping (NSEvent) -> Void) -> Any?
+        typealias LocalMonitorInstaller = @MainActor (@escaping (NSEvent) -> NSEvent?) -> Any?
+        typealias MonitorRemover = @MainActor (Any) -> Void
+        /// Whether a recorder overlay is capturing keys, in which case normal actions stay suppressed.
+        /// Injected like the monitor seams so `handleKeyEvent` is testable without the shared coordinator.
+        typealias RecordingSuppressionChecker = @MainActor () -> Bool
 
-    /// Callback invoked when a preset shortcut is pressed (passes preset ID)
-    var onPresetTriggered: ((UUID) -> Void)?
+        /// Callback invoked when a preset shortcut is pressed (passes preset ID)
+        var onPresetTriggered: ((UUID) -> Void)?
 
-    /// Global event monitor (active when app is not frontmost)
-    private var globalEventMonitor: Any?
+        /// Global event monitor (active when app is not frontmost)
+        private var globalEventMonitor: Any?
 
-    /// Local event monitor (active when app is frontmost)
-    private var localEventMonitor: Any?
+        /// Local event monitor (active when app is frontmost)
+        private var localEventMonitor: Any?
 
-    private struct ShortcutBinding: Equatable {
-        let presetID: UUID
-        let shortcut: GlobalShortcut
-    }
-
-    /// Active bindings, in preset order. Also compared against incoming bindings so
-    /// unrelated preset edits don't needlessly restart monitoring.
-    private var presetShortcuts: [ShortcutBinding] = []
-
-    private let permissionChecker: PermissionChecker
-    private let globalMonitorInstaller: GlobalMonitorInstaller
-    private let localMonitorInstaller: LocalMonitorInstaller
-    private let monitorRemover: MonitorRemover
-    private let isRecordingSuppressed: RecordingSuppressionChecker
-
-    init(
-        permissionChecker: @escaping PermissionChecker = KeyboardShortcutManager.checkAccessibilityPermission,
-        globalMonitorInstaller: @escaping GlobalMonitorInstaller = { handler in
-            NSEvent.addGlobalMonitorForEvents(matching: .keyDown, handler: handler)
-        },
-        localMonitorInstaller: @escaping LocalMonitorInstaller = { handler in
-            NSEvent.addLocalMonitorForEvents(matching: .keyDown, handler: handler)
-        },
-        monitorRemover: @escaping MonitorRemover = { monitor in
-            NSEvent.removeMonitor(monitor)
-        },
-        isRecordingSuppressed: @escaping RecordingSuppressionChecker = {
-            ShortcutRecordingCoordinator.shared.isRecording
-        }
-    ) {
-        self.permissionChecker = permissionChecker
-        self.globalMonitorInstaller = globalMonitorInstaller
-        self.localMonitorInstaller = localMonitorInstaller
-        self.monitorRemover = monitorRemover
-        self.isRecordingSuppressed = isRecordingSuppressed
-    }
-
-    /// Updates the registered shortcuts from the current preset list.
-    func updateShortcuts(from presets: [BrightnessPreset]) {
-        let bindings: [ShortcutBinding] = presets.compactMap { preset in
-            guard let shortcut = preset.shortcut else { return nil }
-            return ShortcutBinding(presetID: preset.id, shortcut: shortcut)
+        private struct ShortcutBinding: Equatable {
+            let presetID: UUID
+            let shortcut: GlobalShortcut
         }
 
-        guard bindings != presetShortcuts else { return }
-        presetShortcuts = bindings
+        /// Active bindings, in preset order. Also compared against incoming bindings so
+        /// unrelated preset edits don't needlessly restart monitoring.
+        private var presetShortcuts: [ShortcutBinding] = []
 
-        if presetShortcuts.isEmpty {
+        private let permissionChecker: PermissionChecker
+        private let globalMonitorInstaller: GlobalMonitorInstaller
+        private let localMonitorInstaller: LocalMonitorInstaller
+        private let monitorRemover: MonitorRemover
+        private let isRecordingSuppressed: RecordingSuppressionChecker
+
+        init(
+            permissionChecker: @escaping PermissionChecker = KeyboardShortcutManager.checkAccessibilityPermission,
+            globalMonitorInstaller: @escaping GlobalMonitorInstaller = { handler in
+                NSEvent.addGlobalMonitorForEvents(matching: .keyDown, handler: handler)
+            },
+            localMonitorInstaller: @escaping LocalMonitorInstaller = { handler in
+                NSEvent.addLocalMonitorForEvents(matching: .keyDown, handler: handler)
+            },
+            monitorRemover: @escaping MonitorRemover = { monitor in
+                NSEvent.removeMonitor(monitor)
+            },
+            isRecordingSuppressed: @escaping RecordingSuppressionChecker = {
+                ShortcutRecordingCoordinator.shared.isRecording
+            }
+        ) {
+            self.permissionChecker = permissionChecker
+            self.globalMonitorInstaller = globalMonitorInstaller
+            self.localMonitorInstaller = localMonitorInstaller
+            self.monitorRemover = monitorRemover
+            self.isRecordingSuppressed = isRecordingSuppressed
+        }
+
+        /// Updates the registered shortcuts from the current preset list.
+        func updateShortcuts(from presets: [BrightnessPreset]) {
+            let bindings: [ShortcutBinding] = presets.compactMap { preset in
+                guard let shortcut = preset.shortcut else { return nil }
+                return ShortcutBinding(presetID: preset.id, shortcut: shortcut)
+            }
+
+            guard bindings != presetShortcuts else { return }
+            presetShortcuts = bindings
+
+            if presetShortcuts.isEmpty {
+                stopMonitoring()
+            } else {
+                startMonitoring()
+            }
+        }
+
+        private func startMonitoring() {
             stopMonitoring()
-        } else {
+
+            guard permissionChecker() else { return }
+
+            globalEventMonitor = globalMonitorInstaller { [weak self] event in
+                let keyCode = event.keyCode
+                let modifierFlags = event.modifierFlags
+                Task { @MainActor in
+                    _ = self?.handleKeyEvent(keyCode: keyCode, modifierFlags: modifierFlags)
+                }
+            }
+
+            // Matched events are swallowed (return nil) instead of always passing through —
+            // otherwise a preset shortcut both applies the preset and reaches whatever UI
+            // element has focus. The match check runs synchronously via
+            // `MainActor.assumeIsolated`, since NSEvent local monitor callbacks always fire
+            // on the main thread.
+            localEventMonitor = localMonitorInstaller { [weak self] event in
+                let keyCode = event.keyCode
+                let modifierFlags = event.modifierFlags
+                let matched = MainActor.assumeIsolated {
+                    self?.handleKeyEvent(keyCode: keyCode, modifierFlags: modifierFlags) ?? false
+                }
+                return matched ? nil : event
+            }
+        }
+
+        private func stopMonitoring() {
+            if let monitor = globalEventMonitor {
+                monitorRemover(monitor)
+                globalEventMonitor = nil
+            }
+            if let monitor = localEventMonitor {
+                monitorRemover(monitor)
+                localEventMonitor = nil
+            }
+        }
+
+        /// Rechecks Accessibility permission and starts preset shortcut monitoring
+        /// when permission was granted after the shortcut set was already registered.
+        func refreshAccessibilityPermissionAndRestartIfNeeded() {
+            guard permissionChecker() else {
+                stopMonitoring()
+                return
+            }
+            guard !presetShortcuts.isEmpty,
+                  globalEventMonitor == nil,
+                  localEventMonitor == nil
+            else {
+                return
+            }
             startMonitoring()
         }
+
+        /// - Returns: `true` if the event matched a registered preset shortcut (and the callback fired).
+        @discardableResult
+        private func handleKeyEvent(keyCode: UInt16, modifierFlags: NSEvent.ModifierFlags) -> Bool {
+            guard !isRecordingSuppressed(),
+                  let binding = presetShortcuts.first(where: {
+                      $0.shortcut.matches(keyCode: keyCode, modifierFlags: modifierFlags)
+                  })
+            else { return false }
+            onPresetTriggered?(binding.presetID)
+            return true
+        }
+
+        // MARK: - Lifecycle
+
+        // Note: deinit intentionally omitted to avoid @MainActor data race warnings in Swift 6.
+        // This manager is held by @State in DimmerlyApp for the app's lifetime, so deinit
+        // never executes. Cleanup is handled explicitly via stopMonitoring() when presets are empty.
     }
 
-    private func startMonitoring() {
-        stopMonitoring()
+#endif
 
-        guard permissionChecker() else { return }
-
-        globalEventMonitor = globalMonitorInstaller { [weak self] event in
-            let keyCode = event.keyCode
-            let modifierFlags = event.modifierFlags
-            Task { @MainActor in
-                _ = self?.handleKeyEvent(keyCode: keyCode, modifierFlags: modifierFlags)
-            }
+#if APPSTORE
+    /// Registers sandbox-safe Carbon hotkeys for presets with assigned shortcuts.
+    @MainActor
+    @Observable
+    final class PresetShortcutManager {
+        var onPresetTriggered: ((UUID) -> Void)?
+        private let monitor: CarbonShortcutMonitor
+        var hasRegistrationFailure: Bool {
+            !monitor.failedBindingIDs.isEmpty
         }
 
-        // Matched events are swallowed (return nil) instead of always passing through —
-        // otherwise a preset shortcut both applies the preset and reaches whatever UI
-        // element has focus. The match check runs synchronously via
-        // `MainActor.assumeIsolated`, since NSEvent local monitor callbacks always fire
-        // on the main thread.
-        localEventMonitor = localMonitorInstaller { [weak self] event in
-            let keyCode = event.keyCode
-            let modifierFlags = event.modifierFlags
-            let matched = MainActor.assumeIsolated {
-                self?.handleKeyEvent(keyCode: keyCode, modifierFlags: modifierFlags) ?? false
-            }
-            return matched ? nil : event
+        init(monitor: CarbonShortcutMonitor = CarbonShortcutMonitor()) {
+            self.monitor = monitor
+            monitor.onTriggered = { [weak self] id in self?.onPresetTriggered?(id) }
         }
-    }
 
-    private func stopMonitoring() {
-        if let monitor = globalEventMonitor {
-            monitorRemover(monitor)
-            globalEventMonitor = nil
+        func updateShortcuts(from presets: [BrightnessPreset]) {
+            monitor.updateBindings(presets.compactMap { preset in
+                guard let shortcut = preset.shortcut else { return nil }
+                return .init(id: preset.id, shortcut: shortcut)
+            })
         }
-        if let monitor = localEventMonitor {
-            monitorRemover(monitor)
-            localEventMonitor = nil
+
+        func retryFailedRegistrations() {
+            monitor.retryFailedRegistrations()
         }
     }
-
-    /// Rechecks Accessibility permission and starts preset shortcut monitoring
-    /// when permission was granted after the shortcut set was already registered.
-    func refreshAccessibilityPermissionAndRestartIfNeeded() {
-        guard permissionChecker() else {
-            stopMonitoring()
-            return
-        }
-        guard !presetShortcuts.isEmpty,
-              globalEventMonitor == nil,
-              localEventMonitor == nil
-        else {
-            return
-        }
-        startMonitoring()
-    }
-
-    /// - Returns: `true` if the event matched a registered preset shortcut (and the callback fired).
-    @discardableResult
-    private func handleKeyEvent(keyCode: UInt16, modifierFlags: NSEvent.ModifierFlags) -> Bool {
-        guard !isRecordingSuppressed(),
-              let binding = presetShortcuts.first(where: {
-                  $0.shortcut.matches(keyCode: keyCode, modifierFlags: modifierFlags)
-              })
-        else { return false }
-        onPresetTriggered?(binding.presetID)
-        return true
-    }
-
-    // MARK: - Lifecycle
-
-    // Note: deinit intentionally omitted to avoid @MainActor data race warnings in Swift 6.
-    // This manager is held by @State in DimmerlyApp for the app's lifetime, so deinit
-    // never executes. Cleanup is handled explicitly via stopMonitoring() when presets are empty.
-}
+#endif

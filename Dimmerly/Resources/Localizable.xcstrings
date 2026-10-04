@@ -1,6 +1,77 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "A shortcut is unavailable. Choose a different shortcut." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Kurzbefehl ist nicht verfügbar. Wähle einen anderen Kurzbefehl."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A shortcut is unavailable. Choose a different shortcut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un atajo no está disponible. Elige otro atajo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un raccourci est indisponible. Choisissez un autre raccourci."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una scorciatoia non è disponibile. Scegli una scorciatoia diversa."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ショートカットを使用できません。別のショートカットを選択してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "단축키를 사용할 수 없습니다. 다른 단축키를 선택하세요."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een sneltoets is niet beschikbaar. Kies een andere sneltoets."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Um atalho está indisponível. Escolha outro atalho."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prečica nije dostupna. Izaberite drugu prečicu."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "某个快捷键不可用。请选择其他快捷键。"
+          }
+        }
+      }
+    },
     "Brightness Control" : {
       "comment" : "Label for DDC brightness control picker",
       "localizations" : {
@@ -210,6 +281,77 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dimmerly 未能完成显示器操作。请重试。"
+          }
+        }
+      }
+    },
+    "Dims all connected displays using Dimmerly." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmt alle verbundenen Bildschirme mit Dimmerly."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dims all connected displays using Dimmerly."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atenúa todas las pantallas conectadas con Dimmerly."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Assombrit tous les écrans connectés avec Dimmerly."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oscura tutti gli schermi collegati con Dimmerly."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerlyですべての接続されたディスプレイを暗くします。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly로 연결된 모든 디스플레이를 어둡게 합니다."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimt alle aangesloten schermen met Dimmerly."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escurece todas as telas conectadas usando o Dimmerly."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zatamnjuje sve povezane ekrane pomoću aplikacije Dimmerly."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 Dimmerly 调暗所有已连接的显示器。"
           }
         }
       }

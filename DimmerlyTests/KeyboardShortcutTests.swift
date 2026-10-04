@@ -452,297 +452,403 @@ extension GlobalShortcutTests {
     }
 }
 
-@MainActor
-final class KeyboardShortcutManagerTests: XCTestCase {
-    private final class MonitorToken {}
+#if !APPSTORE
+    @MainActor
+    final class KeyboardShortcutManagerTests: XCTestCase {
+        private final class MonitorToken {}
 
-    private final class PermissionProbe: @unchecked Sendable {
-        var isGranted = false
-    }
-
-    func testLocalMonitorSwallowsMatchingShortcutEvent() throws {
-        var capturedHandler: ((NSEvent) -> NSEvent?)?
-        let manager = KeyboardShortcutManager(
-            shortcut: GlobalShortcut(key: "d", modifiers: [.command, .option, .shift]),
-            permissionChecker: { true },
-            globalMonitorInstaller: { _ in MonitorToken() },
-            localMonitorInstaller: { handler in
-                capturedHandler = handler
-                return MonitorToken()
-            },
-            monitorRemover: { _ in }
-        )
-
-        var triggerCount = 0
-        manager.startMonitoring { triggerCount += 1 }
-
-        let handler = try XCTUnwrap(capturedHandler)
-        let matchingEvent = makeKeyDownEvent(keyCode: 2, modifierFlags: [.command, .option, .shift])
-        let result = handler(matchingEvent)
-
-        XCTAssertNil(result, "A matching shortcut event must be swallowed, not passed through")
-        XCTAssertEqual(triggerCount, 1, "The shortcut callback must still fire")
-    }
-
-    func testLocalMonitorPassesThroughNonMatchingEvent() throws {
-        var capturedHandler: ((NSEvent) -> NSEvent?)?
-        let manager = KeyboardShortcutManager(
-            shortcut: GlobalShortcut(key: "d", modifiers: [.command, .option, .shift]),
-            permissionChecker: { true },
-            globalMonitorInstaller: { _ in MonitorToken() },
-            localMonitorInstaller: { handler in
-                capturedHandler = handler
-                return MonitorToken()
-            },
-            monitorRemover: { _ in }
-        )
-
-        var triggerCount = 0
-        manager.startMonitoring { triggerCount += 1 }
-
-        let handler = try XCTUnwrap(capturedHandler)
-        let nonMatchingEvent = makeKeyDownEvent(keyCode: 0, modifierFlags: [.command])
-        let result = handler(nonMatchingEvent)
-
-        XCTAssertNotNil(result, "A non-matching event must pass through so other UI can use it")
-        XCTAssertEqual(triggerCount, 0, "The shortcut callback must not fire")
-    }
-
-    func testRefreshPermissionRestartsMainShortcutMonitoringAfterPermissionIsGranted() {
-        let permissionProbe = PermissionProbe()
-        var globalMonitorInstallCount = 0
-        var localMonitorInstallCount = 0
-
-        let manager = KeyboardShortcutManager(
-            permissionChecker: { @MainActor @Sendable in permissionProbe.isGranted },
-            globalMonitorInstaller: { _ in
-                globalMonitorInstallCount += 1
-                return MonitorToken()
-            },
-            localMonitorInstaller: { _ in
-                localMonitorInstallCount += 1
-                return MonitorToken()
-            },
-            monitorRemover: { _ in }
-        )
-
-        manager.startMonitoring {}
-        XCTAssertFalse(manager.hasAccessibilityPermission)
-        XCTAssertEqual(globalMonitorInstallCount, 0)
-        XCTAssertEqual(localMonitorInstallCount, 0)
-
-        permissionProbe.isGranted = true
-        manager.refreshAccessibilityPermissionAndRestartIfNeeded()
-
-        XCTAssertTrue(manager.hasAccessibilityPermission)
-        XCTAssertEqual(globalMonitorInstallCount, 1)
-        XCTAssertEqual(localMonitorInstallCount, 1)
-    }
-
-    func testRefreshPermissionRestartsPresetShortcutMonitoringAfterPermissionIsGranted() {
-        let permissionProbe = PermissionProbe()
-        var globalMonitorInstallCount = 0
-        var localMonitorInstallCount = 0
-
-        let manager = PresetShortcutManager(
-            permissionChecker: { @MainActor @Sendable in permissionProbe.isGranted },
-            globalMonitorInstaller: { _ in
-                globalMonitorInstallCount += 1
-                return MonitorToken()
-            },
-            localMonitorInstaller: { _ in
-                localMonitorInstallCount += 1
-                return MonitorToken()
-            },
-            monitorRemover: { _ in }
-        )
-        let preset = BrightnessPreset(
-            name: "Night",
-            shortcut: GlobalShortcut(key: "1", modifiers: [.command, .option])
-        )
-
-        manager.updateShortcuts(from: [preset])
-        XCTAssertEqual(globalMonitorInstallCount, 0)
-        XCTAssertEqual(localMonitorInstallCount, 0)
-
-        permissionProbe.isGranted = true
-        manager.refreshAccessibilityPermissionAndRestartIfNeeded()
-
-        XCTAssertEqual(globalMonitorInstallCount, 1)
-        XCTAssertEqual(localMonitorInstallCount, 1)
-    }
-
-    func testPresetShortcutUpdateDoesNotRestartMonitorForUnchangedBindings() {
-        var installCount = 0
-        var removalCount = 0
-        let manager = PresetShortcutManager(
-            permissionChecker: { true },
-            globalMonitorInstaller: { _ in
-                installCount += 1
-                return MonitorToken()
-            },
-            localMonitorInstaller: { _ in
-                installCount += 1
-                return MonitorToken()
-            },
-            monitorRemover: { _ in removalCount += 1 }
-        )
-        let preset = BrightnessPreset(
-            name: "Night",
-            shortcut: GlobalShortcut(key: "1", modifiers: [.command, .option])
-        )
-
-        manager.updateShortcuts(from: [preset])
-        var renamedPreset = preset
-        renamedPreset.name = "Evening"
-        manager.updateShortcuts(from: [renamedPreset])
-
-        XCTAssertEqual(installCount, 2)
-        XCTAssertEqual(removalCount, 0)
-    }
-
-    func testPresetShortcutUpdateRestartsMonitorWhenBindingsAreReordered() {
-        var installCount = 0
-        var removalCount = 0
-        let manager = PresetShortcutManager(
-            permissionChecker: { true },
-            globalMonitorInstaller: { _ in
-                installCount += 1
-                return MonitorToken()
-            },
-            localMonitorInstaller: { _ in
-                installCount += 1
-                return MonitorToken()
-            },
-            monitorRemover: { _ in removalCount += 1 }
-        )
-        let night = BrightnessPreset(
-            name: "Night",
-            shortcut: GlobalShortcut(key: "1", modifiers: [.command, .option])
-        )
-        let day = BrightnessPreset(
-            name: "Day",
-            shortcut: GlobalShortcut(key: "2", modifiers: [.command, .option])
-        )
-
-        manager.updateShortcuts(from: [night, day])
-        manager.updateShortcuts(from: [day, night])
-
-        XCTAssertEqual(installCount, 4)
-        XCTAssertEqual(removalCount, 2)
-    }
-
-    func testPresetLocalMonitorSwallowsMatchingShortcutEvent() throws {
-        var capturedHandler: ((NSEvent) -> NSEvent?)?
-        let manager = PresetShortcutManager(
-            permissionChecker: { true },
-            globalMonitorInstaller: { _ in MonitorToken() },
-            localMonitorInstaller: { handler in
-                capturedHandler = handler
-                return MonitorToken()
-            },
-            monitorRemover: { _ in }
-        )
-        let presetID = UUID()
-        let preset = BrightnessPreset(
-            id: presetID,
-            name: "Night",
-            shortcut: GlobalShortcut(key: "1", modifiers: [.command, .option])
-        )
-
-        var triggeredID: UUID?
-        manager.onPresetTriggered = { triggeredID = $0 }
-        manager.updateShortcuts(from: [preset])
-
-        let handler = try XCTUnwrap(capturedHandler)
-        let matchingEvent = makeKeyDownEvent(keyCode: UInt16(kVK_ANSI_1), modifierFlags: [.command, .option])
-        let result = handler(matchingEvent)
-
-        XCTAssertNil(result, "A matching preset shortcut event must be swallowed, not passed through")
-        XCTAssertEqual(triggeredID, presetID)
-    }
-
-    func testPresetLocalMonitorPassesThroughNonMatchingEvent() throws {
-        var capturedHandler: ((NSEvent) -> NSEvent?)?
-        let manager = PresetShortcutManager(
-            permissionChecker: { true },
-            globalMonitorInstaller: { _ in MonitorToken() },
-            localMonitorInstaller: { handler in
-                capturedHandler = handler
-                return MonitorToken()
-            },
-            monitorRemover: { _ in }
-        )
-        let preset = BrightnessPreset(
-            name: "Night",
-            shortcut: GlobalShortcut(key: "1", modifiers: [.command, .option])
-        )
-
-        var triggeredID: UUID?
-        manager.onPresetTriggered = { triggeredID = $0 }
-        manager.updateShortcuts(from: [preset])
-
-        let handler = try XCTUnwrap(capturedHandler)
-        let nonMatchingEvent = makeKeyDownEvent(keyCode: UInt16(kVK_ANSI_2), modifierFlags: [.command, .option])
-        let result = handler(nonMatchingEvent)
-
-        XCTAssertNotNil(result, "A non-matching event must pass through so other UI can use it")
-        XCTAssertNil(triggeredID, "No preset should be triggered")
-    }
-
-    func testBothShortcutManagersSuppressActionsWhileRecording() throws {
-        let recorderID = UUID()
-        defer {
-            ShortcutRecordingCoordinator.shared.setRecording(false, for: recorderID)
+        private final class PermissionProbe: @unchecked Sendable {
+            var isGranted = false
         }
 
-        var mainHandler: ((NSEvent) -> NSEvent?)?
-        let mainManager = KeyboardShortcutManager(
-            shortcut: GlobalShortcut(key: "d", modifiers: [.command]),
-            permissionChecker: { true },
-            globalMonitorInstaller: { _ in MonitorToken() },
-            localMonitorInstaller: { handler in
-                mainHandler = handler
-                return MonitorToken()
-            },
-            monitorRemover: { _ in }
-        )
-        var mainTriggerCount = 0
-        mainManager.startMonitoring { mainTriggerCount += 1 }
+        func testLocalMonitorSwallowsMatchingShortcutEvent() throws {
+            var capturedHandler: ((NSEvent) -> NSEvent?)?
+            let manager = KeyboardShortcutManager(
+                shortcut: GlobalShortcut(key: "d", modifiers: [.command, .option, .shift]),
+                permissionChecker: { true },
+                globalMonitorInstaller: { _ in MonitorToken() },
+                localMonitorInstaller: { handler in
+                    capturedHandler = handler
+                    return MonitorToken()
+                },
+                monitorRemover: { _ in }
+            )
 
-        var presetHandler: ((NSEvent) -> NSEvent?)?
-        let presetManager = PresetShortcutManager(
-            permissionChecker: { true },
-            globalMonitorInstaller: { _ in MonitorToken() },
-            localMonitorInstaller: { handler in
-                presetHandler = handler
-                return MonitorToken()
-            },
-            monitorRemover: { _ in }
-        )
-        let presetID = UUID()
-        var triggeredPresetID: UUID?
-        presetManager.onPresetTriggered = { triggeredPresetID = $0 }
-        presetManager.updateShortcuts(from: [
-            BrightnessPreset(
+            var triggerCount = 0
+            manager.startMonitoring { triggerCount += 1 }
+
+            let handler = try XCTUnwrap(capturedHandler)
+            let matchingEvent = makeKeyDownEvent(keyCode: 2, modifierFlags: [.command, .option, .shift])
+            let result = handler(matchingEvent)
+
+            XCTAssertNil(result, "A matching shortcut event must be swallowed, not passed through")
+            XCTAssertEqual(triggerCount, 1, "The shortcut callback must still fire")
+        }
+
+        func testLocalMonitorPassesThroughNonMatchingEvent() throws {
+            var capturedHandler: ((NSEvent) -> NSEvent?)?
+            let manager = KeyboardShortcutManager(
+                shortcut: GlobalShortcut(key: "d", modifiers: [.command, .option, .shift]),
+                permissionChecker: { true },
+                globalMonitorInstaller: { _ in MonitorToken() },
+                localMonitorInstaller: { handler in
+                    capturedHandler = handler
+                    return MonitorToken()
+                },
+                monitorRemover: { _ in }
+            )
+
+            var triggerCount = 0
+            manager.startMonitoring { triggerCount += 1 }
+
+            let handler = try XCTUnwrap(capturedHandler)
+            let nonMatchingEvent = makeKeyDownEvent(keyCode: 0, modifierFlags: [.command])
+            let result = handler(nonMatchingEvent)
+
+            XCTAssertNotNil(result, "A non-matching event must pass through so other UI can use it")
+            XCTAssertEqual(triggerCount, 0, "The shortcut callback must not fire")
+        }
+
+        func testRefreshPermissionRestartsMainShortcutMonitoringAfterPermissionIsGranted() {
+            let permissionProbe = PermissionProbe()
+            var globalMonitorInstallCount = 0
+            var localMonitorInstallCount = 0
+
+            let manager = KeyboardShortcutManager(
+                permissionChecker: { @MainActor @Sendable in permissionProbe.isGranted },
+                globalMonitorInstaller: { _ in
+                    globalMonitorInstallCount += 1
+                    return MonitorToken()
+                },
+                localMonitorInstaller: { _ in
+                    localMonitorInstallCount += 1
+                    return MonitorToken()
+                },
+                monitorRemover: { _ in }
+            )
+
+            manager.startMonitoring {}
+            XCTAssertFalse(manager.hasAccessibilityPermission)
+            XCTAssertEqual(globalMonitorInstallCount, 0)
+            XCTAssertEqual(localMonitorInstallCount, 0)
+
+            permissionProbe.isGranted = true
+            manager.refreshAccessibilityPermissionAndRestartIfNeeded()
+
+            XCTAssertTrue(manager.hasAccessibilityPermission)
+            XCTAssertEqual(globalMonitorInstallCount, 1)
+            XCTAssertEqual(localMonitorInstallCount, 1)
+        }
+
+        func testRefreshPermissionRestartsPresetShortcutMonitoringAfterPermissionIsGranted() {
+            let permissionProbe = PermissionProbe()
+            var globalMonitorInstallCount = 0
+            var localMonitorInstallCount = 0
+
+            let manager = PresetShortcutManager(
+                permissionChecker: { @MainActor @Sendable in permissionProbe.isGranted },
+                globalMonitorInstaller: { _ in
+                    globalMonitorInstallCount += 1
+                    return MonitorToken()
+                },
+                localMonitorInstaller: { _ in
+                    localMonitorInstallCount += 1
+                    return MonitorToken()
+                },
+                monitorRemover: { _ in }
+            )
+            let preset = BrightnessPreset(
+                name: "Night",
+                shortcut: GlobalShortcut(key: "1", modifiers: [.command, .option])
+            )
+
+            manager.updateShortcuts(from: [preset])
+            XCTAssertEqual(globalMonitorInstallCount, 0)
+            XCTAssertEqual(localMonitorInstallCount, 0)
+
+            permissionProbe.isGranted = true
+            manager.refreshAccessibilityPermissionAndRestartIfNeeded()
+
+            XCTAssertEqual(globalMonitorInstallCount, 1)
+            XCTAssertEqual(localMonitorInstallCount, 1)
+        }
+
+        func testPresetShortcutUpdateDoesNotRestartMonitorForUnchangedBindings() {
+            var installCount = 0
+            var removalCount = 0
+            let manager = PresetShortcutManager(
+                permissionChecker: { true },
+                globalMonitorInstaller: { _ in
+                    installCount += 1
+                    return MonitorToken()
+                },
+                localMonitorInstaller: { _ in
+                    installCount += 1
+                    return MonitorToken()
+                },
+                monitorRemover: { _ in removalCount += 1 }
+            )
+            let preset = BrightnessPreset(
+                name: "Night",
+                shortcut: GlobalShortcut(key: "1", modifiers: [.command, .option])
+            )
+
+            manager.updateShortcuts(from: [preset])
+            var renamedPreset = preset
+            renamedPreset.name = "Evening"
+            manager.updateShortcuts(from: [renamedPreset])
+
+            XCTAssertEqual(installCount, 2)
+            XCTAssertEqual(removalCount, 0)
+        }
+
+        func testPresetShortcutUpdateRestartsMonitorWhenBindingsAreReordered() {
+            var installCount = 0
+            var removalCount = 0
+            let manager = PresetShortcutManager(
+                permissionChecker: { true },
+                globalMonitorInstaller: { _ in
+                    installCount += 1
+                    return MonitorToken()
+                },
+                localMonitorInstaller: { _ in
+                    installCount += 1
+                    return MonitorToken()
+                },
+                monitorRemover: { _ in removalCount += 1 }
+            )
+            let night = BrightnessPreset(
+                name: "Night",
+                shortcut: GlobalShortcut(key: "1", modifiers: [.command, .option])
+            )
+            let day = BrightnessPreset(
+                name: "Day",
+                shortcut: GlobalShortcut(key: "2", modifiers: [.command, .option])
+            )
+
+            manager.updateShortcuts(from: [night, day])
+            manager.updateShortcuts(from: [day, night])
+
+            XCTAssertEqual(installCount, 4)
+            XCTAssertEqual(removalCount, 2)
+        }
+
+        func testPresetLocalMonitorSwallowsMatchingShortcutEvent() throws {
+            var capturedHandler: ((NSEvent) -> NSEvent?)?
+            let manager = PresetShortcutManager(
+                permissionChecker: { true },
+                globalMonitorInstaller: { _ in MonitorToken() },
+                localMonitorInstaller: { handler in
+                    capturedHandler = handler
+                    return MonitorToken()
+                },
+                monitorRemover: { _ in }
+            )
+            let presetID = UUID()
+            let preset = BrightnessPreset(
                 id: presetID,
                 name: "Night",
-                shortcut: GlobalShortcut(key: "d", modifiers: [.command])
-            ),
+                shortcut: GlobalShortcut(key: "1", modifiers: [.command, .option])
+            )
+
+            var triggeredID: UUID?
+            manager.onPresetTriggered = { triggeredID = $0 }
+            manager.updateShortcuts(from: [preset])
+
+            let handler = try XCTUnwrap(capturedHandler)
+            let matchingEvent = makeKeyDownEvent(keyCode: UInt16(kVK_ANSI_1), modifierFlags: [.command, .option])
+            let result = handler(matchingEvent)
+
+            XCTAssertNil(result, "A matching preset shortcut event must be swallowed, not passed through")
+            XCTAssertEqual(triggeredID, presetID)
+        }
+
+        func testPresetLocalMonitorPassesThroughNonMatchingEvent() throws {
+            var capturedHandler: ((NSEvent) -> NSEvent?)?
+            let manager = PresetShortcutManager(
+                permissionChecker: { true },
+                globalMonitorInstaller: { _ in MonitorToken() },
+                localMonitorInstaller: { handler in
+                    capturedHandler = handler
+                    return MonitorToken()
+                },
+                monitorRemover: { _ in }
+            )
+            let preset = BrightnessPreset(
+                name: "Night",
+                shortcut: GlobalShortcut(key: "1", modifiers: [.command, .option])
+            )
+
+            var triggeredID: UUID?
+            manager.onPresetTriggered = { triggeredID = $0 }
+            manager.updateShortcuts(from: [preset])
+
+            let handler = try XCTUnwrap(capturedHandler)
+            let nonMatchingEvent = makeKeyDownEvent(keyCode: UInt16(kVK_ANSI_2), modifierFlags: [.command, .option])
+            let result = handler(nonMatchingEvent)
+
+            XCTAssertNotNil(result, "A non-matching event must pass through so other UI can use it")
+            XCTAssertNil(triggeredID, "No preset should be triggered")
+        }
+
+        func testBothShortcutManagersSuppressActionsWhileRecording() throws {
+            let recorderID = UUID()
+            defer {
+                ShortcutRecordingCoordinator.shared.setRecording(false, for: recorderID)
+            }
+
+            var mainHandler: ((NSEvent) -> NSEvent?)?
+            let mainManager = KeyboardShortcutManager(
+                shortcut: GlobalShortcut(key: "d", modifiers: [.command]),
+                permissionChecker: { true },
+                globalMonitorInstaller: { _ in MonitorToken() },
+                localMonitorInstaller: { handler in
+                    mainHandler = handler
+                    return MonitorToken()
+                },
+                monitorRemover: { _ in }
+            )
+            var mainTriggerCount = 0
+            mainManager.startMonitoring { mainTriggerCount += 1 }
+
+            var presetHandler: ((NSEvent) -> NSEvent?)?
+            let presetManager = PresetShortcutManager(
+                permissionChecker: { true },
+                globalMonitorInstaller: { _ in MonitorToken() },
+                localMonitorInstaller: { handler in
+                    presetHandler = handler
+                    return MonitorToken()
+                },
+                monitorRemover: { _ in }
+            )
+            let presetID = UUID()
+            var triggeredPresetID: UUID?
+            presetManager.onPresetTriggered = { triggeredPresetID = $0 }
+            presetManager.updateShortcuts(from: [
+                BrightnessPreset(
+                    id: presetID,
+                    name: "Night",
+                    shortcut: GlobalShortcut(key: "d", modifiers: [.command])
+                ),
+            ])
+
+            let event = makeKeyDownEvent(keyCode: UInt16(kVK_ANSI_D), modifierFlags: [.command])
+            ShortcutRecordingCoordinator.shared.setRecording(true, for: recorderID)
+
+            XCTAssertNotNil(try XCTUnwrap(mainHandler)(event))
+            XCTAssertNotNil(try XCTUnwrap(presetHandler)(event))
+            XCTAssertEqual(mainTriggerCount, 0)
+            XCTAssertNil(triggeredPresetID)
+
+            ShortcutRecordingCoordinator.shared.setRecording(false, for: recorderID)
+            XCTAssertNil(try XCTUnwrap(mainHandler)(event))
+            XCTAssertNil(try XCTUnwrap(presetHandler)(event))
+            XCTAssertEqual(mainTriggerCount, 1)
+            XCTAssertEqual(triggeredPresetID, presetID)
+        }
+    }
+
+#endif
+
+@MainActor
+final class CarbonShortcutMonitorTests: XCTestCase {
+    private final class Token {}
+
+    func testRegistrationReleasesKeysWhileRecordingAndRestoresThemAfterLastRecorder() {
+        let coordinator = ShortcutRecordingCoordinator()
+        var installs = 0
+        var removals = 0
+        var handler: (@MainActor () -> Void)?
+        let monitor = CarbonShortcutMonitor(
+            coordinator: coordinator,
+            installer: { _, callback in
+                installs += 1
+                handler = callback
+                return Token()
+            },
+            remover: { _ in removals += 1 }
+        )
+        let binding = CarbonShortcutMonitor.Binding(id: UUID(), shortcut: .default)
+        var triggers = 0
+        monitor.onTriggered = { _ in triggers += 1 }
+        monitor.updateBindings([binding])
+        handler?()
+        XCTAssertEqual(triggers, 1)
+        let first = UUID()
+        let second = UUID()
+        coordinator.setRecording(true, for: first)
+        coordinator.setRecording(true, for: second)
+        handler?()
+        XCTAssertEqual(triggers, 1)
+        XCTAssertEqual(removals, 1)
+        coordinator.setRecording(false, for: first)
+        XCTAssertEqual(installs, 1)
+        coordinator.setRecording(false, for: second)
+        XCTAssertEqual(installs, 2)
+        handler?()
+        XCTAssertEqual(triggers, 2)
+        monitor.stop()
+    }
+
+    func testFailedRegistrationCanRetryWithoutReinstallingSuccessfulBindings() {
+        let failedID = UUID()
+        var attempts = 0
+        var shouldFail = true
+        let monitor = CarbonShortcutMonitor(
+            coordinator: ShortcutRecordingCoordinator(),
+            installer: { shortcut, _ in
+                attempts += 1
+                return shortcut == .default && shouldFail ? nil : Token()
+            },
+            remover: { _ in }
+        )
+        monitor.updateBindings([
+            .init(id: failedID, shortcut: .default),
+            .init(id: UUID(), shortcut: GlobalShortcut(key: "1", modifiers: [.command, .option])),
         ])
+        XCTAssertEqual(monitor.failedBindingIDs, [failedID])
+        shouldFail = false
+        monitor.retryFailedRegistrations()
+        XCTAssertTrue(monitor.failedBindingIDs.isEmpty)
+        XCTAssertEqual(attempts, 3)
+        monitor.stop()
+    }
 
-        let event = makeKeyDownEvent(keyCode: UInt16(kVK_ANSI_D), modifierFlags: [.command])
-        ShortcutRecordingCoordinator.shared.setRecording(true, for: recorderID)
+    func testChangedBindingsRemoveOldRegistrationAndIgnoreStaleCallbacks() {
+        var handlers: [@MainActor () -> Void] = []
+        var removals = 0
+        let monitor = CarbonShortcutMonitor(
+            coordinator: ShortcutRecordingCoordinator(),
+            installer: { _, handler in
+                handlers.append(handler)
+                return Token()
+            },
+            remover: { _ in removals += 1 }
+        )
+        let id = UUID()
+        var triggers = 0
+        monitor.onTriggered = { _ in triggers += 1 }
+        let original = CarbonShortcutMonitor.Binding(id: id, shortcut: .default)
+        monitor.updateBindings([original])
+        monitor.updateBindings([original])
+        XCTAssertEqual(handlers.count, 1)
+        monitor.updateBindings([.init(id: id, shortcut: GlobalShortcut(key: "1", modifiers: [.command]))])
+        XCTAssertEqual(removals, 1)
+        handlers[0]()
+        XCTAssertEqual(triggers, 0)
+        handlers[1]()
+        XCTAssertEqual(triggers, 1)
+        monitor.stop()
+        handlers[1]()
+        XCTAssertEqual(triggers, 1)
+        XCTAssertEqual(removals, 2)
+    }
 
-        XCTAssertNotNil(try XCTUnwrap(mainHandler)(event))
-        XCTAssertNotNil(try XCTUnwrap(presetHandler)(event))
-        XCTAssertEqual(mainTriggerCount, 0)
-        XCTAssertNil(triggeredPresetID)
-
-        ShortcutRecordingCoordinator.shared.setRecording(false, for: recorderID)
-        XCTAssertNil(try XCTUnwrap(mainHandler)(event))
-        XCTAssertNil(try XCTUnwrap(presetHandler)(event))
-        XCTAssertEqual(mainTriggerCount, 1)
-        XCTAssertEqual(triggeredPresetID, presetID)
+    func testCarbonModifiersAndLegacyPhysicalKeyMapping() throws {
+        let data = Data(#"{"key":"d","modifiers":["command","option","control","shift"]}"#.utf8)
+        let shortcut = try JSONDecoder().decode(GlobalShortcut.self, from: data)
+        XCTAssertEqual(shortcut.registrationKeyCode, UInt16(kVK_ANSI_D))
+        XCTAssertEqual(CarbonHotKeyRegistration.modifiers(for: shortcut),
+                       UInt32(cmdKey | optionKey | controlKey | shiftKey))
     }
 }

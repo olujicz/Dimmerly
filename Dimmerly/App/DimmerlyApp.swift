@@ -272,7 +272,7 @@ struct DimmerlyApp: App {
     /// Configures the global keyboard shortcut monitor to trigger display sleep.
     ///
     /// The shortcut is loaded from settings before monitoring starts.
-    /// Requires accessibility permissions to function.
+    /// App Store builds register Carbon hotkeys without requiring special permissions.
     private func startGlobalShortcutMonitoring() {
         shortcutManager.startMonitoring { [settings] in
             DisplayAction.performSleep(settings: settings)
