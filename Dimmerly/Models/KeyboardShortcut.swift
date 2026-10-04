@@ -95,6 +95,11 @@ struct GlobalShortcut: Codable, Equatable {
         keyCode ?? Self.legacyKeyCodeMap[key]
     }
 
+    /// Physical key used by Carbon, including shortcuts decoded from older settings.
+    var registrationKeyCode: UInt16? {
+        physicalKeyCode
+    }
+
     static func == (lhs: Self, rhs: Self) -> Bool {
         guard lhs.modifiers == rhs.modifiers else { return false }
         // A physical code on either side wins, so a coded shortcut never equals a label-only one.

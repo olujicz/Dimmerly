@@ -9,16 +9,27 @@ import AppIntents
 
 struct DimmerlyShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
-        AppShortcut(
-            intent: SleepDisplaysIntent(),
-            phrases: [
-                "Sleep displays with \(.applicationName)",
-                "Dim displays with \(.applicationName)",
-                "Turn off displays with \(.applicationName)",
-            ],
-            shortTitle: "Sleep Displays",
-            systemImageName: "moon.fill"
-        )
+        #if APPSTORE
+            AppShortcut(
+                intent: SleepDisplaysIntent(),
+                phrases: [
+                    "Dim displays with \(.applicationName)",
+                ],
+                shortTitle: "Dim Displays",
+                systemImageName: "sun.min.fill"
+            )
+        #else
+            AppShortcut(
+                intent: SleepDisplaysIntent(),
+                phrases: [
+                    "Sleep displays with \(.applicationName)",
+                    "Dim displays with \(.applicationName)",
+                    "Turn off displays with \(.applicationName)",
+                ],
+                shortTitle: "Sleep Displays",
+                systemImageName: "moon.fill"
+            )
+        #endif
         AppShortcut(
             intent: SetDisplayBrightnessIntent(),
             phrases: [

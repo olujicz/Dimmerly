@@ -27,10 +27,10 @@ struct ShortcutsSettingsTab: View {
         }
         .formStyle(.grouped)
         .onAppear {
-            refreshAccessibilityState()
+            refreshShortcutRegistrations()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-            refreshAccessibilityState()
+            refreshShortcutRegistrations()
         }
     }
 
@@ -68,31 +68,42 @@ struct ShortcutsSettingsTab: View {
                     .symbolRenderingMode(.multicolor)
             }
 
-            if !shortcutManager.hasAccessibilityPermission {
-                VStack(alignment: .leading, spacing: 8) {
+            #if APPSTORE
+                if shortcutManager.hasRegistrationFailure || presetShortcutManager.hasRegistrationFailure {
                     Label(
-                        "Accessibility permission is required for global shortcuts.",
+                        "A shortcut is unavailable. Choose a different shortcut.",
                         systemImage: "exclamationmark.triangle.fill"
                     )
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .symbolRenderingMode(.multicolor)
-
-                    Button {
-                        KeyboardShortcutManager.requestAccessibilityPermission()
-                    } label: {
-                        HStack(spacing: 2) {
-                            Text("Open Accessibility Settings")
-                            Image(systemName: "arrow.up.forward")
-                                .imageScale(.small)
-                        }
-                    }
-                    .font(.caption)
-                    .help("Open macOS Accessibility settings")
                 }
-                .accessibilityElement(children: .combine)
-                .padding(.top, 4)
-            }
+            #else
+                if !shortcutManager.hasAccessibilityPermission {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label(
+                            "Accessibility permission is required for global shortcuts.",
+                            systemImage: "exclamationmark.triangle.fill"
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .symbolRenderingMode(.multicolor)
+
+                        Button {
+                            KeyboardShortcutManager.requestAccessibilityPermission()
+                        } label: {
+                            HStack(spacing: 2) {
+                                Text("Open Accessibility Settings")
+                                Image(systemName: "arrow.up.forward")
+                                    .imageScale(.small)
+                            }
+                        }
+                        .font(.caption)
+                        .help("Open macOS Accessibility settings")
+                    }
+                    .accessibilityElement(children: .combine)
+                    .padding(.top, 4)
+                }
+            #endif
         } header: {
             Label("Keyboard Shortcut", systemImage: "keyboard")
         }
@@ -112,9 +123,14 @@ struct ShortcutsSettingsTab: View {
         shortcutManager.updateShortcut(shortcut)
     }
 
-    private func refreshAccessibilityState() {
-        shortcutManager.refreshAccessibilityPermissionAndRestartIfNeeded()
-        presetShortcutManager.refreshAccessibilityPermissionAndRestartIfNeeded()
+    private func refreshShortcutRegistrations() {
+        #if APPSTORE
+            shortcutManager.retryFailedRegistrations()
+            presetShortcutManager.retryFailedRegistrations()
+        #else
+            shortcutManager.refreshAccessibilityPermissionAndRestartIfNeeded()
+            presetShortcutManager.refreshAccessibilityPermissionAndRestartIfNeeded()
+        #endif
     }
 
     // MARK: - Presets Management

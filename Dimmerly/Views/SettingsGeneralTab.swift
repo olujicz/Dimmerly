@@ -55,8 +55,10 @@ struct GeneralSettingsTab: View {
         .onAppear {
             // Sync launch-at-login state with system
             settings.launchAtLogin = LaunchAtLoginManager.isEnabled
-            // Re-check accessibility permission
-            shortcutManager.hasAccessibilityPermission = KeyboardShortcutManager.checkAccessibilityPermission()
+            #if !APPSTORE
+                // Re-check accessibility permission for the direct-distribution shortcuts.
+                shortcutManager.hasAccessibilityPermission = KeyboardShortcutManager.checkAccessibilityPermission()
+            #endif
         }
     }
 
