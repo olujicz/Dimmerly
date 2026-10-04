@@ -19,6 +19,9 @@ Semantic Versioning.
 - The app icon now has its own dark and tinted versions on macOS 26 and later: in dark mode the sun's rays stay white on a deeper blue instead of turning bright blue, and the tinted and clear styles keep the sun easier to see.
 - The desktop widget's buttons now follow the system's tinted and clear widget styles instead of always showing blue and orange fills.
 
+### Fixed
+- Hardware control status, DDC/CI error messages, the warmth slider labels, and several VoiceOver labels and hints now appear in every supported language instead of always in English.
+
 ## [1.2.0] - 2026-09-29
 
 ### Added

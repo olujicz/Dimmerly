@@ -359,10 +359,70 @@
     "Display compatibility" : {
       "comment" : "Heading for per-display hardware compatibility",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Display-Kompatibilität"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Display compatibility"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compatibilidad de pantallas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compatibilité des écrans"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compatibilità degli schermi"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ディスプレイの互換性"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "디스플레이 호환성"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schermcompatibiliteit"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compatibilidade das telas"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kompatibilnost ekrana"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示器兼容性"
           }
         }
       }
@@ -370,10 +430,70 @@
     "Hardware brightness unavailable" : {
       "comment" : "DDC display status: no brightness",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardware-Helligkeit nicht verfügbar"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hardware brightness unavailable"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brillo por hardware no disponible"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Luminosité matérielle indisponible"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Luminosità hardware non disponibile"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ハードウェア輝度は利用できません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "하드웨어 밝기를 사용할 수 없음"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardwarehelderheid niet beschikbaar"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brilho por hardware indisponível"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardverska osvetljenost nije dostupna"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "硬件亮度不可用"
           }
         }
       }
@@ -381,10 +501,70 @@
     "Hardware brightness unavailable · %@" : {
       "comment" : "DDC display status: no brightness but other features",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardware-Helligkeit nicht verfügbar · %@"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hardware brightness unavailable · %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brillo por hardware no disponible · %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Luminosité matérielle indisponible · %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Luminosità hardware non disponibile · %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ハードウェア輝度は利用できません · %@"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "하드웨어 밝기를 사용할 수 없음 · %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardwarehelderheid niet beschikbaar · %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brilho por hardware indisponível · %@"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardverska osvetljenost nije dostupna · %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "硬件亮度不可用 · %@"
           }
         }
       }
@@ -392,10 +572,70 @@
     "Hardware controls available" : {
       "comment" : "DDC display status: hardware available",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardwaresteuerung verfügbar"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hardware controls available"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controles de hardware disponibles"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contrôles matériels disponibles"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controlli hardware disponibili"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ハードウェア制御を利用できます"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "하드웨어 제어 사용 가능"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardwarebediening beschikbaar"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controles de hardware disponíveis"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardverske kontrole su dostupne"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "硬件控制可用"
           }
         }
       }
@@ -403,10 +643,70 @@
     "Hardware controls aren’t available" : {
       "comment" : "Hardware Control unavailable status title",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardwaresteuerung ist nicht verfügbar"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hardware controls aren’t available"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los controles de hardware no están disponibles"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les contrôles matériels ne sont pas disponibles"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I controlli hardware non sono disponibili"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ハードウェア制御は利用できません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "하드웨어 제어를 사용할 수 없음"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardwarebediening is niet beschikbaar"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Os controles de hardware não estão disponíveis"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardverske kontrole nisu dostupne"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "硬件控制不可用"
           }
         }
       }
@@ -414,10 +714,70 @@
     "Hardware controls: %@" : {
       "comment" : "DDC display status: supported hardware features",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardwaresteuerung: %@"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hardware controls: %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controles de hardware: %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contrôles matériels : %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controlli hardware: %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ハードウェア制御: %@"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "하드웨어 제어: %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardwarebediening: %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controles de hardware: %@"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardverske kontrole: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "硬件控制：%@"
           }
         }
       }
@@ -425,10 +785,70 @@
     "None of your connected displays supports direct hardware control. Dimmerly is using software brightness and will switch automatically when a compatible display is connected." : {
       "comment" : "Hardware Control unavailable status explanation",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keiner der angeschlossenen Bildschirme unterstützt direkte Hardwaresteuerung. Dimmerly verwendet Software-Helligkeit und wechselt automatisch, sobald ein kompatibler Bildschirm angeschlossen wird."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "None of your connected displays supports direct hardware control. Dimmerly is using software brightness and will switch automatically when a compatible display is connected."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ninguna de las pantallas conectadas admite el control directo por hardware. Dimmerly usa el brillo por software y cambiará automáticamente cuando se conecte una pantalla compatible."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun des écrans connectés ne prend en charge le contrôle matériel direct. Dimmerly utilise la luminosité logicielle et basculera automatiquement lorsqu’un écran compatible sera connecté."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessuno degli schermi collegati supporta il controllo hardware diretto. Dimmerly usa la luminosità software e passerà automaticamente al controllo hardware quando verrà collegato uno schermo compatibile."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "接続されているディスプレイはいずれもハードウェアの直接制御に対応していません。Dimmerlyはソフトウェア輝度を使用しており、対応ディスプレイが接続されると自動的に切り替わります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "연결된 디스플레이 중 하드웨어 직접 제어를 지원하는 디스플레이가 없습니다. Dimmerly는 소프트웨어 밝기를 사용 중이며 호환되는 디스플레이가 연결되면 자동으로 전환됩니다."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen van de aangesloten schermen ondersteunt directe hardwarebediening. Dimmerly gebruikt softwarehelderheid en schakelt automatisch over zodra er een compatibel scherm wordt aangesloten."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhuma das telas conectadas é compatível com o controle direto por hardware. O Dimmerly está usando o brilho por software e mudará automaticamente quando uma tela compatível for conectada."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nijedan povezani ekran ne podržava direktnu hardversku kontrolu. Dimmerly koristi softversku osvetljenost i automatski će preći na hardversku kada se poveže kompatibilan ekran."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已连接的显示器均不支持直接硬件控制。Dimmerly 正在使用软件亮度，连接兼容的显示器后将自动切换。"
           }
         }
       }
@@ -436,10 +856,70 @@
     "Use hardware controls when available" : {
       "comment" : "Hardware Control enable toggle",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardwaresteuerung verwenden, wenn verfügbar"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Use hardware controls when available"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar controles de hardware cuando estén disponibles"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utiliser les contrôles matériels lorsqu’ils sont disponibles"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa i controlli hardware quando disponibili"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "利用可能な場合はハードウェア制御を使用"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "가능한 경우 하드웨어 제어 사용"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardwarebediening gebruiken indien beschikbaar"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar controles de hardware quando disponíveis"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koristi hardverske kontrole kada su dostupne"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可用时使用硬件控制"
           }
         }
       }
@@ -447,10 +927,70 @@
     "Uses DDC/CI to control compatible external displays directly. Unsupported displays continue using software brightness." : {
       "comment" : "Hardware Control toggle help",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwendet DDC/CI, um kompatible externe Bildschirme direkt zu steuern. Nicht unterstützte Bildschirme verwenden weiterhin Software-Helligkeit."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uses DDC/CI to control compatible external displays directly. Unsupported displays continue using software brightness."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa DDC/CI para controlar directamente las pantallas externas compatibles. Las pantallas no compatibles siguen usando el brillo por software."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilise DDC/CI pour contrôler directement les écrans externes compatibles. Les écrans non pris en charge continuent d’utiliser la luminosité logicielle."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa DDC/CI per controllare direttamente gli schermi esterni compatibili. Gli schermi non supportati continuano a usare la luminosità software."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DDC/CIを使用して対応する外部ディスプレイを直接制御します。非対応のディスプレイでは引き続きソフトウェア輝度を使用します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DDC/CI를 사용해 호환되는 외부 디스플레이를 직접 제어합니다. 지원되지 않는 디스플레이는 계속 소프트웨어 밝기를 사용합니다."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gebruikt DDC/CI om compatibele externe schermen rechtstreeks te bedienen. Niet-ondersteunde schermen blijven softwarehelderheid gebruiken."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa DDC/CI para controlar diretamente telas externas compatíveis. Telas não compatíveis continuam usando o brilho por software."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koristi DDC/CI za direktnu kontrolu kompatibilnih spoljnih ekrana. Nepodržani ekrani i dalje koriste softversku osvetljenost."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 DDC/CI 直接控制兼容的外接显示器。不受支持的显示器将继续使用软件亮度。"
           }
         }
       }
@@ -458,10 +998,70 @@
     "Uses software brightness" : {
       "comment" : "DDC display status: software fallback",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwendet Software-Helligkeit"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uses software brightness"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa brillo por software"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilise la luminosité logicielle"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa la luminosità software"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ソフトウェア輝度を使用"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "소프트웨어 밝기 사용"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gebruikt softwarehelderheid"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa brilho por software"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koristi softversku osvetljenost"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用软件亮度"
           }
         }
       }
@@ -469,10 +1069,70 @@
     "hardware brightness unavailable" : {
       "comment" : "DDC accessibility status: no brightness",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardware-Helligkeit nicht verfügbar"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "hardware brightness unavailable"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "brillo por hardware no disponible"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "luminosité matérielle indisponible"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "luminosità hardware non disponibile"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ハードウェア輝度は利用できません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "하드웨어 밝기를 사용할 수 없음"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "hardwarehelderheid niet beschikbaar"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "brilho por hardware indisponível"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "hardverska osvetljenost nije dostupna"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "硬件亮度不可用"
           }
         }
       }
@@ -480,10 +1140,70 @@
     "hardware brightness unavailable, %@" : {
       "comment" : "DDC accessibility status: no brightness but other features",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardware-Helligkeit nicht verfügbar, %@"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "hardware brightness unavailable, %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "brillo por hardware no disponible, %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "luminosité matérielle indisponible, %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "luminosità hardware non disponibile, %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ハードウェア輝度は利用できません、%@"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "하드웨어 밝기를 사용할 수 없음, %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "hardwarehelderheid niet beschikbaar, %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "brilho por hardware indisponível, %@"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "hardverska osvetljenost nije dostupna, %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "硬件亮度不可用，%@"
           }
         }
       }
@@ -491,10 +1211,70 @@
     "hardware controls available" : {
       "comment" : "DDC accessibility status: available",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardwaresteuerung verfügbar"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "hardware controls available"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "controles de hardware disponibles"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "contrôles matériels disponibles"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "controlli hardware disponibili"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ハードウェア制御を利用できます"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "하드웨어 제어 사용 가능"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "hardwarebediening beschikbaar"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "controles de hardware disponíveis"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "hardverske kontrole su dostupne"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "硬件控制可用"
           }
         }
       }
@@ -502,10 +1282,70 @@
     "hardware controls available, %@" : {
       "comment" : "DDC accessibility status: available features",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardwaresteuerung verfügbar, %@"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "hardware controls available, %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "controles de hardware disponibles, %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "contrôles matériels disponibles, %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "controlli hardware disponibili, %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ハードウェア制御を利用できます、%@"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "하드웨어 제어 사용 가능, %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "hardwarebediening beschikbaar, %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "controles de hardware disponíveis, %@"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "hardverske kontrole su dostupne, %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "硬件控制可用，%@"
           }
         }
       }
@@ -513,10 +1353,70 @@
     "uses software brightness" : {
       "comment" : "DDC accessibility status: software fallback",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "verwendet Software-Helligkeit"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "uses software brightness"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "usa brillo por software"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "utilise la luminosité logicielle"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "usa la luminosità software"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ソフトウェア輝度を使用"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "소프트웨어 밝기 사용"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "gebruikt softwarehelderheid"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "usa brilho por software"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "koristi softversku osvetljenost"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用软件亮度"
           }
         }
       }
@@ -734,7 +1634,75 @@
       }
     },
     "%@ input source" : {
-      "comment" : "Accessibility label: display input source picker"
+      "comment" : "Accessibility label: display input source picker",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eingangsquelle von %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ input source"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fuente de entrada de %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Source d’entrée de %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sorgente di ingresso di %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ の入力ソース"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 입력 소스"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ invoerbron"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fonte de entrada de %@"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ulazni izvor %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 输入源"
+          }
+        }
+      }
     },
     "%@ is a standard system shortcut. Try a different combination." : {
       "comment" : "Shortcut conflict message",
@@ -808,7 +1776,75 @@
       }
     },
     "%@ volume" : {
-      "comment" : "Accessibility label: display volume slider"
+      "comment" : "Accessibility label: display volume slider",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lautstärke von %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ volume"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volumen de %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volume de %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volume di %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ の音量"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 볼륨"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ volume"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volume de %@"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jačina zvuka %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 音量"
+          }
+        }
+      }
     },
     "%@ warmth" : {
       "comment" : "Accessibility label: display warmth slider",
@@ -954,7 +1990,7 @@
       }
     },
     "%@K" : {
-
+      "shouldTranslate" : false
     },
     "%@K · %@" : {
       "localizations" : {
@@ -1631,13 +2667,81 @@
       }
     },
     "%dK" : {
-      "comment" : "Accessibility value: warmth in Kelvin"
+      "comment" : "Accessibility value: warmth in Kelvin",
+      "shouldTranslate" : false
     },
     "⌘%@" : {
-
+      "shouldTranslate" : false
     },
     "A location is needed for sunrise and sunset features." : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für die Funktionen rund um Sonnenaufgang und Sonnenuntergang wird ein Standort benötigt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A location is needed for sunrise and sunset features."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se necesita una ubicación para las funciones de amanecer y atardecer."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un emplacement est nécessaire pour les fonctions de lever et de coucher du soleil."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "È necessaria una posizione per le funzioni di alba e tramonto."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日の出・日の入りの機能には位置情報が必要です。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "일출 및 일몰 기능을 사용하려면 위치가 필요합니다."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voor de functies voor zonsopgang en zonsondergang is een locatie nodig."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "É necessária uma localização para os recursos de nascer e pôr do sol."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Za funkcije izlaska i zalaska sunca potrebna je lokacija."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日出和日落功能需要位置信息。"
+          }
+        }
+      }
     },
     "A location is needed for sunrise and sunset schedules." : {
       "extractionState" : "stale",
@@ -2704,7 +3808,74 @@
       }
     },
     "Applies saved brightness settings to all displays" : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wendet gespeicherte Helligkeitseinstellungen auf alle Bildschirme an"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Applies saved brightness settings to all displays"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aplica los ajustes de brillo guardados a todas las pantallas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Applique les réglages de luminosité enregistrés à tous les écrans"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Applica le impostazioni di luminosità salvate a tutti gli schermi"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存した輝度設定をすべてのディスプレイに適用します"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "저장된 밝기 설정을 모든 디스플레이에 적용합니다"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Past opgeslagen helderheidsinstellingen toe op alle schermen"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aplica os ajustes de brilho salvos a todas as telas"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Primenjuje sačuvana podešavanja osvetljenosti na sve ekrane"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将已保存的亮度设置应用到所有显示器"
+          }
+        }
+      }
     },
     "Apply" : {
       "extractionState" : "stale",
@@ -5351,13 +6522,216 @@
       }
     },
     "Cool" : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kühl"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cool"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frío"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Froid"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Freddo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "寒色"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "차가움"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koel"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frio"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hladno"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "冷色"
+          }
+        }
+      }
     },
     "Could not read the display setting via DDC/CI. The monitor may be busy or the I2C bus encountered an error. Try again in a moment." : {
-      "comment" : "Recovery: DDC read failed"
+      "comment" : "Recovery: DDC read failed",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Displayeinstellung konnte nicht über DDC/CI gelesen werden. Der Monitor ist möglicherweise beschäftigt oder auf dem I2C-Bus ist ein Fehler aufgetreten. Bitte gleich erneut versuchen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not read the display setting via DDC/CI. The monitor may be busy or the I2C bus encountered an error. Try again in a moment."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo leer el ajuste de la pantalla mediante DDC/CI. Es posible que el monitor esté ocupado o que el bus I2C haya tenido un error. Inténtalo de nuevo en un momento."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de lire le réglage de l’écran via DDC/CI. Le moniteur est peut-être occupé ou le bus I2C a rencontré une erreur. Réessayez dans un instant."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile leggere l’impostazione dello schermo tramite DDC/CI. Il monitor potrebbe essere occupato o il bus I2C ha riscontrato un errore. Riprova tra un momento."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DDC/CI経由でディスプレイの設定を読み取れませんでした。モニターが使用中か、I2Cバスでエラーが発生した可能性があります。しばらくしてからもう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DDC/CI를 통해 디스플레이 설정을 읽을 수 없습니다. 모니터가 사용 중이거나 I2C 버스에서 오류가 발생했을 수 있습니다. 잠시 후 다시 시도하세요."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kan de scherminstelling niet lezen via DDC/CI. De monitor is mogelijk bezet of er is een fout opgetreden op de I2C-bus. Probeer het zo meteen opnieuw."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível ler o ajuste da tela via DDC/CI. O monitor pode estar ocupado ou o barramento I2C encontrou um erro. Tente novamente em instantes."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podešavanje ekrana nije moglo da se pročita putem DDC/CI. Monitor je možda zauzet ili je došlo do greške na I2C magistrali. Pokušaj ponovo za trenutak."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法通过 DDC/CI 读取显示器设置。显示器可能正忙，或 I2C 总线出现错误。请稍后重试。"
+          }
+        }
+      }
     },
     "Could not write the display setting via DDC/CI. The monitor may not support this control or the I2C bus encountered an error. Try again in a moment." : {
-      "comment" : "Recovery: DDC write failed"
+      "comment" : "Recovery: DDC write failed",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Displayeinstellung konnte nicht über DDC/CI geschrieben werden. Der Monitor unterstützt diese Steuerung möglicherweise nicht oder auf dem I2C-Bus ist ein Fehler aufgetreten. Bitte gleich erneut versuchen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not write the display setting via DDC/CI. The monitor may not support this control or the I2C bus encountered an error. Try again in a moment."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo escribir el ajuste de la pantalla mediante DDC/CI. Es posible que el monitor no admita este control o que el bus I2C haya tenido un error. Inténtalo de nuevo en un momento."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d’écrire le réglage de l’écran via DDC/CI. Le moniteur ne prend peut-être pas en charge ce contrôle ou le bus I2C a rencontré une erreur. Réessayez dans un instant."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile scrivere l’impostazione dello schermo tramite DDC/CI. Il monitor potrebbe non supportare questo controllo o il bus I2C ha riscontrato un errore. Riprova tra un momento."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DDC/CI経由でディスプレイの設定を書き込めませんでした。モニターがこの制御に対応していないか、I2Cバスでエラーが発生した可能性があります。しばらくしてからもう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DDC/CI를 통해 디스플레이 설정을 쓸 수 없습니다. 모니터가 이 제어를 지원하지 않거나 I2C 버스에서 오류가 발생했을 수 있습니다. 잠시 후 다시 시도하세요."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kan de scherminstelling niet schrijven via DDC/CI. De monitor ondersteunt deze bediening mogelijk niet of er is een fout opgetreden op de I2C-bus. Probeer het zo meteen opnieuw."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível gravar o ajuste da tela via DDC/CI. O monitor pode não ser compatível com este controle ou o barramento I2C encontrou um erro. Tente novamente em instantes."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podešavanje ekrana nije moglo da se upiše putem DDC/CI. Monitor možda ne podržava ovu kontrolu ili je došlo do greške na I2C magistrali. Pokušaj ponovo za trenutak."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法通过 DDC/CI 写入显示器设置。显示器可能不支持此控制，或 I2C 总线出现错误。请稍后重试。"
+          }
+        }
+      }
     },
     "Create a new scheduled preset" : {
       "comment" : "Help text for Add Schedule button",
@@ -7142,7 +8516,74 @@
       }
     },
     "Dims the display to minimum brightness" : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmt das Display auf minimale Helligkeit"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dims the display to minimum brightness"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atenúa la pantalla al brillo mínimo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réduit la luminosité de l’écran au minimum"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riduce la luminosità dello schermo al minimo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画面を最小輝度まで暗くします"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "화면을 최소 밝기로 어둡게 합니다"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimt het scherm tot de minimale helderheid"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escurece a tela até o brilho mínimo"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zatamnjuje ekran na minimalnu osvetljenost"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将显示器调暗到最低亮度"
+          }
+        }
+      }
     },
     "Display Adjustments" : {
       "localizations" : {
@@ -7215,10 +8656,146 @@
       }
     },
     "Display Communication Timeout" : {
-      "comment" : "Error title: DDC transaction timeout"
+      "comment" : "Error title: DDC transaction timeout",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeitüberschreitung bei der Displaykommunikation"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Display Communication Timeout"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tiempo de espera agotado al comunicarse con la pantalla"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Délai de communication avec l’écran dépassé"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Timeout di comunicazione con lo schermo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ディスプレイとの通信がタイムアウトしました"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "디스플레이 통신 시간 초과"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time-out bij communicatie met scherm"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tempo esgotado na comunicação com a tela"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Isteklo je vreme za komunikaciju sa ekranom"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示器通信超时"
+          }
+        }
+      }
     },
     "Display Service Not Found" : {
-      "comment" : "Error title: DDC IOKit service not found"
+      "comment" : "Error title: DDC IOKit service not found",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Displaydienst nicht gefunden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Display Service Not Found"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se encontró el servicio de pantalla"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Service d’affichage introuvable"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Servizio dello schermo non trovato"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ディスプレイサービスが見つかりません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "디스플레이 서비스를 찾을 수 없음"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schermservice niet gevonden"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serviço da tela não encontrado"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usluga ekrana nije pronađena"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未找到显示器服务"
+          }
+        }
+      }
     },
     "Display Sleep Unavailable" : {
       "comment" : "Error title: pmset not found",
@@ -8368,7 +9945,75 @@
       }
     },
     "Failed to Read Display Setting (VCP 0x%02X)" : {
-      "comment" : "Error title: DDC read failed"
+      "comment" : "Error title: DDC read failed",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Displayeinstellung konnte nicht gelesen werden (VCP 0x%02X)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to Read Display Setting (VCP 0x%02X)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo leer el ajuste de la pantalla (VCP 0x%02X)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Échec de la lecture du réglage de l’écran (VCP 0x%02X)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lettura dell’impostazione dello schermo non riuscita (VCP 0x%02X)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ディスプレイ設定の読み取りに失敗しました（VCP 0x%02X）"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "디스플레이 설정을 읽지 못함(VCP 0x%02X)"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kan scherminstelling niet lezen (VCP 0x%02X)"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Falha ao ler o ajuste da tela (VCP 0x%02X)"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Čitanje podešavanja ekrana nije uspelo (VCP 0x%02X)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "读取显示器设置失败（VCP 0x%02X）"
+          }
+        }
+      }
     },
     "Failed to Sleep Displays (Error %d)" : {
       "comment" : "Error title: IOKit error",
@@ -8514,7 +10159,75 @@
       }
     },
     "Failed to Write Display Setting (VCP 0x%02X)" : {
-      "comment" : "Error title: DDC write failed"
+      "comment" : "Error title: DDC write failed",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Displayeinstellung konnte nicht geschrieben werden (VCP 0x%02X)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to Write Display Setting (VCP 0x%02X)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo escribir el ajuste de la pantalla (VCP 0x%02X)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Échec de l’écriture du réglage de l’écran (VCP 0x%02X)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scrittura dell’impostazione dello schermo non riuscita (VCP 0x%02X)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ディスプレイ設定の書き込みに失敗しました（VCP 0x%02X）"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "디스플레이 설정을 쓰지 못함(VCP 0x%02X)"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kan scherminstelling niet schrijven (VCP 0x%02X)"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Falha ao gravar o ajuste da tela (VCP 0x%02X)"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upisivanje podešavanja ekrana nije uspelo (VCP 0x%02X)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写入显示器设置失败（VCP 0x%02X）"
+          }
+        }
+      }
     },
     "Fixed Time" : {
       "localizations" : {
@@ -9086,7 +10799,75 @@
       }
     },
     "Hardware Control Unavailable" : {
-      "comment" : "Error title: DDC not supported"
+      "comment" : "Error title: DDC not supported",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardwaresteuerung nicht verfügbar"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardware Control Unavailable"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Control de hardware no disponible"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contrôle matériel indisponible"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controllo hardware non disponibile"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ハードウェア制御を利用できません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "하드웨어 제어를 사용할 수 없음"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardwarebediening niet beschikbaar"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controle de hardware indisponível"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hardverska kontrola nije dostupna"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "硬件控制不可用"
+          }
+        }
+      }
     },
     "Hardware control via DDC/CI" : {
       "comment" : "Help text for DDC badge",
@@ -11102,7 +12883,75 @@
       }
     },
     "No IOKit display service was found for this monitor. This usually means the connection type (e.g., DisplayLink USB) does not support DDC/CI on macOS." : {
-      "comment" : "Recovery: DDC service not found"
+      "comment" : "Recovery: DDC service not found",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für diesen Monitor wurde kein IOKit-Displaydienst gefunden. Das bedeutet meist, dass der Verbindungstyp (z. B. DisplayLink über USB) unter macOS kein DDC/CI unterstützt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No IOKit display service was found for this monitor. This usually means the connection type (e.g., DisplayLink USB) does not support DDC/CI on macOS."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se encontró ningún servicio de pantalla de IOKit para este monitor. Normalmente significa que el tipo de conexión (p. ej., DisplayLink por USB) no admite DDC/CI en macOS."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun service d’affichage IOKit n’a été trouvé pour ce moniteur. Cela signifie généralement que le type de connexion (par ex. DisplayLink en USB) ne prend pas en charge DDC/CI sous macOS."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun servizio dello schermo IOKit trovato per questo monitor. Di solito significa che il tipo di connessione (ad es. DisplayLink tramite USB) non supporta DDC/CI su macOS."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このモニターのIOKitディスプレイサービスが見つかりませんでした。通常、接続方式（例：DisplayLink USB）がmacOSでDDC/CIに対応していないことを意味します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 모니터의 IOKit 디스플레이 서비스를 찾을 수 없습니다. 일반적으로 연결 방식(예: DisplayLink USB)이 macOS에서 DDC/CI를 지원하지 않는다는 의미입니다."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er is geen IOKit-schermservice gevonden voor deze monitor. Dit betekent meestal dat het verbindingstype (bijv. DisplayLink via USB) geen DDC/CI ondersteunt op macOS."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhum serviço de tela do IOKit foi encontrado para este monitor. Isso geralmente significa que o tipo de conexão (por exemplo, DisplayLink USB) não é compatível com DDC/CI no macOS."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Za ovaj monitor nije pronađena IOKit usluga ekrana. To obično znači da tip veze (npr. DisplayLink USB) ne podržava DDC/CI na macOS-u."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未找到此显示器的 IOKit 显示服务。这通常表示该连接方式（例如 DisplayLink USB）在 macOS 上不支持 DDC/CI。"
+          }
+        }
+      }
     },
     "No presets available. Create a preset first." : {
       "localizations" : {
@@ -12099,7 +13948,75 @@
       }
     },
     "Poll every %d seconds" : {
-      "comment" : "DDC polling interval stepper label"
+      "comment" : "DDC polling interval stepper label",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle %d Sekunden abfragen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poll every %d seconds"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consultar cada %d segundos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interroger toutes les %d secondes"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interroga ogni %d secondi"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d秒ごとにポーリング"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d초마다 폴링"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elke %d seconden pollen"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consultar a cada %d segundos"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ispitivanje na svakih %d sekundi"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每 %d 秒轮询一次"
+          }
+        }
+      }
     },
     "Power Mode" : {
       "comment" : "DDC VCP code name",
@@ -13875,7 +15792,74 @@
       }
     },
     "Restores the display to its previous brightness" : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stellt die vorherige Helligkeit des Displays wieder her"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restores the display to its previous brightness"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restaura el brillo anterior de la pantalla"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rétablit la luminosité précédente de l’écran"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ripristina la luminosità precedente dello schermo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画面を以前の輝度に戻します"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "화면을 이전 밝기로 복원합니다"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Herstelt de vorige helderheid van het scherm"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restaura o brilho anterior da tela"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vraća prethodnu osvetljenost ekrana"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将显示器恢复到之前的亮度"
+          }
+        }
+      }
     },
     "S-Video 1" : {
       "comment" : "Monitor input source name",
@@ -15945,7 +17929,75 @@
       }
     },
     "The display did not respond within the expected time. Some monitors need extra time to process DDC commands. Try again or check the display connection." : {
-      "comment" : "Recovery: DDC timeout"
+      "comment" : "Recovery: DDC timeout",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Display hat nicht innerhalb der erwarteten Zeit reagiert. Manche Monitore brauchen mehr Zeit, um DDC-Befehle zu verarbeiten. Bitte erneut versuchen oder die Displayverbindung prüfen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The display did not respond within the expected time. Some monitors need extra time to process DDC commands. Try again or check the display connection."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La pantalla no respondió en el tiempo previsto. Algunos monitores necesitan más tiempo para procesar los comandos DDC. Inténtalo de nuevo o revisa la conexión de la pantalla."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’écran n’a pas répondu dans le délai prévu. Certains moniteurs ont besoin de plus de temps pour traiter les commandes DDC. Réessayez ou vérifiez la connexion de l’écran."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lo schermo non ha risposto entro il tempo previsto. Alcuni monitor richiedono più tempo per elaborare i comandi DDC. Riprova o controlla il collegamento dello schermo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ディスプレイが想定時間内に応答しませんでした。一部のモニターはDDCコマンドの処理に時間がかかります。もう一度お試しいただくか、ディスプレイの接続を確認してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "디스플레이가 예상 시간 내에 응답하지 않았습니다. 일부 모니터는 DDC 명령을 처리하는 데 시간이 더 필요합니다. 다시 시도하거나 디스플레이 연결을 확인하세요."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het scherm reageerde niet binnen de verwachte tijd. Sommige monitors hebben extra tijd nodig om DDC-opdrachten te verwerken. Probeer het opnieuw of controleer de schermverbinding."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A tela não respondeu no tempo esperado. Alguns monitores precisam de mais tempo para processar comandos DDC. Tente novamente ou verifique a conexão da tela."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekran nije odgovorio u očekivanom roku. Nekim monitorima treba više vremena za obradu DDC komandi. Pokušaj ponovo ili proveri vezu ekrana."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示器未在预期时间内响应。某些显示器需要更多时间来处理 DDC 命令。请重试或检查显示器连接。"
+          }
+        }
+      }
     },
     "The display sleep command failed with IOKit error code %d. Try restarting the app or your Mac." : {
       "comment" : "Recovery: IOKit error",
@@ -16305,7 +18357,75 @@
       }
     },
     "This display does not support DDC/CI hardware control. Common reasons: built-in HDMI on M1/M2 Macs, DisplayLink adapters, or the monitor has DDC/CI disabled in its OSD settings. Software brightness control (gamma) is still available." : {
-      "comment" : "Recovery: DDC not supported"
+      "comment" : "Recovery: DDC not supported",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Display unterstützt keine DDC/CI-Hardwaresteuerung. Häufige Gründe: der integrierte HDMI-Anschluss bei M1/M2-Macs, DisplayLink-Adapter oder ein im OSD-Menü des Monitors deaktiviertes DDC/CI. Die Software-Helligkeitssteuerung (Gamma) ist weiterhin verfügbar."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This display does not support DDC/CI hardware control. Common reasons: built-in HDMI on M1/M2 Macs, DisplayLink adapters, or the monitor has DDC/CI disabled in its OSD settings. Software brightness control (gamma) is still available."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta pantalla no admite el control de hardware DDC/CI. Motivos habituales: el HDMI integrado de los Mac con M1/M2, los adaptadores DisplayLink o que el monitor tenga DDC/CI desactivado en su menú OSD. El control de brillo por software (gamma) sigue disponible."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cet écran ne prend pas en charge le contrôle matériel DDC/CI. Causes fréquentes : le port HDMI intégré des Mac M1/M2, les adaptateurs DisplayLink ou DDC/CI désactivé dans le menu OSD du moniteur. Le contrôle logiciel de la luminosité (gamma) reste disponible."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo schermo non supporta il controllo hardware DDC/CI. Cause comuni: la porta HDMI integrata dei Mac M1/M2, gli adattatori DisplayLink o DDC/CI disattivato nel menu OSD del monitor. Il controllo software della luminosità (gamma) resta disponibile."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このディスプレイはDDC/CIハードウェア制御に対応していません。主な原因：M1/M2 Macの内蔵HDMI、DisplayLinkアダプタ、またはモニターのOSD設定でDDC/CIが無効になっている。ソフトウェアによる輝度制御（ガンマ）は引き続き利用できます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 디스플레이는 DDC/CI 하드웨어 제어를 지원하지 않습니다. 일반적인 원인: M1/M2 Mac의 내장 HDMI, DisplayLink 어댑터 또는 모니터 OSD 설정에서 DDC/CI가 꺼져 있는 경우. 소프트웨어 밝기 제어(감마)는 계속 사용할 수 있습니다."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dit scherm ondersteunt geen DDC/CI-hardwarebediening. Veelvoorkomende oorzaken: de ingebouwde HDMI-poort van M1/M2-Macs, DisplayLink-adapters of DDC/CI dat is uitgeschakeld in het OSD-menu van de monitor. Softwarematige helderheidsregeling (gamma) blijft beschikbaar."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta tela não é compatível com o controle de hardware DDC/CI. Motivos comuns: HDMI integrado em Macs M1/M2, adaptadores DisplayLink ou DDC/CI desativado nos ajustes OSD do monitor. O controle de brilho por software (gama) continua disponível."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ovaj ekran ne podržava DDC/CI hardversku kontrolu. Česti razlozi: ugrađeni HDMI na M1/M2 Mac računarima, DisplayLink adapteri ili je DDC/CI isključen u OSD podešavanjima monitora. Softverska kontrola osvetljenosti (gama) je i dalje dostupna."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此显示器不支持 DDC/CI 硬件控制。常见原因：M1/M2 Mac 的内置 HDMI、DisplayLink 转接器，或显示器的 OSD 设置中关闭了 DDC/CI。软件亮度控制（伽马）仍可使用。"
+          }
+        }
+      }
     },
     "This shortcut conflicts with %@" : {
       "comment" : "Shortcut conflict message",
@@ -16520,7 +18640,75 @@
       }
     },
     "Transition: %d minutes" : {
-      "comment" : "Color temperature transition duration stepper label"
+      "comment" : "Color temperature transition duration stepper label",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Übergang: %d Minuten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transition: %d minutes"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transición: %d minutos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transition : %d minutes"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transizione: %d minuti"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切り替え時間: %d分"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "전환 시간: %d분"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Overgang: %d minuten"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transição: %d minutos"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prelaz: %d minuta"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "过渡时间：%d 分钟"
+          }
+        }
+      }
     },
     "Trigger" : {
       "extractionState" : "stale",
@@ -18027,10 +20215,145 @@
       }
     },
     "Warm" : {
-
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Warm"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Warm"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cálido"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chaud"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Caldo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暖色"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "따뜻함"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Warm"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quente"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toplo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暖色"
+          }
+        }
+      }
     },
     "Write delay: %d ms" : {
-      "comment" : "DDC write delay stepper label"
+      "comment" : "DDC write delay stepper label",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schreibverzögerung: %d ms"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Write delay: %d ms"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retraso de escritura: %d ms"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Délai d’écriture : %d ms"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ritardo di scrittura: %d ms"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "書き込み遅延: %d ms"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "쓰기 지연: %d ms"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schrijfvertraging: %d ms"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atraso de gravação: %d ms"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kašnjenje pisanja: %d ms"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写入延迟：%d 毫秒"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"
