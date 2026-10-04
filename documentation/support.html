@@ -105,8 +105,8 @@
             <li>If the shortcut still doesn&rsquo;t work, try changing it in Settings &rsaquo; Shortcuts to avoid conflicts with other apps.</li>
         </ol>
 
-        <h3 id="shortcuts-upgrade">A per-display Shortcuts action stops working after upgrading to 1.2.0</h3>
-        <p>Dimmerly 1.2.0 changes how Shortcuts identifies displays. Existing shortcuts with a specific display selected need that display reselected once after upgrading.</p>
+        <h3 id="shortcuts-upgrade">A per-display Shortcuts action stops working after upgrading from before 1.2.0</h3>
+        <p>Dimmerly 1.2.0 changes how Shortcuts identifies displays. Existing shortcuts with a specific display selected need that display reselected once after upgrading to 1.2.0 or later.</p>
         <ol>
             <li>Connect the display and open Dimmerly.</li>
             <li>Open the affected shortcut in the Shortcuts app.</li>
@@ -114,6 +114,15 @@
             <li>Run the shortcut to confirm it controls the intended display.</li>
         </ol>
         <p>The new identities prevent a shortcut from targeting another monitor when macOS reuses a display ID.</p>
+
+        <h3>Control Center&rsquo;s Display Dimming toggle turns off again</h3>
+        <p>The toggle shows whether Dimmerly is blanking a display. In the direct-download build&rsquo;s Sleep &amp; Lock mode, macOS puts displays to sleep and wakes them on input; the toggle returns to off because Dimmerly has no blanking session to clear. Choose Dim Only in Settings &rsaquo; Displays if you want the toggle to stay on while displays are blanked.</p>
+
+        <h3>A saved App Store shortcut no longer works in 1.3.0</h3>
+        <p>App Store global shortcuts now require at least two modifiers, including Control or Command. Previously saved shortcuts that do not meet this rule are not registered. Reassign them in Settings; for example, use Control&ndash;Option&ndash;1 instead of Command&ndash;1 for a preset. The direct-download build keeps its existing shortcut requirements.</p>
+
+        <h3>A widget or Control Center action does not complete</h3>
+        <p>Dimmerly opens when needed and waits for the app to acknowledge the action. If an error appears, open Dimmerly, check the selected preset still exists, and try again. On macOS 26 and later, add Dimmerly&rsquo;s Dim Displays, Display Dimming, Auto Warmth, and Apply Preset controls in Control Center; Apply Preset asks you to choose a saved preset.</p>
 
         <h3>Brightness slider has no effect</h3>
         <ul>

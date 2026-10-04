@@ -25,6 +25,15 @@ brew install --cask dimmerly
 
 ![Dimmerly menu bar panel on macOS](images/image1.png)
 
+## New in 1.3.0
+
+- Display Dimming, Auto Warmth, and configurable Apply Preset controls in Control Center and the menu bar on macOS 26 and later
+- Native Liquid Glass panel and dark and tinted app icons on macOS 26 and later, plus sharper menu bar symbols
+- Widgets that follow the system appearance, clearer preset feedback, and more VoiceOver and localization coverage
+- Reliable widget action delivery and permission-free global shortcuts in the App Store build
+
+See [the 1.3.0 changelog](CHANGELOG.md#130---2026-10-04) for the full release notes.
+
 ## Why Dimmerly?
 
 - Control multiple displays from a single menu bar panel
@@ -39,7 +48,7 @@ brew install --cask dimmerly
 - Global keyboard shortcuts for dimming and presets
 - Schedules based on a fixed time, sunrise, or sunset
 - Desktop widgets and Shortcuts actions
-- Control Center dimming on macOS 26 and later
+- Control Center and menu bar controls for dimming, Auto Warmth, and applying a chosen preset on macOS 26 and later
 - Optional automatic color temperature changes
 - Optional auto-dim after inactivity
 - VoiceOver labels and Reduce Motion support
@@ -117,7 +126,7 @@ DDC/CI. Otherwise the app uses software dimming for that display.
 
 Presets save the current display setup: brightness, warmth, and contrast for
 each display. They can be applied from the menu bar, widgets, Shortcuts,
-schedules, or per-preset keyboard shortcuts.
+schedules, Control Center, or per-preset keyboard shortcuts.
 
 Schedules can run at a fixed time, at sunrise, at sunset, or with an offset
 from sunrise or sunset. Sunrise and sunset schedules can use your current
@@ -144,8 +153,14 @@ sleeping or blanking displays depending on the build, toggling dimming, and
 applying presets.
 
 It also includes small and medium desktop widgets for quick dimming and preset
-access. On macOS 26 and later, Dimmerly also provides a Control Center button
-for quick dimming.
+access. On macOS 26 and later, you can add Dimmerly controls to Control Center
+or the menu bar: **Dim Displays**, **Display Dimming**, **Auto Warmth**, and
+**Apply Preset**. Choose a saved preset when configuring Apply Preset.
+
+Display Dimming stays on while Dimmerly is blanking any display. Switching it
+off clears that blanking. In the direct-download build's Sleep & Lock mode,
+macOS handles display sleep and wake; the toggle returns to off because there
+is no Dimmerly blanking session to clear.
 
 Starting with Dimmerly 1.2.0, saved presets can be found by name in Spotlight.
 The **Open Brightness Preset** Shortcuts action opens a preset in the menu bar
@@ -153,13 +168,22 @@ panel. Use **Apply Brightness Preset** to apply its saved display settings.
 Individual menu bar display controls can also be targeted from Shortcuts and
 Spotlight on macOS 15.4 and later.
 
-### Upgrading to 1.2.0
+### Upgrading from before 1.2.0
 
 Existing Shortcuts with a specific display selected need that display reselected
-once after upgrading. Open each affected shortcut in the Shortcuts app, select
-the connected display again in its Dimmerly action, and save the shortcut.
+once after upgrading to 1.2.0 or later. Open each affected shortcut in the
+Shortcuts app, select the connected display again in its Dimmerly action, and
+save the shortcut.
 The new display identities prevent a shortcut from targeting another monitor
 when macOS reuses a numeric display ID.
+
+### App Store shortcut changes in 1.3.0
+
+App Store global shortcuts need at least two modifiers, including Control or
+Command. Previously saved shortcuts that do not meet this rule are not registered;
+reassign them in Settings. For example, use Control–Option–1 for a preset
+instead of Command–1. Settings explains invalid or unavailable bindings.
+The direct-download shortcut requirements are unchanged.
 
 ## Known limitations
 

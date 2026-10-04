@@ -7,6 +7,8 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-10-04
+
 ### Added
 - On macOS 26 and later, Control Center and the menu bar offer three more Dimmerly controls: a Display Dimming toggle that stays on while Dimmerly is blanking a display and wakes it when switched off, an Auto Warmth toggle, and an Apply Preset button that applies a preset you choose.
 - VoiceOver now reports whether Dimmerly is currently adjusting your displays when it reads the menu bar icon.
@@ -20,6 +22,9 @@ Semantic Versioning.
 - The desktop widget's buttons now follow the system's tinted and clear widget styles instead of always showing blue and orange fills.
 
 ### Fixed
+- Widget and Control Center actions now open Dimmerly when needed and wait for acknowledgement instead of silently losing taps during startup. Expired requests no longer run on a later launch.
+- App Store global shortcuts now work without Accessibility permission. Main and preset shortcuts require at least two modifiers, including Control or Command, to avoid taking over common shortcuts in other apps. Previously saved shortcuts that do not meet this rule must be reassigned in Settings.
+- Shortcut conflict messages stay visible after recording ends. App Store shortcuts are temporarily released during recording and restored afterwards, so an existing binding can be recorded again.
 - Hardware control status, DDC/CI error messages, the warmth slider labels, and several VoiceOver labels and hints now appear in every supported language instead of always in English.
 
 ## [1.2.0] - 2026-09-29

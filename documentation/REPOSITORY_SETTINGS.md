@@ -67,6 +67,7 @@ GitHub Pages must use **GitHub Actions** as its publishing source. The
 - `documentation/robots.txt`
 - `documentation/sitemap.xml`
 - `images/image1.png`, published as `assets/dimmerly-menu.png`
+- `images/image2.png`, published as `assets/dimmerly-settings.png`
 - `images/github-social-preview.jpg`, published as
   `assets/dimmerly-social-preview.jpg`
 - `IconComposerLayers/AppIcon-IconComposer/rendered/icon_128x128@2x.png`, published

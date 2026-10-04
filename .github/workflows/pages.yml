@@ -6,6 +6,7 @@ on:
     paths:
       - "documentation/**"
       - "images/image1.png"
+      - "images/image2.png"
       - "images/github-social-preview.jpg"
       - "IconComposerLayers/AppIcon-IconComposer/rendered/icon_128x128@2x.png"
       - ".github/workflows/pages.yml"
@@ -49,6 +50,7 @@ jobs:
           cp documentation/robots.txt build/pages/robots.txt
           cp documentation/sitemap.xml build/pages/sitemap.xml
           cp images/image1.png build/pages/assets/dimmerly-menu.png
+          cp images/image2.png build/pages/assets/dimmerly-settings.png
           cp images/github-social-preview.jpg build/pages/assets/dimmerly-social-preview.jpg
           cp IconComposerLayers/AppIcon-IconComposer/rendered/icon_128x128@2x.png build/pages/assets/dimmerly-icon.png
           touch build/pages/.nojekyll
@@ -74,6 +76,7 @@ jobs:
           test -s build/pages/robots.txt
           test -s build/pages/sitemap.xml
           test -s build/pages/assets/dimmerly-menu.png
+          test -s build/pages/assets/dimmerly-settings.png
           test -s build/pages/assets/dimmerly-social-preview.jpg
           test -s build/pages/assets/dimmerly-icon.png
           for page in build/pages/*.html; do
