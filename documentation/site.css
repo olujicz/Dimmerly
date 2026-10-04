@@ -337,6 +337,48 @@ p { text-wrap: pretty; }
     filter: drop-shadow(0 18px 26px var(--panel-shadow));
 }
 
+/* Native 2x Settings capture, displayed at no more than its 580-point width. */
+.settings-showcase {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    gap: 64px;
+    align-items: center;
+    padding-top: 76px;
+    padding-bottom: 76px;
+    border-top: 1px solid var(--line);
+}
+
+.settings-copy p {
+    color: var(--muted);
+    line-height: 1.65;
+}
+
+.settings-figure { margin: 0; }
+
+.settings-screenshot {
+    display: block;
+    width: min(100%, 580px);
+    height: auto;
+    margin-inline: auto;
+    filter: drop-shadow(0 18px 26px var(--panel-shadow));
+}
+
+.settings-figure figcaption {
+    margin-top: 18px;
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+}
+
+@media (max-width: 700px) {
+    .settings-showcase {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 32px;
+        padding-top: 48px;
+        padding-bottom: 48px;
+    }
+}
+
 .install {
     display: grid;
     grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
