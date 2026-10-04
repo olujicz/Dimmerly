@@ -48,7 +48,9 @@ just setup          # Configure pre-commit hooks (SwiftFormat, SwiftLint, Gitlea
 just build          # Build debug
 just build-release  # Build release
 just build-appstore # Build App Store scheme
-just test           # Run tests
+just test           # Run both distribution test suites
+just test-direct    # Run direct-distribution tests
+just test-appstore  # Run App Store tests
 just check          # Run format, lint, tests, and App Store smoke build
 just run            # Build and run
 just lint           # Lint Swift sources (SwiftLint)
@@ -69,8 +71,11 @@ just test
 Or with xcodebuild directly:
 
 ```bash
-xcodebuild test -scheme Dimmerly -destination 'platform=macOS'
+xcodebuild test -project Dimmerly.xcodeproj -scheme Dimmerly -configuration Debug -destination 'platform=macOS'
+xcodebuild test -project Dimmerly.xcodeproj -scheme 'Dimmerly App Store' -configuration Debug-AppStore -destination 'platform=macOS'
 ```
+
+Both suites use `Dimmerly.app` as their test host and launch the corresponding app build. App Store tests compile with `APPSTORE` and cover the Carbon shortcut managers through injected registrations, without reserving real shortcuts. They do not replace a signed TestFlight check that shortcuts fire while another app is frontmost.
 
 ## CI
 
@@ -81,7 +86,7 @@ GitHub Actions runs on every push and pull request to `main`:
 - Workflow lint: `actionlint`
 - Format: SwiftFormat check
 - Lint: SwiftLint with `--strict`
-- Test: Full test suite on GitHub's `xcode-27` runner with released Xcode 27.0 (`27A266a`)
+- Test: Both direct-distribution (`Debug`) and App Store (`Debug-AppStore`) suites on GitHub's `xcode-27` runner with released Xcode 27.0 (`27A266a`)
 - Build: App Store scheme smoke build on the same pinned Xcode 27.0 toolchain with signing disabled
 
 Gitleaks and the scope classifier always run. The Xcode jobs explicitly select the released Xcode 27.0 installation and verify its build number, Swift compiler, and macOS SDK with `.github/scripts/verify-xcode.sh`. The Release workflow uses the same toolchain. When every changed path is a Markdown file, a file under `documentation/` or `images/`, or the root `LICENSE`, the macOS workflow-lint, format, lint, test, and build jobs are skipped. Any other path, a mixed change, or an indeterminate diff runs the full CI suite. Superseded runs for the same branch or pull request are cancelled automatically.

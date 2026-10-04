@@ -207,6 +207,7 @@ struct MenuBarPanel: View {
 
     @State private var isSettingsHovered = false
     @State private var isQuitHovered = false
+    @State private var scrollContentHeight: CGFloat = 200
 
     init(
         selectedPresetID: UUID? = nil,
@@ -229,9 +230,14 @@ struct MenuBarPanel: View {
                             .padding(.vertical, 8)
                     }
                     .menuBarPanelScrollStyle()
+                    .onGeometryChange(for: CGFloat.self) { geometry in
+                        geometry.size.height
+                    } action: { height in
+                        scrollContentHeight = height
+                    }
                 }
                 .scrollBounceBehavior(.basedOnSize)
-                .frame(idealHeight: 200, maxHeight: 400)
+                .frame(height: min(scrollContentHeight, 400))
                 .fixedSize(horizontal: false, vertical: true)
                 .onAppear { scrollToSelectedPreset(using: proxy) }
                 .onChange(of: selectedPresetID) { _, _ in

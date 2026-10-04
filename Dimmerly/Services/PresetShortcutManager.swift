@@ -186,6 +186,10 @@ import Observation
     final class PresetShortcutManager {
         var onPresetTriggered: ((UUID) -> Void)?
         private let monitor: CarbonShortcutMonitor
+        var hasInvalidShortcuts: Bool {
+            monitor.hasInvalidShortcuts
+        }
+
         var hasRegistrationFailure: Bool {
             !monitor.failedBindingIDs.isEmpty
         }

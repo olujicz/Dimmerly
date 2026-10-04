@@ -24,9 +24,16 @@ build-release:
 build-appstore:
     xcodebuild -quiet -project {{project}} -scheme '{{appstore_scheme}}' -destination '{{destination}}' build
 
-# Run tests
-test:
+# Run tests for both distributions (each suite launches its app host)
+test: test-direct test-appstore
+
+# Run direct-distribution tests
+test-direct:
     xcodebuild -quiet -project {{project}} -scheme {{scheme}} -configuration Debug -destination '{{destination}}' -derivedDataPath {{build_dir}} test
+
+# Run App Store tests, including the sandboxed shortcut managers
+test-appstore:
+    xcodebuild -quiet -project {{project}} -scheme '{{appstore_scheme}}' -configuration Debug-AppStore -destination '{{destination}}' -derivedDataPath {{build_dir}}/appstore test
 
 # Run all project quality checks
 check: format-check lint test build-appstore

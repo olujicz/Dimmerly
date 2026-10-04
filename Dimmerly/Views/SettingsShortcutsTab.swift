@@ -51,8 +51,10 @@ struct ShortcutsSettingsTab: View {
                             updateMainShortcut(newValue)
                         }
                     ),
-                    onRecordingChanged: { _ in
-                        mainShortcutConflictMessage = nil
+                    onRecordingChanged: { isRecording in
+                        if isRecording {
+                            mainShortcutConflictMessage = nil
+                        }
                     }
                 )
             }
@@ -69,7 +71,14 @@ struct ShortcutsSettingsTab: View {
             }
 
             #if APPSTORE
-                if shortcutManager.hasRegistrationFailure || presetShortcutManager.hasRegistrationFailure {
+                if shortcutManager.hasInvalidShortcuts || presetShortcutManager.hasInvalidShortcuts {
+                    Label(
+                        GlobalShortcut.carbonShortcutRequirementMessage,
+                        systemImage: "exclamationmark.triangle.fill"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                } else if shortcutManager.hasRegistrationFailure || presetShortcutManager.hasRegistrationFailure {
                     Label(
                         "A shortcut is unavailable. Choose a different shortcut.",
                         systemImage: "exclamationmark.triangle.fill"

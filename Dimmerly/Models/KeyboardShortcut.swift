@@ -40,7 +40,7 @@ enum ShortcutModifier: String, Codable, Hashable {
 /// - **Codable**: Persists to UserDefaults as JSON
 ///
 /// Validation:
-/// - `isValid`: Requires at least one modifier (prevents bare keys like "d" as global shortcuts)
+/// - `isValid`: Requires modifiers; App Store shortcuts use two or more, including Control or Command
 /// - `isReservedSystemShortcut`: Checks against common macOS system shortcuts
 struct GlobalShortcut: Codable, Equatable {
     /// The primary key (e.g., "d", "s", "return", "f1").
@@ -222,10 +222,25 @@ struct GlobalShortcut: Codable, Equatable {
         }
     #endif
 
-    /// Validates that the shortcut has at least one modifier
-    /// (shortcuts without modifiers are generally not recommended as global shortcuts)
+    /// Carbon reserves keys system-wide, so avoid common single-modifier app shortcuts.
+    /// Control or Command also keeps bindings compatible with macOS 15.0–15.1.
+    var isValidCarbonShortcut: Bool {
+        modifiers.count >= 2 && (modifiers.contains(.control) || modifiers.contains(.command))
+    }
+
     var isValid: Bool {
-        !modifiers.isEmpty
+        #if APPSTORE
+            isValidCarbonShortcut
+        #else
+            !modifiers.isEmpty
+        #endif
+    }
+
+    static var carbonShortcutRequirementMessage: String {
+        NSLocalizedString(
+            "Use at least two modifier keys, including Control (⌃) or Command (⌘).",
+            comment: "App Store global shortcut modifier requirements"
+        )
     }
 
     /// Checks if this shortcut conflicts with a standard macOS system shortcut

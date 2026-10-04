@@ -60,8 +60,18 @@ visible pixels are not used when `--settings-mask` is supplied.
 
 Keep the Settings size and position unchanged between those two captures.
 The compositor requires matching pixel dimensions and a mask with alpha.
-Resize Settings to about 580 points wide if the capture helper cannot identify
-it. Inspect the raw captures before composing; never paint out or fabricate UI.
+For the App Store Displays tab, use about 580 points wide and 480 points of
+content height. The direct-download tab includes additional hardware controls
+and may need a taller window. Size the actual window before capturing; do not
+crop away its empty area afterwards. Inspect the raw captures before composing;
+never paint out or fabricate UI.
+
+Before capturing the menu, check that the entire **+ Save Current** row is
+visible above **Dim Displays**. Use explicit two-modifier preset shortcuts
+(for example Control–Option–1 through 3) instead of Command-number combinations.
+Stage presets and display values in an isolated capture-only settings suite,
+with widget synchronization and hardware writes disabled. Do not overwrite the
+maintainer's real preset store merely to prepare a marketing image.
 
 ## Generate the App Store image
 

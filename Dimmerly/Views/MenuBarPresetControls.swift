@@ -144,7 +144,7 @@ struct PresetsSectionView: View {
         if let shortcut = preset.shortcut {
             Text(shortcut.displayString)
                 .font(.caption)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(.secondary)
         } else {
             Text("\u{2318}\((index + 1) % 10)")
                 .font(.caption)

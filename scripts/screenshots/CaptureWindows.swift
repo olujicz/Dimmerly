@@ -76,13 +76,17 @@ enum CaptureWindows {
                 guard $0.owningApplication?.processID == options.processID else { return false }
                 let size = $0.frame.size
                 if options.mode == "menu" {
-                    return size.width >= 250 && size.width <= 450 && size.height >= 150 && size.height <= 650
+                    return size.width >= 299 && size.width <= 301 && size.height >= 150 && size.height <= 650
                 }
                 return size.width >= 500 && size.height >= 350
             }
             guard candidates.count == 1, let window = candidates.first else {
+                let candidateDescriptions = candidates.map {
+                    "id=\($0.windowID) \(Int($0.frame.width))x\(Int($0.frame.height))"
+                }.joined(separator: ", ")
                 throw CaptureError(
-                    "Found \(candidates.count) matching \(options.mode) windows for PID \(options.processID). " +
+                    "Found \(candidates.count) matching \(options.mode) windows for PID \(options.processID) " +
+                        "(\(candidateDescriptions)). " +
                         "Show only the intended window and retry."
                 )
             }
