@@ -47,7 +47,7 @@ brew install --cask dimmerly
 ## Requirements
 
 - macOS 15 Sequoia or later
-- Optional Accessibility permission for global shortcuts
+- Optional Accessibility permission for global shortcuts in the direct-download build; App Store shortcuts need no permission
 - Optional Location permission for sunrise and sunset schedules
 - Optional DDC/CI-capable external monitor for hardware controls
 
@@ -169,7 +169,8 @@ when macOS reuses a numeric display ID.
 - Monitor support varies by manufacturer and model. Some displays expose only
   brightness, while others also expose contrast, volume, mute, or input
   switching.
-- Global keyboard shortcuts require Accessibility permission from macOS.
+- Global keyboard shortcuts in the App Store build need no permission. The
+  direct-download build requires Accessibility permission from macOS.
 - Sunrise and sunset schedules need Location permission unless you enter a
   manual coordinate.
 - Dimmerly stores settings locally and does not sync presets or schedules
@@ -206,7 +207,11 @@ monitor's settings for DDC/CI support.
 
 ### Keyboard shortcuts do not work
 
-Global shortcuts require Accessibility permission:
+In the App Store build, shortcuts need no Accessibility permission. Choose a
+shortcut with at least two modifiers, including Control or Command. If a
+shortcut is unavailable, choose another combination.
+
+In the direct-download build, global shortcuts require Accessibility permission:
 
 ```text
 System Settings -> Privacy & Security -> Accessibility

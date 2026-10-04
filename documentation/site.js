@@ -43,3 +43,25 @@
         block.appendChild(button);
     });
 })();
+
+// Create private contact controls without a plain-text address in the markup.
+// This deters basic email crawlers; the address remains recoverable from code.
+(function () {
+    "use strict";
+
+    document.querySelectorAll("[data-email-support]").forEach(function (container) {
+        var button = document.createElement("button");
+        button.type = "button";
+        button.className = "text-link email-support-button";
+        button.textContent = "Email support";
+        button.title = "Opens your email app";
+        button.addEventListener("click", function () {
+            var address = String.fromCharCode(
+                115, 117, 112, 112, 111, 114, 116, 64, 111, 108, 117, 106,
+                105, 99, 46, 105, 110, 46, 114, 115
+            );
+            window.location.href = "mailto:" + address;
+        });
+        container.appendChild(button);
+    });
+})();

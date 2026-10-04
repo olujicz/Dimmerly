@@ -205,6 +205,13 @@ p { text-wrap: pretty; }
     text-underline-offset: 4px;
 }
 
+.email-support-button {
+    border: 0;
+    background: transparent;
+    font-family: inherit;
+    cursor: pointer;
+}
+
 /* Code blocks */
 
 .code-block {

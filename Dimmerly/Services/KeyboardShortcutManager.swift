@@ -272,7 +272,7 @@ final class CarbonHotKeyRegistration {
         shortcut: GlobalShortcut,
         onTriggered: @escaping @MainActor () -> Void
     ) -> Any? {
-        guard let keyCode = shortcut.registrationKeyCode, !shortcut.modifiers.isEmpty else { return nil }
+        guard let keyCode = shortcut.registrationKeyCode, shortcut.isValidCarbonShortcut else { return nil }
         let registration = CarbonHotKeyRegistration(onTriggered: onTriggered)
         var eventType = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
         let context = Unmanaged.passUnretained(registration).toOpaque()
@@ -343,6 +343,10 @@ final class CarbonShortcutMonitor {
     typealias Remover = @MainActor (Any) -> Void
 
     private(set) var failedBindingIDs: Set<UUID> = []
+    var hasInvalidShortcuts: Bool {
+        bindings.contains { !$0.shortcut.isValidCarbonShortcut }
+    }
+
     var onTriggered: ((UUID) -> Void)?
     private var bindings: [Binding] = []
     private var registrations: [UUID: Any] = [:]
@@ -385,6 +389,10 @@ final class CarbonShortcutMonitor {
         guard !coordinator.isRecording else { return }
         let generation = generation
         for binding in bindings where registrations[binding.id] == nil {
+            guard binding.shortcut.isValidCarbonShortcut else {
+                failedBindingIDs.insert(binding.id)
+                continue
+            }
             if let token = installer(binding.shortcut, { [weak self] in
                 guard let self, self.generation == generation,
                       !self.coordinator.isRecording, self.registrations[binding.id] != nil
@@ -431,6 +439,10 @@ final class CarbonShortcutMonitor {
         private let bindingID = UUID()
         private let monitor: CarbonShortcutMonitor
         private var onShortcutTriggered: (() -> Void)?
+
+        var hasInvalidShortcuts: Bool {
+            monitor.hasInvalidShortcuts
+        }
 
         var hasRegistrationFailure: Bool {
             !monitor.failedBindingIDs.isEmpty

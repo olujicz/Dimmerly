@@ -176,6 +176,12 @@ private class ShortcutCaptureView: NSView {
             modifierFlags: event.modifierFlags,
             charactersIgnoringModifiers: event.charactersIgnoringModifiers
         ) {
+            #if APPSTORE
+                guard shortcut.isValid else {
+                    onConflictDetected?(GlobalShortcut.carbonShortcutRequirementMessage)
+                    return
+                }
+            #endif
             if shortcut.isValid {
                 if shortcut.isReservedSystemShortcut {
                     onConflictDetected?(

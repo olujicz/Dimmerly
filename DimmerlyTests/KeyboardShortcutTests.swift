@@ -161,10 +161,10 @@ final class GlobalShortcutTests: XCTestCase {
         XCTAssertNotEqual(shortcut1, shortcut3, "Different shortcuts should not be equal")
     }
 
-    /// Tests validation (shortcuts should have at least one modifier)
+    /// Tests a safe shortcut and a bare key in both distributions.
     func testValidation() {
         // Given: A shortcut with modifiers
-        let validShortcut = GlobalShortcut(key: "d", modifiers: [.command])
+        let validShortcut = GlobalShortcut(key: "d", modifiers: [.command, .option])
 
         // Then: It should be valid
         XCTAssertTrue(validShortcut.isValid, "Shortcut with modifiers should be valid")
@@ -832,7 +832,7 @@ final class CarbonShortcutMonitorTests: XCTestCase {
         monitor.updateBindings([original])
         monitor.updateBindings([original])
         XCTAssertEqual(handlers.count, 1)
-        monitor.updateBindings([.init(id: id, shortcut: GlobalShortcut(key: "1", modifiers: [.command]))])
+        monitor.updateBindings([.init(id: id, shortcut: GlobalShortcut(key: "1", modifiers: [.control, .option]))])
         XCTAssertEqual(removals, 1)
         handlers[0]()
         XCTAssertEqual(triggers, 0)
@@ -842,6 +842,53 @@ final class CarbonShortcutMonitorTests: XCTestCase {
         handlers[1]()
         XCTAssertEqual(triggers, 1)
         XCTAssertEqual(removals, 2)
+    }
+
+    func testCarbonShortcutPolicyRequiresTwoModifiersIncludingControlOrCommand() {
+        let allModifiers: [ShortcutModifier] = [.command, .control, .option, .shift]
+        for mask in 0 ..< 16 {
+            let modifiers = Set(allModifiers.enumerated().compactMap { index, modifier in
+                mask & (1 << index) == 0 ? nil : modifier
+            })
+            let shortcut = GlobalShortcut(key: "1", modifiers: modifiers)
+            let expected = modifiers.count >= 2
+                && (modifiers.contains(.control) || modifiers.contains(.command))
+            XCTAssertEqual(shortcut.isValidCarbonShortcut, expected, "Modifiers: \(modifiers)")
+            #if APPSTORE
+                XCTAssertEqual(shortcut.isValid, expected)
+            #else
+                XCTAssertEqual(shortcut.isValid, !modifiers.isEmpty)
+            #endif
+        }
+    }
+
+    func testStoredUnsafeBindingsAreRejectedBeforeCallingCarbonInstaller() {
+        let unsafeID = UUID()
+        let optionOnlyID = UUID()
+        var installed: [GlobalShortcut] = []
+        let monitor = CarbonShortcutMonitor(
+            coordinator: ShortcutRecordingCoordinator(),
+            installer: { shortcut, _ in
+                installed.append(shortcut)
+                return Token()
+            },
+            remover: { _ in }
+        )
+        monitor.updateBindings([
+            .init(id: unsafeID, shortcut: GlobalShortcut(key: "1", modifiers: [.command])),
+            .init(id: optionOnlyID, shortcut: GlobalShortcut(key: "2", modifiers: [.option, .shift])),
+            .init(id: UUID(), shortcut: .default),
+        ])
+        XCTAssertEqual(installed, [.default])
+        XCTAssertEqual(monitor.failedBindingIDs, [unsafeID, optionOnlyID])
+        XCTAssertTrue(monitor.hasInvalidShortcuts)
+        monitor.retryFailedRegistrations()
+        XCTAssertEqual(installed, [.default])
+        monitor.updateBindings([.init(id: unsafeID, shortcut: .default)])
+        XCTAssertFalse(monitor.hasInvalidShortcuts)
+        XCTAssertTrue(monitor.failedBindingIDs.isEmpty)
+        XCTAssertEqual(installed, [.default, .default])
+        monitor.stop()
     }
 
     func testCarbonModifiersAndLegacyPhysicalKeyMapping() throws {

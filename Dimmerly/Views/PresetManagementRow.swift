@@ -110,8 +110,10 @@ struct PresetManagementRow: View {
                 onConflictDetected: { message in
                     conflictMessage = message
                 },
-                onRecordingChanged: { _ in
-                    conflictMessage = nil
+                onRecordingChanged: { isRecording in
+                    if isRecording {
+                        conflictMessage = nil
+                    }
                 }
             )
 
@@ -269,7 +271,14 @@ private class PresetShortcutNSView: NSView {
             keyCode: event.keyCode,
             modifierFlags: event.modifierFlags,
             charactersIgnoringModifiers: event.charactersIgnoringModifiers
-        ), shortcut.isValid {
+        ) {
+            #if APPSTORE
+                guard shortcut.isValid else {
+                    onConflictDetected?(GlobalShortcut.carbonShortcutRequirementMessage)
+                    return
+                }
+            #endif
+            guard shortcut.isValid else { return }
             if shortcut.isReservedSystemShortcut {
                 onConflictDetected?(
                     String(

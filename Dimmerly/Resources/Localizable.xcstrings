@@ -1,6 +1,78 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Use at least two modifier keys, including Control (⌃) or Command (⌘)." : {
+      "comment" : "App Store global shortcut modifier requirements",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwende mindestens zwei Modifikatortasten, darunter Control (⌃) oder Befehl (⌘)."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use at least two modifier keys, including Control (⌃) or Command (⌘)."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa al menos dos teclas modificadoras, incluidas Control (⌃) o Comando (⌘)."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilisez au moins deux touches de modification, dont Contrôle (⌃) ou Commande (⌘)."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa almeno due tasti modificatori, inclusi Control (⌃) o Comando (⌘)."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Control（⌃）またはCommand（⌘）を含む、2つ以上の修飾キーを使用してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Control(⌃) 또는 Command(⌘)를 포함해 보조 키를 두 개 이상 사용하세요."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gebruik minstens twee speciale toetsen, waaronder Control (⌃) of Command (⌘)."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use pelo menos duas teclas modificadoras, incluindo Control (⌃) ou Command (⌘)."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Користите најмање два модификаторска тастера, укључујући Control (⌃) или Command (⌘)."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请使用至少两个修饰键，其中包括 Control (⌃) 或 Command (⌘)。"
+          }
+        }
+      }
+    },
     "A shortcut is unavailable. Choose a different shortcut." : {
       "extractionState" : "manual",
       "localizations" : {
