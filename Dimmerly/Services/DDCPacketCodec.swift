@@ -119,6 +119,9 @@ import Foundation
         /// such an exact match, a candidate that could belong to multiple connected displays
         /// is rejected. This prevents separate per-display lookups from assigning one
         /// serial-less registry service to two identical monitors.
+        ///
+        /// A candidate's owners are the displays sharing its serial, or failing that, every
+        /// display it is compatible with.
         static func uniqueCandidateIndex(
             expectedIndex: Int,
             expectedDisplays: [DDCDisplayIdentity],
@@ -127,8 +130,6 @@ import Foundation
             guard expectedDisplays.indices.contains(expectedIndex) else { return nil }
             let expectedSerial = expectedDisplays[expectedIndex].serialNumber
 
-            // A candidate is owned by the displays sharing its serial, or failing that, by
-            // every display it is compatible with.
             func owners(of candidate: DDCDisplayIdentity) -> [Int] {
                 let compatible = expectedDisplays.indices.filter {
                     DDCDisplayIdentityMatcher.matches(candidate: candidate, expected: expectedDisplays[$0])
