@@ -185,6 +185,17 @@ class AppSettings {
             didSet { defaults.set(ddcEnabled, forKey: "dimmerlyDDCEnabled") }
         }
 
+        /// Whether experimental native brightness is enabled for compatible external displays.
+        /// This remains opt-in even when DDC hardware control is already enabled.
+        var experimentalNativeBrightnessEnabled: Bool {
+            didSet {
+                defaults.set(experimentalNativeBrightnessEnabled, forKey: Self.experimentalNativeBrightnessEnabledKey)
+            }
+        }
+
+        nonisolated static let experimentalNativeBrightnessEnabledKey =
+            "dimmerlyExperimentalNativeBrightnessEnabled"
+
         /// The active DDC control mode raw value.
         /// Only meaningful when ddcEnabled is true.
         var ddcControlModeRaw: String {
@@ -273,6 +284,7 @@ class AppSettings {
         #if !APPSTORE
             ddcEnabled = d.object(forKey: "dimmerlyDDCEnabled") != nil
                 ? d.bool(forKey: "dimmerlyDDCEnabled") : true
+            experimentalNativeBrightnessEnabled = d.bool(forKey: Self.experimentalNativeBrightnessEnabledKey)
             let storedMode = d.string(forKey: "dimmerlyDDCControlMode")
             ddcControlModeRaw = storedMode == DDCControlMode.softwareOnly.rawValue
                 ? DDCControlMode.softwareOnly.rawValue

@@ -68,14 +68,16 @@ func applyLaunchAtLoginChange(
     @MainActor
     func isDDCControlModeAvailable(
         _ mode: DDCControlMode,
-        hardwareManager: HardwareBrightnessManager
+        hardwareManager: HardwareBrightnessManager,
+        supportsNativeBacklight: Bool = false
     ) -> Bool {
         switch mode {
         case .softwareOnly:
             true
         case .hardware:
             hardwareManager.isEnabled
-                && hardwareManager.capabilities.values.contains { $0.supportsDDC && $0.supportsBrightness }
+                && (supportsNativeBacklight
+                    || hardwareManager.capabilities.values.contains { $0.supportsDDC && $0.supportsBrightness })
         }
     }
 
@@ -175,8 +177,26 @@ func applyLaunchAtLoginChange(
         hardwareManager.applyRuntimeSettings(
             controlMode: settings.ddcControlMode,
             pollingInterval: settings.ddcPollingInterval,
-            writeDelayMilliseconds: settings.ddcWriteDelay
+            writeDelayMilliseconds: settings.ddcWriteDelay,
+            experimentalNativeBrightnessEnabled: settings.experimentalNativeBrightnessEnabled
         )
+    }
+
+    @MainActor
+    func applyExperimentalNativeBrightnessChange(
+        _ newValue: Bool,
+        settings: AppSettings,
+        hardwareManager: HardwareBrightnessManager,
+        brightnessManager: BrightnessManager = .shared
+    ) {
+        settings.experimentalNativeBrightnessEnabled = newValue
+        applyDDCRuntimeSettings(settings: settings, hardwareManager: hardwareManager)
+        brightnessManager.refreshDisplays()
+
+        if settings.ddcEnabled {
+            hardwareManager.probeAllDisplays(force: true)
+            hardwareManager.startPolling()
+        }
     }
 
     @MainActor
@@ -191,11 +211,12 @@ func applyLaunchAtLoginChange(
         if newValue {
             hardwareManager.enable()
             applyDDCRuntimeSettings(settings: settings, hardwareManager: hardwareManager)
+            brightnessManager.refreshDisplays()
             hardwareManager.probeAllDisplays()
             hardwareManager.startPolling()
         } else {
             await hardwareManager.disable()
-            brightnessManager.reapplyAll()
+            brightnessManager.refreshDisplays()
         }
     }
 #endif

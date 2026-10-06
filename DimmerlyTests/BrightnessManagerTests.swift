@@ -17,7 +17,12 @@ final class BrightnessManagerTests: XCTestCase {
         bm = BrightnessManager(forTesting: true)
         #if !APPSTORE
             HardwareBrightnessManager.shared.capabilities.removeAll()
-            HardwareBrightnessManager.shared.controlMode = .hardware
+            HardwareBrightnessManager.shared.applyRuntimeSettings(
+                controlMode: .hardware,
+                pollingInterval: 5,
+                writeDelayMilliseconds: 50,
+                experimentalNativeBrightnessEnabled: false
+            )
             HardwareBrightnessManager.shared.enable()
         #endif
     }
@@ -25,7 +30,12 @@ final class BrightnessManagerTests: XCTestCase {
     override func tearDown() async throws {
         #if !APPSTORE
             HardwareBrightnessManager.shared.capabilities.removeAll()
-            HardwareBrightnessManager.shared.controlMode = .hardware
+            HardwareBrightnessManager.shared.applyRuntimeSettings(
+                controlMode: .hardware,
+                pollingInterval: 5,
+                writeDelayMilliseconds: 50,
+                experimentalNativeBrightnessEnabled: false
+            )
             await HardwareBrightnessManager.shared.disable()
         #endif
         bm = nil

@@ -7,6 +7,13 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+### Added
+- Added an opt-in experimental native-brightness setting for external displays in the direct-download build. It is off by default and falls back to software brightness if a native write fails; monitor-model compatibility is still unverified. Existing DDC/CI controls are unchanged.
+
+### Fixed
+- Reject ambiguous Apple Silicon monitor matches to avoid sending hardware controls to another identical display.
+- Detect supported monitor controls independently when a display does not answer brightness reads.
+
 ## [1.3.0] - 2026-10-04
 
 ### Added

@@ -304,7 +304,8 @@ struct MenuBarPanel: View {
                 .ddcControls(
                     hardwareManager: hardwareManager,
                     displayID: display.id,
-                    isBuiltIn: display.isBuiltIn
+                    isBuiltIn: display.isBuiltIn,
+                    supportsNativeBacklight: display.supportsNativeBacklight
                 )
                 #endif
             }

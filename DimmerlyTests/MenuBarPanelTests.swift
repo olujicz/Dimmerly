@@ -654,6 +654,41 @@ final class MenuBarPanelTests: XCTestCase {
             XCTAssertNil(wired.onMuteToggle)
             XCTAssertNil(wired.onInputSourceChange)
         }
+
+        @MainActor
+        func testNativeBrightnessIndicatorRequiresExperimentalOptIn() {
+            let displayID: CGDirectDisplayID = 42
+            let manager = HardwareBrightnessManager(forTesting: true)
+            manager.enable()
+            let row = DisplayBrightnessRow(
+                display: ExternalDisplay(id: displayID, name: "External", brightness: 0.6),
+                isBlanked: false,
+                onChange: { _ in },
+                onWarmthChange: { _ in },
+                onContrastChange: { _ in },
+                onToggleBlank: {}
+            )
+
+            let optedOut = row.ddcControls(
+                hardwareManager: manager,
+                displayID: displayID,
+                supportsNativeBacklight: true
+            )
+            manager.applyRuntimeSettings(
+                controlMode: .hardware,
+                pollingInterval: 5,
+                writeDelayMilliseconds: 50,
+                experimentalNativeBrightnessEnabled: true
+            )
+            let optedIn = row.ddcControls(
+                hardwareManager: manager,
+                displayID: displayID,
+                supportsNativeBacklight: true
+            )
+
+            XCTAssertFalse(optedOut.hasNativeBacklight)
+            XCTAssertTrue(optedIn.hasNativeBacklight)
+        }
     #endif
 
     func testMainShortcutRecorderRequestsFirstResponderWhenRecording() throws {

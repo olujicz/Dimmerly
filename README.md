@@ -44,6 +44,7 @@ See [the 1.3.0 changelog](CHANGELOG.md#130---2026-10-04) for the full release no
 
 - Per-display brightness, warmth, contrast, and blanking controls
 - Built-in display support where macOS exposes the needed controls
+- Experimental native brightness for some external displays in the direct-download build (opt-in, off by default)
 - Presets for saving and restoring complete display setups
 - Global keyboard shortcuts for dimming and presets
 - Schedules based on a fixed time, sunrise, or sunset
@@ -119,8 +120,16 @@ Open Dimmerly from the menu bar to adjust each display. The main slider controls
 brightness. Expand a display row for warmth, contrast, and, when available,
 DDC/CI controls such as volume or input source.
 
-If a display shows the hardware indicator, Dimmerly is talking to it through
-DDC/CI. Otherwise the app uses software dimming for that display.
+The experimental native-brightness option is off by default. When enabled, Dimmerly
+uses native macOS brightness on displays that respond to its native backlight probe;
+if a native write fails, software brightness takes over. Other displays keep using
+DDC/CI where supported, with software brightness as the fallback. Existing DDC/CI
+controls and their setting are unchanged, and non-brightness controls can remain
+available when a monitor does not support DDC brightness.
+
+This experiment has not yet been verified across monitor models. If you try it,
+you can optionally [report your monitor and connection](https://github.com/olujicz/Dimmerly/issues/new?template=monitor_compatibility.yml).
+Dimmerly does not collect compatibility or usage data automatically.
 
 ### Presets and schedules
 
@@ -187,9 +196,11 @@ The direct-download shortcut requirements are unchanged.
 
 ## Known limitations
 
-- Hardware monitor controls require a DDC/CI-capable display and connection.
+- DDC/CI monitor controls require a DDC/CI-capable display and connection.
   Some hubs, docks, KVMs, HDMI adapters, DisplayLink adapters, and built-in HDMI
   ports can block DDC/CI commands even when the monitor supports them.
+- Experimental native brightness is a separate, opt-in path in the direct-download
+  build and is off by default. No external monitor models have been verified for it.
 - Monitor support varies by manufacturer and model. Some displays expose only
   brightness, while others also expose contrast, volume, mute, or input
   switching.

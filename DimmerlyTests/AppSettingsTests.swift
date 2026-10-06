@@ -53,6 +53,44 @@ final class AppSettingsTests: XCTestCase {
     }
 
     #if !APPSTORE
+        func testExperimentalNativeBrightnessDefaultsOffEvenWhenDDCIsEnabled() {
+            let newSettings = AppSettings(defaults: testDefaults)
+
+            XCTAssertTrue(newSettings.ddcEnabled)
+            XCTAssertFalse(newSettings.experimentalNativeBrightnessEnabled)
+        }
+
+        func testExperimentalNativeBrightnessSettingPersistsAcrossSettingsInstances() {
+            settings.experimentalNativeBrightnessEnabled = true
+
+            let reloaded = AppSettings(defaults: testDefaults)
+
+            XCTAssertTrue(reloaded.experimentalNativeBrightnessEnabled)
+        }
+
+        func testExperimentalNativeBrightnessCanBeEnabledWithoutDiscoveredSupport() async {
+            let hardwareManager = HardwareBrightnessManager(
+                forTesting: true,
+                ddcInterface: MockDDCInterface(),
+                connectedExternalDisplayIDsProvider: { [] }
+            )
+            let brightnessManager = BrightnessManager(forTesting: true)
+            brightnessManager.activeDisplayIDsHook = { [] }
+            hardwareManager.enable()
+
+            applyExperimentalNativeBrightnessChange(
+                true,
+                settings: settings,
+                hardwareManager: hardwareManager,
+                brightnessManager: brightnessManager
+            )
+            hardwareManager.stopPolling()
+            await hardwareManager.disable()
+
+            XCTAssertTrue(settings.experimentalNativeBrightnessEnabled)
+            XCTAssertTrue(hardwareManager.experimentalNativeBrightnessEnabled)
+        }
+
         func testApplyDDCEnabledChangeAppliesRuntimeSettingsWhenTurningOn() async {
             settings.ddcEnabled = false
             settings.ddcControlMode = .hardware
@@ -86,9 +124,11 @@ final class AppSettingsTests: XCTestCase {
             let source = try String(contentsOf: settingsViewSourceURL, encoding: .utf8)
 
             XCTAssertTrue(source.contains("Use hardware controls when available"))
-            XCTAssertTrue(source.contains("Hardware controls aren’t available"))
+            XCTAssertTrue(source.contains("Hardware brightness isn’t available"))
             XCTAssertTrue(source.contains("Dimmerly is using software brightness"))
-            XCTAssertTrue(source.contains("if hardwareControlModesAvailable"))
+            XCTAssertTrue(source.contains(
+                "if hardwareControlModesAvailable || settings.experimentalNativeBrightnessEnabled"
+            ))
             XCTAssertTrue(source.contains("Brightness Control"))
             XCTAssertTrue(source.contains("Display compatibility"))
         }
@@ -105,7 +145,7 @@ final class AppSettingsTests: XCTestCase {
                 "DDC polling and write timing controls should be grouped as advanced settings"
             )
             XCTAssertTrue(
-                source.contains("Uses DDC/CI to control compatible external displays directly."),
+                source.contains("Uses native brightness or DDC/CI to control compatible external displays directly."),
                 "Detailed DDC compatibility caveats should live in help text instead of always-visible copy"
             )
             XCTAssertFalse(
@@ -207,6 +247,20 @@ final class AppSettingsTests: XCTestCase {
             XCTAssertFalse(isDDCControlModeAvailable(.hardware, hardwareManager: manager))
         }
 
+        func testHardwareModeIsAvailableForNativeExternalBrightness() async {
+            let manager = HardwareBrightnessManager(forTesting: true, ddcInterface: MockDDCInterface())
+            manager.enable()
+
+            XCTAssertTrue(isDDCControlModeAvailable(
+                .hardware, hardwareManager: manager, supportsNativeBacklight: true
+            ))
+
+            await manager.disable()
+            XCTAssertFalse(isDDCControlModeAvailable(
+                .hardware, hardwareManager: manager, supportsNativeBacklight: true
+            ))
+        }
+
         func testDDCControlModeMigrationPreservesCombinedAsHardware() {
             testDefaults.set("combined", forKey: "dimmerlyDDCControlMode")
 
@@ -242,6 +296,7 @@ final class AppSettingsTests: XCTestCase {
             brightnessManager.displays = [
                 ExternalDisplay(id: 91, name: "External", brightness: 0.42, warmth: 0.0, contrast: 0.5),
             ]
+            brightnessManager.activeDisplayIDsHook = { [91] }
             var reapplyCount = 0
             brightnessManager.applyGammaHook = { displayID, brightness, _, _ in
                 guard displayID == 91 else { return }

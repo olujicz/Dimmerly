@@ -21,6 +21,7 @@ import XCTest
     struct MockDDCInterface: DDCInterface {
         var readHandler: @Sendable (VCPCode, CGDirectDisplayID) -> DDCReadResult? = { _, _ in nil }
         var writeHandler: @Sendable (VCPCode, UInt16, CGDirectDisplayID) -> Bool = { _, _, _ in true }
+        var probeWithSkipHandler: (@Sendable (CGDirectDisplayID, Bool) -> HardwareDisplayCapability)?
         var probeHandler: @Sendable (CGDirectDisplayID) -> HardwareDisplayCapability = { displayID in
             .notSupported(displayID: displayID)
         }
@@ -33,8 +34,14 @@ import XCTest
             writeHandler(vcp, value, displayID)
         }
 
-        func probeCapabilities(for displayID: CGDirectDisplayID) -> HardwareDisplayCapability {
-            probeHandler(displayID)
+        func probeCapabilities(
+            for displayID: CGDirectDisplayID,
+            skippingBrightness: Bool
+        ) -> HardwareDisplayCapability {
+            if let probeWithSkipHandler {
+                return probeWithSkipHandler(displayID, skippingBrightness)
+            }
+            return probeHandler(displayID)
         }
     }
 
@@ -1151,6 +1158,139 @@ import XCTest
         }
     }
 
+    @MainActor
+    extension HardwareBrightnessManagerTests {
+        func testCapabilityProbeKeepsOtherControlsWhenBrightnessIsUnavailable() {
+            let displayID: CGDirectDisplayID = 77
+            var reads: [VCPCode] = []
+
+            let capability = HardwareDisplayCapability.probe(displayID: displayID) { code, targetID in
+                XCTAssertEqual(targetID, displayID)
+                reads.append(code)
+                switch code {
+                case .contrast: return DDCReadResult(currentValue: 30, maxValue: 75)
+                case .volume: return DDCReadResult(currentValue: 20, maxValue: 40)
+                case .inputSource:
+                    return DDCReadResult(currentValue: InputSource.hdmi1.rawValue, maxValue: 0xFF)
+                default: return nil
+                }
+            }
+
+            XCTAssertTrue(capability.supportsDDC)
+            XCTAssertFalse(capability.supportsBrightness)
+            XCTAssertTrue(capability.supportsContrast)
+            XCTAssertTrue(capability.supportsVolume)
+            XCTAssertTrue(capability.supportsInputSource)
+            XCTAssertEqual(capability.maxBrightness, 100)
+            XCTAssertEqual(capability.maxContrast, 75)
+            XCTAssertEqual(capability.maxVolume, 40)
+            XCTAssertEqual(Set(reads), Set(VCPCode.allCases))
+            XCTAssertEqual(reads.count, VCPCode.allCases.count, "Each known VCP should be read at most once")
+        }
+
+        func testSilentCapabilityProbeStopsAfterBoundedPrimaryCodes() {
+            var reads: [VCPCode] = []
+            let capability = HardwareDisplayCapability.probe(displayID: 78) { code, _ in
+                reads.append(code)
+                return nil
+            }
+
+            XCTAssertFalse(capability.supportsDDC)
+            XCTAssertTrue(capability.supportedCodes.isEmpty)
+            XCTAssertEqual(reads, [.brightness, .contrast, .volume, .inputSource])
+        }
+
+        func testNativeBrightnessProbeStillDiscoversOptionalControls() {
+            var reads: [VCPCode] = []
+            let capability = HardwareDisplayCapability.probe(displayID: 80, skippingBrightness: true) { code, _ in
+                reads.append(code)
+                return code == .audioMute ? DDCReadResult(currentValue: 2, maxValue: 0) : nil
+            }
+
+            XCTAssertTrue(capability.supportsAudioMute)
+            XCTAssertFalse(capability.supportsBrightness)
+            XCTAssertEqual(Set(reads), Set(VCPCode.allCases).subtracting([.brightness]))
+        }
+
+        func testCapabilityProbeIgnoresZeroContinuousMaximumButKeepsDiscreteCode() {
+            let capability = HardwareDisplayCapability.probe(displayID: 79) { code, _ in
+                switch code {
+                case .volume: DDCReadResult(currentValue: 1, maxValue: 0)
+                case .inputSource:
+                    DDCReadResult(currentValue: InputSource.hdmi1.rawValue, maxValue: 0)
+                default: nil
+                }
+            }
+
+            XCTAssertTrue(capability.supportsDDC)
+            XCTAssertFalse(capability.supportsVolume)
+            XCTAssertTrue(capability.supportsInputSource)
+            XCTAssertEqual(capability.maxVolume, 100)
+        }
+
+        func testNativeBrightnessSkipsDDCBrightnessButKeepsVolumeReadAndWrite() async {
+            let displayID: CGDirectDisplayID = 81
+            let didReadVolume = expectation(description: "Volume read completed")
+            let didPublishRead = expectation(description: "Volume read published")
+            let didWriteVolume = expectation(description: "Volume write reached hardware")
+            let skipBrightness = LockedBoolRecorder()
+            let readCodes = LockedVCPRecorder()
+            let writes = LockedWriteRecorder()
+            var mock = MockDDCInterface()
+            mock.probeWithSkipHandler = { probedID, skippingBrightness in
+                skipBrightness.record(skippingBrightness)
+                return HardwareDisplayCapability(
+                    displayID: probedID,
+                    supportsDDC: true,
+                    supportedCodes: [.brightness, .volume],
+                    maxBrightness: 100,
+                    maxContrast: 100,
+                    maxVolume: 50
+                )
+            }
+            mock.readHandler = { code, _ in
+                readCodes.record(code)
+                guard code == .volume else { return nil }
+                didReadVolume.fulfill()
+                return DDCReadResult(currentValue: 10, maxValue: 50)
+            }
+            mock.writeHandler = { code, value, targetID in
+                writes.record(code: code, value: value, displayID: targetID)
+                if code == .volume {
+                    didWriteVolume.fulfill()
+                }
+                return true
+            }
+            let manager = HardwareBrightnessManager(
+                forTesting: true,
+                ddcInterface: mock,
+                connectedExternalDisplayIDsProvider: { [displayID] },
+                displayRefreshHandler: {},
+                nativeBrightnessSupportProvider: { $0 == displayID }
+            )
+            manager.readPublicationHookForTesting = { didPublishRead.fulfill() }
+            manager.applyRuntimeSettings(
+                controlMode: .hardware,
+                pollingInterval: 5,
+                writeDelayMilliseconds: 50,
+                experimentalNativeBrightnessEnabled: true
+            )
+            manager.enable()
+            manager.probeAllDisplays()
+
+            await fulfillment(of: [didReadVolume, didPublishRead], timeout: 1)
+            XCTAssertTrue(skipBrightness.value)
+            XCTAssertEqual(readCodes.codes, [.volume])
+
+            manager.setHardwareBrightness(for: displayID, to: 0.2)
+            manager.setHardwareVolume(for: displayID, to: 0.5)
+            await fulfillment(of: [didWriteVolume], timeout: 1)
+
+            XCTAssertEqual(writes.values.map(\.code), [.volume])
+            XCTAssertEqual(writes.values.first?.value, 25)
+        }
+    }
+
     final class LockedWriteRecorder: @unchecked Sendable {
         struct Value: Sendable {
             let code: VCPCode
@@ -1169,6 +1309,32 @@ import XCTest
             lock.withLock {
                 recordedValues.append(Value(code: code, value: value, displayID: displayID))
             }
+        }
+    }
+
+    final class LockedVCPRecorder: @unchecked Sendable {
+        private let lock = NSLock()
+        private var recordedCodes: [VCPCode] = []
+
+        var codes: [VCPCode] {
+            lock.withLock { recordedCodes }
+        }
+
+        func record(_ code: VCPCode) {
+            lock.withLock { recordedCodes.append(code) }
+        }
+    }
+
+    final class LockedBoolRecorder: @unchecked Sendable {
+        private let lock = NSLock()
+        private var storedValue = false
+
+        var value: Bool {
+            lock.withLock { storedValue }
+        }
+
+        func record(_ value: Bool) {
+            lock.withLock { storedValue = value }
         }
     }
 

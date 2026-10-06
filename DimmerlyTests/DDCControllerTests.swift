@@ -70,6 +70,29 @@ import XCTest
             )
         }
 
+        func testDisplayIdentityConflictRequiresTwoKnownDifferentValues() {
+            let expected = DDCDisplayIdentity(vendorID: 0x1234, modelID: 0x5678, serialNumber: 42)
+
+            XCTAssertTrue(
+                DDCDisplayIdentityMatcher.hasKnownConflict(
+                    candidate: DDCDisplayIdentity(vendorID: 0x1234, modelID: 0x5678, serialNumber: 7),
+                    expected: expected
+                )
+            )
+            XCTAssertFalse(
+                DDCDisplayIdentityMatcher.hasKnownConflict(
+                    candidate: DDCDisplayIdentity(vendorID: 0x1234, modelID: 0x5678, serialNumber: nil),
+                    expected: expected
+                )
+            )
+            XCTAssertFalse(
+                DDCDisplayIdentityMatcher.hasKnownConflict(
+                    candidate: DDCDisplayIdentity(vendorID: nil, modelID: nil, serialNumber: nil),
+                    expected: expected
+                )
+            )
+        }
+
         func testIntelCandidateSelectorUsesExactSerialWhenModelsAreIdentical() {
             let expected = DDCDisplayIdentity(vendorID: 0x1234, modelID: 0x5678, serialNumber: 42)
             let candidates = [
@@ -110,6 +133,147 @@ import XCTest
             XCTAssertNil(
                 DDCDisplayCandidateSelector.uniqueCandidateIndex(
                     expected: expected,
+                    candidates: candidates
+                )
+            )
+        }
+
+        func testAppleSiliconCandidateSelectorPrefersExactSerialOverSeriallessCandidate() {
+            let expectedDisplays = [
+                DDCDisplayIdentity(vendorID: 0x1234, modelID: 0x5678, serialNumber: 42),
+                DDCDisplayIdentity(vendorID: 0x1234, modelID: 0x5678, serialNumber: nil),
+            ]
+            let candidates = [
+                DDCDisplayIdentity(vendorID: 0x1234, modelID: 0x5678, serialNumber: nil),
+                DDCDisplayIdentity(vendorID: 0x1234, modelID: 0x5678, serialNumber: 42),
+            ]
+
+            XCTAssertEqual(
+                DDCDisplayCandidateSelector.uniqueCandidateIndex(
+                    expectedIndex: 0,
+                    expectedDisplays: expectedDisplays,
+                    candidates: candidates
+                ),
+                1
+            )
+        }
+
+        func testAppleSiliconCandidateSelectorAllowsUniqueModelMatchWhenSerialIsMissing() {
+            let expectedDisplays = [
+                DDCDisplayIdentity(vendorID: 0x1234, modelID: 0x5678, serialNumber: 42),
+                DDCDisplayIdentity(vendorID: 0x1234, modelID: 0x9ABC, serialNumber: nil),
+            ]
+            let candidates = [
+                DDCDisplayIdentity(vendorID: 0x1234, modelID: 0x5678, serialNumber: nil),
+            ]
+
+            XCTAssertEqual(
+                DDCDisplayCandidateSelector.uniqueCandidateIndex(
+                    expectedIndex: 0,
+                    expectedDisplays: expectedDisplays,
+                    candidates: candidates
+                ),
+                0
+            )
+        }
+
+        func testAppleSiliconCandidateSelectorRejectsSeriallessServiceSharedByExpectedDisplays() {
+            let expectedDisplays = [
+                DDCDisplayIdentity(vendorID: 0x1234, modelID: 0x5678, serialNumber: nil),
+                DDCDisplayIdentity(vendorID: 0x1234, modelID: 0x5678, serialNumber: nil),
+            ]
+            let candidates = [
+                DDCDisplayIdentity(vendorID: 0x1234, modelID: 0x5678, serialNumber: nil),
+            ]
+
+            XCTAssertNil(
+                DDCDisplayCandidateSelector.uniqueCandidateIndex(
+                    expectedIndex: 0,
+                    expectedDisplays: expectedDisplays,
+                    candidates: candidates
+                )
+            )
+            XCTAssertNil(
+                DDCDisplayCandidateSelector.uniqueCandidateIndex(
+                    expectedIndex: 1,
+                    expectedDisplays: expectedDisplays,
+                    candidates: candidates
+                )
+            )
+        }
+
+        func testAppleSiliconCandidateSelectorDoesNotAssignExactSerialServiceToUnknownPeer() {
+            let expectedDisplays = [
+                DDCDisplayIdentity(vendorID: 0x1234, modelID: 0x5678, serialNumber: 42),
+                DDCDisplayIdentity(vendorID: 0x1234, modelID: 0x5678, serialNumber: nil),
+            ]
+            let candidates = [
+                DDCDisplayIdentity(vendorID: 0x1234, modelID: 0x5678, serialNumber: 42),
+            ]
+
+            XCTAssertEqual(
+                DDCDisplayCandidateSelector.uniqueCandidateIndex(
+                    expectedIndex: 0,
+                    expectedDisplays: expectedDisplays,
+                    candidates: candidates
+                ),
+                0
+            )
+            XCTAssertNil(
+                DDCDisplayCandidateSelector.uniqueCandidateIndex(
+                    expectedIndex: 1,
+                    expectedDisplays: expectedDisplays,
+                    candidates: candidates
+                )
+            )
+        }
+
+        func testAppleSiliconCandidateSelectorTreatsMaximumSerialAsMissingIdentity() {
+            let expectedDisplays = [
+                DDCDisplayIdentity(vendorID: 0x1234, modelID: 0x5678, serialNumber: .max),
+                DDCDisplayIdentity(vendorID: 0x1234, modelID: 0x9ABC, serialNumber: .max),
+            ]
+            let candidates = [
+                DDCDisplayIdentity(vendorID: 0x1234, modelID: 0x5678, serialNumber: .max),
+            ]
+
+            XCTAssertEqual(
+                DDCDisplayCandidateSelector.uniqueCandidateIndex(
+                    expectedIndex: 0,
+                    expectedDisplays: expectedDisplays,
+                    candidates: candidates
+                ),
+                0
+            )
+            XCTAssertNil(
+                DDCDisplayCandidateSelector.uniqueCandidateIndex(
+                    expectedIndex: 1,
+                    expectedDisplays: expectedDisplays,
+                    candidates: candidates
+                )
+            )
+        }
+
+        func testAppleSiliconCandidateSelectorStillRejectsAmbiguousMaximumSerials() {
+            let expectedDisplays = [
+                DDCDisplayIdentity(vendorID: 0x1234, modelID: 0x5678, serialNumber: .max),
+                DDCDisplayIdentity(vendorID: 0x1234, modelID: 0x5678, serialNumber: .max),
+            ]
+            let candidates = [
+                DDCDisplayIdentity(vendorID: 0x1234, modelID: 0x5678, serialNumber: .max),
+            ]
+
+            XCTAssertNil(
+                DDCDisplayCandidateSelector.uniqueCandidateIndex(
+                    expectedIndex: 0,
+                    expectedDisplays: expectedDisplays,
+                    candidates: candidates
+                )
+            )
+            XCTAssertNil(
+                DDCDisplayCandidateSelector.uniqueCandidateIndex(
+                    expectedIndex: 1,
+                    expectedDisplays: expectedDisplays,
                     candidates: candidates
                 )
             )

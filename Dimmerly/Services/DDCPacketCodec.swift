@@ -41,6 +41,12 @@ import Foundation
         let vendorID: UInt32?
         let modelID: UInt32?
         let serialNumber: UInt32?
+
+        init(vendorID: UInt32?, modelID: UInt32?, serialNumber: UInt32?) {
+            self.vendorID = vendorID
+            self.modelID = modelID
+            self.serialNumber = serialNumber.flatMap { $0 == 0 || $0 == .max ? nil : $0 }
+        }
     }
 
     /// Matches a registry or EDID identity while rejecting a known serial conflict.
@@ -49,15 +55,28 @@ import Foundation
     /// connected. A candidate with the expected vendor and product is acceptable
     /// when its serial is absent, but not when it reports a different non-zero serial.
     enum DDCDisplayIdentityMatcher {
+        /// True when a field reported by both identities differs. Zero vendor/model values
+        /// are treated as unreported.
+        static func hasKnownConflict(
+            candidate: DDCDisplayIdentity,
+            expected: DDCDisplayIdentity
+        ) -> Bool {
+            func differs(_ lhs: UInt32?, _ rhs: UInt32?) -> Bool {
+                guard let lhs, let rhs, lhs != 0, rhs != 0 else { return false }
+                return lhs != rhs
+            }
+            return differs(candidate.vendorID, expected.vendorID)
+                || differs(candidate.modelID, expected.modelID)
+                || differs(candidate.serialNumber, expected.serialNumber)
+        }
+
         static func matches(
             candidate: DDCDisplayIdentity,
             expected: DDCDisplayIdentity
         ) -> Bool {
             guard candidate.vendorID == expected.vendorID else { return false }
             if let expectedSerialNumber = expected.serialNumber,
-               expectedSerialNumber != 0,
                let candidateSerialNumber = candidate.serialNumber,
-               candidateSerialNumber != 0,
                candidateSerialNumber != expectedSerialNumber
             {
                 return false
@@ -66,9 +85,7 @@ import Foundation
             if candidate.modelID == expected.modelID {
                 return true
             }
-            guard let expectedSerialNumber = expected.serialNumber, expectedSerialNumber != 0 else {
-                return false
-            }
+            guard let expectedSerialNumber = expected.serialNumber else { return false }
             return candidate.serialNumber == expectedSerialNumber
         }
     }
@@ -86,7 +103,7 @@ import Foundation
                 DDCDisplayIdentityMatcher.matches(candidate: $0.element, expected: expected)
             }
 
-            if let expectedSerial = expected.serialNumber, expectedSerial != 0 {
+            if let expectedSerial = expected.serialNumber {
                 let exact = compatible.filter {
                     $0.element.serialNumber == expectedSerial
                 }
@@ -94,6 +111,40 @@ import Foundation
             }
 
             return compatible.count == 1 ? compatible[0].offset : nil
+        }
+
+        /// Selects a candidate only when the expected display is its sole plausible owner.
+        ///
+        /// Exact non-zero serial matches own a candidate ahead of serial-less peers. Without
+        /// such an exact match, a candidate that could belong to multiple connected displays
+        /// is rejected. This prevents separate per-display lookups from assigning one
+        /// serial-less registry service to two identical monitors.
+        static func uniqueCandidateIndex(
+            expectedIndex: Int,
+            expectedDisplays: [DDCDisplayIdentity],
+            candidates: [DDCDisplayIdentity]
+        ) -> Int? {
+            guard expectedDisplays.indices.contains(expectedIndex) else { return nil }
+            let expectedSerial = expectedDisplays[expectedIndex].serialNumber
+
+            // A candidate is owned by the displays sharing its serial, or failing that, by
+            // every display it is compatible with.
+            func owners(of candidate: DDCDisplayIdentity) -> [Int] {
+                let compatible = expectedDisplays.indices.filter {
+                    DDCDisplayIdentityMatcher.matches(candidate: candidate, expected: expectedDisplays[$0])
+                }
+                let exact = compatible.filter {
+                    candidate.serialNumber != nil && expectedDisplays[$0].serialNumber == candidate.serialNumber
+                }
+                return exact.isEmpty ? compatible : exact
+            }
+
+            let owned = candidates.indices.filter { owners(of: candidates[$0]) == [expectedIndex] }
+            let exact = owned.filter { expectedSerial != nil && candidates[$0].serialNumber == expectedSerial }
+            if !exact.isEmpty {
+                return exact.count == 1 ? exact[0] : nil
+            }
+            return owned.count == 1 ? owned[0] : nil
         }
     }
 
