@@ -17,7 +17,7 @@
 //  Known limitations:
 //  - Some built-in HDMI paths require the MCDP29xx bridge address; those are routed
 //    to 0xB7 when the DCP provider advertises AppleDCPMCDP29XX
-//  - DisplayLink USB adapters do not support DDC on macOS
+//  - DisplayLink USB adapters are not controlled by this native IOKit transport
 //  - Some EIZO monitors use a proprietary USB protocol instead of DDC/CI
 //  - Most TVs do not implement DDC/CI (they use CEC instead)
 //  - Not available in App Store builds (IOKit access requires entitlements
@@ -89,7 +89,7 @@
     /// These are standardized Virtual Control Panel codes defined in the VESA MCCS v2.2a
     /// specification. Each code controls a specific monitor parameter.
     ///
-    /// Not all monitors support all codes — use `DDCController.capabilities(for:)` to probe
+    /// Not all monitors support all codes — use `HardwareDisplayCapability.probe(displayID:)` to probe
     /// which codes a specific display implements.
     enum VCPCode: UInt8, CaseIterable {
         /// Display luminance / backlight brightness (0–100)
@@ -299,34 +299,58 @@
             #endif
         }
 
-        /// Probes a display to determine which VCP codes it supports.
-        ///
-        /// Attempts to read each VCP code and collects the ones that return valid responses.
-        /// This is an expensive operation (~50ms per code when the display responds) and
-        /// should be called once per display connection, with results cached.
-        ///
-        /// Fails fast on displays with no DDC/CI support at all: if the brightness code
-        /// (the most universally supported VCP code, and the same heuristic `supportsDDC(for:)`
-        /// uses) gets no response, every other code would fail through the same expensive
-        /// multi-transport, multi-retry path for no informational gain, so the remaining
-        /// codes are skipped rather than probed. This keeps a non-responsive display (e.g. a
-        /// DisplayLink adapter or a TV with DDC/CI disabled) from occupying the serial DDC
-        /// queue for several seconds and delaying writes queued behind it for other monitors.
-        ///
-        /// - Parameter displayID: CoreGraphics display identifier
-        /// - Returns: Set of VCP codes that the display responded to successfully
-        static func capabilities(for displayID: CGDirectDisplayID) -> Set<VCPCode> {
-            var supported = Set<VCPCode>()
-            for code in VCPCode.allCases {
-                guard read(vcp: code, for: displayID) != nil else {
-                    if code == .brightness {
-                        return supported
-                    }
-                    continue
-                }
-                supported.insert(code)
+        /// Common controls establish DDC support without requiring brightness readback.
+        /// Ordinary silent displays stop after these four codes to limit queue occupancy.
+        private static let primaryCapabilityProbeCodes: [VCPCode] = [
+            .brightness, .contrast, .volume, .inputSource,
+        ]
+
+        private static let optionalCapabilityProbeCodes: [VCPCode] = [
+            .audioMute, .powerMode, .redGain, .greenGain, .blueGain,
+        ]
+
+        /// Continuous controls need a positive maximum to normalize their current value.
+        private static let continuousCapabilityCodes: Set<VCPCode> = [
+            .brightness, .contrast, .redGain, .greenGain, .blueGain, .volume,
+        ]
+
+        /// Reads known VCP codes, retaining their values for range normalization.
+        /// Native-brightness displays probe all other codes because their brightness is
+        /// deliberately omitted and they may expose only optional DDC controls.
+        /// Injected reader supports deterministic tests without opening IOKit services.
+        static func capabilityReadResults(
+            for displayID: CGDirectDisplayID,
+            skippingBrightness: Bool = false,
+            read reader: ((VCPCode, CGDirectDisplayID) -> DDCReadResult?)? = nil
+        ) -> [VCPCode: DDCReadResult] {
+            let readCode = reader ?? { code, targetDisplayID in
+                DDCController.read(vcp: code, for: targetDisplayID)
             }
-            return supported
+            var results: [VCPCode: DDCReadResult] = [:]
+
+            for code in primaryCapabilityProbeCodes where !(skippingBrightness && code == .brightness) {
+                if let result = validCapabilityRead(readCode, code: code, displayID: displayID) {
+                    results[code] = result
+                }
+            }
+
+            guard skippingBrightness || !results.isEmpty else { return results }
+            for code in optionalCapabilityProbeCodes {
+                if let result = validCapabilityRead(readCode, code: code, displayID: displayID) {
+                    results[code] = result
+                }
+            }
+            return results
+        }
+
+        private static func validCapabilityRead(
+            _ read: (VCPCode, CGDirectDisplayID) -> DDCReadResult?,
+            code: VCPCode,
+            displayID: CGDirectDisplayID
+        ) -> DDCReadResult? {
+            guard let result = read(code, displayID) else { return nil }
+            guard !continuousCapabilityCodes.contains(code) || result.maxValue > 0 else { return nil }
+            return result
         }
 
         // MARK: - Apple Silicon Implementation
@@ -423,147 +447,106 @@
                 return DDCAppleSiliconTransport.chipAddress(for: providerClass)
             }
 
-            /// Finds and creates an IOAVService for a given display on Apple Silicon.
-            ///
-            /// On Apple Silicon, external displays are exposed via IOAVService or
-            /// DCPAVServiceProxy objects in the IOKit registry. This method:
-            /// 1. Searches both class names (M4+ uses DCPAVServiceProxy, M1–M3 uses IOAVService)
-            /// 2. Matches the registry entry to the display via EDID vendor/model/serial
-            /// 3. Creates an IOAVService CFTypeRef via `IOAVServiceCreateWithService`
-            ///
-            /// The approach is derived from the open-source m1ddc, MonitorControl, and
-            /// i2c_on_macOS projects (all MIT licensed).
-            ///
-            /// - Parameter displayID: CoreGraphics display identifier
-            /// - Returns: IOAVService object and its DDC chip address, or `nil` if not found.
-            ///           The returned CFTypeRef is retained and managed by ARC.
+            private struct AppleSiliconRegistryCandidate {
+                let service: io_service_t
+                let identity: DDCDisplayIdentity
+                let chipAddress: UInt32
+            }
+
+            private struct AppleSiliconDisplaySelectionContext {
+                let identities: [DDCDisplayIdentity]
+                let expectedIndex: Int
+            }
+
+            /// Finds and creates an IOAVService only when registry identity selects one
+            /// service for this display without also claiming it for another display.
             private static func findIOAVTransport(for displayID: CGDirectDisplayID) -> AppleSiliconDDCTransport? {
-                let vendorID = CGDisplayVendorNumber(displayID)
-                let modelID = CGDisplayModelNumber(displayID)
-                let serialNumber = CGDisplaySerialNumber(displayID)
-                // Strategy 1: Match by EDID vendor/model/serial via parent walk
                 for className in avServiceClassNames {
-                    var iterator: io_iterator_t = 0
-                    guard IOServiceGetMatchingServices(
-                        kIOMainPortDefault,
-                        IOServiceMatching(className),
-                        &iterator
-                    ) == KERN_SUCCESS else {
-                        continue
-                    }
-                    defer { IOObjectRelease(iterator) }
-
-                    var service = IOIteratorNext(iterator)
-                    while service != IO_OBJECT_NULL {
-                        if matchesDisplay(
-                            service: service, vendorID: vendorID,
-                            modelID: modelID, serialNumber: serialNumber
-                        ) {
-                            let avService = IOAVServiceCreateWithService(nil, service)?.takeRetainedValue()
-                            let chipAddress = ddcChipAddress(for: service)
-                            IOObjectRelease(service)
-                            guard let avService else { return nil }
-                            return AppleSiliconDDCTransport(
-                                service: avService,
-                                chipAddress: chipAddress
-                            )
-                        }
-                        IOObjectRelease(service)
-                        service = IOIteratorNext(iterator)
+                    let candidates = registryCandidates(className: className)
+                    defer { release(candidates) }
+                    if let candidate = selectedCandidate(for: displayID, in: candidates, identity: \.identity),
+                       let avService = IOAVServiceCreateWithService(nil, candidate.service)?.takeRetainedValue()
+                    {
+                        return AppleSiliconDDCTransport(service: avService, chipAddress: candidate.chipAddress)
                     }
                 }
 
-                // Strategy 2: Match by reading EDID via I2C from each service.
-                // On some Apple Silicon Macs (e.g. M1 Pro), the IOKit registry doesn't
-                // expose vendor/model properties in the parent chain. Reading the EDID
-                // directly over I2C (address 0x50) lets us extract the manufacturer code
-                // and product ID to match against CGDisplay-reported values.
+                // Some Apple Silicon registry trees omit display identity properties. In
+                // that case, read EDID from each candidate and apply the same ambiguity
+                // checks before using any candidate for a VCP transaction.
                 for className in avServiceClassNames {
-                    var iterator: io_iterator_t = 0
-                    guard IOServiceGetMatchingServices(
-                        kIOMainPortDefault,
-                        IOServiceMatching(className),
-                        &iterator
-                    ) == KERN_SUCCESS else {
-                        continue
-                    }
-                    defer { IOObjectRelease(iterator) }
+                    let services = matchingServices(className: className)
+                    defer { services.forEach { IOObjectRelease($0) } }
 
-                    var service = IOIteratorNext(iterator)
-                    while service != IO_OBJECT_NULL {
-                        if let avService = IOAVServiceCreateWithService(nil, service)?.takeRetainedValue(),
-                           matchesDisplayViaEDID(
-                               avService: avService, vendorID: vendorID,
-                               modelID: modelID, serialNumber: serialNumber
-                           )
-                        {
-                            let chipAddress = ddcChipAddress(for: service)
-                            IOObjectRelease(service)
-                            return AppleSiliconDDCTransport(
-                                service: avService,
-                                chipAddress: chipAddress
-                            )
+                    var candidates: [(identity: DDCDisplayIdentity, transport: AppleSiliconDDCTransport)] = []
+                    for service in services {
+                        guard let avService = IOAVServiceCreateWithService(nil, service)?.takeRetainedValue(),
+                              let identity = displayIdentity(fromEDIDOn: avService)
+                        else {
+                            continue
                         }
-                        IOObjectRelease(service)
-                        service = IOIteratorNext(iterator)
+                        candidates.append((
+                            identity: identity,
+                            transport: AppleSiliconDDCTransport(
+                                service: avService,
+                                chipAddress: ddcChipAddress(for: service)
+                            )
+                        ))
+                    }
+
+                    if let candidate = selectedCandidate(for: displayID, in: candidates, identity: \.identity) {
+                        return candidate.transport
                     }
                 }
 
-                // Strategy 3: If only one external display and one service, assume match.
                 return findSoleAVTransport(for: displayID)
             }
 
-            /// Fallback: if only one external display and one AV service exist, assume they match.
-            ///
-            /// This handles monitors where EDID vendor/model don't match CG-reported values
-            /// or where the IOKit registry structure prevents proper matching.
+            /// Preserves the single-monitor fallback when the active display topology
+            /// proves there is exactly one possible service. Any identity field that is
+            /// available must agree with the requested display.
             private static func findSoleAVTransport(for displayID: CGDirectDisplayID) -> AppleSiliconDDCTransport? {
+                guard let context = displaySelectionContext(for: displayID),
+                      context.identities.count == 1,
+                      context.expectedIndex == 0
+                else {
+                    return nil
+                }
+
+                var services: [io_service_t] = []
+                var seenRegistryIDs = Set<UInt64>()
                 for className in avServiceClassNames {
-                    var iterator: io_iterator_t = 0
-                    guard IOServiceGetMatchingServices(
-                        kIOMainPortDefault,
-                        IOServiceMatching(className),
-                        &iterator
-                    ) == KERN_SUCCESS else {
-                        continue
-                    }
-                    defer { IOObjectRelease(iterator) }
-
-                    var services: [io_service_t] = []
-                    var s = IOIteratorNext(iterator)
-                    while s != IO_OBJECT_NULL {
-                        services.append(s)
-                        s = IOIteratorNext(iterator)
-                    }
-
-                    let externalDisplays: [CGDirectDisplayID] = {
-                        var displayCount: UInt32 = 0
-                        CGGetActiveDisplayList(0, nil, &displayCount)
-                        var displays = [CGDirectDisplayID](repeating: 0, count: Int(displayCount))
-                        CGGetActiveDisplayList(displayCount, &displays, &displayCount)
-                        return displays.filter { CGDisplayIsBuiltin($0) == 0 }
-                    }()
-
-                    if services.count == 1, externalDisplays.count == 1,
-                       externalDisplays.first == displayID
-                    {
-                        let chipAddress = ddcChipAddress(for: services[0])
-                        let avService = IOAVServiceCreateWithService(nil, services[0])?.takeRetainedValue()
-                        for svc in services {
-                            IOObjectRelease(svc)
+                    for service in matchingServices(className: className) {
+                        var registryID: UInt64 = 0
+                        if IORegistryEntryGetRegistryEntryID(service, &registryID) == KERN_SUCCESS,
+                           !seenRegistryIDs.insert(registryID).inserted
+                        {
+                            IOObjectRelease(service)
+                            continue
                         }
-                        guard let avService else { return nil }
-                        return AppleSiliconDDCTransport(
-                            service: avService,
-                            chipAddress: chipAddress
-                        )
-                    }
-
-                    for svc in services {
-                        IOObjectRelease(svc)
+                        services.append(service)
                     }
                 }
-                return nil
+                defer { services.forEach { IOObjectRelease($0) } }
+
+                guard services.count == 1, let service = services.first else { return nil }
+                let expectedIdentity = context.identities[0]
+                func conflicts(_ identity: DDCDisplayIdentity?) -> Bool {
+                    identity.map {
+                        DDCDisplayIdentityMatcher.hasKnownConflict(candidate: $0, expected: expectedIdentity)
+                    } ?? false
+                }
+
+                guard !conflicts(registryIdentity(for: service)),
+                      let avService = IOAVServiceCreateWithService(nil, service)?.takeRetainedValue(),
+                      !conflicts(displayIdentity(fromEDIDOn: avService))
+                else {
+                    return nil
+                }
+                return AppleSiliconDDCTransport(
+                    service: avService,
+                    chipAddress: ddcChipAddress(for: service)
+                )
             }
 
             /// Finds and creates an IOAVDevice for a given display (HDMI fallback path).
@@ -576,38 +559,15 @@
             /// - Returns: IOAVDevice object for I2C operations, or `nil` if not available
             private static func findIOAVDevice(for displayID: CGDirectDisplayID) -> AppleSiliconDDCTransport? {
                 guard let createFn = avDeviceCreate else { return nil }
+                let candidates = registryCandidates(className: "DCPAVDeviceProxy")
+                defer { release(candidates) }
 
-                let vendorID = CGDisplayVendorNumber(displayID)
-                let modelID = CGDisplayModelNumber(displayID)
-                let serialNumber = CGDisplaySerialNumber(displayID)
-
-                var iterator: io_iterator_t = 0
-                guard IOServiceGetMatchingServices(
-                    kIOMainPortDefault,
-                    IOServiceMatching("DCPAVDeviceProxy"),
-                    &iterator
-                ) == KERN_SUCCESS else {
+                guard let candidate = selectedCandidate(for: displayID, in: candidates, identity: \.identity),
+                      let device = createFn(nil, candidate.service)?.takeRetainedValue()
+                else {
                     return nil
                 }
-                defer { IOObjectRelease(iterator) }
-
-                var service = IOIteratorNext(iterator)
-                while service != IO_OBJECT_NULL {
-                    if matchesDisplay(
-                        service: service, vendorID: vendorID,
-                        modelID: modelID, serialNumber: serialNumber
-                    ) {
-                        let device = createFn(nil, service)
-                        let chipAddress = ddcChipAddress(for: service)
-                        IOObjectRelease(service)
-                        guard let device = device?.takeRetainedValue() else { return nil }
-                        return AppleSiliconDDCTransport(service: device, chipAddress: chipAddress)
-                    }
-                    IOObjectRelease(service)
-                    service = IOIteratorNext(iterator)
-                }
-
-                return nil
+                return AppleSiliconDDCTransport(service: device, chipAddress: candidate.chipAddress)
             }
 
             /// Finds the raw IOKit service entry for direct IOConnectCallMethod access.
@@ -616,67 +576,87 @@
             /// for use with IOServiceOpen + IOConnectCallMethod. Caller must release via
             /// IOObjectRelease.
             private static func findRawTransport(for displayID: CGDirectDisplayID) -> AppleSiliconRawDDCTransport? {
-                let vendorID = CGDisplayVendorNumber(displayID)
-                let modelID = CGDisplayModelNumber(displayID)
-                let serialNumber = CGDisplaySerialNumber(displayID)
-
                 let allClassNames = avServiceClassNames + ["DCPAVDeviceProxy"]
                 for className in allClassNames {
-                    var iterator: io_iterator_t = 0
-                    guard IOServiceGetMatchingServices(
-                        kIOMainPortDefault,
-                        IOServiceMatching(className),
-                        &iterator
-                    ) == KERN_SUCCESS else {
-                        continue
-                    }
-                    defer { IOObjectRelease(iterator) }
-
-                    var service = IOIteratorNext(iterator)
-                    while service != IO_OBJECT_NULL {
-                        if matchesDisplay(
-                            service: service, vendorID: vendorID,
-                            modelID: modelID, serialNumber: serialNumber
-                        ) {
-                            return AppleSiliconRawDDCTransport(
-                                service: service,
-                                chipAddress: ddcChipAddress(for: service)
-                            )
-                        }
-                        IOObjectRelease(service)
-                        service = IOIteratorNext(iterator)
+                    let candidates = registryCandidates(className: className)
+                    defer { release(candidates) }
+                    if let candidate = selectedCandidate(for: displayID, in: candidates, identity: \.identity) {
+                        // Retained for the caller; the deferred release balances the iterator's reference.
+                        IOObjectRetain(candidate.service)
+                        return AppleSiliconRawDDCTransport(
+                            service: candidate.service,
+                            chipAddress: candidate.chipAddress
+                        )
                     }
                 }
 
                 return nil
             }
 
-            /// Checks if an IOAVService corresponds to a specific display by examining
-            /// the IOKit registry hierarchy for matching EDID properties.
-            private static func matchesDisplay(
-                service: io_service_t,
-                vendorID: UInt32,
-                modelID: UInt32,
-                serialNumber: UInt32
-            ) -> Bool {
-                // Walk up the registry to find the parent with EDID/display info
-                var current = service
-                let expectedIdentity = DDCDisplayIdentity(
-                    vendorID: vendorID,
-                    modelID: modelID,
-                    serialNumber: serialNumber
-                )
+            private static func matchingServices(className: String) -> [io_service_t] {
+                var iterator: io_iterator_t = 0
+                guard IOServiceGetMatchingServices(
+                    kIOMainPortDefault,
+                    IOServiceMatching(className),
+                    &iterator
+                ) == KERN_SUCCESS else {
+                    return []
+                }
+                defer { IOObjectRelease(iterator) }
 
-                // Walk up a few levels looking for display properties
+                var services: [io_service_t] = []
+                var service = IOIteratorNext(iterator)
+                while service != IO_OBJECT_NULL {
+                    services.append(service)
+                    service = IOIteratorNext(iterator)
+                }
+                return services
+            }
+
+            /// Collects every service with registry identity while releasing services that
+            /// cannot participate in a safe identity match.
+            private static func registryCandidates(className: String) -> [AppleSiliconRegistryCandidate] {
+                let services = matchingServices(className: className)
+                var candidates: [AppleSiliconRegistryCandidate] = []
+                for service in services {
+                    guard let identity = registryIdentity(for: service) else {
+                        IOObjectRelease(service)
+                        continue
+                    }
+                    candidates.append(AppleSiliconRegistryCandidate(
+                        service: service,
+                        identity: identity,
+                        chipAddress: ddcChipAddress(for: service)
+                    ))
+                }
+                return candidates
+            }
+
+            private static func release(_ candidates: [AppleSiliconRegistryCandidate]) {
+                candidates.forEach { IOObjectRelease($0.service) }
+            }
+
+            private static func registryIdentity(for service: io_service_t) -> DDCDisplayIdentity? {
+                var current = service
+                defer {
+                    if current != service {
+                        IOObjectRelease(current)
+                    }
+                }
+
+                var vendorID: UInt32?
+                var modelID: UInt32?
+                var serialNumber: UInt32?
+
                 for _ in 0 ..< 5 {
-                    var nextParent: io_registry_entry_t = 0
-                    guard IORegistryEntryGetParentEntry(current, kIOServicePlane, &nextParent) == KERN_SUCCESS else {
+                    var parent: io_registry_entry_t = IO_OBJECT_NULL
+                    guard IORegistryEntryGetParentEntry(current, kIOServicePlane, &parent) == KERN_SUCCESS else {
                         break
                     }
                     if current != service {
                         IOObjectRelease(current)
                     }
-                    current = nextParent
+                    current = parent
 
                     var properties: Unmanaged<CFMutableDictionary>?
                     guard IORegistryEntryCreateCFProperties(
@@ -687,51 +667,64 @@
                         continue
                     }
 
-                    let candidateSerialNumber = dict["DisplaySerialNumber"] as? UInt32
-
-                    // Check for ProductID/VendorID match (Apple Silicon display properties).
-                    if DDCDisplayIdentityMatcher.matches(
-                        candidate: DDCDisplayIdentity(
-                            vendorID: dict["VendorID"] as? UInt32,
-                            modelID: dict["ProductID"] as? UInt32,
-                            serialNumber: candidateSerialNumber
-                        ),
-                        expected: expectedIdentity
-                    ) {
-                        if current != service {
-                            IOObjectRelease(current)
-                        }
-                        return true
-                    }
-
-                    // Check for DisplayVendorID/DisplayProductID match (standard IOKit display).
-                    if DDCDisplayIdentityMatcher.matches(
-                        candidate: DDCDisplayIdentity(
-                            vendorID: dict["DisplayVendorID"] as? UInt32,
-                            modelID: dict["DisplayProductID"] as? UInt32,
-                            serialNumber: candidateSerialNumber
-                        ),
-                        expected: expectedIdentity
-                    ) {
-                        if current != service {
-                            IOObjectRelease(current)
-                        }
-                        return true
-                    }
-
-                    // Check for serial number match
-                    if serialNumber != 0, let sn = dict["DisplaySerialNumber"] as? UInt32, sn == serialNumber {
-                        if current != service {
-                            IOObjectRelease(current)
-                        }
-                        return true
-                    }
+                    vendorID = vendorID ?? (dict["VendorID"] as? UInt32) ?? (dict["DisplayVendorID"] as? UInt32)
+                    modelID = modelID ?? (dict["ProductID"] as? UInt32) ?? (dict["DisplayProductID"] as? UInt32)
+                    serialNumber = serialNumber ?? (dict["DisplaySerialNumber"] as? UInt32)
                 }
 
-                if current != service {
-                    IOObjectRelease(current)
+                guard vendorID != nil || modelID != nil || serialNumber != nil else { return nil }
+                return DDCDisplayIdentity(
+                    vendorID: vendorID,
+                    modelID: modelID,
+                    serialNumber: serialNumber
+                )
+            }
+
+            private static func displaySelectionContext(
+                for displayID: CGDirectDisplayID
+            ) -> AppleSiliconDisplaySelectionContext? {
+                var displayCount: UInt32 = 0
+                guard CGGetActiveDisplayList(0, nil, &displayCount) == .success else { return nil }
+                var displayIDs = [CGDirectDisplayID](repeating: 0, count: Int(displayCount))
+                guard CGGetActiveDisplayList(displayCount, &displayIDs, &displayCount) == .success else {
+                    return nil
                 }
-                return false
+
+                let externalDisplayIDs = displayIDs.prefix(Int(displayCount)).filter {
+                    CGDisplayIsBuiltin($0) == 0
+                }
+
+                guard let expectedIndex = externalDisplayIDs.firstIndex(of: displayID) else { return nil }
+                let identities = externalDisplayIDs.map { externalDisplayID in
+                    let serial = CGDisplaySerialNumber(externalDisplayID)
+                    return DDCDisplayIdentity(
+                        vendorID: CGDisplayVendorNumber(externalDisplayID),
+                        modelID: CGDisplayModelNumber(externalDisplayID),
+                        serialNumber: serial
+                    )
+                }
+                return AppleSiliconDisplaySelectionContext(
+                    identities: identities,
+                    expectedIndex: expectedIndex
+                )
+            }
+
+            /// Returns the candidate that identity selection assigns to this display, if any.
+            private static func selectedCandidate<Candidate>(
+                for displayID: CGDirectDisplayID,
+                in candidates: [Candidate],
+                identity: (Candidate) -> DDCDisplayIdentity
+            ) -> Candidate? {
+                guard let context = displaySelectionContext(for: displayID),
+                      let index = DDCDisplayCandidateSelector.uniqueCandidateIndex(
+                          expectedIndex: context.expectedIndex,
+                          expectedDisplays: context.identities,
+                          candidates: candidates.map(identity)
+                      )
+                else {
+                    return nil
+                }
+                return candidates[index]
             }
 
             /// Checks if an IOAVService corresponds to a specific display by reading its
@@ -746,30 +739,18 @@
             ///
             /// CoreGraphics reports vendor as the raw 2-byte manufacturer code and model
             /// as the product code, so these can be compared directly.
-            private static func matchesDisplayViaEDID(
-                avService: CFTypeRef,
-                vendorID: UInt32,
-                modelID: UInt32,
-                serialNumber: UInt32
-            ) -> Bool {
-                guard let edid = readEDID(from: avService) else { return false }
+            private static func displayIdentity(fromEDIDOn avService: CFTypeRef) -> DDCDisplayIdentity? {
+                guard let edid = readEDID(from: avService) else { return nil }
 
                 let edidVendor = UInt32(edid[8]) << 8 | UInt32(edid[9])
                 let edidProduct = UInt16(edid[10]) | (UInt16(edid[11]) << 8)
                 let edidSerial = UInt32(edid[12]) | (UInt32(edid[13]) << 8)
                     | (UInt32(edid[14]) << 16) | (UInt32(edid[15]) << 24)
 
-                return DDCDisplayIdentityMatcher.matches(
-                    candidate: DDCDisplayIdentity(
-                        vendorID: edidVendor,
-                        modelID: UInt32(edidProduct),
-                        serialNumber: edidSerial
-                    ),
-                    expected: DDCDisplayIdentity(
-                        vendorID: vendorID,
-                        modelID: modelID,
-                        serialNumber: serialNumber
-                    )
+                return DDCDisplayIdentity(
+                    vendorID: edidVendor,
+                    modelID: UInt32(edidProduct),
+                    serialNumber: edidSerial
                 )
             }
 

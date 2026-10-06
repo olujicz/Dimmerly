@@ -13,6 +13,10 @@ enum DisplayBrightnessOutput: Equatable, Sendable {
     /// The built-in panel is in software fallback after a failed backlight write. Gamma carries
     /// brightness, but writes keep being attempted so the panel can recover.
     case builtInBacklightFallback
+    /// A supported external display's native brightness controller owns brightness.
+    case externalBacklight
+    /// External native writes failed; gamma carries brightness while native writes can retry.
+    case externalBacklightFallback
     /// DDC/CI owns brightness on an external display; gamma stays neutral.
     case ddc
     /// Software gamma owns brightness.
@@ -23,7 +27,14 @@ enum DisplayBrightnessOutput: Equatable, Sendable {
     var writesBuiltInBacklight: Bool {
         switch self {
         case .builtInBacklight, .builtInBacklightFallback: true
-        case .ddc, .gamma: false
+        case .externalBacklight, .externalBacklightFallback, .ddc, .gamma: false
+        }
+    }
+
+    var writesExternalBacklight: Bool {
+        switch self {
+        case .externalBacklight, .externalBacklightFallback: true
+        case .builtInBacklight, .builtInBacklightFallback, .ddc, .gamma: false
         }
     }
 }
@@ -39,13 +50,28 @@ struct DisplayOutputPolicy: Equatable, Sendable {
             isBuiltIn: Bool,
             isDDCEnabled: Bool,
             supportsDDCBrightness: Bool,
+            supportsNativeBacklight: Bool = false,
+            experimentalNativeBrightnessEnabled: Bool = false,
             requestedBrightness: Double,
-            builtInBacklightAvailable: Bool = true
+            builtInBacklightAvailable: Bool = true,
+            nativeBacklightAvailable: Bool = true
         ) -> Self {
             if isBuiltIn {
                 return Self(
                     output: builtInBacklightAvailable ? .builtInBacklight : .builtInBacklightFallback,
                     gammaBrightness: builtInBacklightAvailable ? 1 : requestedBrightness,
+                    appliesGammaColorAdjustments: true
+                )
+            }
+
+            let usesNativeBacklight = mode == .hardware
+                && isDDCEnabled
+                && experimentalNativeBrightnessEnabled
+                && supportsNativeBacklight
+            if usesNativeBacklight {
+                return Self(
+                    output: nativeBacklightAvailable ? .externalBacklight : .externalBacklightFallback,
+                    gammaBrightness: nativeBacklightAvailable ? 1 : requestedBrightness,
                     appliesGammaColorAdjustments: true
                 )
             }

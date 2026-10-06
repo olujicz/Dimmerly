@@ -1,13 +1,13 @@
-name: Monitor / DDC compatibility report
-description: Report what hardware monitor controls work with your display setup
+name: External display compatibility report
+description: Voluntarily report DDC/CI or experimental native brightness behavior
 title: "[Monitor] "
 labels: ["question"]
 body:
   - type: markdown
     attributes:
       value: |
-        DDC/CI support depends on the monitor, cable, adapter, hub, dock, KVM, and Mac.
-        These reports help track which setups work and which ones need troubleshooting.
+        Display behavior depends on the monitor, connection, and Mac. Reports are optional;
+        Dimmerly does not collect compatibility details automatically.
   - type: input
     id: dimmerly-version
     attributes:
@@ -69,8 +69,27 @@ body:
         - "No"
         - I cannot find this setting
         - Not sure
+        - Not applicable (native brightness only)
     validations:
       required: true
+  - type: dropdown
+    id: native-brightness-enabled
+    attributes:
+      label: Was Experimental native brightness enabled in Settings?
+      options:
+        - "Yes"
+        - "No"
+        - Not sure
+        - Not applicable (reporting DDC/CI only)
+  - type: dropdown
+    id: native-brightness-fallback
+    attributes:
+      label: If native brightness was enabled, did Dimmerly fall back to software brightness?
+      options:
+        - "Yes"
+        - "No"
+        - Not sure
+        - Not applicable (option was off or this is a DDC/CI-only report)
   - type: checkboxes
     id: working-controls
     attributes:
@@ -97,7 +116,5 @@ body:
     attributes:
       label: Pre-flight checks
       options:
-        - label: I checked that the monitor supports DDC/CI.
-          required: true
         - label: I checked the README troubleshooting and known limitations sections.
           required: true

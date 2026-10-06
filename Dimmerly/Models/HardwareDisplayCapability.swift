@@ -94,32 +94,38 @@
             )
         }
 
-        /// Probes a display for DDC/CI capabilities by reading each VCP code.
+        /// Probes a bounded set of known VCP codes and keeps the successful responses.
         ///
-        /// This is an expensive operation (~360ms for all 9 codes). Call on a background
-        /// thread and cache the result.
+        /// The common controls are checked first. A silent display stops after those four
+        /// reads; less common controls are checked after DDC has been confirmed, or when
+        /// native brightness is intentionally excluded from discovery.
+        /// Each read can involve transport retries, so call this on a background thread.
         ///
         /// - Parameter displayID: CoreGraphics display identifier to probe
         /// - Returns: Capability record with supported codes and max values
-        static func probe(displayID: CGDirectDisplayID) -> HardwareDisplayCapability {
-            let supportedCodes = DDCController.capabilities(for: displayID)
+        static func probe(
+            displayID: CGDirectDisplayID,
+            skippingBrightness: Bool = false,
+            read: ((VCPCode, CGDirectDisplayID) -> DDCReadResult?)? = nil
+        ) -> HardwareDisplayCapability {
+            let readResults = DDCController.capabilityReadResults(
+                for: displayID,
+                skippingBrightness: skippingBrightness,
+                read: read
+            )
+            let supportedCodes = Set(readResults.keys)
 
             guard !supportedCodes.isEmpty else {
                 return .notSupported(displayID: displayID)
             }
 
-            // Read max values for the key continuous controls
-            let maxBrightness = DDCController.read(vcp: .brightness, for: displayID)?.maxValue ?? 100
-            let maxContrast = DDCController.read(vcp: .contrast, for: displayID)?.maxValue ?? 100
-            let maxVolume = DDCController.read(vcp: .volume, for: displayID)?.maxValue ?? 100
-
             return HardwareDisplayCapability(
                 displayID: displayID,
                 supportsDDC: true,
                 supportedCodes: supportedCodes,
-                maxBrightness: maxBrightness,
-                maxContrast: maxContrast,
-                maxVolume: maxVolume
+                maxBrightness: readResults[.brightness]?.maxValue ?? 100,
+                maxContrast: readResults[.contrast]?.maxValue ?? 100,
+                maxVolume: readResults[.volume]?.maxValue ?? 100
             )
         }
     }
@@ -128,7 +134,7 @@
     ///
     /// Determines how Dimmerly adjusts display output:
     /// - Software: Uses CoreGraphics gamma tables (works everywhere)
-    /// - Hardware: Uses DDC/CI for brightness when supported and gamma for color adjustments
+    /// - Hardware: Uses a native backlight or DDC/CI when available, with software fallback
     enum DDCControlMode: String, CaseIterable, Identifiable {
         /// Use software gamma tables for brightness and color adjustments.
         case softwareOnly = "software"
@@ -158,7 +164,7 @@
                 )
             case .hardware:
                 String(
-                    localized: "Uses DDC for brightness and gamma tables for warmth and contrast. Automatically uses software brightness if DDC is not available.",
+                    localized: "Uses the display's native backlight or DDC for brightness when available, with gamma tables for warmth and contrast. Falls back to software brightness when hardware control is unavailable.",
                     comment: "Description of hardware DDC control mode"
                 )
             }

@@ -236,16 +236,42 @@ struct DisplaySettingsTab: View {
                         }
                     }
                 ))
-                .help("Uses DDC/CI to control compatible external displays directly. "
+                .help("Uses native brightness or DDC/CI to control compatible external displays directly. "
                     + "Unsupported displays continue using software brightness.")
 
                 if settings.ddcEnabled {
-                    let hardwareControlModesAvailable = isDDCControlModeAvailable(
-                        .hardware,
-                        hardwareManager: hardwareManager
+                    Toggle("Experimental native brightness", isOn: Binding(
+                        get: { settings.experimentalNativeBrightnessEnabled },
+                        set: { newValue in
+                            applyExperimentalNativeBrightnessChange(
+                                newValue,
+                                settings: settings,
+                                hardwareManager: hardwareManager,
+                                brightnessManager: brightnessManager
+                            )
+                        }
+                    ))
+                    .help(
+                        "Tries native brightness control for compatible external Apple and LG displays. "
+                            + "Support varies by model; software brightness remains the fallback."
                     )
 
-                    if hardwareControlModesAvailable {
+                    Text(
+                        "Experimental and unverified across display models. If native control fails, "
+                            + "Dimmerly falls back to software brightness."
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                    let hardwareControlModesAvailable = isDDCControlModeAvailable(
+                        .hardware,
+                        hardwareManager: hardwareManager,
+                        supportsNativeBacklight: brightnessManager.displays.contains(where: \.supportsNativeBacklight)
+                    )
+
+                    // Keep the picker reachable while opted in, since native support is only
+                    // discovered in hardware mode.
+                    if hardwareControlModesAvailable || settings.experimentalNativeBrightnessEnabled {
                         Picker("Brightness Control", selection: Binding(
                             get: { settings.ddcControlMode },
                             set: { settings.ddcControlMode = $0 }
@@ -259,7 +285,10 @@ struct DisplaySettingsTab: View {
                         .help("Choose how Dimmerly controls display brightness")
                         .onChange(of: settings.ddcControlMode) {
                             applyDDCRuntimeSettings(settings: settings, hardwareManager: hardwareManager)
-                            brightnessManager.reapplyAll()
+                            brightnessManager.refreshDisplays()
+                            if settings.ddcEnabled {
+                                hardwareManager.probeAllDisplays(force: true)
+                            }
                         }
 
                         Text(settings.ddcControlMode.description)
@@ -313,13 +342,13 @@ struct DisplaySettingsTab: View {
                     } else {
                         Label {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Hardware controls aren’t available")
+                                Text("Hardware brightness isn’t available")
                                     .fontWeight(.medium)
 
                                 Text(
-                                    "None of your connected displays supports direct hardware control. "
-                                        + "Dimmerly is using software brightness and will switch automatically "
-                                        + "when a compatible display is connected."
+                                    "Dimmerly is using software brightness for your external displays. "
+                                        + "Other supported monitor controls remain available. Hardware brightness "
+                                        + "will be used when a compatible display is connected."
                                 )
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -333,15 +362,32 @@ struct DisplaySettingsTab: View {
                         .accessibilityElement(children: .combine)
                     }
 
-                    // Per-display DDC status
-                    if !hardwareManager.capabilities.isEmpty {
+                    // Per-display native brightness and DDC status.
+                    let nativeDisplays = hardwareManager.isExternalNativeBrightnessActive
+                        ? brightnessManager.displays.filter(\.supportsNativeBacklight)
+                        : []
+                    if !hardwareManager.capabilities.isEmpty || !nativeDisplays.isEmpty {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Display compatibility")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
 
+                            ForEach(nativeDisplays) { display in
+                                HStack(spacing: 6) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(.green)
+                                    Text(display.name)
+                                    Spacer()
+                                    Text("Native hardware brightness")
+                                        .foregroundStyle(.secondary)
+                                }
+                                .font(.caption)
+                                .accessibilityElement(children: .combine)
+                            }
                             ForEach(Array(hardwareManager.capabilities.keys.sorted()), id: \.self) { displayID in
-                                if let cap = hardwareManager.capabilities[displayID] {
+                                if !nativeDisplays.contains(where: { $0.id == displayID }),
+                                   let cap = hardwareManager.capabilities[displayID]
+                                {
                                     ddcDisplayStatusRow(displayID: displayID, capability: cap)
                                 }
                             }

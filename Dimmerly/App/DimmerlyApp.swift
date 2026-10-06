@@ -434,8 +434,10 @@ struct DimmerlyApp: App {
             hardwareManager.applyRuntimeSettings(
                 controlMode: settings.ddcControlMode,
                 pollingInterval: settings.ddcPollingInterval,
-                writeDelayMilliseconds: settings.ddcWriteDelay
+                writeDelayMilliseconds: settings.ddcWriteDelay,
+                experimentalNativeBrightnessEnabled: settings.experimentalNativeBrightnessEnabled
             )
+            BrightnessManager.shared.refreshDisplays()
             hardwareManager.probeAllDisplays()
             hardwareManager.startPolling()
         }

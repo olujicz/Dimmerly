@@ -296,6 +296,7 @@ struct DisplayBrightnessRow: View {
         var availableInputSources: [InputSource] = []
         /// Whether this display supports DDC
         var hasDDC: Bool = false
+        var hasNativeBacklight: Bool = false
     #endif
 
     @State private var sliderValue: Double
@@ -359,7 +360,13 @@ struct DisplayBrightnessRow: View {
                 )
 
                 #if !APPSTORE
-                    if hasDDC {
+                    if hasNativeBacklight {
+                        Image(systemName: "sun.max.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                            .help("Native hardware brightness")
+                            .accessibilityLabel(Text("Native hardware brightness"))
+                    } else if hasDDC {
                         Image(systemName: "cable.connector.horizontal")
                             .font(.caption2)
                             .foregroundStyle(.tertiary)

@@ -17,12 +17,14 @@ import SwiftUI
         func ddcControls(
             hardwareManager: HardwareBrightnessManager,
             displayID: CGDirectDisplayID,
-            isBuiltIn: Bool = false
+            isBuiltIn: Bool = false,
+            supportsNativeBacklight: Bool = false
         ) -> DisplayBrightnessRow {
             // Built-in display does not support DDC
             guard !isBuiltIn else { return self }
 
             var copy = self
+            copy.hasNativeBacklight = supportsNativeBacklight && hardwareManager.isExternalNativeBrightnessActive
             let hasDDC = hardwareManager.isEnabled && hardwareManager.supportsDDC(for: displayID)
             copy.hasDDC = hasDDC
 

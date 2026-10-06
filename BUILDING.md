@@ -110,8 +110,11 @@ Repository-level branch protection, tag protection, Actions, and security settin
 - Uses `pmset displaysleepnow` for real display sleep
 - Includes an optional "Prevent Screen Lock" mode that uses gamma-based dimming instead of display sleep
 - DDC/CI hardware control is enabled by default — displays are probed on launch and when connected; displays that don't support DDC automatically fall back to software gamma control
+- Experimental native external brightness is controlled by the "Experimental native brightness" setting and is off by default. It uses DisplayServices only for external displays that return a valid native brightness read; failed native writes fall back to software gamma.
+- The native brightness experiment is unverified across monitor models. It is separate from the existing DDC/CI path; leave it off to retain the existing DDC and software behavior.
 - DDC/CI probe, read, and write operations are serialized on a dedicated queue and writes are rate-limited to avoid overlapping transactions on the monitor control bus
 - DDC display matching uses EDID read over I2C (address 0x50) on Apple Silicon, as the IOKit registry may not expose vendor/model properties in the DCPAVServiceProxy parent chain
+- Apple Silicon display matching rejects ambiguous identities across connected displays rather than selecting the first matching monitor
 
 ### App Store Build
 
