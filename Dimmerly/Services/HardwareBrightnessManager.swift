@@ -442,11 +442,14 @@
                 var results: [CGDirectDisplayID: HardwareDisplayCapability] = [:]
 
                 for displayID in displayIDs {
-                    guard let connectionToken = connectionTokens[displayID],
-                          sessionGate.isCurrent(session),
-                          displayConnectionGate.isCurrent(connectionToken),
+                    guard sessionGate.isCurrent(session),
                           isNativeConfigurationCurrent(nativeWorkSession)
                     else { return }
+                    // A disconnected monitor invalidates only its own work. Keep probing and
+                    // publishing the rest of the batch while the global session is still live.
+                    guard let connectionToken = connectionTokens[displayID],
+                          displayConnectionGate.isCurrent(connectionToken)
+                    else { continue }
                     let capability = ddcIO.probeCapabilities(
                         for: displayID,
                         skippingBrightness: nativeBrightnessDisplayIDs.contains(displayID)
@@ -853,15 +856,15 @@
                     defer { readPublicationHookForTesting?() }
                     guard sessionGate.isCurrent(session),
                           displayConnectionGate.isCurrent(connection),
-                          isNativeConfigurationCurrent(nativeWorkSession),
                           capabilities[displayID] == cap
                     else { return }
                     let canApply = { (vcp: VCPCode) in
-                        self.shouldApplyRead(
-                            vcp: vcp,
-                            connection: connection,
-                            readStartedAt: readStartedAt
-                        )
+                        self.isNativeConfigurationCurrent(nativeWorkSession, for: vcp)
+                            && self.shouldApplyRead(
+                                vcp: vcp,
+                                connection: connection,
+                                readStartedAt: readStartedAt
+                            )
                     }
                     if let brightness = values.brightness, canApply(.brightness) {
                         hardwareBrightness[displayID] = brightness

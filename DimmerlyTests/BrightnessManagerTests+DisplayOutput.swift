@@ -10,6 +10,167 @@ import XCTest
 
 @MainActor
 extension BrightnessManagerTests {
+    func testAnimatedPresetPreservesUnspecifiedBrightnessBelowSliderMinimum() async {
+        bm.displays = [ExternalDisplay(id: 7, name: "Test", brightness: 0.02)]
+        bm.canAnimateTransitionsHook = { true }
+        let finished = expectation(description: "Warmth transition finished")
+        var completed = false
+        bm.applyGammaHook = { _, _, warmth, _ in
+            if warmth == 0.8, !completed {
+                completed = true
+                finished.fulfill()
+            }
+        }
+
+        XCTAssertTrue(bm.animateToPreset(BrightnessPreset(name: "Warmth", universalWarmth: 0.8)))
+        await fulfillment(of: [finished], timeout: 2)
+
+        XCTAssertEqual(bm.brightness(for: 7), 0.02, accuracy: 0.0001)
+    }
+
+    #if !APPSTORE
+        func testWarmthOnlyPresetDoesNotWriteLowBuiltInBrightness() async {
+            var display = ExternalDisplay(id: 7, name: "Built-in", brightness: 0.02)
+            display.isBuiltIn = true
+            bm.displays = [display]
+            bm.canAnimateTransitionsHook = { true }
+            var backlightWrites = 0
+            bm.setBuiltInBacklightHook = { _, _ in
+                backlightWrites += 1
+                return false
+            }
+            let finished = expectation(description: "Warmth animation finished")
+            finished.assertForOverFulfill = false
+            var gammaBrightness: [Double] = []
+            bm.applyGammaHook = { _, brightness, warmth, _ in
+                gammaBrightness.append(brightness)
+                if warmth == 0.8 {
+                    finished.fulfill()
+                }
+            }
+
+            XCTAssertTrue(bm.animateToPreset(BrightnessPreset(name: "Warmth", universalWarmth: 0.8)))
+            await fulfillment(of: [finished], timeout: 2)
+
+            XCTAssertEqual(backlightWrites, 0)
+            XCTAssertEqual(bm.brightness(for: 7), 0.02, accuracy: 0.0001)
+            XCTAssertTrue(gammaBrightness.allSatisfy { $0 == 1 }, "Unrequested writes must not activate gamma fallback")
+        }
+
+        func testPartialPresetCommitsOnlyRequestedHardwareBrightness() async {
+            let writes = preparePartialPresetAnimation()
+            let finished = expectation(description: "Partial preset animation finished")
+            finished.assertForOverFulfill = false
+            bm.applyGammaHook = { id, _, warmth, _ in
+                if id == 8, warmth == 0.8 {
+                    finished.fulfill()
+                }
+            }
+
+            XCTAssertTrue(bm.animateToPreset(BrightnessPreset(
+                name: "Partial",
+                displayBrightness: ["identity-8": 0.4],
+                universalWarmth: 0.8
+            )))
+            await fulfillment(of: [finished], timeout: 2)
+
+            XCTAssertEqual(writes.values.map(\.displayID), [8])
+            XCTAssertEqual(bm.brightness(for: 8), 0.4, accuracy: 0.0001)
+        }
+
+        func testCancelledPartialPresetCommitsOnlyRequestedHardwareBrightness() async {
+            let writes = preparePartialPresetAnimation()
+            let started = expectation(description: "Partial preset animation started")
+            let firstFrame = FirstCallGate()
+            bm.applyGammaHook = { _, _, _, _ in
+                if firstFrame.consume() {
+                    started.fulfill()
+                }
+            }
+
+            XCTAssertTrue(bm.animateToPreset(BrightnessPreset(
+                name: "Partial",
+                displayBrightness: ["identity-8": 0.4],
+                universalWarmth: 0.8
+            )))
+            await fulfillment(of: [started], timeout: 2)
+            let intermediateBrightness = bm.brightness(for: 8)
+            // Starting a warmth transition cancels the preset and commits its intermediate brightness.
+            let finished = expectation(description: "Replacement warmth animation finished")
+            finished.assertForOverFulfill = false
+            bm.applyGammaHook = { id, _, warmth, _ in
+                if id == 8, abs(warmth - 0.6) < 0.0001 {
+                    finished.fulfill()
+                }
+            }
+            XCTAssertTrue(bm.animateAllWarmth(to: 0.6))
+            await fulfillment(of: [finished], timeout: 2)
+
+            XCTAssertEqual(writes.values.map(\.displayID), [8])
+            XCTAssertEqual(bm.brightness(for: 8), intermediateBrightness, accuracy: 0.0001)
+        }
+
+        private func preparePartialPresetAnimation() -> LockedWriteRecorder {
+            var builtIn = ExternalDisplay(id: 7, name: "Built-in", brightness: 0.02)
+            builtIn.isBuiltIn = true
+            bm.displays = [builtIn, ExternalDisplay(id: 8, name: "External", brightness: 0.9)]
+            bm.displayIdentityHook = { "identity-\($0)" }
+            bm.canAnimateTransitionsHook = { true }
+            HardwareBrightnessManager.shared.capabilities[8] = HardwareDisplayCapability(
+                displayID: 8,
+                supportsDDC: true,
+                supportedCodes: [.brightness],
+                maxBrightness: 100,
+                maxContrast: 0,
+                maxVolume: 0
+            )
+            let writes = LockedWriteRecorder()
+            bm.setBuiltInBacklightHook = { id, value in
+                writes.record(code: .brightness, value: UInt16((value * 100).rounded()), displayID: id)
+                return false
+            }
+            bm.setExternalHardwareBrightnessHook = { id, value in
+                writes.record(code: .brightness, value: UInt16((value * 100).rounded()), displayID: id)
+            }
+            return writes
+        }
+
+        func testUniformWarmthAnimationPreservesHardwareBrightnessUpdate() async {
+            await assertWarmthAnimationPreservesHardwareBrightness(perDisplay: false)
+        }
+
+        func testPerDisplayWarmthAnimationPreservesHardwareBrightnessUpdate() async {
+            await assertWarmthAnimationPreservesHardwareBrightness(perDisplay: true)
+        }
+
+        private func assertWarmthAnimationPreservesHardwareBrightness(perDisplay: Bool) async {
+            bm.displays = [ExternalDisplay(id: 7, name: "Test", brightness: 0.8)]
+            bm.displayIdentityHook = { "identity-\($0)" }
+            bm.canAnimateTransitionsHook = { true }
+            var updatedBrightness = false
+            let finished = expectation(description: "Warmth transition finished")
+            bm.applyGammaHook = { [weak bm] _, _, warmth, _ in
+                if !updatedBrightness {
+                    updatedBrightness = true
+                    bm?.synchronizeExternalHardwareBrightness(for: 7, to: 0.3)
+                }
+                if warmth == 0.8 {
+                    finished.fulfill()
+                }
+            }
+
+            let started = perDisplay
+                ? bm.animateWarmthValues(["identity-7": 0.8])
+                : bm.animateAllWarmth(to: 0.8)
+            XCTAssertTrue(started)
+            await fulfillment(of: [finished], timeout: 2)
+
+            XCTAssertTrue(updatedBrightness)
+            XCTAssertEqual(bm.brightness(for: 7), 0.3, accuracy: 0.0001)
+            XCTAssertEqual(bm.warmth(for: 7), 0.8, accuracy: 0.0001)
+        }
+    #endif
+
     func testPersistenceIdentityPreservesLegacyKeysForMissingUnitNumbers() {
         for unitNumber in [UInt32(0), UInt32.max] {
             let key = BrightnessManager.persistenceIdentity(
@@ -651,6 +812,108 @@ extension BrightnessManagerTests {
 
 #if !APPSTORE
     extension HardwareBrightnessManagerTests {
+        func testDisconnectedDisplayDoesNotDiscardOtherProbeResults() async {
+            let probeStarted = expectation(description: "First display probe started")
+            let probePublished = expectation(description: "Connected display capability published")
+            let disconnectedProbed = expectation(description: "Disconnected display must not be probed")
+            disconnectedProbed.isInverted = true
+            let blockingProbe = BlockingDDCRecorder(firstCallStarted: probeStarted)
+            var connectedIDs: [CGDirectDisplayID] = [1, 2]
+            var mock = MockDDCInterface()
+            mock.probeHandler = { id in
+                if id == 1 {
+                    blockingProbe.record(.brightness)
+                } else {
+                    disconnectedProbed.fulfill()
+                }
+                return HardwareDisplayCapability(
+                    displayID: id,
+                    supportsDDC: true,
+                    supportedCodes: [.brightness],
+                    maxBrightness: 100,
+                    maxContrast: 0,
+                    maxVolume: 0
+                )
+            }
+            let manager = HardwareBrightnessManager(
+                forTesting: true,
+                ddcInterface: mock,
+                connectedExternalDisplayIDsProvider: { connectedIDs },
+                displayRefreshHandler: { probePublished.fulfill() },
+                hardwareBrightnessReadHandler: { _, _ in }
+            )
+            manager.enable()
+            manager.probeAllDisplays()
+            await fulfillment(of: [probeStarted], timeout: 1)
+
+            connectedIDs = [1]
+            manager.removeDisplay(2)
+            blockingProbe.releaseFirstCall()
+            await fulfillment(of: [probePublished, disconnectedProbed], timeout: 1)
+
+            XCTAssertTrue(manager.capability(for: 1)?.supportsBrightness == true)
+            XCTAssertNil(manager.capability(for: 2))
+            await manager.disable()
+        }
+
+        func testBrightnessOwnershipChangePreservesUnrelatedHardwareRead() async {
+            let readStarted = expectation(description: "Volume read started")
+            let readPublished = expectation(description: "Read publication attempted")
+            let blockingRead = BlockingDDCRead(callStarted: readStarted)
+            let firstRead = FirstCallGate()
+            var mock = MockDDCInterface()
+            mock.readHandler = { code, _ in
+                if code == .volume {
+                    return firstRead.consume()
+                        ? blockingRead.read()
+                        : DDCReadResult(currentValue: 20, maxValue: 100)
+                }
+                return DDCReadResult(currentValue: 60, maxValue: 100)
+            }
+            var publishedBrightness: [Double] = []
+            let manager = HardwareBrightnessManager(
+                forTesting: true,
+                ddcInterface: mock,
+                displayRefreshHandler: {},
+                hardwareBrightnessReadHandler: { _, value in publishedBrightness.append(value) }
+            )
+            manager.enable()
+            manager.capabilities[1] = HardwareDisplayCapability(
+                displayID: 1,
+                supportsDDC: true,
+                supportedCodes: [.brightness, .volume],
+                maxBrightness: 100,
+                maxContrast: 0,
+                maxVolume: 100
+            )
+            let firstPublication = FirstCallGate()
+            manager.readPublicationHookForTesting = {
+                if firstPublication.consume() {
+                    readPublished.fulfill()
+                }
+            }
+            manager.pollingInterval = 0.01
+            manager.startPolling()
+            await fulfillment(of: [readStarted], timeout: 1)
+            // Allow additional polls to queue behind the blocked read, as they can under load.
+            try? await Task.sleep(for: .milliseconds(50))
+            manager.stopPolling()
+
+            manager.applyRuntimeSettings(
+                controlMode: .hardware,
+                pollingInterval: 5,
+                writeDelayMilliseconds: 50,
+                experimentalNativeBrightnessEnabled: true
+            )
+            blockingRead.release()
+            await fulfillment(of: [readPublished], timeout: 1)
+
+            XCTAssertEqual(manager.hardwareVolume[1], 0.2)
+            XCTAssertNil(manager.hardwareBrightness[1], "The stale brightness read must still be rejected")
+            XCTAssertTrue(publishedBrightness.isEmpty)
+            await manager.disable()
+        }
+
         func testRapidOptInChangesPreserveNewBrightnessWriteAccounting() async {
             let writeStarted = expectation(description: "New brightness write reached hardware")
             let recorder = BlockingDDCRecorder(firstCallStarted: writeStarted)
