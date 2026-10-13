@@ -11,6 +11,8 @@ Semantic Versioning.
 - Added an opt-in experimental native-brightness setting for external displays in the direct-download build. It is off by default and falls back to software brightness if a native write fails; monitor-model compatibility is still unverified. Existing DDC/CI controls are unchanged.
 
 ### Fixed
+- Animated presets preserve display settings they do not specify, including low native brightness and brightness changes reported during warmth transitions. Hardware brightness writes apply only to displays with an explicit brightness target, even when a transition is interrupted.
+- Disconnecting one monitor during hardware discovery no longer discards results for other connected monitors. Changing brightness control ownership also preserves unrelated volume, contrast, mute, and input-source reads.
 - Reject ambiguous Apple Silicon monitor matches to avoid sending hardware controls to another identical display.
 - Detect supported monitor controls independently when a display does not answer brightness reads.
 

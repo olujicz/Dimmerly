@@ -171,9 +171,9 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
     private var persistTask: Task<Void, Never>?
 
     /// Active preset transition animation task (cancelled when a new transition starts)
-    /// The in-flight preset/warmth transition together with the hardware-commit policy it was
-    /// started with, so cancelling can honour that policy instead of always committing.
-    private var activeTransition: (task: Task<Void, Never>, synchronizesHardware: Bool)?
+    /// Tracks only displays with explicit brightness targets so completion and cancellation
+    /// never write backlight values that the preset left unchanged.
+    private var activeTransition: (task: Task<Void, Never>, hardwareBrightnessDisplayIDs: Set<CGDirectDisplayID>)?
 
     /// Coalesces system and screen wake events before reapplying display output.
     private var wakeMonitor: WorkspaceWakeMonitor?
@@ -922,9 +922,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
             // hardware-backed preset. Commit that intermediate value before the competing user
             // edit wins, otherwise the model and the panel diverge until a later refresh.
             // A transition that never intended to touch hardware is left alone.
-            if activeTransition.synchronizesHardware {
-                synchronizeHardwareBrightnessAfterAnimation()
-            }
+            synchronizeHardwareBrightnessAfterAnimation(for: activeTransition.hardwareBrightnessDisplayIDs)
         #endif
         self.activeTransition = nil
     }
@@ -955,17 +953,12 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
 
     /// Snapshot of start/end values for a single display in a running transition.
     ///
-    /// Leaving `start == end` for an axis effectively freezes that axis during the
-    /// animation, which lets the same transition loop drive preset application
-    /// (all three axes) and warmth-only updates (brightness/contrast frozen).
+    /// A nil end value leaves that axis untouched, including changes received from hardware
+    /// while a warmth-only animation is running.
     private struct TransitionTarget {
         let displayID: CGDirectDisplayID
         let start: (brightness: Double, warmth: Double, contrast: Double)
-        let end: (brightness: Double, warmth: Double, contrast: Double)
-        /// When true, `applyGamma` uses the live display's current brightness
-        /// (via `resolvedGammaBrightness`) instead of the interpolated brightness.
-        /// Used by warmth-only animations so gamma keeps matching the hardware path.
-        let useLiveBrightness: Bool
+        let end: (brightness: Double?, warmth: Double?, contrast: Double?)
     }
 
     private static let transitionSteps = 20
@@ -992,48 +985,42 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
             // legacy display-ID key so presets saved by earlier versions still resolve.
             let identity = displayIdentity(for: display.id)
 
-            let endBrightness: Double = if let universal = preset.universalBrightness {
+            let endBrightness: Double? = if let universal = preset.universalBrightness {
                 clampedBrightness(universal)
             } else if let value = savedValue(preset.displayBrightness, for: display.id, identity: identity) {
                 clampedBrightness(value)
             } else {
-                clampedBrightness(display.brightness)
+                nil
             }
 
-            let endWarmth: Double = if let universal = preset.universalWarmth {
+            let endWarmth: Double? = if let universal = preset.universalWarmth {
                 min(max(universal, 0), 1)
             } else if let values = preset.displayWarmth,
                       let value = savedValue(values, for: display.id, identity: identity)
             {
                 min(max(value, 0), 1)
             } else {
-                display.warmth
+                nil
             }
 
-            let endContrast: Double = if let universal = preset.universalContrast {
+            let endContrast: Double? = if let universal = preset.universalContrast {
                 min(max(universal, 0), 1)
             } else if let values = preset.displayContrast,
                       let value = savedValue(values, for: display.id, identity: identity)
             {
                 min(max(value, 0), 1)
             } else {
-                display.contrast
+                nil
             }
 
             return TransitionTarget(
                 displayID: display.id,
                 start: (display.brightness, display.warmth, display.contrast),
-                end: (endBrightness, endWarmth, endContrast),
-                // Hardware-controlled displays (built-in backlight, DDC) keep gamma
-                // pinned at 1.0 throughout via `resolvedGammaBrightness` instead of
-                // interpolating gamma on top of an unchanged hardware brightness level
-                // (which would double-dim mid-animation, then pop when the hardware
-                // write lands at `synchronizeHardwareBrightnessAfterAnimation()`).
-                useLiveBrightness: true
+                end: (endBrightness, endWarmth, endContrast)
             )
         }
 
-        return runTransition(targets: targets, synchronizeHardwareAtEnd: true)
+        return runTransition(targets: targets)
     }
 
     /// Smoothly transitions all displays' warmth to a uniform target value.
@@ -1050,11 +1037,10 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
             TransitionTarget(
                 displayID: display.id,
                 start: (display.brightness, display.warmth, display.contrast),
-                end: (display.brightness, endWarmth, display.contrast),
-                useLiveBrightness: true
+                end: (nil, endWarmth, nil)
             )
         }
-        return runTransition(targets: targets, synchronizeHardwareAtEnd: false)
+        return runTransition(targets: targets)
     }
 
     /// Smoothly transitions each display's warmth to per-display target values.
@@ -1071,19 +1057,18 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
             return TransitionTarget(
                 displayID: display.id,
                 start: (display.brightness, display.warmth, display.contrast),
-                end: (display.brightness, min(max(raw, 0), 1), display.contrast),
-                useLiveBrightness: true
+                end: (nil, min(max(raw, 0), 1), nil)
             )
         }
-        return runTransition(targets: targets, synchronizeHardwareAtEnd: false)
+        return runTransition(targets: targets)
     }
 
     /// Drives a 20-step gamma interpolation for a pre-computed set of targets.
     ///
     /// Skips animation when blanking is active or Reduce Motion is enabled, matching
-    /// the previous per-method behavior. At the end, state is persisted and (for preset
-    /// transitions) hardware brightness is synchronized.
-    private func runTransition(targets: [TransitionTarget], synchronizeHardwareAtEnd: Bool) -> Bool {
+    /// the previous per-method behavior. At the end, state is persisted and hardware brightness
+    /// is synchronized only for displays with explicit brightness targets.
+    private func runTransition(targets: [TransitionTarget]) -> Bool {
         cancelActiveTransition()
 
         let canAnimate = canAnimateTransitionsHook?() ?? (
@@ -1093,6 +1078,10 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
         guard canAnimate else {
             return false
         }
+
+        let hardwareBrightnessDisplayIDs = Set(targets.compactMap { target in
+            target.end.brightness == nil ? nil : target.displayID
+        })
 
         let task = Task { @MainActor in
             let steps = Self.transitionSteps
@@ -1105,23 +1094,26 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
                 for target in targets {
                     guard let index = displays.firstIndex(where: { $0.id == target.displayID }) else { continue }
 
-                    let brightness = target.start.brightness
-                        + (target.end.brightness - target.start.brightness) * progress
-                    let warmth = target.start.warmth + (target.end.warmth - target.start.warmth) * progress
-                    let contrast = target.start.contrast + (target.end.contrast - target.start.contrast) * progress
+                    if let brightness = target.end.brightness {
+                        displays[index].brightness = target.start.brightness
+                            + (brightness - target.start.brightness) * progress
+                    }
+                    if let warmth = target.end.warmth {
+                        displays[index].warmth = target.start.warmth
+                            + (warmth - target.start.warmth) * progress
+                    }
+                    if let contrast = target.end.contrast {
+                        displays[index].contrast = target.start.contrast
+                            + (contrast - target.start.contrast) * progress
+                    }
 
-                    displays[index].brightness = brightness
-                    displays[index].warmth = warmth
-                    displays[index].contrast = contrast
-
-                    let gammaBrightness = target.useLiveBrightness
-                        ? resolvedGammaBrightness(for: displays[index])
-                        : brightness
+                    // Resolve gamma against the current output owner so hardware brightness
+                    // stays neutral while software brightness follows the interpolated model.
                     applyGamma(
                         displayID: target.displayID,
-                        brightness: gammaBrightness,
-                        warmth: warmth,
-                        contrast: contrast
+                        brightness: resolvedGammaBrightness(for: displays[index]),
+                        warmth: displays[index].warmth,
+                        contrast: displays[index].contrast
                     )
                 }
 
@@ -1132,14 +1124,12 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
 
             guard !Task.isCancelled else { return }
             #if !APPSTORE
-                if synchronizeHardwareAtEnd {
-                    synchronizeHardwareBrightnessAfterAnimation()
-                }
+                synchronizeHardwareBrightnessAfterAnimation(for: hardwareBrightnessDisplayIDs)
             #endif
             persistAll()
             activeTransition = nil
         }
-        activeTransition = (task, synchronizeHardwareAtEnd)
+        activeTransition = (task, hardwareBrightnessDisplayIDs)
 
         return true
     }
@@ -1365,8 +1355,8 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
         /// Animated preset transitions use gamma interpolation for smooth visuals. Once the
         /// animation finishes, we must commit the final brightness to the real hardware path
         /// so built-in backlight and DDC-backed displays match the app's final state.
-        private func synchronizeHardwareBrightnessAfterAnimation() {
-            for display in displays {
+        private func synchronizeHardwareBrightnessAfterAnimation(for displayIDs: Set<CGDirectDisplayID>) {
+            for display in displays where displayIDs.contains(display.id) {
                 applyDisplayOutput(display)
             }
         }
