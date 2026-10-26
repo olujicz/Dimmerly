@@ -84,6 +84,10 @@ class ColorTemperatureManager {
     /// When the state changes from this, the override is cleared.
     private var overrideState: ColorTempState?
 
+    /// The solar event selected when the override was established. Its transition
+    /// start uses the current duration, even if that setting changes while paused.
+    private var overrideSolarBoundary: Date?
+
     /// Warmth values saved before auto mode took over, keyed by display ID string.
     /// Restored when the user disables auto mode so their manual warmth isn't lost.
     private var savedWarmthSnapshot: [String: Double]?
@@ -98,13 +102,15 @@ class ColorTemperatureManager {
     /// The manager warmth is applied through. Defaults to the app-wide instance; tests inject an
     /// isolated one so enabling or disabling auto warmth doesn't rewrite real display state.
     private let brightnessManager: BrightnessManager
+    private let settings: AppSettings
 
     /// Optional location lookup override for deterministic tests.
     var locationCoordinatesHook: (() -> (latitude: Double, longitude: Double)?)?
 
     /// - Parameter brightnessManager: Where warmth is applied. Pass an isolated instance in tests.
-    init(brightnessManager: BrightnessManager = .shared) {
+    init(brightnessManager: BrightnessManager = .shared, settings: AppSettings = .shared) {
         self.brightnessManager = brightnessManager
+        self.settings = settings
     }
 
     // MARK: - Enable/Disable
@@ -123,6 +129,7 @@ class ColorTemperatureManager {
             savedWarmthSnapshot = brightnessManager.currentWarmthSnapshot()
             manualOverrideActive = false
             overrideState = nil
+            overrideSolarBoundary = nil
             animateNextUpdate = true
             startPolling()
         } else {
@@ -195,7 +202,6 @@ class ColorTemperatureManager {
             return
         }
 
-        let settings = AppSettings.shared
         let halfTransition = Self.halfTransitionSeconds(forTransitionMinutes: settings.colorTempTransitionMinutes)
 
         let state = Self.determineState(
@@ -207,15 +213,24 @@ class ColorTemperatureManager {
 
         if manualOverrideActive, overrideState == nil {
             overrideState = state
+            overrideSolarBoundary = Self.nextBoundary(
+                after: now,
+                sunrise: sunrise,
+                sunset: sunset,
+                halfTransition: halfTransition,
+                location: location
+            )
         }
 
         // Clear manual override when crossing a day/night boundary
         if manualOverrideActive, let overrideState {
             let currentBaseState = Self.baseState(state)
             let overrideBaseState = Self.baseState(overrideState)
-            if currentBaseState != overrideBaseState {
+            let boundaryPassed = overrideSolarBoundary.map { now >= $0.addingTimeInterval(-halfTransition) } == true
+            if boundaryPassed || currentBaseState != overrideBaseState {
                 manualOverrideActive = false
                 self.overrideState = nil
+                overrideSolarBoundary = nil
                 colorTemperatureLogger.info("Manual warmth override cleared at a day/night boundary")
             }
         }
@@ -331,13 +346,40 @@ class ColorTemperatureManager {
         }
     }
 
+    /// Base states change at the start of sunrise/sunset transitions, rather than
+    /// at their solar midpoint. Use the next day's solar calculation after sunset
+    /// so changing day length and daylight-saving changes don't become a fixed delay.
+    /// Returns the raw solar event so its start can follow later duration edits.
+    private static func nextBoundary(
+        after now: Date,
+        sunrise: Date,
+        sunset: Date,
+        halfTransition: Double,
+        location: (latitude: Double, longitude: Double)
+    ) -> Date? {
+        let boundaries = [sunrise, sunset]
+        if let next = boundaries.filter({ $0.addingTimeInterval(-halfTransition) > now }).min() {
+            return next
+        }
+
+        guard let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: now) else { return nil }
+        let solar = SolarCalculator.sunriseSunset(
+            latitude: location.latitude,
+            longitude: location.longitude,
+            date: tomorrow
+        )
+        return [solar.sunrise, solar.sunset]
+            .compactMap(\.self)
+            .filter { $0.addingTimeInterval(-halfTransition) > now }
+            .min()
+    }
+
     // MARK: - Manual Override
 
     /// Called when the user manually changes warmth (via slider or other direct input).
     /// Pauses auto mode until the next day/night boundary crossing.
     func notifyManualWarmthChange() {
-        guard isEnabled else { return }
-        guard !manualOverrideActive else { return }
+        guard isEnabled, !manualOverrideActive else { return }
 
         manualOverrideActive = true
         isActive = false
@@ -352,7 +394,6 @@ class ColorTemperatureManager {
                 date: now
             )
             if let sunrise = solar.sunrise, let sunset = solar.sunset {
-                let settings = AppSettings.shared
                 let halfTransition = Self.halfTransitionSeconds(
                     forTransitionMinutes: settings.colorTempTransitionMinutes
                 )
@@ -361,6 +402,13 @@ class ColorTemperatureManager {
                     sunrise: sunrise,
                     sunset: sunset,
                     halfTransition: halfTransition
+                )
+                overrideSolarBoundary = Self.nextBoundary(
+                    after: now,
+                    sunrise: sunrise,
+                    sunset: sunset,
+                    halfTransition: halfTransition,
+                    location: location
                 )
             }
         }
@@ -387,7 +435,6 @@ class ColorTemperatureManager {
         )
         guard let sunrise = solar.sunrise, let sunset = solar.sunset else { return nil }
 
-        let settings = AppSettings.shared
         let dayK = settings.dayTemperature
         let nightK = settings.nightTemperature
 

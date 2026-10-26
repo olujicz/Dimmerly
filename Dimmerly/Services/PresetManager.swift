@@ -134,14 +134,19 @@ class PresetManager {
 
     private let widgetSynchronizer: any WidgetPresetSynchronizing
 
+    /// Reports an explicit warmth preset to the automatic warmth coordinator.
+    private let notifyWarmthPresetApplied: () -> Void
+
     init(
         defaults: UserDefaults = .standard,
         mainShortcutProvider: @escaping () -> GlobalShortcut = { AppSettings.shared.keyboardShortcut },
-        widgetSynchronizer: any WidgetPresetSynchronizing = AppGroupWidgetPresetSynchronizer()
+        widgetSynchronizer: any WidgetPresetSynchronizing = AppGroupWidgetPresetSynchronizer(),
+        notifyWarmthPresetApplied: @escaping () -> Void = { ColorTemperatureManager.shared.notifyPresetApplied() }
     ) {
         self.defaults = defaults
         self.mainShortcutProvider = mainShortcutProvider
         self.widgetSynchronizer = widgetSynchronizer
+        self.notifyWarmthPresetApplied = notifyWarmthPresetApplied
         loadPresets()
         seedDefaultPresetsIfNeeded()
         syncPresetsToWidget()
@@ -182,9 +187,22 @@ class PresetManager {
     ///   - brightnessManager: The brightness manager to apply values to
     ///   - animated: Whether to animate the transition (default: false)
     func applyPreset(_ preset: BrightnessPreset, to brightnessManager: BrightnessManager, animated: Bool = false) {
-        // Notify color temp manager before animation starts (animated path returns early)
-        if preset.universalWarmth != nil || preset.displayWarmth != nil {
-            ColorTemperatureManager.shared.notifyPresetApplied()
+        // An explicit warmth target overrides auto warmth even if its value already matches.
+        // Reuse the snapshot identities and legacy numeric IDs accepted by BrightnessManager.
+        let hasWarmthTarget: Bool
+        if preset.universalWarmth != nil {
+            hasWarmthTarget = !brightnessManager.displays.isEmpty
+        } else if let displayWarmth = preset.displayWarmth {
+            let connectedKeys = Set(brightnessManager.currentWarmthSnapshot().keys)
+                .union(brightnessManager.displays.map { String($0.id) })
+            hasWarmthTarget = displayWarmth.keys.contains(where: connectedKeys.contains)
+        } else {
+            hasWarmthTarget = false
+        }
+
+        // Notify before animation starts because the animated path returns early.
+        if hasWarmthTarget {
+            notifyWarmthPresetApplied()
         }
 
         if animated, brightnessManager.animateToPreset(preset) {

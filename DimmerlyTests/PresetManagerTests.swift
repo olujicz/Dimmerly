@@ -21,6 +21,7 @@ final class PresetManagerTests: XCTestCase {
     private var widgetDefaults: UserDefaults!
     private var widgetReloadCount = 0
     private var presetControlReloadCount = 0
+    private var warmthPresetNotificationCount = 0
 
     override func setUp() async throws {
         testSuiteName = "PresetManagerTests-\(UUID().uuidString)"
@@ -31,6 +32,7 @@ final class PresetManagerTests: XCTestCase {
         widgetDefaults.removePersistentDomain(forName: widgetSuiteName)
         widgetReloadCount = 0
         presetControlReloadCount = 0
+        warmthPresetNotificationCount = 0
         manager = PresetManager(
             defaults: testDefaults,
             mainShortcutProvider: { GlobalShortcut.default },
@@ -38,9 +40,16 @@ final class PresetManagerTests: XCTestCase {
                 defaults: widgetDefaults,
                 reloadAllTimelines: { self.widgetReloadCount += 1 },
                 reloadPresetControls: { self.presetControlReloadCount += 1 }
-            )
+            ),
+            notifyWarmthPresetApplied: { self.warmthPresetNotificationCount += 1 }
         )
-        bm = BrightnessManager(forTesting: true)
+        bm = BrightnessManager(forTesting: true, defaults: testDefaults)
+        bm.applyGammaHook = { _, _, _, _ in }
+        bm.canAnimateTransitionsHook = { false }
+        bm.displayIdentityHook = { "identity-\($0)" }
+        // The injected preset callback owns the override assertion. Suppress the setter
+        // fallback so applying warmth never reaches the shared automatic warmth manager.
+        bm.isAutoColorTempUpdate = true
         // Clear presets for a clean slate
         while !manager.presets.isEmpty {
             manager.deletePreset(id: manager.presets[0].id)
@@ -52,17 +61,108 @@ final class PresetManagerTests: XCTestCase {
         while !manager.presets.isEmpty {
             manager.deletePreset(id: manager.presets[0].id)
         }
+        manager = nil
+
+        // Setters retain the brightness manager until their debounced persistence completes.
+        // Drain that work before removing its suite so a late write cannot recreate it.
+        weak let finishingBrightnessManager = bm
+        bm = nil
+        let deadline = ContinuousClock.now + .seconds(2)
+        while finishingBrightnessManager != nil, ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        XCTAssertNil(finishingBrightnessManager, "Pending display persistence should finish before cleanup")
+
         testDefaults.removePersistentDomain(forName: testSuiteName)
         testDefaults = nil
         testSuiteName = nil
         widgetDefaults.removePersistentDomain(forName: widgetSuiteName)
         widgetDefaults = nil
         widgetSuiteName = nil
-        manager = nil
-        bm = nil
     }
 
     // MARK: - applyPreset
+
+    func testApplyPresetDisconnectedWarmthDoesNotNotifyAutomaticWarmth() async throws {
+        bm.displays = [ExternalDisplay(id: 1, name: "Connected", brightness: 1.0, warmth: 0.4)]
+        let preset = BrightnessPreset(name: "Disconnected", displayWarmth: ["identity-99": 0.8, "99": 0.8])
+
+        try await assertWarmthNotification(preset, expectedCount: 0, expectedWarmth: 0.4)
+    }
+
+    func testApplyPresetEmptyWarmthMapDoesNotNotifyAutomaticWarmth() async throws {
+        bm.displays = [ExternalDisplay(id: 1, name: "Connected", brightness: 1.0, warmth: 0.4)]
+        let preset = BrightnessPreset(name: "Empty", displayWarmth: [:])
+
+        try await assertWarmthNotification(preset, expectedCount: 0, expectedWarmth: 0.4)
+    }
+
+    func testApplyPresetUniversalWarmthWithoutDisplaysDoesNotNotifyAutomaticWarmth() async throws {
+        bm.displays = []
+        let preset = BrightnessPreset(name: "Universal", universalWarmth: 0.8)
+
+        try await assertWarmthNotification(preset, expectedCount: 0)
+    }
+
+    func testApplyPresetStableWarmthIdentityNotifiesAutomaticWarmth() async throws {
+        bm.displays = [ExternalDisplay(id: 1, name: "Connected", brightness: 1.0, warmth: 0.4)]
+        // Stable identity takes precedence over the legacy numeric entry.
+        let preset = BrightnessPreset(name: "Stable", displayWarmth: ["identity-1": 0.7, "1": 0.9])
+
+        try await assertWarmthNotification(preset, expectedCount: 1, expectedWarmth: 0.7)
+    }
+
+    func testApplyPresetLegacyWarmthIdentityNotifiesAutomaticWarmth() async throws {
+        bm.displays = [ExternalDisplay(id: 1, name: "Connected", brightness: 1.0, warmth: 0.4)]
+        let preset = BrightnessPreset(name: "Legacy", displayWarmth: ["1": 0.7])
+
+        try await assertWarmthNotification(preset, expectedCount: 1, expectedWarmth: 0.7)
+    }
+
+    func testApplyPresetUniversalWarmthNotifiesAutomaticWarmthEvenWhenValueMatches() async throws {
+        bm.displays = [ExternalDisplay(id: 1, name: "Connected", brightness: 1.0, warmth: 0.4)]
+        let preset = BrightnessPreset(name: "Universal", universalWarmth: 0.4)
+
+        try await assertWarmthNotification(preset, expectedCount: 1, expectedWarmth: 0.4)
+    }
+
+    /// Exercise both the synchronous path and the animation's early return. Notifications must
+    /// happen immediately, including when the explicit preset warmth already matches the model.
+    private func assertWarmthNotification(
+        _ preset: BrightnessPreset,
+        expectedCount: Int,
+        expectedWarmth: Double? = nil
+    ) async throws {
+        // Run animation first so no earlier instant application can debounce a persistence
+        // write and falsely satisfy the animation-completion condition below.
+        for animated in [true, false] {
+            warmthPresetNotificationCount = 0
+            bm.canAnimateTransitionsHook = { animated }
+            if animated {
+                testDefaults.removeObject(forKey: "dimmerlyDisplayWarmth")
+            }
+
+            manager.applyPreset(preset, to: bm, animated: animated)
+
+            XCTAssertEqual(warmthPresetNotificationCount, expectedCount, "animated: \(animated)")
+            if animated {
+                // The transition persists after its final frame, including with no displays.
+                let deadline = ContinuousClock.now + .seconds(2)
+                while testDefaults.dictionary(forKey: "dimmerlyDisplayWarmth") == nil,
+                      ContinuousClock.now < deadline
+                {
+                    try await Task.sleep(for: .milliseconds(10))
+                }
+                XCTAssertNotNil(
+                    testDefaults.dictionary(forKey: "dimmerlyDisplayWarmth"),
+                    "Animation should finish and persist before the fixture is torn down"
+                )
+            }
+            if let expectedWarmth {
+                XCTAssertEqual(bm.displays[0].warmth, expectedWarmth, accuracy: 0.0001)
+            }
+        }
+    }
 
     func testApplyPresetUniversalBrightness() {
         bm.displays = [

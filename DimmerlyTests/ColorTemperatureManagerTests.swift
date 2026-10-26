@@ -12,6 +12,31 @@ import XCTest
 
 @MainActor
 final class ColorTemperatureManagerTests: XCTestCase {
+    private var testSuiteName: String!
+    private var testDefaults: UserDefaults!
+    private var testSettings: AppSettings!
+    private weak var fixtureBrightnessManager: BrightnessManager?
+
+    override func setUp() async throws {
+        testSuiteName = "ColorTemperatureManagerTests-\(UUID().uuidString)"
+        testDefaults = try XCTUnwrap(UserDefaults(suiteName: testSuiteName))
+        testSettings = AppSettings(defaults: testDefaults)
+    }
+
+    override func tearDown() async throws {
+        // Warmth setters retain their manager through debounced persistence. Wait
+        // for that work before removing its suite so a late write cannot recreate it.
+        let deadline = ContinuousClock.now + .seconds(2)
+        while fixtureBrightnessManager != nil, ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        XCTAssertNil(fixtureBrightnessManager, "Brightness persistence should finish before removing its defaults")
+        testDefaults.removePersistentDomain(forName: testSuiteName)
+        testSettings = nil
+        testDefaults = nil
+        testSuiteName = nil
+    }
+
     // MARK: - Helpers
 
     private func makeDate(
@@ -210,7 +235,8 @@ final class ColorTemperatureManagerTests: XCTestCase {
     /// `apply(enabled:)` ran `restoreSavedWarmth()` against real displays, so the suite rewrote
     /// the developer's live gamma and persisted warmth just by running.
     private func isolatedManager() -> (ColorTemperatureManager, BrightnessManager) {
-        let brightnessManager = BrightnessManager(forTesting: true)
+        let brightnessManager = BrightnessManager(forTesting: true, defaults: testDefaults)
+        fixtureBrightnessManager = brightnessManager
         brightnessManager.applyGammaHook = { _, _, _, _ in }
         // Enabling auto warmth animates its first update, which applies gamma from a detached
         // task. Forcing the non-animated path keeps these assertions synchronous.
@@ -220,7 +246,8 @@ final class ColorTemperatureManagerTests: XCTestCase {
         brightnessManager.displays = [
             ExternalDisplay(id: 1, name: "Test", brightness: 1.0, warmth: 0.3, contrast: 0.5),
         ]
-        return (ColorTemperatureManager(brightnessManager: brightnessManager), brightnessManager)
+        let manager = ColorTemperatureManager(brightnessManager: brightnessManager, settings: testSettings)
+        return (manager, brightnessManager)
     }
 
     func testManualOverrideDeactivatesAutoMode() {
@@ -242,15 +269,11 @@ final class ColorTemperatureManagerTests: XCTestCase {
         manager.apply(enabled: true)
         manager.notifyManualWarmthChange()
 
-        coordinates = (latitude: 40.7128, longitude: -74.0060)
-        guard let newYorkTimeZone = TimeZone(identifier: "America/New_York") else {
-            XCTFail("New York time zone must be available")
-            return
-        }
-        manager.updateColorTemperature(now: makeDate(hour: 12, minute: 0, timeZone: newYorkTimeZone))
+        coordinates = localSolarCoordinates
+        manager.updateColorTemperature(now: makeDate(hour: 12, minute: 0))
         XCTAssertFalse(manager.isActive, "The first valid update should preserve the manual override")
 
-        manager.updateColorTemperature(now: makeDate(hour: 23, minute: 0, timeZone: newYorkTimeZone))
+        manager.updateColorTemperature(now: makeDate(hour: 23, minute: 0))
         XCTAssertTrue(manager.isActive, "A later day/night boundary should clear the manual override")
 
         manager.apply(enabled: false)
@@ -265,6 +288,135 @@ final class ColorTemperatureManagerTests: XCTestCase {
 
         XCTAssertFalse(manager.isActive, "Preset with warmth should trigger manual override")
         manager.apply(enabled: false)
+    }
+
+    /// Align equatorial solar noon with the host's local noon, including zones whose
+    /// civil offset extends beyond the geographic longitude range.
+    private var localSolarCoordinates: (latitude: Double, longitude: Double) {
+        let noon = makeDate(hour: 12, minute: 0)
+        let longitude = Double(TimeZone.current.secondsFromGMT(for: noon)) / 240
+        return (0, min(max(longitude, -180), 180))
+    }
+
+    /// Start without location so the first injected update establishes the override's
+    /// phase, without depending on the wall clock used by the notification entry point.
+    private func managerWithManualOverride(at date: Date) -> ColorTemperatureManager {
+        let (manager, _) = isolatedManager()
+        manager.locationCoordinatesHook = { nil }
+        manager.apply(enabled: true)
+        manager.notifyManualWarmthChange()
+        manager.locationCoordinatesHook = { self.localSolarCoordinates }
+        manager.updateColorTemperature(now: date)
+        XCTAssertFalse(manager.isActive, "The first valid update should retain the manual override")
+        return manager
+    }
+
+    func testManualOverrideExpiresAfterSleepingUntilTheNextDaytime() {
+        let manager = managerWithManualOverride(at: makeDate(hour: 12, minute: 0))
+        defer { manager.apply(enabled: false) }
+
+        // No polling observes either sunset or sunrise while the machine sleeps.
+        manager.updateColorTemperature(now: makeDate(day: 16, hour: 12, minute: 0))
+
+        XCTAssertTrue(manager.isActive, "A missed boundary must expire the override even in the same phase")
+        XCTAssertEqual(manager.currentKelvin, Double(testSettings.dayTemperature))
+    }
+
+    func testManualOverrideExpiresAfterSleepingUntilTheNextNighttime() {
+        let manager = managerWithManualOverride(at: makeDate(hour: 22, minute: 0))
+        defer { manager.apply(enabled: false) }
+
+        manager.updateColorTemperature(now: makeDate(day: 16, hour: 22, minute: 0))
+
+        XCTAssertTrue(manager.isActive, "A missed sunrise must expire a nighttime override")
+        XCTAssertEqual(manager.currentKelvin, Double(testSettings.nightTemperature))
+    }
+
+    func testManualOverrideRemainsPausedBeforeTheNextBoundary() {
+        let manager = managerWithManualOverride(at: makeDate(hour: 12, minute: 0))
+        defer { manager.apply(enabled: false) }
+
+        manager.updateColorTemperature(now: makeDate(hour: 13, minute: 0))
+
+        XCTAssertFalse(manager.isActive, "Time passing within the same solar phase must preserve the override")
+    }
+
+    func testManualOverrideResumesAtTheNextOppositePhase() {
+        let manager = managerWithManualOverride(at: makeDate(hour: 12, minute: 0))
+        defer { manager.apply(enabled: false) }
+
+        manager.updateColorTemperature(now: makeDate(hour: 22, minute: 0))
+
+        XCTAssertTrue(manager.isActive)
+        XCTAssertEqual(manager.currentKelvin, Double(testSettings.nightTemperature))
+    }
+
+    func testManualOverrideExpiresExactlyAtSunsetTransitionStart() throws {
+        testSettings.colorTempTransitionMinutes = 90
+        let noon = makeDate(hour: 12, minute: 0)
+        let manager = managerWithManualOverride(at: noon)
+        defer { manager.apply(enabled: false) }
+        let solar = SolarCalculator.sunriseSunset(latitude: 0, longitude: localSolarCoordinates.longitude, date: noon)
+        let sunset = try XCTUnwrap(solar.sunset)
+        let halfTransition = ColorTemperatureManager.halfTransitionSeconds(
+            forTransitionMinutes: testSettings.colorTempTransitionMinutes
+        )
+        let boundary = sunset.addingTimeInterval(-halfTransition)
+
+        manager.updateColorTemperature(now: boundary.addingTimeInterval(-1))
+        XCTAssertFalse(manager.isActive, "The override must last until the transition starts")
+
+        manager.updateColorTemperature(now: boundary)
+        XCTAssertTrue(manager.isActive, "The override must expire at the start, rather than midpoint, of sunset")
+    }
+
+    func testManualOverrideExpiresAfterLocationIsUnavailableAcrossBoundaries() {
+        let manager = managerWithManualOverride(at: makeDate(hour: 12, minute: 0))
+        defer { manager.apply(enabled: false) }
+
+        manager.locationCoordinatesHook = { nil }
+        manager.updateColorTemperature(now: makeDate(hour: 22, minute: 0))
+        XCTAssertFalse(manager.isActive, "Auto warmth must remain inactive without a location")
+
+        manager.locationCoordinatesHook = { self.localSolarCoordinates }
+        manager.updateColorTemperature(now: makeDate(day: 16, hour: 12, minute: 0))
+
+        XCTAssertTrue(manager.isActive, "Returning location must not revive an override whose boundary passed")
+        XCTAssertEqual(manager.currentKelvin, Double(testSettings.dayTemperature))
+    }
+
+    func testManualOverrideUsesTheCurrentTransitionDuration() throws {
+        testSettings.colorTempTransitionMinutes = 120
+        let noon = makeDate(hour: 12, minute: 0)
+        let manager = managerWithManualOverride(at: noon)
+        defer { manager.apply(enabled: false) }
+        let solar = SolarCalculator.sunriseSunset(latitude: 0, longitude: localSolarCoordinates.longitude, date: noon)
+        let sunset = try XCTUnwrap(solar.sunset)
+
+        testSettings.colorTempTransitionMinutes = 20
+        manager.updateColorTemperature(now: sunset.addingTimeInterval(-59 * 60))
+        XCTAssertFalse(manager.isActive, "Shortening the transition must move the override's expiry to the new start")
+
+        manager.updateColorTemperature(now: sunset.addingTimeInterval(-10 * 60))
+        XCTAssertTrue(manager.isActive, "The override should clear when the revised transition starts")
+    }
+
+    func testNighttimeManualOverrideWaitsForTheNextCalendarDaysSunrise() throws {
+        testSettings.colorTempTransitionMinutes = 90
+        let manager = managerWithManualOverride(at: makeDate(hour: 22, minute: 0))
+        defer { manager.apply(enabled: false) }
+        let tomorrow = makeDate(day: 16, hour: 12, minute: 0)
+        let solar = SolarCalculator.sunriseSunset(
+            latitude: 0, longitude: localSolarCoordinates.longitude, date: tomorrow
+        )
+        let sunrise = try XCTUnwrap(solar.sunrise)
+        let boundary = sunrise.addingTimeInterval(-45 * 60)
+
+        manager.updateColorTemperature(now: boundary.addingTimeInterval(-1))
+        XCTAssertFalse(manager.isActive)
+
+        manager.updateColorTemperature(now: boundary)
+        XCTAssertTrue(manager.isActive, "After sunset the next boundary must use tomorrow's solar schedule")
     }
 
     /// The isolation itself is the point: enabling auto warmth must apply through the injected
