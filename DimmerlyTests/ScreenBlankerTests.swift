@@ -294,6 +294,54 @@ final class ScreenBlankerTests: XCTestCase {
         XCTAssertEqual(harness.clock.cancelledSleepCount, 1)
     }
 
+    func testFadeCapturesStartingGammaWhileRestoreUsesLatestProviderValues() async {
+        let harness = makeHarness()
+        harness.sut.useFadeTransition = true
+        harness.clock.completesSleepsImmediately = true
+        let initialBrightness: [CGDirectDisplayID: Double] = [7: 0.2, 9: 0.3]
+        let initialWarmth: [CGDirectDisplayID: Double] = [7: 0.1, 9: 0.2]
+        let initialContrast: [CGDirectDisplayID: Double] = [7: 0.4, 9: 0.5]
+        var brightness = initialBrightness
+        var warmth = initialWarmth
+        var contrast = initialContrast
+        harness.sut.brightnessForDisplay = { brightness[$0] ?? 1 }
+        harness.sut.warmthForDisplay = { warmth[$0] ?? 0 }
+        harness.sut.contrastForDisplay = { contrast[$0] ?? 0.5 }
+        harness.clock.onSleep = {
+            // Simulate an ongoing preset moving all axes between fade frames.
+            brightness = [7: 0.9, 9: 0.9]
+            warmth = [7: 0.8, 9: 0.8]
+            contrast = [7: 0.9, 9: 0.9]
+        }
+
+        harness.sut.blank()
+        // The fade must capture its starting output synchronously, before its task runs.
+        brightness = [7: 0.7, 9: 0.7]
+        warmth = [7: 0.4, 9: 0.4]
+        contrast = [7: 0.6, 9: 0.6]
+        for _ in 0 ..< 1000 where harness.gamma.blankedDisplayIDs.isEmpty {
+            await Task.yield()
+        }
+
+        XCTAssertEqual(harness.gamma.blankedDisplayIDs, [7, 9])
+        XCTAssertEqual(harness.gamma.applications.count, 60)
+        for (index, application) in harness.gamma.applications.enumerated() {
+            let progress = Double(index / 2 + 1) / 30
+            XCTAssertEqual(application.brightness,
+                           (initialBrightness[application.displayID] ?? 1) * (1 - progress), accuracy: 0.0001)
+            XCTAssertEqual(application.warmth, initialWarmth[application.displayID])
+            XCTAssertEqual(application.contrast, initialContrast[application.displayID])
+        }
+
+        harness.sut.dismiss(force: true)
+
+        for application in harness.gamma.applications.suffix(2) {
+            XCTAssertEqual(application.brightness, 0.9)
+            XCTAssertEqual(application.warmth, 0.8)
+            XCTAssertEqual(application.contrast, 0.9)
+        }
+    }
+
     func testSingleBuiltInDisplayRequiresPerDisplayRecovery() {
         XCTAssertTrue(
             ScreenBlanker.shouldEnablePerDisplayRecovery(
@@ -556,14 +604,26 @@ private final class FakeBlankingWindowController: BlankingWindowControlling {
 
 @MainActor
 private final class FakeDisplayGammaController: DisplayGammaControlling {
+    struct Application {
+        let displayID: CGDirectDisplayID
+        let brightness: Double
+        let warmth: Double
+        let contrast: Double
+    }
+
     var blankedDisplayIDs: [CGDirectDisplayID] = []
     var restoredDisplayIDs: [CGDirectDisplayID] = []
+    var applications: [Application] = []
 
     func blank(_ displayID: CGDirectDisplayID) {
         blankedDisplayIDs.append(displayID)
     }
 
-    func apply(brightness _: Double, warmth _: Double, contrast _: Double, to _: CGDirectDisplayID) {}
+    func apply(brightness: Double, warmth: Double, contrast: Double, to displayID: CGDirectDisplayID) {
+        applications.append(Application(
+            displayID: displayID, brightness: brightness, warmth: warmth, contrast: contrast
+        ))
+    }
 
     func restore(_ displayID: CGDirectDisplayID) {
         restoredDisplayIDs.append(displayID)
@@ -589,6 +649,8 @@ private final class FakeBlankingClock: BlankingClock {
     var now: TimeInterval
     var sleepCallCount = 0
     var cancelledSleepCount = 0
+    var completesSleepsImmediately = false
+    var onSleep: (() -> Void)?
 
     init(now: TimeInterval) {
         self.now = now
@@ -596,6 +658,10 @@ private final class FakeBlankingClock: BlankingClock {
 
     func sleep(for _: Duration) async throws {
         sleepCallCount += 1
+        onSleep?()
+        if completesSleepsImmediately {
+            return
+        }
         do {
             try await Task.sleep(for: .seconds(60))
         } catch {

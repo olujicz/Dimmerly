@@ -1048,3 +1048,116 @@ extension BrightnessManagerTests {
     }
 
 #endif
+
+@MainActor
+extension BrightnessManagerTests {
+    func testPresetTransitionSuppressesGammaWhenBlankingStartsBeforeFirstFrame() async throws {
+        try await assertTransitionYieldsGammaToBlanking(
+            beforeFirstFrame: true,
+            expectedBrightness: 0.3,
+            expectedContrast: 0.7
+        ) { manager in
+            manager.animateToPreset(BrightnessPreset(
+                name: "Evening",
+                universalBrightness: 0.3,
+                universalWarmth: 0.6,
+                universalContrast: 0.7
+            ))
+        }
+    }
+
+    func testPresetTransitionSuppressesGammaWhenBlankingStartsMidAnimation() async throws {
+        try await assertTransitionYieldsGammaToBlanking(
+            beforeFirstFrame: false,
+            expectedBrightness: 0.3,
+            expectedContrast: 0.7
+        ) { manager in
+            manager.animateToPreset(BrightnessPreset(
+                name: "Evening",
+                universalBrightness: 0.3,
+                universalWarmth: 0.6,
+                universalContrast: 0.7
+            ))
+        }
+    }
+
+    func testWarmthTransitionSuppressesGammaWhenBlankingStartsMidAnimation() async throws {
+        try await assertTransitionYieldsGammaToBlanking(
+            beforeFirstFrame: false,
+            expectedBrightness: 0.8,
+            expectedContrast: 0.5
+        ) { manager in
+            manager.animateWarmthValues(["display": 0.6])
+        }
+    }
+
+    private func assertTransitionYieldsGammaToBlanking(
+        beforeFirstFrame: Bool,
+        expectedBrightness: Double,
+        expectedContrast: Double,
+        start: (BrightnessManager) -> Bool
+    ) async throws {
+        let suiteName = "BrightnessManagerTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let manager = BrightnessManager(forTesting: true, defaults: defaults)
+        var display = ExternalDisplay(id: 42, name: "Test", brightness: 0.8)
+        #if !APPSTORE
+            display.isBuiltIn = true
+            var backlightWrites: [Double] = []
+            manager.setBuiltInBacklightHook = { _, value in
+                backlightWrites.append(value)
+                return true
+            }
+        #endif
+        manager.displays = [display]
+        manager.displayIdentityHook = { _ in "display" }
+        manager.canAnimateTransitionsHook = { true }
+        var isBlanking = false
+        manager.isBlankingHook = { isBlanking }
+        var gammaCallsBeforeBlanking = 0
+        var gammaCallsDuringBlanking = 0
+        manager.applyGammaHook = { _, _, _, _ in
+            if isBlanking {
+                gammaCallsDuringBlanking += 1
+            } else {
+                gammaCallsBeforeBlanking += 1
+                // Activate blanking only after real transition frames have run.
+                if gammaCallsBeforeBlanking == 3 {
+                    isBlanking = true
+                }
+            }
+        }
+
+        XCTAssertTrue(start(manager))
+        if beforeFirstFrame {
+            // The main-actor animation task cannot run until this test suspends.
+            isBlanking = true
+        }
+        let deadline = ContinuousClock.now.advanced(by: .seconds(2))
+        while defaults.dictionary(forKey: "dimmerlyDisplayWarmth") == nil, ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+
+        XCTAssertTrue(isBlanking)
+        XCTAssertEqual(gammaCallsBeforeBlanking, beforeFirstFrame ? 0 : 3)
+        XCTAssertEqual(gammaCallsDuringBlanking, 0, "Blanking must own gamma through transition completion")
+        XCTAssertEqual(manager.displays[0].brightness, expectedBrightness, accuracy: 0.001)
+        XCTAssertEqual(manager.displays[0].warmth, 0.6, accuracy: 0.001)
+        XCTAssertEqual(manager.displays[0].contrast, expectedContrast, accuracy: 0.001)
+        let persistedBrightness = try XCTUnwrap(
+            defaults.dictionary(forKey: "dimmerlyDisplayBrightness")?["display"] as? Double
+        )
+        XCTAssertEqual(persistedBrightness, expectedBrightness, accuracy: 0.001)
+        XCTAssertEqual(defaults.dictionary(forKey: "dimmerlyDisplayWarmth")?["display"] as? Double, 0.6)
+        XCTAssertEqual(defaults.dictionary(forKey: "dimmerlyDisplayContrast")?["display"] as? Double,
+                       expectedContrast)
+        #if !APPSTORE
+            XCTAssertEqual(backlightWrites.count, expectedBrightness == 0.8 ? 0 : 1,
+                           "Preset completion must still synchronize hardware; warmth must leave it alone")
+            if let finalBacklight = backlightWrites.last {
+                XCTAssertEqual(finalBacklight, expectedBrightness, accuracy: 0.001)
+            }
+        #endif
+    }
+}

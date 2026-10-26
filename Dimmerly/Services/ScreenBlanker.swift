@@ -341,6 +341,16 @@ final class ScreenBlanker {
 
     private func fadeToBlack(_ displayIDs: [CGDirectDisplayID]) {
         fadeTask?.cancel()
+        // Capture the visible output before scheduling the fade. Preset and warmth transitions
+        // may keep advancing their model values while blanking owns gamma.
+        let startingGamma = displayIDs.map { displayID in
+            (
+                displayID: displayID,
+                brightness: brightnessForDisplay?(displayID) ?? 1,
+                warmth: warmthForDisplay?(displayID) ?? 0,
+                contrast: contrastForDisplay?(displayID) ?? 0.5
+            )
+        }
         fadeTask = Task { @MainActor [weak self] in
             guard let self else { return }
             let steps = 30
@@ -350,13 +360,12 @@ final class ScreenBlanker {
                 guard !Task.isCancelled else { return }
                 let progress = Double(step) / Double(steps)
 
-                for displayID in displayIDs {
-                    let startBrightness = brightnessForDisplay?(displayID) ?? 1
+                for start in startingGamma {
                     gamma.apply(
-                        brightness: startBrightness * (1 - progress),
-                        warmth: warmthForDisplay?(displayID) ?? 0,
-                        contrast: contrastForDisplay?(displayID) ?? 0.5,
-                        to: displayID
+                        brightness: start.brightness * (1 - progress),
+                        warmth: start.warmth,
+                        contrast: start.contrast,
+                        to: start.displayID
                     )
                 }
 

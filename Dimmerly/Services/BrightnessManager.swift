@@ -27,15 +27,13 @@ import CoreGraphics
 
         private static let _setBrightness:
             (@convention(c) (CGDirectDisplayID, Float) -> Int32)? = {
-                guard let handle else { return nil }
-                guard let sym = dlsym(handle, "DisplayServicesSetBrightness") else { return nil }
+                guard let handle, let sym = dlsym(handle, "DisplayServicesSetBrightness") else { return nil }
                 return unsafeBitCast(sym, to: (@convention(c) (CGDirectDisplayID, Float) -> Int32).self)
             }()
 
         private static let _getBrightness:
             (@convention(c) (CGDirectDisplayID, UnsafeMutablePointer<Float>) -> Int32)? = {
-                guard let handle else { return nil }
-                guard let sym = dlsym(handle, "DisplayServicesGetBrightness") else { return nil }
+                guard let handle, let sym = dlsym(handle, "DisplayServicesGetBrightness") else { return nil }
                 return unsafeBitCast(
                     sym,
                     to: (@convention(c) (CGDirectDisplayID, UnsafeMutablePointer<Float>) -> Int32).self
@@ -238,6 +236,13 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
     /// Test seam for forcing transition eligibility independent of process-wide accessibility state.
     var canAnimateTransitionsHook: (() -> Bool)?
 
+    /// Test seam for simulating blanking without changing real display or input state.
+    var isBlankingHook: (() -> Bool)?
+
+    private var isBlanking: Bool {
+        isBlankingHook?() ?? ScreenBlanker.shared.isBlanking
+    }
+
     /// Test seam for the stable per-display persistence key. The real implementation reads EDID
     /// metadata through CoreGraphics, which unit tests can't synthesize.
     var displayIdentityHook: ((CGDirectDisplayID) -> String)?
@@ -351,8 +356,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
 
         // Provide restore callback so ScreenBlanker can restore the full gamma table
         ScreenBlanker.shared.restoreDisplay = { [weak self] displayID in
-            guard let self else { return }
-            guard let display = displays.first(where: { $0.id == displayID }) else { return }
+            guard let self, let display = displays.first(where: { $0.id == displayID }) else { return }
             applyDisplayOutput(display, allowDuringBlanking: true)
         }
     }
@@ -513,8 +517,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
             backlightPollTask = Task { @MainActor [weak self] in
                 while !Task.isCancelled {
                     try? await Task.sleep(for: .seconds(1))
-                    guard !Task.isCancelled else { return }
-                    guard let self else { return }
+                    guard !Task.isCancelled, let self else { return }
                     syncBuiltInBrightness()
                 }
             }
@@ -765,7 +768,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
     }
 
     private func reapplyAfterRefresh(suppressingHardwareBrightnessWriteFor displayIDs: Set<CGDirectDisplayID>) {
-        guard !ScreenBlanker.shared.isBlanking else { return }
+        guard !isBlanking else { return }
         for display in displays {
             applyDisplayOutput(display, suppressHardwareBrightnessWrite: displayIDs.contains(display.id))
         }
@@ -1071,9 +1074,8 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
     private func runTransition(targets: [TransitionTarget]) -> Bool {
         cancelActiveTransition()
 
-        let canAnimate = canAnimateTransitionsHook?() ?? (
-            !ScreenBlanker.shared.isBlanking &&
-                !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        let canAnimate = !isBlanking && (
+            canAnimateTransitionsHook?() ?? !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         )
         guard canAnimate else {
             return false
@@ -1107,14 +1109,18 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
                             + (contrast - target.start.contrast) * progress
                     }
 
-                    // Resolve gamma against the current output owner so hardware brightness
-                    // stays neutral while software brightness follows the interpolated model.
-                    applyGamma(
-                        displayID: target.displayID,
-                        brightness: resolvedGammaBrightness(for: displays[index]),
-                        warmth: displays[index].warmth,
-                        contrast: displays[index].contrast
-                    )
+                    // Blanking can begin after scheduling or between animation frames. Keep
+                    // advancing the model, but leave gamma to the blanking fade while active.
+                    if !isBlanking {
+                        // Hardware brightness stays neutral in gamma while software brightness
+                        // follows the interpolated model.
+                        applyGamma(
+                            displayID: target.displayID,
+                            brightness: resolvedGammaBrightness(for: displays[index]),
+                            warmth: displays[index].warmth,
+                            contrast: displays[index].contrast
+                        )
+                    }
                 }
 
                 if step < steps {
@@ -1307,7 +1313,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
     }
 
     private func applyDisplayGamma(_ display: ExternalDisplay, allowDuringBlanking: Bool = false) {
-        guard allowDuringBlanking || !ScreenBlanker.shared.isBlanking else { return }
+        guard allowDuringBlanking || !isBlanking else { return }
 
         let policy = resolvedOutputPolicy(for: display)
         guard policy.appliesGammaColorAdjustments else { return }
@@ -1427,8 +1433,8 @@ private func displayReconfigurationCallback(
     // Handle display connection/disconnection, and mode changes (resolution/refresh-rate),
     // since some GPU drivers reset the gamma LUT on a mode change — without reacting here,
     // dimming/warmth would silently revert to native until the next add/remove event or wake.
-    guard flags.contains(.addFlag) || flags.contains(.removeFlag) || flags.contains(.setModeFlag) else { return }
-    guard let userInfo else { return }
+    guard flags.contains(.addFlag) || flags.contains(.removeFlag) || flags.contains(.setModeFlag),
+          let userInfo else { return }
     let token = Unmanaged<DisplayReconfigurationToken>.fromOpaque(userInfo).takeUnretainedValue()
     token.reconfigured()
 }
