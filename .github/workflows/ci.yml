@@ -97,7 +97,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Install SwiftFormat
-        run: brew install swiftformat
+        run: bash .github/scripts/install-swiftformat.sh
 
       - name: Check Formatting
         run: swiftformat Dimmerly DimmerlyTests DimmerlyWidget --config .swiftformat --lint

@@ -221,7 +221,7 @@ enum DisplayNameResolver {
                 if let name = String(bytes: nameBytes, encoding: .ascii)?
                     .trimmingCharacters(in: .whitespacesAndNewlines)
                     .trimmingCharacters(in: CharacterSet(charactersIn: "\n\r\0")),
-                    !name.isEmpty
+                   !name.isEmpty
                 {
                     return name
                 }
