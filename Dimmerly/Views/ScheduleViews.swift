@@ -239,6 +239,24 @@ struct AddScheduleSheet: View {
 
 // MARK: - Manual Location Sheet
 
+/// Reads and writes coordinates in the user's number format, so a comma-decimal locale
+/// can type `48,85`. A dot is accepted everywhere too, since coordinates copied from maps
+/// almost always use one.
+enum ManualCoordinateText {
+    static func parse(_ text: String, locale: Locale = .current) -> Double? {
+        var normalized = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "\u{2212}", with: "-")
+        if let separator = locale.decimalSeparator, separator != "." {
+            normalized = normalized.replacingOccurrences(of: separator, with: ".")
+        }
+        return Double(normalized)
+    }
+
+    static func format(_ value: Double, locale: Locale = .current) -> String {
+        value.formatted(.number.precision(.fractionLength(0 ... 4)).grouping(.never).locale(locale))
+    }
+}
+
 /// Modal sheet for entering latitude/longitude manually
 struct ManualLocationSheet: View {
     @Environment(LocationProvider.self) var locationProvider
@@ -263,9 +281,11 @@ struct ManualLocationSheet: View {
                         .symbolRenderingMode(.multicolor)
                 } else {
                     Text(
-                        "Enter your approximate coordinates for sunrise and sunset"
-                            + " calculations. You can find these by searching for"
-                            + " your city on a map."
+                        """
+                        Enter your approximate coordinates for sunrise and sunset \
+                        calculations. You can find these by searching for \
+                        your city on a map.
+                        """
                     )
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -285,17 +305,17 @@ struct ManualLocationSheet: View {
         }
         .onAppear {
             if let lat = locationProvider.latitude {
-                latitudeText = String(format: "%.4f", lat)
+                latitudeText = ManualCoordinateText.format(lat)
             }
             if let lon = locationProvider.longitude {
-                longitudeText = String(format: "%.4f", lon)
+                longitudeText = ManualCoordinateText.format(lon)
             }
         }
     }
 
     private func saveLocation() {
-        guard let lat = Double(latitudeText),
-              let lon = Double(longitudeText)
+        guard let lat = ManualCoordinateText.parse(latitudeText),
+              let lon = ManualCoordinateText.parse(longitudeText)
         else {
             validationError = NSLocalizedString(
                 "Please enter valid numbers.",

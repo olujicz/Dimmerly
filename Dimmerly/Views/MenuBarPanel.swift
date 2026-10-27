@@ -199,10 +199,6 @@ struct MenuBarPanel: View {
     @Environment(BrightnessManager.self) var brightnessManager
     @Environment(AppSettings.self) var settings
     @Environment(PresetManager.self) var presetManager
-    @Environment(ColorTemperatureManager.self) var colorTempManager
-    #if !APPSTORE
-        @Environment(HardwareBrightnessManager.self) var hardwareManager
-    #endif
     @Environment(\.closeMenuBarPanel) private var closeMenuBarPanel
 
     @State private var isSettingsHovered = false
@@ -276,88 +272,15 @@ struct MenuBarPanel: View {
             .opacity(MenuBarPanelGlassStyle.separatorOpacity)
     }
 
+    /// The rows live in their own view so slider-driven changes to `brightnessManager.displays`
+    /// re-evaluate only the rows, not the presets, footer or auto-warmth status.
     private var displaySliders: some View {
         VStack(spacing: 0) {
-            ForEach(brightnessManager.displays) { display in
-                if display.id != brightnessManager.displays.first?.id {
-                    Divider()
-                        .padding(.vertical, 8)
-                }
-                DisplayBrightnessRow(
-                    display: display,
-                    isBlanked: ScreenBlanker.shared.isDisplayBlanked(display.id),
-                    isAutoColorTemp: colorTempManager.isActive,
-                    onChange: { newValue in
-                        brightnessManager.setBrightness(for: display.id, to: newValue)
-                    },
-                    onWarmthChange: { newValue in
-                        brightnessManager.setWarmth(for: display.id, to: newValue)
-                    },
-                    onContrastChange: { newValue in
-                        brightnessManager.setContrast(for: display.id, to: newValue)
-                    },
-                    onToggleBlank: {
-                        brightnessManager.toggleBlank(for: display.id)
-                    }
-                )
-                #if !APPSTORE
-                .ddcControls(
-                    hardwareManager: hardwareManager,
-                    displayID: display.id,
-                    isBuiltIn: display.isBuiltIn,
-                    supportsNativeBacklight: display.supportsNativeBacklight
-                )
-                #endif
-            }
-
-            autoWarmthToggle
+            MenuBarDisplaySliders()
+            MenuBarAutoWarmthToggle()
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
-    }
-
-    // MARK: - Auto Warmth Toggle
-
-    private var autoWarmthToggle: some View {
-        @Bindable var settings = settings
-        return VStack(spacing: 2) {
-            HStack {
-                Image(systemName: "sun.horizon")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-                    .frame(width: 14)
-                Text("Auto Warmth")
-                    .font(.callout)
-                Spacer()
-                Toggle("", isOn: $settings.autoColorTempEnabled)
-                    .toggleStyle(.switch)
-                    .controlSize(.small)
-                    .labelsHidden()
-                    .accessibilityLabel(Text("Auto Warmth"))
-            }
-
-            if settings.autoColorTempEnabled {
-                HStack {
-                    autoWarmthStatusText
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                }
-                .padding(.leading, 20)
-            }
-        }
-        .padding(.top, 6)
-    }
-
-    @ViewBuilder
-    private var autoWarmthStatusText: some View {
-        if !LocationProvider.shared.hasLocation {
-            Text("Set location in Settings")
-        } else if let desc = colorTempManager.nextTransitionDescription() {
-            Text("\(Int(colorTempManager.currentKelvin))K · \(desc)")
-        } else {
-            Text("\(Int(colorTempManager.currentKelvin))K")
-        }
     }
 
     // MARK: - Presets
@@ -445,5 +368,96 @@ struct MenuBarPanel: View {
         }
         .font(.callout)
         .foregroundStyle(.secondary)
+    }
+}
+
+/// Brightness rows for every connected display.
+private struct MenuBarDisplaySliders: View {
+    @Environment(BrightnessManager.self) private var brightnessManager
+    @Environment(ColorTemperatureManager.self) private var colorTempManager
+    #if !APPSTORE
+        @Environment(HardwareBrightnessManager.self) private var hardwareManager
+    #endif
+
+    var body: some View {
+        ForEach(brightnessManager.displays) { display in
+            if display.id != brightnessManager.displays.first?.id {
+                Divider()
+                    .padding(.vertical, 8)
+            }
+            DisplayBrightnessRow(
+                display: display,
+                isBlanked: ScreenBlanker.shared.isDisplayBlanked(display.id),
+                isAutoColorTemp: colorTempManager.isActive,
+                onChange: { newValue in
+                    brightnessManager.setBrightness(for: display.id, to: newValue)
+                },
+                onWarmthChange: { newValue in
+                    brightnessManager.setWarmth(for: display.id, to: newValue)
+                },
+                onContrastChange: { newValue in
+                    brightnessManager.setContrast(for: display.id, to: newValue)
+                },
+                onToggleBlank: {
+                    brightnessManager.toggleBlank(for: display.id)
+                }
+            )
+            #if !APPSTORE
+            .ddcControls(
+                hardwareManager: hardwareManager,
+                displayID: display.id,
+                isBuiltIn: display.isBuiltIn,
+                supportsNativeBacklight: display.supportsNativeBacklight
+            )
+            #endif
+        }
+    }
+}
+
+/// Auto Warmth switch and its next-transition status line.
+private struct MenuBarAutoWarmthToggle: View {
+    @Environment(AppSettings.self) private var settings
+    @Environment(ColorTemperatureManager.self) private var colorTempManager
+
+    var body: some View {
+        @Bindable var settings = settings
+        return VStack(spacing: 2) {
+            HStack {
+                Image(systemName: "sun.horizon")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .frame(width: 14)
+                Text("Auto Warmth")
+                    .font(.callout)
+                Spacer()
+                Toggle("", isOn: $settings.autoColorTempEnabled)
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
+                    .labelsHidden()
+                    .accessibilityLabel(Text("Auto Warmth"))
+            }
+
+            if settings.autoColorTempEnabled {
+                HStack {
+                    autoWarmthStatusText
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+                .padding(.leading, 20)
+            }
+        }
+        .padding(.top, 6)
+    }
+
+    @ViewBuilder
+    private var autoWarmthStatusText: some View {
+        if !LocationProvider.shared.hasLocation {
+            Text("Set location in Settings")
+        } else if let desc = colorTempManager.nextTransitionDescription() {
+            Text("\(Int(colorTempManager.currentKelvin))K · \(desc)")
+        } else {
+            Text("\(Int(colorTempManager.currentKelvin))K")
+        }
     }
 }

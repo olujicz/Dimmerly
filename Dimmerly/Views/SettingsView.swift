@@ -84,18 +84,18 @@ func applyLaunchAtLoginChange(
     func ddcFeatureLabels(for cap: HardwareDisplayCapability) -> String {
         var labels: [String] = []
         if cap.supportsBrightness {
-            labels.append("Brightness")
+            labels.append(String(localized: "Brightness", comment: "DDC feature name in a display status list"))
         }
         if cap.supportsContrast {
-            labels.append("Contrast")
+            labels.append(String(localized: "Contrast", comment: "DDC feature name in a display status list"))
         }
         if cap.supportsVolume {
-            labels.append("Volume")
+            labels.append(String(localized: "Volume", comment: "DDC feature name in a display status list"))
         }
         if cap.supportsInputSource {
-            labels.append("Input")
+            labels.append(String(localized: "Input", comment: "DDC feature name in a display status list"))
         }
-        return labels.joined(separator: ", ")
+        return labels.formatted(.list(type: .and))
     }
 
     func ddcDisplayStatusSymbolName(for cap: HardwareDisplayCapability) -> String {

@@ -647,7 +647,7 @@ struct DisplayBrightnessRow: View {
                                 }
                             } label: {
                                 HStack(spacing: 4) {
-                                    Text(activeInputSource?.displayName ?? "Unknown")
+                                    Text(activeInputSource?.displayName ?? String(localized: "Unknown"))
                                         .font(.callout)
                                         .lineLimit(1)
                                     Image(systemName: "chevron.up.chevron.down")
@@ -666,7 +666,9 @@ struct DisplayBrightnessRow: View {
                                     display.name
                                 )
                             )
-                            .accessibilityValue(activeInputSource?.displayName ?? "No input source detected")
+                            .accessibilityValue(
+                                activeInputSource?.displayName ?? String(localized: "No input source detected")
+                            )
                         }
                         .opacity(isBlanked ? 0.4 : 1.0)
                         .disabled(isBlanked)
@@ -677,9 +679,11 @@ struct DisplayBrightnessRow: View {
                         // the display will show "No Signal" until switched back (either via
                         // the monitor's OSD or by reconnecting to this app on the active input).
                         .help(
-                            "Switch monitor input source. Switching away from the Mac's "
-                                + "input will cause this display to show \"No Signal\" "
-                                + "until switched back."
+                            """
+                            Switch monitor input source. Switching away from the Mac's \
+                            input will cause this display to show "No Signal" \
+                            until switched back.
+                            """
                         )
                     }
                 #endif
