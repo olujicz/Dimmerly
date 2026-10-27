@@ -20,7 +20,6 @@ final class WorkspaceWakeMonitor {
 
     private var observers: [NSObjectProtocol] = []
     private var wakeTask: Task<Void, Never>?
-    private var isRunning = false
 
     init(
         notificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter,
@@ -38,7 +37,6 @@ final class WorkspaceWakeMonitor {
 
     func start() {
         guard observers.isEmpty else { return }
-        isRunning = true
 
         for name in [NSWorkspace.didWakeNotification, NSWorkspace.screensDidWakeNotification] {
             let observer = notificationCenter.addObserver(
@@ -55,7 +53,6 @@ final class WorkspaceWakeMonitor {
     }
 
     func stop() {
-        isRunning = false
         for observer in observers {
             notificationCenter.removeObserver(observer)
         }
@@ -65,7 +62,8 @@ final class WorkspaceWakeMonitor {
     }
 
     private func scheduleWakeUpdate() {
-        guard isRunning else { return }
+        // Drops notification tasks that were already queued when `stop()` ran.
+        guard !observers.isEmpty else { return }
         onWakeDetected()
         wakeTask?.cancel()
         wakeTask = Task { @MainActor [weak self] in

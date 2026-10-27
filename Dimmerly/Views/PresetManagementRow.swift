@@ -26,12 +26,10 @@ struct PresetManagementRow: View {
 
     @State private var isEditing = false
     @State private var editedName: String = ""
-    @State private var isRecordingShortcut = false
     @State private var conflictMessage: String?
     @State private var showDeleteConfirmation = false
     @State private var isHovered = false
     @FocusState private var renameButtonFocused: Bool
-    @FocusState private var deleteButtonFocused: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -76,29 +74,15 @@ struct PresetManagementRow: View {
                 shortcut: preset.shortcut,
                 onRecord: { newShortcut in
                     // Check for conflicts
-                    if let sc = newShortcut {
-                        if sc == mainShortcut {
-                            conflictMessage = String(
-                                format: NSLocalizedString(
-                                    "This shortcut conflicts with %@",
-                                    comment: "Shortcut conflict message"
-                                ),
-                                mainShortcutName
-                            )
-                            return
-                        }
-                        for other in allPresets where other.id != preset.id {
-                            if other.shortcut == sc {
-                                conflictMessage = String(
-                                    format: NSLocalizedString(
-                                        "This shortcut conflicts with %@",
-                                        comment: "Shortcut conflict message"
-                                    ),
-                                    other.name
-                                )
-                                return
-                            }
-                        }
+                    if let sc = newShortcut, let conflictName = conflictingName(for: sc) {
+                        conflictMessage = String(
+                            format: NSLocalizedString(
+                                "This shortcut conflicts with %@",
+                                comment: "Shortcut conflict message"
+                            ),
+                            conflictName
+                        )
+                        return
                     }
                     do {
                         try onShortcutChanged(newShortcut)
@@ -125,7 +109,6 @@ struct PresetManagementRow: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
-            .focused($deleteButtonFocused)
             .accessibilityLabel(Text("Delete \(preset.name)"))
             .help(Text("Delete Preset"))
             .alert("Delete Preset?", isPresented: $showDeleteConfirmation) {
@@ -144,6 +127,14 @@ struct PresetManagementRow: View {
                 .foregroundStyle(.red)
                 .symbolRenderingMode(.multicolor)
         }
+    }
+
+    /// Name of the main shortcut or another preset already bound to `shortcut`.
+    private func conflictingName(for shortcut: GlobalShortcut) -> String? {
+        if shortcut == mainShortcut {
+            return mainShortcutName
+        }
+        return allPresets.first { $0.id != preset.id && $0.shortcut == shortcut }?.name
     }
 }
 
@@ -179,7 +170,7 @@ struct PresetShortcutRecorderButton: View {
         .buttonStyle(.bordered)
         .tint(isRecording ? .accentColor : nil)
         .overlay(
-            PresetShortcutCaptureView(
+            ShortcutCaptureView(
                 isActive: isRecording,
                 onCapture: { captured in
                     isRecording = false
@@ -210,104 +201,5 @@ struct PresetShortcutRecorderButton: View {
                 }
             }
         }
-    }
-}
-
-// MARK: - Preset Shortcut Capture View
-
-struct PresetShortcutCaptureView: NSViewRepresentable {
-    let isActive: Bool
-    let onCapture: (GlobalShortcut) -> Void
-    let onCancel: () -> Void
-    let onConflictDetected: (String) -> Void
-
-    func makeNSView(context _: Context) -> PresetShortcutNSView {
-        let view = PresetShortcutNSView()
-        configure(view)
-        return view
-    }
-
-    func updateNSView(_ nsView: PresetShortcutNSView, context _: Context) {
-        configure(nsView)
-    }
-
-    /// Hands the view this render's callbacks. They capture the row's current presets and
-    /// main shortcut, so assigning them only in `makeNSView` left conflict checks running
-    /// against whatever the row looked like when it first appeared.
-    func configure(_ view: PresetShortcutNSView) {
-        view.onCapture = onCapture
-        view.onCancel = onCancel
-        view.onConflictDetected = onConflictDetected
-        view.isActive = isActive
-    }
-}
-
-final class PresetShortcutNSView: NSView {
-    var onCapture: ((GlobalShortcut) -> Void)?
-    var onCancel: (() -> Void)?
-    var onConflictDetected: ((String) -> Void)?
-
-    /// Requests first responder only on the false→true transition, deferred to the next
-    /// run loop turn — not synchronously inside `updateNSView`'s SwiftUI update transaction,
-    /// and not on every subsequent SwiftUI re-render while already recording.
-    var isActive = false {
-        didSet {
-            guard isActive, !oldValue else { return }
-            DispatchQueue.main.async { [weak self] in
-                guard let self, isActive else { return }
-                window?.makeFirstResponder(self)
-            }
-        }
-    }
-
-    override var acceptsFirstResponder: Bool {
-        isActive
-    }
-
-    override func keyDown(with event: NSEvent) {
-        guard isActive else {
-            super.keyDown(with: event)
-            return
-        }
-
-        if event.keyCode == 53 { // Escape
-            onCancel?()
-            return
-        }
-
-        if let shortcut = GlobalShortcut.from(
-            keyCode: event.keyCode,
-            modifierFlags: event.modifierFlags,
-            charactersIgnoringModifiers: event.charactersIgnoringModifiers
-        ) {
-            #if APPSTORE
-                guard shortcut.isValid else {
-                    onConflictDetected?(GlobalShortcut.carbonShortcutRequirementMessage)
-                    return
-                }
-            #endif
-            guard shortcut.isValid else { return }
-            if shortcut.isReservedSystemShortcut {
-                onConflictDetected?(
-                    String(
-                        format: NSLocalizedString(
-                            "%@ is a standard system shortcut."
-                                + " Try a different combination.",
-                            comment: "Shortcut conflict message"
-                        ),
-                        shortcut.displayString
-                    )
-                )
-            } else {
-                onCapture?(shortcut)
-            }
-        }
-    }
-
-    override func mouseDown(with event: NSEvent) {
-        if isActive {
-            onCancel?()
-        }
-        super.mouseDown(with: event)
     }
 }

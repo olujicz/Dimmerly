@@ -101,7 +101,7 @@ struct DimDisplaysWidgetIntent: AppIntent {
         #if WIDGET_EXTENSION
             try await WidgetActionExecution.perform(.dimDisplays)
         #else
-            DisplayAction.performSleep(settings: AppSettings.shared)
+            WidgetActionCommand.dimDisplays.performInApp()
         #endif
         return .result()
     }
@@ -139,13 +139,7 @@ struct ApplyPresetWidgetIntent: AppIntent {
         #if WIDGET_EXTENSION
             try await WidgetActionExecution.perform(.applyPreset(presetID))
         #else
-            guard let uuid = UUID(uuidString: presetID) else { return .result() }
-            let presetManager = PresetManager.shared
-            let brightnessManager = BrightnessManager.shared
-            guard let preset = presetManager.presets.first(where: { $0.id == uuid }) else {
-                return .result()
-            }
-            presetManager.applyPreset(preset, to: brightnessManager, animated: true)
+            WidgetActionCommand.applyPreset(presetID).performInApp()
         #endif
         return .result()
     }
@@ -187,7 +181,7 @@ struct SetDimmingWidgetIntent: SetValueIntent {
         #if WIDGET_EXTENSION
             try await WidgetActionExecution.perform(.setDimming(value))
         #else
-            handleWidgetDimStateCommand(settings: AppSettings.shared, consumeCommand: { value })
+            WidgetActionCommand.setDimming(value).performInApp()
         #endif
         return .result()
     }
@@ -226,7 +220,7 @@ struct SetAutoWarmthWidgetIntent: SetValueIntent {
         #if WIDGET_EXTENSION
             try await WidgetActionExecution.perform(.setAutoWarmth(value))
         #else
-            handleWidgetAutoWarmthCommand(settings: AppSettings.shared, consumeCommand: { value })
+            WidgetActionCommand.setAutoWarmth(value).performInApp()
         #endif
         return .result()
     }

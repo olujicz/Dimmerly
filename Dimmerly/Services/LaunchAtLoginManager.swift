@@ -67,7 +67,7 @@ enum LaunchAtLoginManager {
     ///
     /// - Returns: A Result indicating success or failure
     @discardableResult
-    static func enable() -> Result<Void, LaunchAtLoginError> {
+    private static func enable() -> Result<Void, LaunchAtLoginError> {
         do {
             try SMAppService.mainApp.register()
             return .success(())
@@ -80,7 +80,7 @@ enum LaunchAtLoginManager {
     ///
     /// - Returns: A Result indicating success or failure
     @discardableResult
-    static func disable() -> Result<Void, LaunchAtLoginError> {
+    private static func disable() -> Result<Void, LaunchAtLoginError> {
         do {
             try SMAppService.mainApp.unregister()
             return .success(())

@@ -6,8 +6,8 @@
 //  Transitions warmth between day and night temperatures at sunrise and sunset.
 //
 //  Follows the ScheduleManager/IdleTimerManager pattern:
-//  - @MainActor ObservableObject with Timer-based polling
-//  - Settings observation via UserDefaults notifications
+//  - @MainActor @Observable with Timer-based polling
+//  - Started and stopped by the app via `apply(enabled:)`
 //  - Injectable Date for testability
 //
 
@@ -88,7 +88,7 @@ class ColorTemperatureManager {
     /// start uses the current duration, even if that setting changes while paused.
     private var overrideSolarBoundary: Date?
 
-    /// Warmth values saved before auto mode took over, keyed by display ID string.
+    /// Warmth values saved before auto mode took over, keyed by stable display identity.
     /// Restored when the user disables auto mode so their manual warmth isn't lost.
     private var savedWarmthSnapshot: [String: Double]?
 

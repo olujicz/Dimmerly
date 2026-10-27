@@ -16,7 +16,6 @@ struct DisplaySettingsTab: View {
     #if !APPSTORE
         @Environment(HardwareBrightnessManager.self) var hardwareManager
     #endif
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         Form {
@@ -284,10 +283,7 @@ struct DisplaySettingsTab: View {
                     // Keep the picker reachable while opted in, since native support is only
                     // discovered in hardware mode.
                     if hardwareControlModesAvailable || settings.experimentalNativeBrightnessEnabled {
-                        Picker("Brightness Control", selection: Binding(
-                            get: { settings.ddcControlMode },
-                            set: { settings.ddcControlMode = $0 }
-                        )) {
+                        Picker("Brightness Control", selection: $settings.ddcControlMode) {
                             ForEach(DDCControlMode.allCases) { mode in
                                 Text(mode.displayName)
                                     .tag(mode)
@@ -398,7 +394,7 @@ struct DisplaySettingsTab: View {
                                 .font(.caption)
                                 .accessibilityElement(children: .combine)
                             }
-                            ForEach(Array(hardwareManager.capabilities.keys.sorted()), id: \.self) { displayID in
+                            ForEach(hardwareManager.capabilities.keys.sorted(), id: \.self) { displayID in
                                 if !nativeDisplays.contains(where: { $0.id == displayID }),
                                    let cap = hardwareManager.capabilities[displayID]
                                 {

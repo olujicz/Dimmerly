@@ -3,7 +3,7 @@
 //  Dimmerly
 //
 //  Per-display software brightness control for all displays (built-in and external).
-//  Uses CoreGraphics gamma table APIs (App Store safe).
+//  Uses CoreGraphics gamma tables; direct builds can also drive native backlights and DDC.
 //
 
 import AppKit
@@ -76,10 +76,6 @@ struct ExternalDisplay: Identifiable {
     var isBuiltIn: Bool = false
 
     #if !APPSTORE
-        /// Whether this display supports DDC/CI hardware control.
-        /// Set during display enumeration by probing via HardwareBrightnessManager.
-        var supportsDDC: Bool = false
-
         /// Whether DisplayServices successfully read this display's native backlight.
         /// This is separate from DDC support and is detected per connected display.
         var supportsNativeBacklight: Bool = false
@@ -90,7 +86,7 @@ struct ExternalDisplay: Identifiable {
 /// Manages software-based brightness, warmth, and contrast control for all displays.
 ///
 /// This manager uses CoreGraphics gamma table APIs to adjust display output, which is:
-/// - App Store safe (no private APIs or command-line tools required)
+/// - App Store safe in the App Store build (direct builds add DisplayServices and DDC paths)
 /// - Per-display configurable (supports multiple monitors independently)
 /// - Hardware-independent (works with all external displays)
 ///
@@ -351,7 +347,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
 
         // Provide per-display contrast to ScreenBlanker for fade animation
         ScreenBlanker.shared.contrastForDisplay = { [weak self] displayID in
-            self?.contrast(for: displayID) ?? 0.5
+            self?.contrast(for: displayID) ?? ExternalDisplay.neutralContrast
         }
 
         // Provide restore callback so ScreenBlanker can restore the full gamma table
@@ -373,7 +369,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
 
     /// Returns the current contrast for a given display ID
     func contrast(for displayID: CGDirectDisplayID) -> Double {
-        displays.first(where: { $0.id == displayID })?.contrast ?? 0.5
+        displays.first(where: { $0.id == displayID })?.contrast ?? ExternalDisplay.neutralContrast
     }
 
     // MARK: - Built-in Display Backlight
@@ -606,11 +602,11 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
         }
     }
 
-    /// Refreshes the list of connected external displays and restores their saved settings.
+    /// Refreshes the list of connected displays and restores their saved settings.
     ///
     /// This method:
-    /// 1. Enumerates all active displays via CoreGraphics
-    /// 2. Filters out the built-in display (laptop screen)
+    /// 1. Enumerates all active displays via CoreGraphics, including the built-in display
+    /// 2. Reads native backlight levels where the build and display support it
     /// 3. Loads persisted brightness/warmth/contrast from UserDefaults
     /// 4. Clamps all values to valid ranges with safety minimums
     /// 5. Reapplies gamma tables if not currently blanking
@@ -742,7 +738,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
             max(
                 previousDisplay?.contrast
                     ?? savedValue(baseline.savedContrast, for: displayID, identity: identity)
-                    ?? 0.5,
+                    ?? ExternalDisplay.neutralContrast,
                 0.0
             ),
             1.0
@@ -756,11 +752,10 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
         )
         display.isBuiltIn = builtIn
         #if !APPSTORE
-            // Native backlight and DDC discovery only apply to external monitors.
+            // Native backlight discovery only applies to external monitors.
             if !builtIn {
                 display.supportsNativeBacklight = HardwareBrightnessManager.shared.isExternalNativeBrightnessActive
                     && supportsNativeBacklight(for: displayID)
-                display.supportsDDC = HardwareBrightnessManager.shared.supportsDDC(for: displayID)
             }
         #endif
 
@@ -808,8 +803,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
                 }
             }
 
-            if !isBuiltIn,
-               HardwareBrightnessManager.shared.isExternalNativeBrightnessActive,
+            if HardwareBrightnessManager.shared.isExternalNativeBrightnessActive,
                supportsNativeBacklight(for: displayID)
             {
                 let fallback = previousBrightness ?? clampedBrightness(savedBrightness ?? 1.0)
@@ -1050,7 +1044,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
     ///
     /// Same animation as `animateAllWarmth(to:)` but with individual targets per display.
     ///
-    /// - Parameter targetValues: Warmth values keyed by display ID string
+    /// - Parameter targetValues: Warmth values keyed by stable display identity (legacy ID fallback)
     /// - Returns: `true` if animation was started, `false` if the caller should apply instantly
     @discardableResult
     func animateWarmthValues(_ targetValues: [String: Double]) -> Bool {
@@ -1068,9 +1062,9 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
 
     /// Drives a 20-step gamma interpolation for a pre-computed set of targets.
     ///
-    /// Skips animation when blanking is active or Reduce Motion is enabled, matching
-    /// the previous per-method behavior. At the end, state is persisted and hardware brightness
-    /// is synchronized only for displays with explicit brightness targets.
+    /// Skips animation when blanking is active or Reduce Motion is enabled. At the end, state
+    /// is persisted and hardware brightness is synchronized only for displays with explicit
+    /// brightness targets.
     private func runTransition(targets: [TransitionTarget]) -> Bool {
         cancelActiveTransition()
 
@@ -1185,13 +1179,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
             return
         }
 
-        let m = GammaMath.channelMultipliers(for: warmth)
-        var rTable = GammaMath.buildTable(brightness: brightness, channelMultiplier: m.r, contrast: contrast)
-        var gTable = GammaMath.buildTable(brightness: brightness, channelMultiplier: m.g, contrast: contrast)
-        var bTable = GammaMath.buildTable(brightness: brightness, channelMultiplier: m.b, contrast: contrast)
-
-        // Return value intentionally ignored — no recovery action if gamma set fails
-        CGSetDisplayTransferByTable(displayID, 256, &rTable, &gTable, &bTable)
+        GammaMath.setTransferTables(for: displayID, brightness: brightness, warmth: warmth, contrast: contrast)
     }
 
     // MARK: - Persistence
@@ -1315,12 +1303,9 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
     private func applyDisplayGamma(_ display: ExternalDisplay, allowDuringBlanking: Bool = false) {
         guard allowDuringBlanking || !isBlanking else { return }
 
-        let policy = resolvedOutputPolicy(for: display)
-        guard policy.appliesGammaColorAdjustments else { return }
-
         applyGamma(
             displayID: display.id,
-            brightness: policy.gammaBrightness,
+            brightness: resolvedOutputPolicy(for: display).gammaBrightness,
             warmth: display.warmth,
             contrast: display.contrast
         )

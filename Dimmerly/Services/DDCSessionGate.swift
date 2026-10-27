@@ -68,12 +68,9 @@
             }
         }
 
-        @discardableResult
-        func advance(for displayID: CGDirectDisplayID) -> DDCDisplayConnectionToken {
+        func advance(for displayID: CGDirectDisplayID) {
             lock.withLock {
-                let next = (incarnations[displayID] ?? 0) &+ 1
-                incarnations[displayID] = next
-                return DDCDisplayConnectionToken(displayID: displayID, incarnation: next)
+                incarnations[displayID] = (incarnations[displayID] ?? 0) &+ 1
             }
         }
 

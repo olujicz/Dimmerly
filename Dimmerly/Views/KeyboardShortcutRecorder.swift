@@ -47,14 +47,19 @@ struct KeyboardShortcutRecorder: View {
                 .buttonStyle(.bordered)
                 .tint(isRecording ? .accentColor : nil)
                 .overlay(
-                    ShortcutRecorderView(
-                        isRecording: $isRecording,
-                        onShortcutRecorded: { newShortcut in
+                    ShortcutCaptureView(
+                        isActive: isRecording,
+                        onCapture: { newShortcut in
                             conflictMessage = nil
                             shortcut = newShortcut
+                            isRecording = false
+                        },
+                        onCancel: {
+                            isRecording = false
                         },
                         onConflictDetected: { message in
                             conflictMessage = message
+                            isRecording = false
                         }
                     )
                     // Matches PresetShortcutRecorderButton's overlay: only eligible for
@@ -105,37 +110,42 @@ struct KeyboardShortcutRecorder: View {
     }
 }
 
-/// Helper view that captures keyboard events for shortcut recording
-private struct ShortcutRecorderView: NSViewRepresentable {
-    @Binding var isRecording: Bool
-    let onShortcutRecorded: (GlobalShortcut) -> Void
+// MARK: - Shortcut Capture View
+
+/// Invisible overlay that captures a key combination while its recorder is active.
+/// Shared by the main shortcut recorder and the per-preset recorder buttons.
+struct ShortcutCaptureView: NSViewRepresentable {
+    let isActive: Bool
+    let onCapture: (GlobalShortcut) -> Void
+    let onCancel: () -> Void
     let onConflictDetected: (String) -> Void
 
-    func makeNSView(context _: Context) -> NSView {
-        let view = ShortcutCaptureView()
-        view.onShortcutCaptured = { shortcut in
-            onShortcutRecorded(shortcut)
-            isRecording = false
-        }
-        view.onRecordingCancelled = {
-            isRecording = false
-        }
-        view.onConflictDetected = { message in
-            onConflictDetected(message)
-            isRecording = false
-        }
+    func makeNSView(context _: Context) -> ShortcutCaptureNSView {
+        let view = ShortcutCaptureNSView()
+        configure(view)
         return view
     }
 
-    func updateNSView(_ nsView: NSView, context _: Context) {
-        if let captureView = nsView as? ShortcutCaptureView {
-            captureView.isActive = isRecording
-        }
+    func updateNSView(_ nsView: ShortcutCaptureNSView, context _: Context) {
+        configure(nsView)
+    }
+
+    /// Hands the view this render's callbacks. They capture the caller's current state (for a
+    /// preset row, its presets and main shortcut), so assigning them only in `makeNSView` left
+    /// conflict checks running against whatever the caller looked like when it first appeared.
+    func configure(_ view: ShortcutCaptureNSView) {
+        view.onCapture = onCapture
+        view.onCancel = onCancel
+        view.onConflictDetected = onConflictDetected
+        view.isActive = isActive
     }
 }
 
-/// NSView subclass that captures keyboard events
-private class ShortcutCaptureView: NSView {
+final class ShortcutCaptureNSView: NSView {
+    var onCapture: ((GlobalShortcut) -> Void)?
+    var onCancel: (() -> Void)?
+    var onConflictDetected: ((String) -> Void)?
+
     /// Requests first responder only on the false→true transition, deferred to the next
     /// run loop turn — not synchronously inside `updateNSView`'s SwiftUI update transaction,
     /// and not on every subsequent SwiftUI re-render while already recording.
@@ -148,10 +158,6 @@ private class ShortcutCaptureView: NSView {
             }
         }
     }
-
-    var onShortcutCaptured: ((GlobalShortcut) -> Void)?
-    var onRecordingCancelled: (() -> Void)?
-    var onConflictDetected: ((String) -> Void)?
 
     override var acceptsFirstResponder: Bool {
         isActive
@@ -166,11 +172,10 @@ private class ShortcutCaptureView: NSView {
         // Escape cancels recording (HIG Rule 5.3)
         if event.keyCode == 53 { // kVK_Escape
             isActive = false
-            onRecordingCancelled?()
+            onCancel?()
             return
         }
 
-        // Try to create a shortcut from the event
         if let shortcut = GlobalShortcut.from(
             keyCode: event.keyCode,
             modifierFlags: event.modifierFlags,
@@ -182,21 +187,20 @@ private class ShortcutCaptureView: NSView {
                     return
                 }
             #endif
-            if shortcut.isValid {
-                if shortcut.isReservedSystemShortcut {
-                    onConflictDetected?(
-                        String(
-                            format: NSLocalizedString(
-                                "%@ is a standard system shortcut."
-                                    + " Try a different combination.",
-                                comment: "Shortcut conflict message"
-                            ),
-                            shortcut.displayString
-                        )
+            guard shortcut.isValid else { return }
+            if shortcut.isReservedSystemShortcut {
+                onConflictDetected?(
+                    String(
+                        format: NSLocalizedString(
+                            "%@ is a standard system shortcut."
+                                + " Try a different combination.",
+                            comment: "Shortcut conflict message"
+                        ),
+                        shortcut.displayString
                     )
-                } else {
-                    onShortcutCaptured?(shortcut)
-                }
+                )
+            } else {
+                onCapture?(shortcut)
             }
         }
     }
@@ -204,7 +208,7 @@ private class ShortcutCaptureView: NSView {
     override func mouseDown(with event: NSEvent) {
         if isActive {
             isActive = false
-            onRecordingCancelled?()
+            onCancel?()
         }
         super.mouseDown(with: event)
     }

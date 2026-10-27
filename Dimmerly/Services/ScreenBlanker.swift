@@ -143,11 +143,8 @@ final class ScreenBlanker {
 
         do {
             try startDismissMonitoring(action: { [weak self] in self?.dismiss() })
-        } catch let error as BlankingInputMonitorError {
-            failurePresenter(error)
-            return
         } catch {
-            failurePresenter(.unavailable)
+            failurePresenter(error as? BlankingInputMonitorError ?? .unavailable)
             return
         }
 
@@ -175,7 +172,7 @@ final class ScreenBlanker {
             return
         }
 
-        // Per-display blanking does not set `isBlanking` until every active display is covered.
+        // Per-display blanking never sets `isBlanking`; a fully covered session only arms recovery.
         // A forced wake must still clear a partial or fully-covered per-display session.
         guard force, !state.perDisplayCovered.isEmpty else { return }
         forceUnblankAllDisplays()
@@ -349,7 +346,7 @@ final class ScreenBlanker {
                 displayID: displayID,
                 brightness: brightnessForDisplay?(displayID) ?? 1,
                 warmth: warmthForDisplay?(displayID) ?? 0,
-                contrast: contrastForDisplay?(displayID) ?? 0.5
+                contrast: contrastForDisplay?(displayID) ?? ExternalDisplay.neutralContrast
             )
         }
         fadeTask = Task { @MainActor [weak self] in
@@ -442,13 +439,9 @@ final class ScreenBlanker {
     private func startPerDisplayRecovery() {
         do {
             try startDismissMonitoring(action: { [weak self] in self?.unblankAllDisplays() })
-        } catch let error as BlankingInputMonitorError {
-            forceUnblankAllDisplays()
-            failurePresenter(error)
-            return
         } catch {
             forceUnblankAllDisplays()
-            failurePresenter(.unavailable)
+            failurePresenter(error as? BlankingInputMonitorError ?? .unavailable)
             return
         }
 
@@ -473,7 +466,7 @@ final class ScreenBlanker {
             gamma.apply(
                 brightness: brightnessForDisplay?(displayID) ?? 1,
                 warmth: warmthForDisplay?(displayID) ?? 0,
-                contrast: contrastForDisplay?(displayID) ?? 0.5,
+                contrast: contrastForDisplay?(displayID) ?? ExternalDisplay.neutralContrast,
                 to: displayID
             )
         } else {

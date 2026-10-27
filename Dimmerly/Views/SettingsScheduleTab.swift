@@ -28,7 +28,7 @@ struct ScheduleSettingsTab: View {
                     LocationPickerRow()
 
                     ForEach(scheduleManager.schedules) { schedule in
-                        let presetName = presetManager.presets.first(where: { $0.id == schedule.presetID })?.name
+                        let presetName = presetManager.preset(withID: schedule.presetID)?.name
                         let triggerTime = triggerTimeDescription(for: schedule)
                         ScheduleRow(
                             schedule: schedule,
@@ -60,9 +60,13 @@ struct ScheduleSettingsTab: View {
         guard let date = scheduleManager.resolveTriggerDate(schedule.trigger, on: Date()) else {
             return nil
         }
+        return Self.triggerTimeFormatter.string(from: date)
+    }
+
+    private static let triggerTimeFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.timeStyle = .short
         formatter.dateStyle = .none
-        return formatter.string(from: date)
-    }
+        return formatter
+    }()
 }

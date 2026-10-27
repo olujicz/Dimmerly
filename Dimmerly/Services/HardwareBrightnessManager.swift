@@ -24,7 +24,6 @@
 
 #if !APPSTORE
 
-    import Combine
     import CoreGraphics
     import Foundation
 
@@ -87,14 +86,14 @@
     /// - Rate-limits writes to prevent MCU overload
     /// - Integrates with BrightnessManager for hybrid control
     ///
-    /// Thread safety: Published properties are updated on @MainActor.
+    /// Thread safety: observable state is updated on @MainActor.
     /// DDC I/O is dispatched to a serial background queue.
     @MainActor
     @Observable
     class HardwareBrightnessManager {
         static let shared = HardwareBrightnessManager()
 
-        // MARK: - Published State
+        // MARK: - Observable State
 
         /// Cached DDC capabilities per display (keyed by CGDirectDisplayID).
         /// Internal setter for @testable test access; set via probeAllDisplays() at runtime.
@@ -176,7 +175,7 @@
         private let writeFailureRecoveryDelays: [Duration] = [.seconds(1), .seconds(5), .seconds(30)]
 
         /// Minimum interval between DDC writes to the same display.
-        /// Updated from AppSettings.ddcWriteDelay via SettingsView's `.onChange`.
+        /// Updated from AppSettings.ddcWriteDelay by `applyRuntimeSettings`.
         var minimumWriteInterval: TimeInterval = 0.05 // 50ms
 
         /// Composite key for debouncing DDC writes per display+VCP code pair.
@@ -512,8 +511,8 @@
                             retryDelays: remainingRecoveryDelays
                         )
                     }
-                    // Refresh BrightnessManager so display.supportsDDC flags
-                    // reflect the newly-probed capabilities
+                    // Refresh BrightnessManager so its output policy picks up
+                    // the newly-probed capabilities
                     displayRefreshHandler()
                 }
             }
@@ -1117,8 +1116,7 @@
             }
         }
 
-        @discardableResult
-        private func advanceDisplayConnection(for displayID: CGDirectDisplayID) -> DDCDisplayConnectionToken {
+        private func advanceDisplayConnection(for displayID: CGDirectDisplayID) {
             for key in pendingWrites.keys where key.displayID == displayID {
                 pendingWrites[key]?.cancel()
             }
@@ -1127,7 +1125,7 @@
             pendingHardwareWrites = pendingHardwareWrites.filter { $0.key.displayID != displayID }
             lastLocalWriteTime = lastLocalWriteTime.filter { $0.key.displayID != displayID }
             consecutiveWriteFailures = consecutiveWriteFailures.filter { $0.key.displayID != displayID }
-            return displayConnectionGate.advance(for: displayID)
+            displayConnectionGate.advance(for: displayID)
         }
 
         private func markLocalWrite(

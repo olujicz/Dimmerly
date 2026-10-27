@@ -215,7 +215,7 @@
     ///
     /// All operations are synchronous (~50ms per transaction). Callers should dispatch
     /// off the main thread and rate-limit writes. Thread-safe but serialize per display.
-    enum DDCController { // swiftlint:disable:this type_body_length
+    enum DDCController {
         private static let logger = Logger(
             subsystem: Bundle.main.bundleIdentifier ?? "rs.in.olujic.dimmerly",
             category: "DDCController"
@@ -890,7 +890,6 @@
                 chipAddress: UInt32,
                 vcp: VCPCode
             ) -> DDCReadResult? {
-                let vcpHex = String(format: "%02X", vcp.rawValue)
                 let transport = DDCAppleSiliconI2CTransport(
                     writeI2C: { address, register, data in
                         IOAVServiceWriteI2C(
@@ -903,29 +902,91 @@
                         )
                     }
                 )
+                return readVCP(using: transport, chipAddress: chipAddress, vcp: vcp)
+            }
+
+            /// Writes a VCP code via IOAVService with retry logic.
+            private static func writeViaService(
+                avService: CFTypeRef,
+                chipAddress: UInt32,
+                vcp: VCPCode,
+                value: UInt16
+            ) -> Bool {
+                let transport = DDCAppleSiliconI2CTransport(
+                    writeI2C: { address, register, data in
+                        IOAVServiceWriteI2C(
+                            avService, address, register, &data, UInt32(data.count)
+                        )
+                    }
+                )
+                return writeVCP(using: transport, chipAddress: chipAddress, vcp: vcp, value: value)
+            }
+
+            // MARK: IOAVDevice Transport (HDMI Fallback)
+
+            /// Reads a VCP code via IOAVDevice (alternative I2C path for HDMI).
+            private static func readViaDevice(
+                avDevice: CFTypeRef,
+                chipAddress: UInt32,
+                vcp: VCPCode
+            ) -> DDCReadResult? {
+                guard let writeFn = avDeviceWrite, let readFn = avDeviceRead else {
+                    return nil
+                }
+                let transport = DDCAppleSiliconI2CTransport(
+                    writeI2C: { address, register, data in
+                        writeFn(
+                            avDevice, address, register, &data, UInt32(data.count)
+                        )
+                    },
+                    readI2C: { address, register, data in
+                        readFn(
+                            avDevice, address, register, &data, UInt32(data.count)
+                        )
+                    }
+                )
+                return readVCP(using: transport, chipAddress: chipAddress, vcp: vcp)
+            }
+
+            /// Writes a VCP code via IOAVDevice (alternative I2C path for HDMI).
+            private static func writeViaDevice(
+                avDevice: CFTypeRef,
+                chipAddress: UInt32,
+                vcp: VCPCode,
+                value: UInt16
+            ) -> Bool {
+                guard let writeFn = avDeviceWrite else { return false }
+                let transport = DDCAppleSiliconI2CTransport(
+                    writeI2C: { address, register, data in
+                        writeFn(
+                            avDevice, address, register, &data, UInt32(data.count)
+                        )
+                    }
+                )
+                return writeVCP(using: transport, chipAddress: chipAddress, vcp: vcp, value: value)
+            }
+
+            // MARK: Apple Silicon I2C Transactions
+
+            /// VCP GET with retries over an IOAVService or IOAVDevice transport.
+            ///
+            /// Each attempt sends the request `writeCyclesPerAttempt` times, then waits
+            /// `transactionDelayMs` before reading the reply.
+            private static func readVCP(
+                using transport: DDCAppleSiliconI2CTransport,
+                chipAddress: UInt32,
+                vcp: VCPCode
+            ) -> DDCReadResult? {
+                let vcpHex = String(format: "%02X", vcp.rawValue)
                 for attempt in 0 ..< maxRetryAttempts {
                     if attempt > 0 {
                         usleep(retryDelayMs * 1000)
                     }
 
                     var writeData = DDCPacketCodec.getRequest(for: vcp, includeHostAddress: false)
-                    var writeOK = false
-                    var lastWriteResult = IOReturn(kIOReturnError)
-                    for cycle in 0 ..< writeCyclesPerAttempt {
-                        if cycle > 0 {
-                            usleep(writeCycleDelayMs * 1000)
-                        }
-                        lastWriteResult = transport.write(
-                            &writeData,
-                            chipAddress: chipAddress,
-                            register: UInt32(hostAddress)
-                        )
-                        if lastWriteResult == KERN_SUCCESS {
-                            writeOK = true
-                        }
-                    }
-                    guard writeOK else {
-                        logger.debug("DDC write 0x\(vcpHex, privacy: .public) failed: \(lastWriteResult)")
+                    let lastWriteResult = writeCycles(&writeData, using: transport, chipAddress: chipAddress)
+                    guard lastWriteResult.succeeded else {
+                        logger.debug("DDC write 0x\(vcpHex, privacy: .public) failed: \(lastWriteResult.last)")
                         continue
                     }
 
@@ -955,154 +1016,44 @@
                 return nil
             }
 
-            /// Writes a VCP code via IOAVService with retry logic.
-            private static func writeViaService(
-                avService: CFTypeRef,
+            /// VCP SET with retries over an IOAVService or IOAVDevice transport.
+            private static func writeVCP(
+                using transport: DDCAppleSiliconI2CTransport,
                 chipAddress: UInt32,
                 vcp: VCPCode,
                 value: UInt16
             ) -> Bool {
-                let transport = DDCAppleSiliconI2CTransport(
-                    writeI2C: { address, register, data in
-                        IOAVServiceWriteI2C(
-                            avService, address, register, &data, UInt32(data.count)
-                        )
-                    }
-                )
                 for attempt in 0 ..< maxRetryAttempts {
                     if attempt > 0 {
                         usleep(retryDelayMs * 1000)
                     }
 
                     var writeData = DDCPacketCodec.setRequest(for: vcp, value: value, includeHostAddress: false)
-                    var writeOK = false
-                    for cycle in 0 ..< writeCyclesPerAttempt {
-                        if cycle > 0 {
-                            usleep(writeCycleDelayMs * 1000)
-                        }
-                        let r = transport.write(
-                            &writeData,
-                            chipAddress: chipAddress,
-                            register: UInt32(hostAddress)
-                        )
-                        if r == KERN_SUCCESS {
-                            writeOK = true
-                        }
-                    }
-                    if writeOK {
+                    if writeCycles(&writeData, using: transport, chipAddress: chipAddress).succeeded {
                         return true
                     }
                 }
                 return false
             }
 
-            // MARK: IOAVDevice Transport (HDMI Fallback)
-
-            /// Reads a VCP code via IOAVDevice (alternative I2C path for HDMI).
-            private static func readViaDevice(
-                avDevice: CFTypeRef,
-                chipAddress: UInt32,
-                vcp: VCPCode
-            ) -> DDCReadResult? {
-                guard let writeFn = avDeviceWrite, let readFn = avDeviceRead else {
-                    return nil
-                }
-                let transport = DDCAppleSiliconI2CTransport(
-                    writeI2C: { address, register, data in
-                        writeFn(
-                            avDevice, address, register, &data, UInt32(data.count)
-                        )
-                    },
-                    readI2C: { address, register, data in
-                        readFn(
-                            avDevice, address, register, &data, UInt32(data.count)
-                        )
+            /// Sends one packet `writeCyclesPerAttempt` times. Succeeds if any cycle succeeded.
+            private static func writeCycles(
+                _ data: inout [UInt8],
+                using transport: DDCAppleSiliconI2CTransport,
+                chipAddress: UInt32
+            ) -> (succeeded: Bool, last: IOReturn) {
+                var succeeded = false
+                var last = IOReturn(kIOReturnError)
+                for cycle in 0 ..< writeCyclesPerAttempt {
+                    if cycle > 0 {
+                        usleep(writeCycleDelayMs * 1000)
                     }
-                )
-
-                for attempt in 0 ..< maxRetryAttempts {
-                    if attempt > 0 {
-                        usleep(retryDelayMs * 1000)
-                    }
-
-                    var writeData = DDCPacketCodec.getRequest(for: vcp, includeHostAddress: false)
-                    var writeOK = false
-                    for cycle in 0 ..< writeCyclesPerAttempt {
-                        if cycle > 0 {
-                            usleep(writeCycleDelayMs * 1000)
-                        }
-                        let r = transport.write(
-                            &writeData,
-                            chipAddress: chipAddress,
-                            register: UInt32(hostAddress)
-                        )
-                        if r == KERN_SUCCESS {
-                            writeOK = true
-                        }
-                    }
-                    guard writeOK else { continue }
-
-                    usleep(transactionDelayMs * 1000)
-
-                    var readData = [UInt8](
-                        repeating: 0,
-                        count: DDCAppleSiliconReadContract.replyLength
-                    )
-                    let r = transport.read(
-                        &readData,
-                        chipAddress: chipAddress,
-                        register: DDCAppleSiliconReadContract.dataAddress
-                    )
-                    guard r == KERN_SUCCESS else { continue }
-
-                    if let result = DDCPacketCodec.parseGetReply(readData, expectedVCP: vcp) {
-                        return result
+                    last = transport.write(&data, chipAddress: chipAddress, register: UInt32(hostAddress))
+                    if last == KERN_SUCCESS {
+                        succeeded = true
                     }
                 }
-                return nil
-            }
-
-            /// Writes a VCP code via IOAVDevice (alternative I2C path for HDMI).
-            private static func writeViaDevice(
-                avDevice: CFTypeRef,
-                chipAddress: UInt32,
-                vcp: VCPCode,
-                value: UInt16
-            ) -> Bool {
-                guard let writeFn = avDeviceWrite else { return false }
-                let transport = DDCAppleSiliconI2CTransport(
-                    writeI2C: { address, register, data in
-                        writeFn(
-                            avDevice, address, register, &data, UInt32(data.count)
-                        )
-                    }
-                )
-
-                for attempt in 0 ..< maxRetryAttempts {
-                    if attempt > 0 {
-                        usleep(retryDelayMs * 1000)
-                    }
-
-                    var writeData = DDCPacketCodec.setRequest(for: vcp, value: value, includeHostAddress: false)
-                    var writeOK = false
-                    for cycle in 0 ..< writeCyclesPerAttempt {
-                        if cycle > 0 {
-                            usleep(writeCycleDelayMs * 1000)
-                        }
-                        let r = transport.write(
-                            &writeData,
-                            chipAddress: chipAddress,
-                            register: UInt32(hostAddress)
-                        )
-                        if r == KERN_SUCCESS {
-                            writeOK = true
-                        }
-                    }
-                    if writeOK {
-                        return true
-                    }
-                }
-                return false
+                return (succeeded, last)
             }
 
             // MARK: Direct IOConnect Transport (Last Resort)
@@ -1378,8 +1329,8 @@
                 guard writeSuccess else { return nil }
 
                 // Wait for monitor to prepare response.
-                // Blocks the calling thread (~50ms). Acceptable because all DDC I/O is
-                // dispatched to a detached task, never on the main thread or cooperative pool.
+                // Blocks the calling thread (~50ms). Acceptable because all DDC I/O runs on the
+                // serial DDC dispatch queue, never on the main thread or cooperative pool.
                 usleep(transactionDelayMs * 1000)
 
                 // Read response. Same pointer-lifetime guarantee via withUnsafeMutableBufferPointer.

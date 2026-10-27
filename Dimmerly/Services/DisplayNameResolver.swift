@@ -31,16 +31,8 @@ enum DisplayNameResolver {
     /// 3. **Direct builds only:** EDID binary parsing via IOKit.
     /// 4. **Localized "Unknown Display"** — last resort.
     static func name(for displayID: CGDirectDisplayID) -> String {
-        for screen in NSScreen.screens {
-            let key = NSDeviceDescriptionKey("NSScreenNumber")
-            if let screenNumber = screen.deviceDescription[key] as? CGDirectDisplayID,
-               screenNumber == displayID
-            {
-                let name = screen.localizedName
-                if !looksGeneric(name) {
-                    return name
-                }
-            }
+        if let name = NSScreen.screen(for: displayID)?.localizedName, !looksGeneric(name) {
+            return name
         }
 
         if let name = nameFromOverrides(for: displayID) {

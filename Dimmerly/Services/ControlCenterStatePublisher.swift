@@ -82,6 +82,24 @@ struct ControlCenterStatePublisher {
     }
 }
 
+@MainActor
+extension WidgetActionCommand {
+    /// Runs a widget or Control Center command inside the app process.
+    func performInApp(settings: AppSettings = .shared) {
+        switch self {
+        case .dimDisplays:
+            DisplayAction.performSleep(settings: settings)
+        case let .applyPreset(presetID):
+            guard let uuid = UUID(uuidString: presetID) else { return }
+            PresetManager.shared.applyPreset(id: uuid, to: BrightnessManager.shared, animated: true)
+        case let .setDimming(value):
+            handleWidgetDimStateCommand(settings: settings, consumeCommand: { value })
+        case let .setAutoWarmth(value):
+            handleWidgetAutoWarmthCommand(settings: settings, consumeCommand: { value })
+        }
+    }
+}
+
 /// Applies a pending dim toggle command written by the Control Center extension.
 /// Publishes actual blanking state before reloading, even when the action leaves it unchanged.
 @MainActor

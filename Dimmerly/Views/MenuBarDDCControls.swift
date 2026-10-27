@@ -13,7 +13,7 @@ import SwiftUI
         /// Convenience modifier to wire DDC hardware controls from HardwareBrightnessManager.
         ///
         /// Sets all DDC-related properties (volume, mute, hasDDC, callbacks) in one call,
-        /// keeping the call site clean in `displaySliders`.
+        /// keeping the call site in `MenuBarDisplaySliders` clean.
         func ddcControls(
             hardwareManager: HardwareBrightnessManager,
             displayID: CGDirectDisplayID,
