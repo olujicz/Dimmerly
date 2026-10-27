@@ -380,6 +380,54 @@ final class DisplayIntentTests: XCTestCase {
         XCTAssertEqual(client.deleteCount, 1)
     }
 
+    func testIndexWritesDoNotInterleaveAcrossAwaits() async throws {
+        let queue = PresetEntityIndexWriteQueue()
+        var events: [String] = []
+        var releaseFirst: CheckedContinuation<Void, Never>?
+        let firstStarted = expectation(description: "first write started")
+
+        let first = Task { @MainActor in
+            try await queue.run {
+                events.append("first delete")
+                firstStarted.fulfill()
+                await withCheckedContinuation { releaseFirst = $0 }
+                events.append("first index")
+            }
+        }
+        await fulfillment(of: [firstStarted], timeout: 1)
+
+        let second = Task { @MainActor in
+            try await queue.run {
+                events.append("second delete")
+                events.append("second index")
+            }
+        }
+        for _ in 0 ..< 20 {
+            await Task.yield()
+        }
+        XCTAssertEqual(events, ["first delete"], "The second write must wait for the first to finish")
+
+        releaseFirst?.resume()
+        try await first.value
+        try await second.value
+
+        XCTAssertEqual(events, ["first delete", "first index", "second delete", "second index"])
+    }
+
+    func testIndexWriteQueueContinuesAfterAFailedWrite() async throws {
+        struct WriteFailure: Error {}
+        let queue = PresetEntityIndexWriteQueue()
+        var ran = false
+
+        do {
+            try await queue.run { throw WriteFailure() }
+            XCTFail("Expected the failing write to throw")
+        } catch is WriteFailure {}
+        try await queue.run { ran = true }
+
+        XCTAssertTrue(ran)
+    }
+
     func testPresetIndexingRetriesAfterTransientIndexFailure() async {
         let client = PresetEntityIndexingClientSpy()
         let indexed = expectation(description: "preset snapshot indexed after retry")
