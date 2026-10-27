@@ -18,6 +18,7 @@ struct GeneralSettingsTab: View {
     /// only a fresh alert trigger replaces this, never the dismissal itself.
     @State private var launchAtLoginAlert: LaunchAtLoginAlertContent?
     @State private var isLaunchAtLoginAlertPresented = false
+    @State private var launchAtLoginStatus = LaunchAtLoginStatus.disabled
 
     var body: some View {
         Form {
@@ -31,9 +32,22 @@ struct GeneralSettingsTab: View {
                             result: LaunchAtLoginManager.setEnabled(newValue)
                         )
                         isLaunchAtLoginAlertPresented = launchAtLoginAlert != nil
+                        syncLaunchAtLoginStatus()
                     }
                 ))
                 .help(Text("Automatically start Dimmerly when you log in"))
+
+                if launchAtLoginStatus == .requiresApproval {
+                    LabeledContent {
+                        Button("Open Login Items Settings") {
+                            LaunchAtLoginManager.openLoginItemsSettings()
+                        }
+                    } label: {
+                        Text("Allow Dimmerly in Login Items in System Settings to finish turning this on.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
 
                 menuBarIconPicker
             } header: {
@@ -52,14 +66,22 @@ struct GeneralSettingsTab: View {
         } message: {
             Text(launchAtLoginAlert?.message ?? "")
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            // Pick up approval granted in System Settings while this tab stayed open.
+            syncLaunchAtLoginStatus()
+        }
         .onAppear {
-            // Sync launch-at-login state with system
-            settings.launchAtLogin = LaunchAtLoginManager.isEnabled
+            syncLaunchAtLoginStatus()
             #if !APPSTORE
                 // Re-check accessibility permission for the direct-distribution shortcuts.
                 shortcutManager.hasAccessibilityPermission = KeyboardShortcutManager.checkAccessibilityPermission()
             #endif
         }
+    }
+
+    private func syncLaunchAtLoginStatus() {
+        launchAtLoginStatus = LaunchAtLoginManager.status
+        settings.launchAtLogin = launchAtLoginStatus.isRequested
     }
 
     // MARK: - Menu Bar Icon Picker

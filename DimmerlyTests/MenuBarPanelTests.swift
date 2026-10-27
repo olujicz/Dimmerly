@@ -73,6 +73,35 @@ final class MenuBarPanelTests: XCTestCase {
     }
 
     @MainActor
+    func testModelChangeDuringDragDoesNotMoveTheSlider() {
+        let settleTask = DisplaySliderSettleTask()
+        var value = 0.30
+        var applied: [Double] = []
+
+        settleTask.synchronize(value: value, modelValue: 0.80, isDragging: true) { modelValue in
+            applied.append(modelValue)
+            value = modelValue
+        }
+
+        XCTAssertEqual(value, 0.30)
+        XCTAssertTrue(applied.isEmpty)
+
+        settleTask.synchronize(value: value, modelValue: 0.80, isDragging: false) { modelValue in
+            applied.append(modelValue)
+            value = modelValue
+        }
+
+        XCTAssertEqual(applied, [0.80])
+    }
+
+    @MainActor
+    func testReleaseWritesBackOnlyWhenTheModelDriftedDuringTheDrag() {
+        XCTAssertTrue(DisplaySliderSettleTask.needsWriteBackAfterDrag(value: 0.30, modelValue: 0.80))
+        XCTAssertFalse(DisplaySliderSettleTask.needsWriteBackAfterDrag(value: 0.30, modelValue: 0.3001))
+        XCTAssertFalse(DisplaySliderSettleTask.needsWriteBackAfterDrag(value: 0.30, modelValue: nil))
+    }
+
+    @MainActor
     func testOwnModelEchoPreservesPendingSliderSnap() async {
         let settleTask = DisplaySliderSettleTask()
         defer { settleTask.cancel() }
@@ -176,6 +205,44 @@ final class MenuBarPanelTests: XCTestCase {
         XCTAssertTrue(dismissed)
         XCTAssertFalse(coordinator.isExternalPresentationActive)
         XCTAssertNil(coordinator.requestedPresetID)
+    }
+
+    @MainActor
+    func testOpenPanelPresentsWithoutSelectingAPreset() {
+        let coordinator = MenuBarPanelCoordinator()
+        coordinator.requestedPresetID = UUID()
+        var didActivateApp = false
+
+        coordinator.openPanel(presentationPath: .menuBarExtra, activateApp: { didActivateApp = true })
+
+        XCTAssertTrue(coordinator.isPresented)
+        XCTAssertNil(coordinator.requestedPresetID)
+        XCTAssertTrue(didActivateApp)
+    }
+
+    @MainActor
+    func testPopoverRequestedBeforeHostIsConfiguredPresentsOnceConfigured() {
+        let coordinator = MenuBarPanelCoordinator()
+        var presentations: [UUID?] = []
+
+        coordinator.openPanel(presentationPath: .publicPopover, activateApp: {})
+        XCTAssertTrue(presentations.isEmpty)
+
+        coordinator.configureExternalPresentation(
+            present: { presentations.append($0) },
+            dismiss: {}
+        )
+
+        XCTAssertEqual(presentations, [nil])
+        XCTAssertTrue(coordinator.isExternalPresentationActive)
+    }
+
+    @MainActor
+    func testWidgetOpenURLIsRecognized() throws {
+        XCTAssertTrue(try DimmerlyURL.opensPanel(XCTUnwrap(URL(string: "dimmerly://open"))))
+        XCTAssertTrue(try DimmerlyURL.opensPanel(XCTUnwrap(URL(string: "Dimmerly://OPEN"))))
+        XCTAssertFalse(try DimmerlyURL.opensPanel(XCTUnwrap(URL(string: "dimmerly://preset"))))
+        XCTAssertFalse(try DimmerlyURL.opensPanel(XCTUnwrap(URL(string: "https://open"))))
     }
 
     @MainActor

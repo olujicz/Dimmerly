@@ -311,6 +311,7 @@ final class ScreenBlanker {
         try inputMonitor.start(
             policy: policy,
             onWake: action,
+            onSuppressedInput: { [weak self] in self?.windows.revealWakeHint() },
             onFailure: { [weak self] error in
                 self?.handleMonitorFailure(error)
             }

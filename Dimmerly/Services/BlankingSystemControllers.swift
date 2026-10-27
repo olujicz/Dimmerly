@@ -17,6 +17,9 @@ protocol BlankingWindowControlling: AnyObject {
     func removeWindow(for displayID: CGDirectDisplayID)
     func removeAllWindows()
     func endBlankingSession()
+
+    /// Shows the wake hint again after input that didn't wake the displays.
+    func revealWakeHint()
 }
 
 @MainActor
@@ -71,6 +74,8 @@ enum BlankingWindowPresentation {
 @MainActor
 final class SystemBlankingWindowController: BlankingWindowControlling {
     private var windows: [CGDirectDisplayID: NSWindow] = [:]
+    private var wakeHints: [CGDirectDisplayID: NSTextField] = [:]
+    private var wakeHintFadeTask: Task<Void, Never>?
     #if APPSTORE
         private var previouslyFrontmostApplication: NSRunningApplication?
     #endif
@@ -120,7 +125,7 @@ final class SystemBlankingWindowController: BlankingWindowControlling {
         window.setFrame(screen.frame, display: true)
 
         if showsEscapeHint {
-            addWakeHint(to: window, screen: screen)
+            wakeHints[displayID] = addWakeHint(to: window, screen: screen)
         }
 
         windows[displayID] = window
@@ -134,6 +139,7 @@ final class SystemBlankingWindowController: BlankingWindowControlling {
 
     func removeWindow(for displayID: CGDirectDisplayID) {
         windows.removeValue(forKey: displayID)?.orderOut(nil)
+        wakeHints.removeValue(forKey: displayID)
     }
 
     func removeAllWindows() {
@@ -141,6 +147,21 @@ final class SystemBlankingWindowController: BlankingWindowControlling {
             window.orderOut(nil)
         }
         windows.removeAll()
+        wakeHints.removeAll()
+        wakeHintFadeTask?.cancel()
+        wakeHintFadeTask = nil
+    }
+
+    func revealWakeHint() {
+        guard !wakeHints.isEmpty else { return }
+        let needsAnnouncement = wakeHints.values.allSatisfy { $0.alphaValue < 1 }
+        for label in wakeHints.values {
+            label.animator().alphaValue = 1
+        }
+        if needsAnnouncement {
+            announceWakeHint()
+        }
+        scheduleWakeHintFade()
     }
 
     func endBlankingSession() {
@@ -157,15 +178,16 @@ final class SystemBlankingWindowController: BlankingWindowControlling {
         }
     }
 
-    private func addWakeHint(to window: NSWindow, screen: NSScreen) {
-        let label = NSTextField(
-            labelWithString: NSLocalizedString(
-                "Press Esc to wake",
-                comment: "Hint shown on blanked display"
-            )
-        )
+    private static var wakeHintText: String {
+        NSLocalizedString("Press Esc to wake", comment: "Hint shown on blanked display")
+    }
+
+    /// The hint fades so the displays go fully dark, and comes back whenever input is
+    /// swallowed without waking. White at 60% on black keeps it above a 7:1 contrast ratio.
+    private func addWakeHint(to window: NSWindow, screen: NSScreen) -> NSTextField {
+        let label = NSTextField(labelWithString: Self.wakeHintText)
         label.font = .systemFont(ofSize: 13, weight: .medium)
-        label.textColor = .white.withAlphaComponent(0.25)
+        label.textColor = .white.withAlphaComponent(0.6)
         label.alignment = .center
         label.sizeToFit()
         label.frame.origin = CGPoint(
@@ -174,14 +196,37 @@ final class SystemBlankingWindowController: BlankingWindowControlling {
         )
         window.contentView?.addSubview(label)
 
-        Task { @MainActor in
+        if wakeHints.isEmpty {
+            announceWakeHint()
+        }
+        scheduleWakeHintFade()
+        return label
+    }
+
+    private func scheduleWakeHintFade() {
+        wakeHintFadeTask?.cancel()
+        wakeHintFadeTask = Task { @MainActor [weak self] in
             try? await Task.sleep(for: .seconds(4))
-            guard label.window != nil else { return }
+            guard !Task.isCancelled, let self else { return }
+            let labels = Array(wakeHints.values)
             NSAnimationContext.runAnimationGroup({ context in
                 context.duration = 1
-                label.animator().alphaValue = 0
+                for label in labels {
+                    label.animator().alphaValue = 0
+                }
             }, completionHandler: nil)
         }
+    }
+
+    private func announceWakeHint() {
+        NSAccessibility.post(
+            element: NSApp as Any,
+            notification: .announcementRequested,
+            userInfo: [
+                .announcement: Self.wakeHintText,
+                .priority: NSAccessibilityPriorityLevel.high.rawValue,
+            ]
+        )
     }
 }
 

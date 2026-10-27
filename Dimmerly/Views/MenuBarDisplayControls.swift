@@ -68,10 +68,20 @@ private let displaySliderSyncTolerance = 0.0005
 final class DisplaySliderSettleTask {
     private var task: Task<Void, Never>?
 
-    func synchronize(value: Double, modelValue: Double?, apply: (Double) -> Void) {
+    /// Pulls an external model change into the slider. Skipped while dragging, so a preset
+    /// transition or hardware read can't move the knob out from under the pointer.
+    func synchronize(value: Double, modelValue: Double?, isDragging: Bool = false, apply: (Double) -> Void) {
+        guard !isDragging else { return }
         guard let modelValue, abs(value - modelValue) > displaySliderSyncTolerance else { return }
         cancel()
         apply(modelValue)
+    }
+
+    /// Whether the slider's value needs writing back after a drag, because the model moved
+    /// while syncing was paused and the release didn't change the value.
+    static func needsWriteBackAfterDrag(value: Double, modelValue: Double?) -> Bool {
+        guard let modelValue else { return false }
+        return abs(value - modelValue) > displaySliderSyncTolerance
     }
 
     func schedule(isDragging: Bool, action: @escaping @MainActor () -> Void) {
@@ -228,7 +238,12 @@ private struct DisplayControlSlider: View {
             settleTask.cancel()
             isDragging = isEditing
             if !isEditing {
-                value = snap(value)
+                let snapped = snap(value)
+                if snapped != value {
+                    value = snapped
+                } else if DisplaySliderSettleTask.needsWriteBackAfterDrag(value: value, modelValue: modelValue) {
+                    onChange(value)
+                }
             }
         }
         .overlay {
@@ -254,7 +269,7 @@ private struct DisplayControlSlider: View {
     }
 
     private func syncFromModel() {
-        settleTask.synchronize(value: value, modelValue: modelValue) { modelValue in
+        settleTask.synchronize(value: value, modelValue: modelValue, isDragging: isDragging) { modelValue in
             syncGate.markProgrammaticSync()
             value = modelValue
         }

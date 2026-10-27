@@ -36,6 +36,31 @@ enum LaunchAtLoginError: LocalizedError {
     }
 }
 
+/// Whether Dimmerly is set to launch at login, as far as the user needs to know.
+enum LaunchAtLoginStatus: Equatable {
+    case enabled
+    /// Registered, but macOS won't launch it until the user allows it in Login Items.
+    case requiresApproval
+    case disabled
+
+    init(_ status: SMAppService.Status) {
+        switch status {
+        case .enabled:
+            self = .enabled
+        case .requiresApproval:
+            self = .requiresApproval
+        default:
+            self = .disabled
+        }
+    }
+
+    /// The toggle stays on while approval is pending: the user asked for it, and turning it
+    /// off would unregister the request they still need to approve.
+    var isRequested: Bool {
+        self != .disabled
+    }
+}
+
 /// Manages the app's launch-at-login functionality
 enum LaunchAtLoginManager {
     /// Registers the app to launch at login
@@ -64,11 +89,14 @@ enum LaunchAtLoginManager {
         }
     }
 
-    /// Checks whether the app is currently registered to launch at login
-    ///
-    /// - Returns: true if registered, false otherwise
-    static var isEnabled: Bool {
-        SMAppService.mainApp.status == .enabled
+    /// The current login item state, including whether it still needs the user's approval.
+    static var status: LaunchAtLoginStatus {
+        LaunchAtLoginStatus(SMAppService.mainApp.status)
+    }
+
+    /// Opens System Settings > General > Login Items, where pending approval is granted.
+    static func openLoginItemsSettings() {
+        SMAppService.openSystemSettingsLoginItems()
     }
 
     /// Sets the launch-at-login state

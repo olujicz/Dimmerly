@@ -12099,6 +12099,148 @@
         }
       }
     },
+    "Allow Dimmerly in Login Items in System Settings to finish turning this on." : {
+      "comment" : "Shown when launch at login is waiting for the user's approval",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erlaube Dimmerly in den Systemeinstellungen unter „Anmeldeobjekte“, um dies abzuschließen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow Dimmerly in Login Items in System Settings to finish turning this on."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permite Dimmerly en Ítems de inicio en Ajustes del Sistema para terminar de activarlo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autorisez Dimmerly dans Éléments de connexion, dans Réglages Système, pour terminer l’activation."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consenti Dimmerly in Elementi login nelle Impostazioni di Sistema per completare l’attivazione."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有効にするには、システム設定の「ログイン項目」で Dimmerly を許可してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "켜기를 완료하려면 시스템 설정의 로그인 항목에서 Dimmerly를 허용하세요."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sta Dimmerly toe bij Inlogonderdelen in Systeeminstellingen om dit af te ronden."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permita o Dimmerly em Itens de Início nos Ajustes do Sistema para concluir a ativação."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dozvoli Dimmerly u stavkama za prijavu u Sistemskim podešavanjima da bi se ovo uključilo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请在“系统设置”的“登录项”中允许 Dimmerly 以完成开启。"
+          }
+        }
+      }
+    },
+    "Open Login Items Settings" : {
+      "comment" : "Button that opens System Settings > General > Login Items",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anmeldeobjekte-Einstellungen öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Login Items Settings"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir ajustes de ítems de inicio"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir les réglages des éléments de connexion"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri impostazioni elementi login"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ログイン項目の設定を開く"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "로그인 항목 설정 열기"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open instellingen voor inlogonderdelen"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir Ajustes de Itens de Início"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otvori podešavanja stavki za prijavu"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开登录项设置"
+          }
+        }
+      }
+    },
     "Location" : {
       "extractionState" : "stale",
       "localizations" : {

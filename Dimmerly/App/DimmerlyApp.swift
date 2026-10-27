@@ -35,6 +35,9 @@ func handleWidgetActionRequest(
 
 @main
 struct DimmerlyApp: App {
+    /// Handles `dimmerly://` URLs from the widget.
+    @NSApplicationDelegateAdaptor(DimmerlyAppDelegate.self) private var appDelegate
+
     /// Application settings shared across all views
     @State private var settings = AppSettings.shared
 
@@ -459,6 +462,25 @@ struct MenuBarStatusLabel: View {
                 .resolvedAssetName(isActive: brightnessManager.isAffectingDisplays) ?? "MenuBarIcon")
                 .accessibilityLabel("Dimmerly")
         }
+    }
+}
+
+/// The `dimmerly://` URLs the app responds to.
+enum DimmerlyURL {
+    /// Sent by a tap on the widget outside its buttons.
+    static let openPanel = URL(string: "dimmerly://open")!
+
+    static func opensPanel(_ url: URL) -> Bool {
+        url.scheme?.lowercased() == openPanel.scheme && url.host()?.lowercased() == openPanel.host()
+    }
+}
+
+/// Receives `dimmerly://` URLs. Dimmerly has no window scene for `onOpenURL`, so the
+/// app delegate is the one place that sees them, including the URL that launches the app.
+final class DimmerlyAppDelegate: NSObject, NSApplicationDelegate {
+    func application(_: NSApplication, open urls: [URL]) {
+        guard urls.contains(where: DimmerlyURL.opensPanel) else { return }
+        MenuBarPanelCoordinator.shared.openPanel()
     }
 }
 

@@ -43,17 +43,19 @@ final class MenuBarPanelCoordinator {
     var requestedPresetID: UUID?
     private(set) var isExternalPresentationActive = false
 
-    private var presentExternal: (@MainActor (UUID) -> Void)?
+    private var presentExternal: (@MainActor (UUID?) -> Void)?
     private var dismissExternal: (@MainActor () -> Void)?
 
     func configureExternalPresentation(
-        present: @escaping @MainActor (UUID) -> Void,
+        present: @escaping @MainActor (UUID?) -> Void,
         dismiss: @escaping @MainActor () -> Void
     ) {
         presentExternal = present
         dismissExternal = dismiss
 
-        if isExternalPresentationActive, let requestedPresetID {
+        // A request can arrive before the status item exists, for example a widget tap that
+        // launches the app. Present it once the host is ready.
+        if isExternalPresentationActive {
             presentExternal?(requestedPresetID)
         }
     }
@@ -63,7 +65,23 @@ final class MenuBarPanelCoordinator {
         presentationPath: MenuBarPanelPresentationPath = .current,
         activateApp: @escaping @MainActor () -> Void = { NSApp.activate(ignoringOtherApps: true) }
     ) {
-        requestedPresetID = id
+        open(presetID: id, presentationPath: presentationPath, activateApp: activateApp)
+    }
+
+    /// Opens the panel without selecting a preset, for example from the widget background.
+    func openPanel(
+        presentationPath: MenuBarPanelPresentationPath = .current,
+        activateApp: @escaping @MainActor () -> Void = { NSApp.activate(ignoringOtherApps: true) }
+    ) {
+        open(presetID: nil, presentationPath: presentationPath, activateApp: activateApp)
+    }
+
+    private func open(
+        presetID: UUID?,
+        presentationPath: MenuBarPanelPresentationPath,
+        activateApp: @MainActor () -> Void
+    ) {
+        requestedPresetID = presetID
         activateApp()
 
         switch presentationPath {
@@ -71,7 +89,7 @@ final class MenuBarPanelCoordinator {
             isPresented = true
         case .publicPopover:
             isExternalPresentationActive = true
-            presentExternal?(id)
+            presentExternal?(presetID)
         }
     }
 

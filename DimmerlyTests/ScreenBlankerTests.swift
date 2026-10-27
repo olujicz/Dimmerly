@@ -52,6 +52,17 @@ final class ScreenBlankerTests: XCTestCase {
         XCTAssertEqual(harness.cursor.hideCount, 1)
     }
 
+    func testInputSwallowedWithoutWakingRevealsTheWakeHint() throws {
+        let harness = makeHarness()
+        harness.sut.requireEscapeToDismiss = true
+        harness.sut.blank()
+
+        try harness.input.sendSuppressedInput()
+
+        XCTAssertTrue(harness.sut.isBlanking)
+        XCTAssertEqual(harness.windows.revealWakeHintCount, 1)
+    }
+
     func testDuplicateBlankRequestIsIdempotent() {
         let harness = makeHarness()
         harness.sut.blank()
@@ -462,6 +473,7 @@ final class ScreenBlankerTests: XCTestCase {
                     wakeCount += 1
                     wakesDelivered.fulfill()
                 },
+                onSuppressedInput: { XCTFail("Any-input policy should not swallow input") },
                 onFailure: { _ in XCTFail("Unexpected monitor failure") }
             )
             let keyEvent = try XCTUnwrap(CGEvent(
@@ -475,6 +487,24 @@ final class ScreenBlankerTests: XCTestCase {
             await fulfillment(of: [wakesDelivered], timeout: 1)
 
             XCTAssertEqual(wakeCount, 2)
+        }
+
+        func testDirectMonitorReportsInputSwallowedInEscapeOnlyMode() async throws {
+            let suppressed = expectation(description: "Swallowed input is reported")
+            let context = EventTapContext(
+                policy: .escapeOnly,
+                onWake: { XCTFail("Only Escape should wake") },
+                onSuppressedInput: { suppressed.fulfill() },
+                onFailure: { _ in XCTFail("Unexpected monitor failure") }
+            )
+            let keyEvent = try XCTUnwrap(CGEvent(
+                keyboardEventSource: nil,
+                virtualKey: 0,
+                keyDown: true
+            ))
+
+            XCTAssertNil(context.handle(type: .keyDown, event: keyEvent))
+            await fulfillment(of: [suppressed], timeout: 1)
         }
 
         func testAccessibilityFailureLinksToAccessibilityPrivacyPane() {
@@ -535,11 +565,13 @@ private final class FakeBlankingInputMonitor: BlankingInputMonitoring {
     var startError: BlankingInputMonitorError?
     var stopCount = 0
     private var onWake: (@MainActor () -> Void)?
+    private var onSuppressedInput: (@MainActor () -> Void)?
     private var onFailure: (@MainActor (BlankingInputMonitorError) -> Void)?
 
     func start(
         policy: BlankingInputPolicy,
         onWake: @escaping @MainActor () -> Void,
+        onSuppressedInput: @escaping @MainActor () -> Void,
         onFailure: @escaping @MainActor (BlankingInputMonitorError) -> Void
     ) throws {
         if let startError {
@@ -547,13 +579,20 @@ private final class FakeBlankingInputMonitor: BlankingInputMonitoring {
         }
         startPolicies.append(policy)
         self.onWake = onWake
+        self.onSuppressedInput = onSuppressedInput
         self.onFailure = onFailure
     }
 
     func stop() {
         stopCount += 1
         onWake = nil
+        onSuppressedInput = nil
         onFailure = nil
+    }
+
+    func sendSuppressedInput() throws {
+        let action = try XCTUnwrap(onSuppressedInput)
+        action()
     }
 
     func sendWake() throws {
@@ -599,6 +638,12 @@ private final class FakeBlankingWindowController: BlankingWindowControlling {
 
     func endBlankingSession() {
         endSessionCount += 1
+    }
+
+    var revealWakeHintCount = 0
+
+    func revealWakeHint() {
+        revealWakeHintCount += 1
     }
 }
 
