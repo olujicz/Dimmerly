@@ -195,8 +195,8 @@ struct GlobalShortcut: Codable, Equatable {
             guard keyString.count == 1,
                   keyString.first?.isLetter == true,
                   let layoutLabel = charactersIgnoringModifiers?
-                  .trimmingCharacters(in: .whitespacesAndNewlines)
-                  .lowercased(),
+                      .trimmingCharacters(in: .whitespacesAndNewlines)
+                      .lowercased(),
                   !layoutLabel.isEmpty
             else {
                 return keyString

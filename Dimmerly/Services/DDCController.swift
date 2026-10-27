@@ -270,9 +270,9 @@
         /// monitor returning an error response, or IOKit service not found.
         static func read(vcp: VCPCode, for displayID: CGDirectDisplayID) -> DDCReadResult? {
             #if arch(arm64)
-                return readAppleSilicon(vcp: vcp, for: displayID)
+                readAppleSilicon(vcp: vcp, for: displayID)
             #else
-                return readIntel(vcp: vcp, for: displayID)
+                readIntel(vcp: vcp, for: displayID)
             #endif
         }
 
@@ -293,9 +293,9 @@
         @discardableResult
         static func write(vcp: VCPCode, value: UInt16, for displayID: CGDirectDisplayID) -> Bool {
             #if arch(arm64)
-                return writeAppleSilicon(vcp: vcp, value: value, for: displayID)
+                writeAppleSilicon(vcp: vcp, value: value, for: displayID)
             #else
-                return writeIntel(vcp: vcp, value: value, for: displayID)
+                writeIntel(vcp: vcp, value: value, for: displayID)
             #endif
         }
 
@@ -660,9 +660,9 @@
 
                     var properties: Unmanaged<CFMutableDictionary>?
                     guard IORegistryEntryCreateCFProperties(
-                        current, &properties, kCFAllocatorDefault, 0
-                    ) == KERN_SUCCESS,
-                        let dict = properties?.takeRetainedValue() as? [String: Any]
+                              current, &properties, kCFAllocatorDefault, 0
+                          ) == KERN_SUCCESS,
+                          let dict = properties?.takeRetainedValue() as? [String: Any]
                     else {
                         continue
                     }
@@ -1287,9 +1287,9 @@
                 while service != IO_OBJECT_NULL {
                     var properties: Unmanaged<CFMutableDictionary>?
                     guard IORegistryEntryCreateCFProperties(
-                        service, &properties, kCFAllocatorDefault, 0
-                    ) == KERN_SUCCESS,
-                        let dict = properties?.takeRetainedValue() as? [String: Any]
+                              service, &properties, kCFAllocatorDefault, 0
+                          ) == KERN_SUCCESS,
+                          let dict = properties?.takeRetainedValue() as? [String: Any]
                     else {
                         IOObjectRelease(service)
                         service = IOIteratorNext(iterator)

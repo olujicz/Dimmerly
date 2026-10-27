@@ -11,9 +11,9 @@ struct ConnectedDisplayDescriptor: Equatable, Sendable {
     let name: String
 }
 
+@MainActor
 extension ConnectedDisplayDescriptor {
     /// Snapshot of the connected displays in the shape App Intents and entity queries consume.
-    @MainActor
     static func connected(from manager: BrightnessManager = .shared) -> [ConnectedDisplayDescriptor] {
         manager.displays.map { display in
             ConnectedDisplayDescriptor(

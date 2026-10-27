@@ -40,7 +40,9 @@ jobs:
         run: bash .github/scripts/verify-xcode.sh
 
       - name: Install Tooling
-        run: brew install swiftformat swiftlint
+        run: |
+          bash .github/scripts/install-swiftformat.sh
+          brew install swiftlint
 
       - name: Check Formatting
         run: swiftformat Dimmerly DimmerlyTests DimmerlyWidget --config .swiftformat --lint

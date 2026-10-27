@@ -10,7 +10,7 @@ This guide is for developers and contributors building Dimmerly from source.
 - The built app continues to support macOS 15.0 or later
 - Optional: [just](https://github.com/casey/just)
 - Optional: [SwiftLint](https://github.com/realm/SwiftLint)
-- Optional: [SwiftFormat](https://github.com/nicklockwood/SwiftFormat)
+- Optional: [SwiftFormat](https://github.com/nicklockwood/SwiftFormat) 0.64.4 (the version CI uses)
 - Required for commits: [Gitleaks](https://github.com/gitleaks/gitleaks) (`brew install gitleaks`)
 
 ## Build and Run
@@ -84,12 +84,14 @@ GitHub Actions runs on every push and pull request to `main`:
 - Secrets: Gitleaks scans repository history
 - Scope: A lightweight Ubuntu job tests the toolchain gate and classifies the changed paths
 - Workflow lint: `actionlint`
-- Format: SwiftFormat check
+- Format: SwiftFormat check with the pinned 0.64.4 release
 - Lint: SwiftLint with `--strict`
 - Test: Both direct-distribution (`Debug`) and App Store (`Debug-AppStore`) suites on GitHub's `xcode-27` runner with released Xcode 27.0 (`27A266a`)
 - Build: App Store scheme smoke build on the same pinned Xcode 27.0 toolchain with signing disabled
 
 Gitleaks and the scope classifier always run. The Xcode jobs explicitly select the released Xcode 27.0 installation and verify its build number, Swift compiler, and macOS SDK with `.github/scripts/verify-xcode.sh`. The Release workflow uses the same toolchain. When every changed path is a Markdown file, a file under `documentation/` or `images/`, or the root `LICENSE`, the macOS workflow-lint, format, lint, test, and build jobs are skipped. Any other path, a mixed change, or an indeterminate diff runs the full CI suite. Superseded runs for the same branch or pull request are cancelled automatically.
+
+CI and Release install SwiftFormat with `.github/scripts/install-swiftformat.sh`, which downloads the pinned release and verifies its checksum. Runner Homebrew versions drifted from developer machines, so the two disagreed about formatting. To upgrade, change the version and checksum in that script and `--minversion` in `.swiftformat` together, then run `just format`.
 
 ## Release Packaging
 

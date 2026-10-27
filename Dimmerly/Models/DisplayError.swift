@@ -47,9 +47,9 @@ enum DisplayError: LocalizedError {
         switch self {
         #if !APPSTORE
             case .pmsetNotFound:
-                return NSLocalizedString("Display Sleep Unavailable", comment: "Error title: pmset not found")
+                NSLocalizedString("Display Sleep Unavailable", comment: "Error title: pmset not found")
             case let .pmsetFailed(status):
-                return String(
+                String(
                     format: NSLocalizedString(
                         "Failed to Sleep Displays (Exit %d)",
                         comment: "Error title: pmset non-zero exit"
@@ -57,12 +57,12 @@ enum DisplayError: LocalizedError {
                     status
                 )
             case .ddcNotSupported:
-                return NSLocalizedString(
+                NSLocalizedString(
                     "Hardware Control Unavailable",
                     comment: "Error title: DDC not supported"
                 )
             case let .ddcReadFailed(vcp):
-                return String(
+                String(
                     format: NSLocalizedString(
                         "Failed to Read Display Setting (VCP 0x%02X)",
                         comment: "Error title: DDC read failed"
@@ -70,7 +70,7 @@ enum DisplayError: LocalizedError {
                     vcp
                 )
             case let .ddcWriteFailed(vcp):
-                return String(
+                String(
                     format: NSLocalizedString(
                         "Failed to Write Display Setting (VCP 0x%02X)",
                         comment: "Error title: DDC write failed"
@@ -78,20 +78,20 @@ enum DisplayError: LocalizedError {
                     vcp
                 )
             case .ddcServiceNotFound:
-                return NSLocalizedString(
+                NSLocalizedString(
                     "Display Service Not Found",
                     comment: "Error title: DDC IOKit service not found"
                 )
             case .ddcTimeout:
-                return NSLocalizedString(
+                NSLocalizedString(
                     "Display Communication Timeout",
                     comment: "Error title: DDC transaction timeout"
                 )
         #endif
         case .permissionDenied:
-            return NSLocalizedString("Permission Denied", comment: "Error title: missing permissions")
+            NSLocalizedString("Permission Denied", comment: "Error title: missing permissions")
         case .unknownError:
-            return NSLocalizedString("Unexpected Error", comment: "Error title: unknown error")
+            NSLocalizedString("Unexpected Error", comment: "Error title: unknown error")
         }
     }
 
@@ -100,13 +100,13 @@ enum DisplayError: LocalizedError {
         switch self {
         #if !APPSTORE
             case .pmsetNotFound:
-                return NSLocalizedString(
+                NSLocalizedString(
                     "The pmset utility was not found at /usr/bin/pmset. "
                         + "This is unexpected — pmset is included with macOS.",
                     comment: "Recovery: pmset not found"
                 )
             case let .pmsetFailed(status):
-                return String(
+                String(
                     format: NSLocalizedString(
                         "The pmset command failed with exit code %d. "
                             + "Check System Settings > Lock Screen and ensure display sleep is not disabled by policy.",
@@ -115,7 +115,7 @@ enum DisplayError: LocalizedError {
                     status
                 )
             case .ddcNotSupported:
-                return NSLocalizedString(
+                NSLocalizedString(
                     "This display does not support DDC/CI hardware control. "
                         + "Common reasons: built-in HDMI on M1/M2 Macs, DisplayLink adapters, "
                         + "or the monitor has DDC/CI disabled in its OSD settings. "
@@ -123,28 +123,28 @@ enum DisplayError: LocalizedError {
                     comment: "Recovery: DDC not supported"
                 )
             case .ddcReadFailed:
-                return NSLocalizedString(
+                NSLocalizedString(
                     "Could not read the display setting via DDC/CI. "
                         + "The monitor may be busy or the I2C bus encountered an error. "
                         + "Try again in a moment.",
                     comment: "Recovery: DDC read failed"
                 )
             case .ddcWriteFailed:
-                return NSLocalizedString(
+                NSLocalizedString(
                     "Could not write the display setting via DDC/CI. "
                         + "The monitor may not support this control or the I2C bus encountered an error. "
                         + "Try again in a moment.",
                     comment: "Recovery: DDC write failed"
                 )
             case .ddcServiceNotFound:
-                return NSLocalizedString(
+                NSLocalizedString(
                     "No IOKit display service was found for this monitor. "
                         + "This usually means the connection type (e.g., DisplayLink USB) "
                         + "does not support DDC/CI on macOS.",
                     comment: "Recovery: DDC service not found"
                 )
             case .ddcTimeout:
-                return NSLocalizedString(
+                NSLocalizedString(
                     "The display did not respond within the expected time. "
                         + "Some monitors need extra time to process DDC commands. "
                         + "Try again or check the display connection.",
@@ -152,13 +152,13 @@ enum DisplayError: LocalizedError {
                 )
         #endif
         case .permissionDenied:
-            return NSLocalizedString(
+            NSLocalizedString(
                 "Dimmerly does not have permission to control displays. "
                     + "Please check System Settings > Privacy & Security.",
                 comment: "Recovery: permission denied"
             )
         case let .unknownError(message):
-            return String(
+            String(
                 format: NSLocalizedString(
                     "An unexpected error occurred: %@. Please try again or restart the app.",
                     comment: "Recovery: unknown error"

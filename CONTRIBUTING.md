@@ -48,7 +48,7 @@ Feature suggestions are welcome! Please:
 - Released Xcode 27.0 (`27A266a`) with the macOS 27 SDK
 - Swift 6.4 or later
 - Optional: [just](https://github.com/casey/just) command runner
-- Optional: [SwiftLint](https://github.com/realm/SwiftLint) and [SwiftFormat](https://github.com/nicklockwood/SwiftFormat)
+- Optional: [SwiftLint](https://github.com/realm/SwiftLint) and [SwiftFormat](https://github.com/nicklockwood/SwiftFormat) 0.64.4 (the version CI uses)
 
 ### Building from Source
 
