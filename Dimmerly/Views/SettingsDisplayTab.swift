@@ -55,9 +55,11 @@ struct DisplaySettingsTab: View {
 
                 if !settings.preventScreenLock {
                     Text(
-                        "Turns off all displays and locks your Mac, just like closing the lid."
-                            + " To control how quickly your password is required,"
-                            + " adjust your Lock Screen settings."
+                        """
+                        Turns off all displays and locks your Mac, just like closing the lid. \
+                        To control how quickly your password is required, \
+                        adjust your Lock Screen settings.
+                        """
                     )
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -101,8 +103,10 @@ struct DisplaySettingsTab: View {
 
                 #if APPSTORE
                     Text(
-                        "Dimmerly captures standard keyboard and pointer input while its overlays are active. "
-                            + "macOS system shortcuts and media keys may still be handled by the system."
+                        """
+                        Dimmerly captures standard keyboard and pointer input while its overlays are active. \
+                        macOS system shortcuts and media keys may still be handled by the system.
+                        """
                     )
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -236,8 +240,12 @@ struct DisplaySettingsTab: View {
                         }
                     }
                 ))
-                .help("Uses native brightness or DDC/CI to control compatible external displays directly. "
-                    + "Unsupported displays continue using software brightness.")
+                .help(
+                    """
+                    Uses native brightness or DDC/CI to control compatible external displays directly. \
+                    Unsupported displays continue using software brightness.
+                    """
+                )
 
                 if settings.ddcEnabled {
                     Toggle("Experimental native brightness", isOn: Binding(
@@ -252,13 +260,17 @@ struct DisplaySettingsTab: View {
                         }
                     ))
                     .help(
-                        "Tries native brightness control for compatible external Apple and LG displays. "
-                            + "Support varies by model; software brightness remains the fallback."
+                        """
+                        Tries native brightness control for compatible external Apple and LG displays. \
+                        Support varies by model; software brightness remains the fallback.
+                        """
                     )
 
                     Text(
-                        "Experimental and unverified across display models. If native control fails, "
-                            + "Dimmerly falls back to software brightness."
+                        """
+                        Experimental and unverified across display models. If native control fails, \
+                        Dimmerly falls back to software brightness.
+                        """
                     )
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -346,9 +358,11 @@ struct DisplaySettingsTab: View {
                                     .fontWeight(.medium)
 
                                 Text(
-                                    "Dimmerly is using software brightness for your external displays. "
-                                        + "Other supported monitor controls remain available. Hardware brightness "
-                                        + "will be used when a compatible display is connected."
+                                    """
+                                    Dimmerly is using software brightness for your external displays. \
+                                    Other supported monitor controls remain available. Hardware brightness \
+                                    will be used when a compatible display is connected.
+                                    """
                                 )
                                 .font(.caption)
                                 .foregroundStyle(.secondary)

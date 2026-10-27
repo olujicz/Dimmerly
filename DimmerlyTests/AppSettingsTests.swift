@@ -196,17 +196,17 @@ final class AppSettingsTests: XCTestCase {
             let unsupported = HardwareDisplayCapability.notSupported(displayID: 27)
 
             XCTAssertEqual(ddcDisplayStatusSymbolName(for: brightnessCapable), "checkmark.circle.fill")
-            XCTAssertEqual(ddcDisplayStatusText(for: brightnessCapable), "Hardware controls: Brightness, Volume")
+            XCTAssertEqual(ddcDisplayStatusText(for: brightnessCapable), "Hardware controls: Brightness and Volume")
             XCTAssertEqual(
                 ddcDisplayAccessibilityStatus(for: brightnessCapable),
-                "hardware controls available, Brightness, Volume"
+                "hardware controls available, Brightness and Volume"
             )
 
             XCTAssertEqual(ddcDisplayStatusSymbolName(for: partialDDC), "exclamationmark.circle")
-            XCTAssertEqual(ddcDisplayStatusText(for: partialDDC), "Hardware brightness unavailable · Volume, Input")
+            XCTAssertEqual(ddcDisplayStatusText(for: partialDDC), "Hardware brightness unavailable · Volume and Input")
             XCTAssertEqual(
                 ddcDisplayAccessibilityStatus(for: partialDDC),
-                "hardware brightness unavailable, Volume, Input"
+                "hardware brightness unavailable, Volume and Input"
             )
 
             XCTAssertEqual(ddcDisplayStatusSymbolName(for: unsupported), "tv.and.mediabox")

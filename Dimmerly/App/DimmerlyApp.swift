@@ -123,61 +123,62 @@ struct DimmerlyApp: App {
             #endif
                 .environment(\.closeMenuBarPanel) { menuBarPanelCoordinator.dismiss() }
         } label: {
-            menuBarLabel
-                .onAppear {
-                    guard !isConfigured else { return }
-                    isConfigured = true
-                    // Load saved shortcut before starting monitoring (Issue 1)
-                    shortcutManager.updateShortcut(settings.keyboardShortcut)
-                    startGlobalShortcutMonitoring()
-                    configureIdleTimer()
-                    configurePresetShortcuts()
-                    configureScheduleManager()
-                    observeWidgetNotifications()
-                    SharedConstants.discardLegacyWidgetCommands()
-                    AppEntityIndexingService.shared.reindexPresets(presetManager.presets)
-                    // Initial sync for settings-driven managers. `.onChange` below
-                    // keeps them current for subsequent edits without needing each
-                    // manager to observe UserDefaults directly.
-                    syncManagerStateFromSettings()
-                    #if !APPSTORE
-                        configureHardwareControl()
-                    #endif
+            MenuBarStatusLabel(
+                settings: settings,
+                brightnessManager: brightnessManager,
+                statusItemAccessibility: statusItemAccessibility
+            )
+            .onAppear {
+                guard !isConfigured else { return }
+                isConfigured = true
+                // Load saved shortcut before starting monitoring (Issue 1)
+                shortcutManager.updateShortcut(settings.keyboardShortcut)
+                startGlobalShortcutMonitoring()
+                configureIdleTimer()
+                configurePresetShortcuts()
+                configureScheduleManager()
+                observeWidgetNotifications()
+                SharedConstants.discardLegacyWidgetCommands()
+                AppEntityIndexingService.shared.reindexPresets(presetManager.presets)
+                // Initial sync for settings-driven managers. `.onChange` below
+                // keeps them current for subsequent edits without needing each
+                // manager to observe UserDefaults directly.
+                syncManagerStateFromSettings()
+                #if !APPSTORE
+                    configureHardwareControl()
+                #endif
+            }
+            .onChange(of: menuBarPanelCoordinator.isPresented) { _, isPresented in
+                if !isPresented {
+                    menuBarPanelCoordinator.requestedPresetID = nil
                 }
-                .onChange(of: menuBarPanelCoordinator.isPresented) { _, isPresented in
-                    if !isPresented {
-                        menuBarPanelCoordinator.requestedPresetID = nil
-                    }
-                }
-                .onChange(of: settings.idleTimerEnabled) { _, _ in
-                    idleTimerManager.apply(
-                        enabled: settings.idleTimerEnabled,
-                        thresholdMinutes: settings.idleTimerMinutes
-                    )
-                }
-                .onChange(of: settings.idleTimerMinutes) { _, _ in
-                    idleTimerManager.apply(
-                        enabled: settings.idleTimerEnabled,
-                        thresholdMinutes: settings.idleTimerMinutes
-                    )
-                }
-                .onChange(of: settings.scheduleEnabled) { _, _ in
-                    scheduleManager.apply(enabled: settings.scheduleEnabled)
-                }
-                .onChange(of: settings.autoColorTempEnabled) { _, _ in
-                    colorTempManager.apply(enabled: settings.autoColorTempEnabled)
-                    ControlCenterStatePublisher.live.publishAutoWarmthState(settings.autoColorTempEnabled)
-                }
-                .onChange(of: screenBlanker.isBlankingAnyDisplay, initial: true) { _, isBlanking in
-                    ControlCenterStatePublisher.live.publishDimState(isBlanking)
-                }
-                .onChange(of: presetManager.presets) { _, newValue in
-                    presetShortcutManager.updateShortcuts(from: newValue)
-                    AppEntityIndexingService.shared.reindexPresets(newValue)
-                }
-                .onChange(of: brightnessManager.isAffectingDisplays, initial: true) { _, isAffecting in
-                    statusItemAccessibility.update(isAffectingDisplays: isAffecting)
-                }
+            }
+            .onChange(of: settings.idleTimerEnabled) { _, _ in
+                idleTimerManager.apply(
+                    enabled: settings.idleTimerEnabled,
+                    thresholdMinutes: settings.idleTimerMinutes
+                )
+            }
+            .onChange(of: settings.idleTimerMinutes) { _, _ in
+                idleTimerManager.apply(
+                    enabled: settings.idleTimerEnabled,
+                    thresholdMinutes: settings.idleTimerMinutes
+                )
+            }
+            .onChange(of: settings.scheduleEnabled) { _, _ in
+                scheduleManager.apply(enabled: settings.scheduleEnabled)
+            }
+            .onChange(of: settings.autoColorTempEnabled) { _, _ in
+                colorTempManager.apply(enabled: settings.autoColorTempEnabled)
+                ControlCenterStatePublisher.live.publishAutoWarmthState(settings.autoColorTempEnabled)
+            }
+            .onChange(of: screenBlanker.isBlankingAnyDisplay, initial: true) { _, isBlanking in
+                ControlCenterStatePublisher.live.publishDimState(isBlanking)
+            }
+            .onChange(of: presetManager.presets) { _, newValue in
+                presetShortcutManager.updateShortcuts(from: newValue)
+                AppEntityIndexingService.shared.reindexPresets(newValue)
+            }
         }
         .menuBarExtraAccess(isPresented: $menuBarPanelCoordinator.isPresented) { statusItem in
             let panelPresenter = MenuBarPanelPresenter.shared
@@ -243,29 +244,6 @@ struct DimmerlyApp: App {
             #if !APPSTORE
                 .environment(hardwareManager)
             #endif
-        }
-    }
-
-    /// Menu bar icon view that adapts to the user's selected icon style, and to
-    /// whether Dimmerly is currently affecting the displays.
-    ///
-    /// Displays either a system SF Symbol or one of Dimmerly's custom symbols from the asset
-    /// catalog. Custom styles that define an active variant switch to it while displays are
-    /// being adjusted.
-    ///
-    /// The label is handed to AppKit as a flat status item image, so it cannot carry an
-    /// accessibility value or a symbol content transition: SwiftUI forwards only the
-    /// accessibility label, and swaps the image in a single step. The value is set on the
-    /// status item itself by `StatusItemAccessibility`.
-    @ViewBuilder
-    private var menuBarLabel: some View {
-        if let systemImage = settings.menuBarIcon.systemImageName {
-            Image(systemName: systemImage)
-                .accessibilityLabel("Dimmerly")
-        } else {
-            Image(settings.menuBarIcon
-                .resolvedAssetName(isActive: brightnessManager.isAffectingDisplays) ?? "MenuBarIcon")
-                .accessibilityLabel("Dimmerly")
         }
     }
 
@@ -444,6 +422,46 @@ struct DimmerlyApp: App {
     #endif
 }
 
+/// Menu bar icon view that adapts to the user's selected icon style, and to
+/// whether Dimmerly is currently affecting the displays.
+///
+/// Displays either a system SF Symbol or one of Dimmerly's custom symbols from the asset
+/// catalog. Custom styles that define an active variant switch to it while displays are
+/// being adjusted.
+///
+/// The label is handed to AppKit as a flat status item image, so it cannot carry an
+/// accessibility value or a symbol content transition: SwiftUI forwards only the
+/// accessibility label, and swaps the image in a single step. The value is set on the
+/// status item itself by `StatusItemAccessibility`.
+///
+/// This is a separate view rather than part of the scene body because
+/// `isAffectingDisplays` is derived from every display's brightness, warmth and contrast.
+/// Reading it in `DimmerlyApp.body` would re-evaluate the whole scene on each slider tick.
+struct MenuBarStatusLabel: View {
+    let settings: AppSettings
+    let brightnessManager: BrightnessManager
+    let statusItemAccessibility: StatusItemAccessibility
+
+    var body: some View {
+        icon
+            .onChange(of: brightnessManager.isAffectingDisplays, initial: true) { _, isAffecting in
+                statusItemAccessibility.update(isAffectingDisplays: isAffecting)
+            }
+    }
+
+    @ViewBuilder
+    private var icon: some View {
+        if let systemImage = settings.menuBarIcon.systemImageName {
+            Image(systemName: systemImage)
+                .accessibilityLabel("Dimmerly")
+        } else {
+            Image(settings.menuBarIcon
+                .resolvedAssetName(isActive: brightnessManager.isAffectingDisplays) ?? "MenuBarIcon")
+                .accessibilityLabel("Dimmerly")
+        }
+    }
+}
+
 /// Tells VoiceOver whether Dimmerly is currently adjusting the displays, as the
 /// accessibility value of the status item ("Dimmerly, Adjusting displays").
 ///
@@ -576,10 +594,13 @@ final class StatusItemQuickActions: NSObject {
     /// Title matches the primary panel button's wording (`turnOffButtonContent` in
     /// `MenuBarPanel`), so the quick-actions menu never disagrees with the panel.
     static func turnOffTitle(settings: AppSettings) -> String {
+        let dimTitle = String(localized: "Dim Displays", comment: "Quick actions menu: dim all displays")
         #if APPSTORE
-            "Dim Displays"
+            return dimTitle
         #else
-            settings.preventScreenLock ? "Dim Displays" : "Turn Displays Off"
+            return settings.preventScreenLock
+                ? dimTitle
+                : String(localized: "Turn Displays Off", comment: "Quick actions menu: put all displays to sleep")
         #endif
     }
 
@@ -594,14 +615,18 @@ final class StatusItemQuickActions: NSObject {
         menu.addItem(turnOffItem)
 
         // Ellipsis per HIG: the action opens a window that needs further input.
-        let settingsItem = NSMenuItem(title: "Settings…", action: #selector(handleOpenSettings), keyEquivalent: ",")
+        let settingsItem = NSMenuItem(
+            title: String(localized: "Settings…", comment: "Quick actions menu: open the Settings window"),
+            action: #selector(handleOpenSettings),
+            keyEquivalent: ","
+        )
         settingsItem.target = self
         menu.addItem(settingsItem)
 
         menu.addItem(.separator())
 
         let quitItem = NSMenuItem(
-            title: "Quit Dimmerly",
+            title: String(localized: "Quit Dimmerly", comment: "Quick actions menu: quit the app"),
             action: #selector(NSApplication.terminate(_:)),
             keyEquivalent: "q"
         )

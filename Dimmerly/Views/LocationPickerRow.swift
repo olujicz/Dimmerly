@@ -70,8 +70,12 @@ struct LocationPickerRow: View {
     }
 
     private var locationAccessibilityLabel: String {
-        let lat = String(format: "%.2f", locationProvider.latitude ?? 0)
-        let lon = String(format: "%.2f", locationProvider.longitude ?? 0)
-        return "Location: Latitude \(lat), Longitude \(lon)"
+        let format = FloatingPointFormatStyle<Double>.number.precision(.fractionLength(2))
+        let lat = (locationProvider.latitude ?? 0).formatted(format)
+        let lon = (locationProvider.longitude ?? 0).formatted(format)
+        return String(
+            localized: "Location: Latitude \(lat), Longitude \(lon)",
+            comment: "Accessibility label for the saved location; values are coordinates"
+        )
     }
 }

@@ -438,15 +438,12 @@ class ColorTemperatureManager {
         let dayK = settings.dayTemperature
         let nightK = settings.nightTemperature
 
-        let formatter = DateFormatter()
-        formatter.dateFormat = DateFormatter.dateFormat(fromTemplate: "j:mm", options: 0, locale: .current)
-
         if now < sunrise {
-            let time = formatter.string(from: sunrise)
+            let time = sunrise.formatted(date: .omitted, time: .shortened)
             return String(localized: "Sunrise \(time) · \(dayK)K",
                           comment: "Next color temperature transition — sunrise time and target Kelvin")
         } else if now < sunset {
-            let time = formatter.string(from: sunset)
+            let time = sunset.formatted(date: .omitted, time: .shortened)
             return String(localized: "Sunset \(time) · \(nightK)K",
                           comment: "Next color temperature transition — sunset time and target Kelvin")
         } else {
@@ -458,7 +455,7 @@ class ColorTemperatureManager {
                     date: tomorrow
                 )
                 if let tomorrowSunrise = tomorrowSolar.sunrise {
-                    let time = formatter.string(from: tomorrowSunrise)
+                    let time = tomorrowSunrise.formatted(date: .omitted, time: .shortened)
                     return String(localized: "Sunrise \(time) · \(dayK)K",
                                   comment: "Next color temperature transition — sunrise time and target Kelvin")
                 }

@@ -263,6 +263,11 @@
         /// Background polling task for reading hardware values.
         private var pollingTask: Task<Void, Never>?
 
+        /// Displays with a polling read still queued or running on `ddcQueue`. A poll tick
+        /// skips these, so a slow or unresponsive monitor can't build an unbounded backlog of
+        /// reads that user-initiated writes would then wait behind.
+        private var pollReadsInFlight: Set<CGDirectDisplayID> = []
+
         var pendingWorkCountForTesting: Int {
             pendingWrites.count + pendingHardwareWrites.values.reduce(0, +)
         }
@@ -827,9 +832,17 @@
         /// Captures the DDC interface locally before the queued work to avoid
         /// accessing `self` from a non-isolated context for I/O operations.
         /// The queue work only hops back to MainActor for publishing results.
-        private func readAllValues(for displayID: CGDirectDisplayID) {
-            guard let session = sessionGate.capture() else { return }
-            guard let cap = capabilities[displayID], cap.supportsDDC else { return }
+        ///
+        /// - Parameter completion: Runs on the main actor once the queued read has finished
+        ///   and any publication was attempted. Not called when no read is queued.
+        /// - Returns: Whether a read was queued.
+        @discardableResult
+        private func readAllValues(
+            for displayID: CGDirectDisplayID,
+            completion: (@MainActor @Sendable () -> Void)? = nil
+        ) -> Bool {
+            guard let session = sessionGate.capture() else { return false }
+            guard let cap = capabilities[displayID], cap.supportsDDC else { return false }
             let connection = displayConnectionGate.current(for: displayID)
             let nativeWorkSession = nativeBrightnessWorkGate.capture()
 
@@ -839,7 +852,7 @@
             ddcQueue.async { [weak self] in
                 guard let self else { return }
                 let readStartedAt = Date()
-                guard let values = Self.readHardwareValues(
+                let values = Self.readHardwareValues(
                     for: displayID,
                     capability: cap,
                     skippingBrightness: skippingBrightness,
@@ -848,11 +861,12 @@
                     ddcInterface: ddcIO,
                     sessionGate: sessionGate,
                     displayConnectionGate: displayConnectionGate
-                ) else { return }
+                )
 
                 // Apply all read values on the main actor in a single hop
                 Task { @MainActor [weak self] in
-                    guard let self else { return }
+                    defer { completion?() }
+                    guard let self, let values else { return }
                     defer { readPublicationHookForTesting?() }
                     guard sessionGate.isCurrent(session),
                           displayConnectionGate.isCurrent(connection),
@@ -886,12 +900,19 @@
                     }
                 }
             }
+            return true
         }
 
-        /// Polls all DDC-capable displays for updated values.
+        /// Polls all DDC-capable displays for updated values, skipping any display whose
+        /// previous poll read hasn't finished yet.
         private func pollAllDisplays() {
-            for (displayID, cap) in capabilities where cap.supportsDDC {
-                readAllValues(for: displayID)
+            for (displayID, cap) in capabilities where cap.supportsDDC && !pollReadsInFlight.contains(displayID) {
+                let queued = readAllValues(for: displayID) { [weak self] in
+                    self?.pollReadsInFlight.remove(displayID)
+                }
+                if queued {
+                    pollReadsInFlight.insert(displayID)
+                }
             }
         }
 
