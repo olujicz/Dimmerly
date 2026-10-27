@@ -15,6 +15,15 @@ Semantic Versioning.
 - Disconnecting one monitor during hardware discovery no longer discards results for other connected monitors. Changing brightness control ownership also preserves unrelated volume, contrast, mute, and input-source reads.
 - Reject ambiguous Apple Silicon monitor matches to avoid sending hardware controls to another identical display.
 - Detect supported monitor controls independently when a display does not answer brightness reads.
+- A slow or unresponsive monitor no longer delays slider and preset changes. Dimmerly now waits for each monitor to answer before reading it again.
+- Dragging a slider in the menu bar panel redraws only the display rows, not the whole panel.
+- Manual location accepts coordinates written with your region's decimal separator, such as 48,85.
+- The right-click menu, monitor feature list, input source labels, location VoiceOver label, and several Settings help texts now appear in your language.
+- Recording a preset shortcut no longer reports a conflict with a preset that has since given up that shortcut.
+- Clicking the widget outside its buttons opens the Dimmerly panel.
+- When blanking requires Esc to wake, the wake hint is easier to read, comes back when you press another key or move the pointer, and VoiceOver announces it.
+- Settings shows when Launch at Login is waiting for your approval and offers a button that opens Login Items in System Settings.
+- A slider no longer jumps under the pointer when a preset or a monitor reading changes its value mid-drag.
 
 ## [1.3.0] - 2026-10-04
 

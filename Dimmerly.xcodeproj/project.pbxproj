@@ -71,6 +71,10 @@
 		AS0000000000000000000011 /* AppStoreShortcutManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AS0000000000000000000001 /* AppStoreShortcutManagerTests.swift */; };
 		UT00000000000000000001 /* BrightnessManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = UT00000000000000000010 /* BrightnessManagerTests.swift */; };
 		BO0000000000000000000011 /* BrightnessManagerTests+DisplayOutput.swift in Sources */ = {isa = PBXBuildFile; fileRef = BO0000000000000000000001 /* BrightnessManagerTests+DisplayOutput.swift */; };
+		SF0000000000000000000011 /* HardwareBrightnessManagerTests+Polling.swift in Sources */ = {isa = PBXBuildFile; fileRef = SF0000000000000000000001 /* HardwareBrightnessManagerTests+Polling.swift */; };
+		SG0000000000000000000011 /* ManualCoordinateTextTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SG0000000000000000000001 /* ManualCoordinateTextTests.swift */; };
+		SH0000000000000000000011 /* PresetShortcutCaptureViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SH0000000000000000000001 /* PresetShortcutCaptureViewTests.swift */; };
+		SI0000000000000000000011 /* LaunchAtLoginStatusTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SI0000000000000000000001 /* LaunchAtLoginStatusTests.swift */; };
 		UT00000000000000000002 /* PresetManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = UT00000000000000000020 /* PresetManagerTests.swift */; };
 		UT00000000000000000003 /* MenuBarIconStyleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = UT00000000000000000030 /* MenuBarIconStyleTests.swift */; };
 		NT00000000000000000001 /* SolarCalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = NT00000000000000000010 /* SolarCalculatorTests.swift */; };
@@ -205,6 +209,10 @@
 		AS0000000000000000000001 /* AppStoreShortcutManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStoreShortcutManagerTests.swift; sourceTree = "<group>"; };
 		UT00000000000000000010 /* BrightnessManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrightnessManagerTests.swift; sourceTree = "<group>"; };
 		BO0000000000000000000001 /* BrightnessManagerTests+DisplayOutput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BrightnessManagerTests+DisplayOutput.swift"; sourceTree = "<group>"; };
+		SF0000000000000000000001 /* HardwareBrightnessManagerTests+Polling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HardwareBrightnessManagerTests+Polling.swift"; sourceTree = "<group>"; };
+		SG0000000000000000000001 /* ManualCoordinateTextTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualCoordinateTextTests.swift; sourceTree = "<group>"; };
+		SH0000000000000000000001 /* PresetShortcutCaptureViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetShortcutCaptureViewTests.swift; sourceTree = "<group>"; };
+		SI0000000000000000000001 /* LaunchAtLoginStatusTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginStatusTests.swift; sourceTree = "<group>"; };
 		UT00000000000000000020 /* PresetManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetManagerTests.swift; sourceTree = "<group>"; };
 		UT00000000000000000030 /* MenuBarIconStyleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarIconStyleTests.swift; sourceTree = "<group>"; };
 		NT00000000000000000010 /* SolarCalculatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolarCalculatorTests.swift; sourceTree = "<group>"; };
@@ -455,6 +463,10 @@
 					DA00000000000000000001 /* DimmerlyAppTests.swift */,
 					UT00000000000000000010 /* BrightnessManagerTests.swift */,
 					BO0000000000000000000001 /* BrightnessManagerTests+DisplayOutput.swift */,
+					SF0000000000000000000001 /* HardwareBrightnessManagerTests+Polling.swift */,
+					SG0000000000000000000001 /* ManualCoordinateTextTests.swift */,
+					SH0000000000000000000001 /* PresetShortcutCaptureViewTests.swift */,
+					SI0000000000000000000001 /* LaunchAtLoginStatusTests.swift */,
 					NF0000000000000000000A /* BrightnessPresetTests.swift */,
 					CT00000000000000000002 /* ColorTemperatureManagerTests.swift */,
 					HW00000000000000000004 /* DDCControllerTests.swift */,
@@ -721,6 +733,10 @@
 					NF0000000000000000001A /* BrightnessPresetTests.swift in Sources */,
 					UT00000000000000000001 /* BrightnessManagerTests.swift in Sources */,
 					BO0000000000000000000011 /* BrightnessManagerTests+DisplayOutput.swift in Sources */,
+					SF0000000000000000000011 /* HardwareBrightnessManagerTests+Polling.swift in Sources */,
+					SG0000000000000000000011 /* ManualCoordinateTextTests.swift in Sources */,
+					SH0000000000000000000011 /* PresetShortcutCaptureViewTests.swift in Sources */,
+					SI0000000000000000000011 /* LaunchAtLoginStatusTests.swift in Sources */,
 					UT00000000000000000002 /* PresetManagerTests.swift in Sources */,
 					LA00000000000000000011 /* LaunchAtLoginSettingsTests.swift in Sources */,
 					UT00000000000000000003 /* MenuBarIconStyleTests.swift in Sources */,

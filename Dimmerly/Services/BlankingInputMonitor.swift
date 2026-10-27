@@ -101,9 +101,12 @@ enum BlankingInputDecision: Equatable, Sendable {
 
 @MainActor
 protocol BlankingInputMonitoring: AnyObject {
+    /// - Parameter onSuppressedInput: Called for input that is swallowed without waking,
+    ///   which only happens with `.escapeOnly`, so the overlay can show how to wake again.
     func start(
         policy: BlankingInputPolicy,
         onWake: @escaping @MainActor () -> Void,
+        onSuppressedInput: @escaping @MainActor () -> Void,
         onFailure: @escaping @MainActor (BlankingInputMonitorError) -> Void
     ) throws
 
@@ -123,6 +126,7 @@ protocol BlankingInputMonitoring: AnyObject {
         func start(
             policy: BlankingInputPolicy,
             onWake: @escaping @MainActor () -> Void,
+            onSuppressedInput: @escaping @MainActor () -> Void,
             onFailure: @escaping @MainActor (BlankingInputMonitorError) -> Void
         ) throws {
             stop()
@@ -134,6 +138,7 @@ protocol BlankingInputMonitoring: AnyObject {
             let context = EventTapContext(
                 policy: policy,
                 onWake: onWake,
+                onSuppressedInput: onSuppressedInput,
                 onFailure: onFailure
             )
             guard let eventTap = CGEvent.tapCreate(
@@ -183,6 +188,7 @@ protocol BlankingInputMonitoring: AnyObject {
     final class EventTapContext: @unchecked Sendable {
         private let policy: BlankingInputPolicy
         private let onWake: @MainActor () -> Void
+        private let onSuppressedInput: @MainActor () -> Void
         private let onFailure: @MainActor (BlankingInputMonitorError) -> Void
         private let lock = NSLock()
         private var hasSignalledFailure = false
@@ -190,10 +196,12 @@ protocol BlankingInputMonitoring: AnyObject {
         init(
             policy: BlankingInputPolicy,
             onWake: @escaping @MainActor () -> Void,
+            onSuppressedInput: @escaping @MainActor () -> Void,
             onFailure: @escaping @MainActor (BlankingInputMonitorError) -> Void
         ) {
             self.policy = policy
             self.onWake = onWake
+            self.onSuppressedInput = onSuppressedInput
             self.onFailure = onFailure
         }
 
@@ -206,6 +214,7 @@ protocol BlankingInputMonitoring: AnyObject {
             case .passThrough:
                 return Unmanaged.passUnretained(event)
             case .suppress:
+                DispatchQueue.main.async { [onSuppressedInput] in onSuppressedInput() }
                 return nil
             case .suppressAndWake:
                 DispatchQueue.main.async { [onWake] in onWake() }
@@ -278,6 +287,7 @@ protocol BlankingInputMonitoring: AnyObject {
         func start(
             policy: BlankingInputPolicy,
             onWake: @escaping @MainActor () -> Void,
+            onSuppressedInput: @escaping @MainActor () -> Void,
             onFailure _: @escaping @MainActor (BlankingInputMonitorError) -> Void
         ) throws {
             stop()
@@ -287,6 +297,7 @@ protocol BlankingInputMonitoring: AnyObject {
                 case .passThrough:
                     return event
                 case .suppress:
+                    MainActor.assumeIsolated { onSuppressedInput() }
                     return nil
                 case .suppressAndWake:
                     MainActor.assumeIsolated { onWake() }

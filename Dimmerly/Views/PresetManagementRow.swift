@@ -215,7 +215,7 @@ struct PresetShortcutRecorderButton: View {
 
 // MARK: - Preset Shortcut Capture View
 
-private struct PresetShortcutCaptureView: NSViewRepresentable {
+struct PresetShortcutCaptureView: NSViewRepresentable {
     let isActive: Bool
     let onCapture: (GlobalShortcut) -> Void
     let onCancel: () -> Void
@@ -223,18 +223,26 @@ private struct PresetShortcutCaptureView: NSViewRepresentable {
 
     func makeNSView(context _: Context) -> PresetShortcutNSView {
         let view = PresetShortcutNSView()
-        view.onCapture = onCapture
-        view.onCancel = onCancel
-        view.onConflictDetected = onConflictDetected
+        configure(view)
         return view
     }
 
     func updateNSView(_ nsView: PresetShortcutNSView, context _: Context) {
-        nsView.isActive = isActive
+        configure(nsView)
+    }
+
+    /// Hands the view this render's callbacks. They capture the row's current presets and
+    /// main shortcut, so assigning them only in `makeNSView` left conflict checks running
+    /// against whatever the row looked like when it first appeared.
+    func configure(_ view: PresetShortcutNSView) {
+        view.onCapture = onCapture
+        view.onCancel = onCancel
+        view.onConflictDetected = onConflictDetected
+        view.isActive = isActive
     }
 }
 
-private class PresetShortcutNSView: NSView {
+final class PresetShortcutNSView: NSView {
     var onCapture: ((GlobalShortcut) -> Void)?
     var onCancel: (() -> Void)?
     var onConflictDetected: ((String) -> Void)?
