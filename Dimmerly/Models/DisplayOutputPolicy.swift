@@ -42,7 +42,6 @@ enum DisplayBrightnessOutput: Equatable, Sendable {
 struct DisplayOutputPolicy: Equatable, Sendable {
     let output: DisplayBrightnessOutput
     let gammaBrightness: Double
-    let appliesGammaColorAdjustments: Bool
 
     #if !APPSTORE
         static func resolve(
@@ -59,8 +58,7 @@ struct DisplayOutputPolicy: Equatable, Sendable {
             if isBuiltIn {
                 return Self(
                     output: builtInBacklightAvailable ? .builtInBacklight : .builtInBacklightFallback,
-                    gammaBrightness: builtInBacklightAvailable ? 1 : requestedBrightness,
-                    appliesGammaColorAdjustments: true
+                    gammaBrightness: builtInBacklightAvailable ? 1 : requestedBrightness
                 )
             }
 
@@ -71,24 +69,21 @@ struct DisplayOutputPolicy: Equatable, Sendable {
             if usesNativeBacklight {
                 return Self(
                     output: nativeBacklightAvailable ? .externalBacklight : .externalBacklightFallback,
-                    gammaBrightness: nativeBacklightAvailable ? 1 : requestedBrightness,
-                    appliesGammaColorAdjustments: true
+                    gammaBrightness: nativeBacklightAvailable ? 1 : requestedBrightness
                 )
             }
 
             let usesDDC = mode == .hardware && isDDCEnabled && supportsDDCBrightness
             return Self(
                 output: usesDDC ? .ddc : .gamma,
-                gammaBrightness: usesDDC ? 1 : requestedBrightness,
-                appliesGammaColorAdjustments: true
+                gammaBrightness: usesDDC ? 1 : requestedBrightness
             )
         }
     #else
         static func resolve(requestedBrightness: Double) -> Self {
             Self(
                 output: .gamma,
-                gammaBrightness: requestedBrightness,
-                appliesGammaColorAdjustments: true
+                gammaBrightness: requestedBrightness
             )
         }
     #endif

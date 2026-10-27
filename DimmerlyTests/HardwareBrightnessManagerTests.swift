@@ -1112,8 +1112,7 @@ import XCTest
         func testAcceptedBrightnessReadSynchronizesDisplayModelWithoutEchoWrite() async {
             let displayID: CGDirectDisplayID = 8
             let model = BrightnessManager(forTesting: true)
-            var display = ExternalDisplay(id: displayID, name: "External", brightness: 0.8)
-            display.supportsDDC = true
+            let display = ExternalDisplay(id: displayID, name: "External", brightness: 0.8)
             model.displays = [display]
 
             let publication = expectation(description: "brightness read published")

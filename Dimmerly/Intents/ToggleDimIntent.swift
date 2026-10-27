@@ -10,27 +10,11 @@ import AppKit
 import CoreGraphics
 
 @MainActor
-private func resolvePresetEntity(
-    _ entity: PresetEntity,
-    in presetManager: PresetManager
-) throws -> (id: UUID, preset: BrightnessPreset) {
-    guard let uuid = UUID(uuidString: entity.id),
-          let resolvedPreset = presetManager.presets.first(where: { $0.id == uuid })
-    else {
+private func resolvePresetEntity(_ entity: PresetEntity, in presetManager: PresetManager) throws -> BrightnessPreset {
+    guard let uuid = UUID(uuidString: entity.id), let preset = presetManager.preset(withID: uuid) else {
         throw ApplyPresetIntent.IntentError.presetNotFound
     }
-
-    return (uuid, resolvedPreset)
-}
-
-@MainActor
-private func applyPresetEntity(_ entity: PresetEntity) throws {
-    let presetManager = PresetManager.shared
-    let brightnessManager = BrightnessManager.shared
-
-    let resolved = try resolvePresetEntity(entity, in: presetManager)
-
-    presetManager.applyPreset(resolved.preset, to: brightnessManager, animated: true)
+    return preset
 }
 
 struct ToggleDimIntent: AppIntent {
@@ -90,7 +74,9 @@ struct ApplyPresetIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult {
-        try applyPresetEntity(preset)
+        let presetManager = PresetManager.shared
+        let resolved = try resolvePresetEntity(preset, in: presetManager)
+        presetManager.applyPreset(resolved, to: BrightnessManager.shared, animated: true)
         return .result()
     }
 

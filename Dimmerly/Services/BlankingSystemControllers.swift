@@ -96,7 +96,7 @@ final class SystemBlankingWindowController: BlankingWindowControlling {
 
     func showWindow(for displayID: CGDirectDisplayID, showsEscapeHint: Bool) -> Bool {
         guard windows[displayID] == nil,
-              let screen = Self.screen(for: displayID)
+              let screen = NSScreen.screen(for: displayID)
         else {
             return windows[displayID] != nil
         }
@@ -169,13 +169,6 @@ final class SystemBlankingWindowController: BlankingWindowControlling {
             previouslyFrontmostApplication?.activate(options: [])
             previouslyFrontmostApplication = nil
         #endif
-    }
-
-    private static func screen(for displayID: CGDirectDisplayID) -> NSScreen? {
-        NSScreen.screens.first { screen in
-            (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID)
-                == displayID
-        }
     }
 
     private static var wakeHintText: String {
@@ -259,23 +252,7 @@ final class SystemDisplayGammaController: DisplayGammaControlling {
         contrast: Double,
         to displayID: CGDirectDisplayID
     ) {
-        let multipliers = GammaMath.channelMultipliers(for: warmth)
-        var red = GammaMath.buildTable(
-            brightness: brightness,
-            channelMultiplier: multipliers.r,
-            contrast: contrast
-        )
-        var green = GammaMath.buildTable(
-            brightness: brightness,
-            channelMultiplier: multipliers.g,
-            contrast: contrast
-        )
-        var blue = GammaMath.buildTable(
-            brightness: brightness,
-            channelMultiplier: multipliers.b,
-            contrast: contrast
-        )
-        CGSetDisplayTransferByTable(displayID, 256, &red, &green, &blue)
+        GammaMath.setTransferTables(for: displayID, brightness: brightness, warmth: warmth, contrast: contrast)
     }
 
     func restore(_: CGDirectDisplayID) {
@@ -312,7 +289,14 @@ final class SystemActiveDisplayProvider: ActiveDisplayProviding {
     }
 
     func hasScreen(for displayID: CGDirectDisplayID) -> Bool {
-        NSScreen.screens.contains { screen in
+        NSScreen.screen(for: displayID) != nil
+    }
+}
+
+extension NSScreen {
+    /// The screen backed by `displayID`, if it is currently attached.
+    static func screen(for displayID: CGDirectDisplayID) -> NSScreen? {
+        screens.first { screen in
             (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID)
                 == displayID
         }

@@ -439,8 +439,7 @@ extension BrightnessManagerTests {
 
             XCTAssertEqual(policy, DisplayOutputPolicy(
                 output: .gamma,
-                gammaBrightness: 0.35,
-                appliesGammaColorAdjustments: true
+                gammaBrightness: 0.35
             ))
         }
 
@@ -455,8 +454,7 @@ extension BrightnessManagerTests {
 
             XCTAssertEqual(policy, DisplayOutputPolicy(
                 output: .ddc,
-                gammaBrightness: 1.0,
-                appliesGammaColorAdjustments: true
+                gammaBrightness: 1.0
             ))
         }
 
@@ -528,7 +526,6 @@ extension BrightnessManagerTests {
                 experimentalNativeBrightnessEnabled: true
             )
             var external = ExternalDisplay(id: displayID, name: "Apple Studio Display", brightness: 1.0)
-            external.supportsDDC = true
             external.supportsNativeBacklight = true
             bm.displays = [external]
 
@@ -633,8 +630,7 @@ extension BrightnessManagerTests {
 
         func testNativeExternalReadDiscoversCapabilityAfterOptIn() {
             let displayID: CGDirectDisplayID = 93
-            var external = ExternalDisplay(id: displayID, name: "Apple Studio Display", brightness: 0.4)
-            external.supportsDDC = true
+            let external = ExternalDisplay(id: displayID, name: "Apple Studio Display", brightness: 0.4)
             bm.displays = [external]
             bm.displayIdentityHook = { _ in "studio-display" }
             bm.activeDisplayIDsHook = { [displayID] }

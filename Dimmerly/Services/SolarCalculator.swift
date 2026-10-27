@@ -121,7 +121,7 @@ enum SolarCalculator {
         // midnight, shifting the returned sunrise/sunset by the DST delta (typically 1h).
         let tzOffset = Double(timeZone.secondsFromGMT(for: startOfDay)) / 3600.0
 
-        // Solar noon (minutes from midnight UTC)
+        // Solar noon (minutes from local midnight)
         let solarNoon = (720.0 - 4.0 * longitude - eqOfTime + tzOffset * 60.0)
 
         // Sunrise and sunset in minutes from midnight local time

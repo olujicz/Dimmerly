@@ -429,8 +429,7 @@ final class BrightnessManagerTests: XCTestCase {
         }
 
         func testAnimateToPresetSyncsDDCBrightnessAndRestoresNeutralGammaBrightness() async {
-            var external = ExternalDisplay(id: 2, name: "External", brightness: 1.0, warmth: 0.0, contrast: 0.5)
-            external.supportsDDC = true
+            let external = ExternalDisplay(id: 2, name: "External", brightness: 1.0, warmth: 0.0, contrast: 0.5)
             bm.displays = [external]
             bm.canAnimateTransitionsHook = { true }
 
@@ -484,8 +483,7 @@ final class BrightnessManagerTests: XCTestCase {
         }
 
         func testSetWarmthOnDDCDisplayKeepsGammaBrightnessNeutral() {
-            var external = ExternalDisplay(id: 3, name: "External", brightness: 0.3, warmth: 0.0, contrast: 0.5)
-            external.supportsDDC = true
+            let external = ExternalDisplay(id: 3, name: "External", brightness: 0.3, warmth: 0.0, contrast: 0.5)
             bm.displays = [external]
 
             HardwareBrightnessManager.shared.capabilities[3] = HardwareDisplayCapability(
@@ -516,8 +514,7 @@ final class BrightnessManagerTests: XCTestCase {
         }
 
         func testDisabledDDCFallsBackToSoftwareGammaForExternalBrightness() async throws {
-            var external = ExternalDisplay(id: 4, name: "External", brightness: 1.0, warmth: 0.0, contrast: 0.5)
-            external.supportsDDC = true
+            let external = ExternalDisplay(id: 4, name: "External", brightness: 1.0, warmth: 0.0, contrast: 0.5)
             bm.displays = [external]
 
             HardwareBrightnessManager.shared.capabilities[4] = HardwareDisplayCapability(
@@ -942,8 +939,7 @@ extension BrightnessManagerTests {
     #if !APPSTORE
         func testExternalBrightnessFallsBackToGammaWhenDDCOnlySupportsVolume() {
             let displayID: CGDirectDisplayID = 2
-            var external = ExternalDisplay(id: displayID, name: "External", brightness: 1.0)
-            external.supportsDDC = true
+            let external = ExternalDisplay(id: displayID, name: "External", brightness: 1.0)
             bm.displays = [external]
             HardwareBrightnessManager.shared.capabilities[displayID] = HardwareDisplayCapability(
                 displayID: displayID,
@@ -1305,7 +1301,6 @@ extension BrightnessManagerTests {
             HardwareBrightnessManager.shared.enable()
 
             var external = neutralDisplay(id: 2)
-            external.supportsDDC = true
             external.brightness = 0.4
             bm.displays = [external]
 

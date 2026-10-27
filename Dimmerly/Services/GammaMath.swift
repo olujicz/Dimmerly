@@ -63,6 +63,8 @@ enum GammaMath {
         (6500.0 - kelvin) / (6500.0 - 1900.0)
     }
 
+    private static let referenceRGB = rgbFromKelvin(6500)
+
     /// Calculates RGB channel multipliers for a given warmth level using blackbody radiation.
     ///
     /// Normalized against the 6500K reference point so that warmth=0 produces (1, 1, 1).
@@ -71,7 +73,7 @@ enum GammaMath {
 
         let kelvin = kelvinForWarmth(warmth)
         let target = rgbFromKelvin(kelvin)
-        let reference = rgbFromKelvin(6500)
+        let reference = referenceRGB
 
         return (
             r: min(target.r / reference.r, 1.0),
@@ -104,5 +106,28 @@ enum GammaMath {
             let curved = applyContrast(t, contrast: contrast)
             return CGGammaValue(curved * scale)
         }
+    }
+
+    /// Builds the three channel tables for a display and installs them.
+    ///
+    /// The contrast curve is shared by every channel, so it is evaluated once rather than
+    /// per channel. Entries match `buildTable` exactly.
+    static func setTransferTables(
+        for displayID: CGDirectDisplayID,
+        brightness: Double,
+        warmth: Double,
+        contrast: Double
+    ) {
+        let multipliers = channelMultipliers(for: warmth)
+        let curve = (0 ..< 256).map { applyContrast(Double($0) / 255.0, contrast: contrast) }
+        func table(_ channelMultiplier: Double) -> [CGGammaValue] {
+            let scale = brightness * channelMultiplier
+            return curve.map { CGGammaValue($0 * scale) }
+        }
+        var red = table(multipliers.r)
+        var green = table(multipliers.g)
+        var blue = table(multipliers.b)
+        // Return value intentionally ignored — no recovery action if gamma set fails
+        CGSetDisplayTransferByTable(displayID, 256, &red, &green, &blue)
     }
 }

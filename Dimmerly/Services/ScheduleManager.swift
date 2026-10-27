@@ -49,8 +49,8 @@ class ScheduleManager {
     private let pollingTimer = PollingTimer()
 
     /// Tracks which schedules have fired today to prevent duplicate execution.
-    /// Key: schedule ID, Value: date string in "yyyy-MM-dd" format.
-    /// Cleaned automatically at the end of each day.
+    /// Key: schedule ID, Value: "yyyy-MM-dd" of the day the trigger fell on.
+    /// Entries from earlier days are pruned on every check.
     private var firedToday: [UUID: String] = [:]
 
     /// Timestamp of the most recent schedule check.

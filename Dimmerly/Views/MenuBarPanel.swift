@@ -305,8 +305,6 @@ struct MenuBarPanel: View {
 
     private var presetsSection: some View {
         PresetsSectionView(selectedPresetID: selectedPresetID)
-            .environment(presetManager)
-            .environment(brightnessManager)
     }
 
     // MARK: - Turn Off Button

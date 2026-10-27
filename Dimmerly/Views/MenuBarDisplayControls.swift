@@ -639,11 +639,8 @@ struct DisplayBrightnessRow: View {
                                 .foregroundStyle(.secondary)
                                 .accessibilityHidden(true)
 
-                            // Use a Menu-based picker for compact presentation.
-                            // Picker with .menu style provides a native dropdown
-                            // without taking up extra vertical space.
+                            // A Menu keeps the input list compact without adding vertical space.
                             Menu {
-                                // Group common modern inputs first for quick access
                                 ForEach(availableInputSources, id: \.self) { source in
                                     Button {
                                         onInputSourceChange?(source)
@@ -719,7 +716,7 @@ struct DisplayBrightnessRow: View {
             Button("Set to 25%") { onChange(0.25) }
             Divider()
             Button("Reset Warmth") { onWarmthChange(0.0) }
-            Button("Reset Contrast") { onContrastChange(0.5) }
+            Button("Reset Contrast") { onContrastChange(ExternalDisplay.neutralContrast) }
         }
         .modifier(
             DisplayEntityContextModifier(

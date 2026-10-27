@@ -53,7 +53,7 @@ struct DimmerlyApp: App {
     /// Manager for idle timer auto-dim (not @Observable — held for lifecycle only)
     @State private var idleTimerManager = IdleTimerManager()
 
-    /// Manager for preset keyboard shortcuts (not @Observable — held for lifecycle only)
+    /// Manager for preset keyboard shortcuts
     @State private var presetShortcutManager = PresetShortcutManager()
 
     /// Provider for location data (solar calculations)
@@ -84,24 +84,6 @@ struct DimmerlyApp: App {
 
     @Environment(\.openSettings) private var openSettings
 
-    /// Distributed notification observer for widget "Sleep Displays" action
-    @State private var widgetDimObserver: NSObjectProtocol?
-
-    /// Distributed notification observer for widget preset application
-    @State private var widgetPresetObserver: NSObjectProtocol?
-
-    /// Distributed notification observer for the Control Center dim toggle
-    @State private var widgetDimStateObserver: NSObjectProtocol?
-
-    /// Distributed notification observer for the Control Center Auto Warmth toggle
-    @State private var widgetAutoWarmthObserver: NSObjectProtocol?
-
-    /// Acknowledged widget/control actions from extensions on older macOS versions.
-    @State private var widgetActionObserver: NSObjectProtocol?
-
-    /// Clears the published dim state on quit, since blanking ends with the process.
-    @State private var terminationObserver: NSObjectProtocol?
-
     /// Blanking state, observed so the Control Center dim toggle can follow it.
     @State private var screenBlanker = ScreenBlanker.shared
 
@@ -110,21 +92,7 @@ struct DimmerlyApp: App {
 
         // Menu bar extra (the main interface) — window style preserves slider controls.
         MenuBarExtra {
-            MenuBarPanel(
-                selectedPresetID: menuBarPanelCoordinator.requestedPresetID,
-                openSettingsAction: {
-                    openSettings()
-                    NSApp.activate()
-                }
-            )
-            .environment(settings)
-            .environment(brightnessManager)
-            .environment(presetManager)
-            .environment(colorTempManager)
-            #if !APPSTORE
-                .environment(hardwareManager)
-            #endif
-                .environment(\.closeMenuBarPanel) { menuBarPanelCoordinator.dismiss() }
+            menuBarPanel(selectedPresetID: menuBarPanelCoordinator.requestedPresetID)
         } label: {
             MenuBarStatusLabel(
                 settings: settings,
@@ -134,7 +102,7 @@ struct DimmerlyApp: App {
             .onAppear {
                 guard !isConfigured else { return }
                 isConfigured = true
-                // Load saved shortcut before starting monitoring (Issue 1)
+                // Load saved shortcut before starting monitoring
                 shortcutManager.updateShortcut(settings.keyboardShortcut)
                 startGlobalShortcutMonitoring()
                 configureIdleTimer()
@@ -188,25 +156,7 @@ struct DimmerlyApp: App {
             panelPresenter.configure(
                 statusItem: statusItem,
                 contentBuilder: { selectedPresetID in
-                    NSHostingController(
-                        rootView: MenuBarPanel(
-                            selectedPresetID: selectedPresetID,
-                            openSettingsAction: {
-                                openSettings()
-                                NSApp.activate()
-                            }
-                        )
-                        .environment(settings)
-                        .environment(brightnessManager)
-                        .environment(presetManager)
-                        .environment(colorTempManager)
-                        #if !APPSTORE
-                            .environment(hardwareManager)
-                        #endif
-                            .environment(\.closeMenuBarPanel) {
-                                menuBarPanelCoordinator.dismiss()
-                            }
-                    )
+                    NSHostingController(rootView: menuBarPanel(selectedPresetID: selectedPresetID))
                 },
                 didDismiss: {
                     menuBarPanelCoordinator.externalPresentationDidDismiss()
@@ -224,10 +174,7 @@ struct DimmerlyApp: App {
                 statusItem: statusItem,
                 settings: settings,
                 performSleep: { DisplayAction.performSleep(settings: settings) },
-                openSettings: {
-                    openSettings()
-                    NSApp.activate()
-                }
+                openSettings: openSettingsWindow
             )
             statusItemAccessibility.attach(to: statusItem)
         }
@@ -260,6 +207,25 @@ struct DimmerlyApp: App {
         }
     }
 
+    /// The menu bar panel with its environment, shared by the MenuBarExtra and the
+    /// externally presented panel.
+    private func menuBarPanel(selectedPresetID: UUID?) -> some View {
+        MenuBarPanel(selectedPresetID: selectedPresetID, openSettingsAction: openSettingsWindow)
+            .environment(settings)
+            .environment(brightnessManager)
+            .environment(presetManager)
+            .environment(colorTempManager)
+        #if !APPSTORE
+            .environment(hardwareManager)
+        #endif
+            .environment(\.closeMenuBarPanel) { menuBarPanelCoordinator.dismiss() }
+    }
+
+    private func openSettingsWindow() {
+        openSettings()
+        NSApp.activate()
+    }
+
     /// Wires the idle-timer callback. Actual start/stop is driven by `.onChange(of:)`
     /// on `settings.idleTimerEnabled` / `.idleTimerMinutes` in the scene body, plus
     /// a one-time `syncManagerStateFromSettings()` at launch.
@@ -271,45 +237,27 @@ struct DimmerlyApp: App {
 
     /// Observes distributed notifications from widgets to handle cross-process actions.
     ///
-    /// Widgets run in a separate process (extension) and communicate with the main app via:
-    /// - Distributed notifications (trigger actions)
-    /// - Shared UserDefaults container (pass parameters)
+    /// Widgets run in a separate process (extension) and communicate with the main app via
+    /// distributed notifications plus the shared UserDefaults container:
+    /// - **Widget action**: an extension enqueued a `WidgetActionRequest` (ID in the notification);
+    ///   the app performs it and writes an acknowledgement the extension waits for
+    /// - **Dim / Preset / Dim state / Auto Warmth**: single-purpose notifications whose payload
+    ///   sits in shared defaults
     ///
-    /// Notification types:
-    /// 1. **Dim notification**: Widget's "Sleep Displays" button was tapped
-    /// 2. **Preset notification**: Widget's preset button was tapped (preset ID in shared defaults)
-    /// 3. **Dim state notification**: Control Center dim toggle was switched (state in shared defaults)
-    /// 4. **Auto Warmth notification**: Control Center Auto Warmth toggle was switched (state in shared defaults)
-    ///
-    /// Design note: Using DistributedNotificationCenter instead of Darwin notifications
-    /// provides better type safety and automatic main queue dispatch.
+    /// The notification center keeps these observers alive for the lifetime of the app.
     private func observeWidgetNotifications() {
-        widgetActionObserver = DistributedNotificationCenter.default().addObserver(
+        _ = DistributedNotificationCenter.default().addObserver(
             forName: SharedConstants.widgetActionNotification,
             object: nil, queue: .main
-        ) { [settings, presetManager, brightnessManager] notification in
+        ) { [settings] notification in
             guard let idString = notification.object as? String, let id = UUID(uuidString: idString) else { return }
             Task { @MainActor in
-                handleWidgetActionRequest(id) { command in
-                    switch command {
-                    case .dimDisplays:
-                        DisplayAction.performSleep(settings: settings)
-                    case let .applyPreset(presetID):
-                        guard let uuid = UUID(uuidString: presetID),
-                              let preset = presetManager.presets.first(where: { $0.id == uuid })
-                        else { return }
-                        presetManager.applyPreset(preset, to: brightnessManager, animated: true)
-                    case let .setDimming(value):
-                        handleWidgetDimStateCommand(settings: settings, consumeCommand: { value })
-                    case let .setAutoWarmth(value):
-                        handleWidgetAutoWarmthCommand(settings: settings, consumeCommand: { value })
-                    }
-                }
+                handleWidgetActionRequest(id) { $0.performInApp(settings: settings) }
             }
         }
 
         // Widget "Sleep Displays" button
-        widgetDimObserver = DistributedNotificationCenter.default().addObserver(
+        _ = DistributedNotificationCenter.default().addObserver(
             forName: SharedConstants.dimNotification,
             object: nil, queue: .main
         ) { [settings] _ in
@@ -319,22 +267,18 @@ struct DimmerlyApp: App {
         }
 
         // Widget preset button (preset ID passed via shared defaults)
-        widgetPresetObserver = DistributedNotificationCenter.default().addObserver(
+        _ = DistributedNotificationCenter.default().addObserver(
             forName: SharedConstants.presetNotification,
             object: nil, queue: .main
         ) { [presetManager, brightnessManager] _ in
             Task { @MainActor in
-                guard let uuid = SharedConstants.consumeWidgetPresetCommand(),
-                      let preset = presetManager.presets.first(where: { $0.id == uuid })
-                else {
-                    return
-                }
-                presetManager.applyPreset(preset, to: brightnessManager, animated: true)
+                guard let uuid = SharedConstants.consumeWidgetPresetCommand() else { return }
+                presetManager.applyPreset(id: uuid, to: brightnessManager, animated: true)
             }
         }
 
         // Control Center dim toggle (requested state passed via shared defaults)
-        widgetDimStateObserver = DistributedNotificationCenter.default().addObserver(
+        _ = DistributedNotificationCenter.default().addObserver(
             forName: SharedConstants.dimStateNotification,
             object: nil, queue: .main
         ) { [settings] _ in
@@ -344,7 +288,7 @@ struct DimmerlyApp: App {
         }
 
         // Control Center Auto Warmth toggle (requested state passed via shared defaults)
-        widgetAutoWarmthObserver = DistributedNotificationCenter.default().addObserver(
+        _ = DistributedNotificationCenter.default().addObserver(
             forName: SharedConstants.autoWarmthNotification,
             object: nil, queue: .main
         ) { [settings] _ in
@@ -354,7 +298,7 @@ struct DimmerlyApp: App {
         }
 
         // Blanking cannot outlive the app, so the dim toggle must not keep showing it as on.
-        terminationObserver = NotificationCenter.default.addObserver(
+        _ = NotificationCenter.default.addObserver(
             forName: NSApplication.willTerminateNotification,
             object: nil, queue: .main
         ) { _ in
@@ -368,8 +312,7 @@ struct DimmerlyApp: App {
     /// handles start/stop; the one-time sync in `syncManagerStateFromSettings` handles launch.
     private func configureScheduleManager() {
         scheduleManager.onScheduleTriggered = { [presetManager, brightnessManager] presetID in
-            guard let preset = presetManager.presets.first(where: { $0.id == presetID }) else { return }
-            presetManager.applyPreset(preset, to: brightnessManager, animated: true)
+            presetManager.applyPreset(id: presetID, to: brightnessManager, animated: true)
         }
     }
 
@@ -377,8 +320,7 @@ struct DimmerlyApp: App {
     /// handles re-registration whenever presets/shortcuts change.
     private func configurePresetShortcuts() {
         presetShortcutManager.onPresetTriggered = { [presetManager, brightnessManager] presetID in
-            guard let preset = presetManager.presets.first(where: { $0.id == presetID }) else { return }
-            presetManager.applyPreset(preset, to: brightnessManager, animated: true)
+            presetManager.applyPreset(id: presetID, to: brightnessManager, animated: true)
         }
     }
 

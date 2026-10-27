@@ -39,19 +39,4 @@ struct AlertPresenter {
         alert.addButton(withTitle: NSLocalizedString("OK", comment: "Alert dismiss button"))
         alert.runModal()
     }
-
-    /// Presents a generic error alert for non-DisplayError cases
-    ///
-    /// - Parameters:
-    ///   - title: The alert title
-    ///   - message: The detailed error message
-    static func showError(title: String, message: String) {
-        NSApp.activate()
-        let alert = NSAlert()
-        alert.messageText = title
-        alert.informativeText = message
-        alert.alertStyle = .warning
-        alert.addButton(withTitle: NSLocalizedString("OK", comment: "Alert dismiss button"))
-        alert.runModal()
-    }
 }
