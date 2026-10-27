@@ -68,6 +68,29 @@ struct PresetEntityQuery: EntityQuery {
     }
 }
 
+/// Runs preset index writes one at a time. Spotlight's recovery callbacks and preset edits
+/// both replace the index with a delete followed by an index call; without this, the two
+/// sequences could interleave across their awaits and leave a deleted or renamed preset
+/// indexed next to its replacement.
+@MainActor
+final class PresetEntityIndexWriteQueue {
+    static let shared = PresetEntityIndexWriteQueue()
+
+    private var tail: Task<Void, Never>?
+
+    func run(_ operation: @escaping @MainActor () async throws -> Void) async throws {
+        let previous = tail
+        let task = Task { @MainActor in
+            await previous?.value
+            try await operation()
+        }
+        tail = Task { @MainActor in
+            _ = await task.result
+        }
+        try await task.value
+    }
+}
+
 @MainActor
 protocol PresetEntityIndexingClient: AnyObject {
     func deleteAll() async throws
@@ -136,22 +159,27 @@ final class CSSearchablePresetEntityIndexingClient: NSObject, PresetEntityIndexi
     }
 
     private func reindexAll() async throws {
-        let entities = try await PresetEntityQuery().suggestedEntities()
-        try await deleteAll()
-        try await index(entities)
+        try await PresetEntityIndexWriteQueue.shared.run { [self] in
+            // Read presets inside the queue so the snapshot is current when it is written.
+            let entities = try await PresetEntityQuery().suggestedEntities()
+            try await deleteAll()
+            try await index(entities)
+        }
     }
 
     private func reindex(identifiers: [String]) async throws {
-        let entities = try await PresetEntityQuery().entities(for: identifiers)
-        let foundIdentifiers = Set(entities.map(\.id))
-        let missingIdentifiers = identifiers.filter { !foundIdentifiers.contains($0) }
+        try await PresetEntityIndexWriteQueue.shared.run { [self] in
+            let entities = try await PresetEntityQuery().entities(for: identifiers)
+            let foundIdentifiers = Set(entities.map(\.id))
+            let missingIdentifiers = identifiers.filter { !foundIdentifiers.contains($0) }
 
-        if !missingIdentifiers.isEmpty {
-            try await CSSearchableIndex(name: presetEntityIndexName)
-                .deleteSearchableItems(withIdentifiers: missingIdentifiers)
-        }
-        if !entities.isEmpty {
-            try await index(entities)
+            if !missingIdentifiers.isEmpty {
+                try await CSSearchableIndex(name: presetEntityIndexName)
+                    .deleteSearchableItems(withIdentifiers: missingIdentifiers)
+            }
+            if !entities.isEmpty {
+                try await index(entities)
+            }
         }
     }
 }
@@ -191,11 +219,16 @@ final class AppEntityIndexingService {
     static let shared = AppEntityIndexingService()
 
     private let indexClient: any PresetEntityIndexingClient
+    private let writeQueue: PresetEntityIndexWriteQueue
     private var pendingPresets: [BrightnessPreset]?
     private var indexingTask: Task<Void, Never>?
 
-    init(indexClient: any PresetEntityIndexingClient = CSSearchablePresetEntityIndexingClient()) {
+    init(
+        indexClient: any PresetEntityIndexingClient = CSSearchablePresetEntityIndexingClient(),
+        writeQueue: PresetEntityIndexWriteQueue = .shared
+    ) {
         self.indexClient = indexClient
+        self.writeQueue = writeQueue
     }
 
     func reindexPresets(_ presets: [BrightnessPreset]) {
@@ -226,8 +259,10 @@ final class AppEntityIndexingService {
     private func indexSnapshot(_ entities: [PresetEntity]) async throws {
         for attempt in 1 ... Self.maxIndexingAttempts {
             do {
-                try await indexClient.deleteAll()
-                try await indexClient.index(entities)
+                try await writeQueue.run { [indexClient] in
+                    try await indexClient.deleteAll()
+                    try await indexClient.index(entities)
+                }
                 return
             } catch is CancellationError {
                 throw CancellationError()

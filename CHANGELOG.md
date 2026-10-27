@@ -24,6 +24,8 @@ Semantic Versioning.
 - When blanking requires Esc to wake, the wake hint is easier to read, comes back when you press another key or move the pointer, and VoiceOver announces it.
 - Settings shows when Launch at Login is waiting for your approval and offers a button that opens Login Items in System Settings.
 - A slider no longer jumps under the pointer when a preset or a monitor reading changes its value mid-drag.
+- Shortcuts actions and their prompts, menu bar icon style names, and the remaining English-only Settings texts are now translated into every supported language.
+- Renamed or deleted presets no longer reappear in Spotlight or Shortcuts when Spotlight rebuilds its index while presets are changing.
 
 ## [1.3.0] - 2026-10-04
 
