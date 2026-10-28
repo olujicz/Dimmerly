@@ -244,7 +244,19 @@ struct AddScheduleSheet: View {
 /// almost always use one.
 enum ManualCoordinateText {
     static func parse(_ text: String, locale: Locale = .current) -> Double? {
-        var normalized = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Number formatting can emit localized decimal digits and directional marks.
+        // Normalize them before Double parsing, which also rejects trailing nonnumeric text.
+        let digits = text.unicodeScalars.reduce(into: "") { result, scalar in
+            guard !scalar.properties.isBidiControl else { return }
+            if scalar.properties.generalCategory == .decimalNumber,
+               let value = scalar.properties.numericValue
+            {
+                result += String(Int(value))
+            } else {
+                result.unicodeScalars.append(scalar)
+            }
+        }
+        var normalized = digits.trimmingCharacters(in: .whitespacesAndNewlines)
             .replacingOccurrences(of: "\u{2212}", with: "-")
         if let separator = locale.decimalSeparator, separator != "." {
             normalized = normalized.replacingOccurrences(of: separator, with: ".")

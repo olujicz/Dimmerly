@@ -36,6 +36,19 @@ final class ManualCoordinateTextTests: XCTestCase {
     func testRejectsNonNumericText() {
         XCTAssertNil(ManualCoordinateText.parse("", locale: english))
         XCTAssertNil(ManualCoordinateText.parse("north", locale: english))
+        XCTAssertNil(ManualCoordinateText.parse("48.85north", locale: english))
+        XCTAssertNil(ManualCoordinateText.parse("٤٨٫٨٥north", locale: Locale(identifier: "ar_SA")))
+    }
+
+    func testParsesLocalizedDigitsAndDirectionalMarks() {
+        XCTAssertEqual(ManualCoordinateText.parse("\u{061C}-٣٣٫٨٦٨٨", locale: Locale(identifier: "ar_SA")), -33.8688)
+        XCTAssertEqual(ManualCoordinateText.parse("\u{200E}−۳۳٫۸۶۸۸", locale: Locale(identifier: "fa_IR")), -33.8688)
+    }
+
+    func testAcceptsPastedDotDecimalInLocalizedDigitLocales() {
+        for identifier in ["ar_SA", "fa_IR"] {
+            XCTAssertEqual(ManualCoordinateText.parse("-33.8688", locale: Locale(identifier: identifier)), -33.8688)
+        }
     }
 
     func testFormatsWithLocaleDecimalSeparator() {
@@ -49,9 +62,12 @@ final class ManualCoordinateTextTests: XCTestCase {
     }
 
     func testFormattedValueRoundTrips() {
-        for locale in [english, german, Locale(identifier: "fr_FR"), Locale(identifier: "sr_RS")] {
-            let text = ManualCoordinateText.format(-33.8688, locale: locale)
-            XCTAssertEqual(ManualCoordinateText.parse(text, locale: locale), -33.8688, "\(locale.identifier)")
+        for identifier in ["en_US", "de_DE", "fr_FR", "sr_RS", "ar_SA", "ar_EG", "fa_IR"] {
+            let locale = Locale(identifier: identifier)
+            for value in [-33.8688, 48.8566, 0] {
+                let text = ManualCoordinateText.format(value, locale: locale)
+                XCTAssertEqual(ManualCoordinateText.parse(text, locale: locale), value, "\(identifier): \(text)")
+            }
         }
     }
 }
