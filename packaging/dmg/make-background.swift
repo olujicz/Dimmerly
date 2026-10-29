@@ -24,14 +24,14 @@ func color(_ hex: UInt32, alpha: CGFloat = 1) -> NSColor {
 }
 
 func drawBackground() {
-    // Slate (#687690) gives black labels about 4.5:1 and, being nearly neutral,
-    // carries them better than saturated blue does. Hold it flat across the label
-    // band and only vary the shade above and below it.
+    // Blues from the app icon: its light sky (#7FC6FF) at the top, a lighter brand
+    // blue (#5DA0EE, about 7.7:1 with black) held flat across the label band, and
+    // the icon's navy (#1A2F4B) behind the white hint at the bottom.
     let labelBandTop = (appIconCenter.y + iconSize / 2) / windowSize.height
     let labelBandBottom = (appIconCenter.y + iconSize / 2 + 40) / windowSize.height
     NSGradient(
-        colors: [color(0x8994A6), color(0x687690), color(0x687690), color(0x3A4250)],
-        atLocations: [0, labelBandTop, labelBandBottom, 1],
+        colors: [color(0x7FC6FF), color(0x5DA0EE), color(0x5DA0EE), color(0x2C5487), color(0x1A2F4B)],
+        atLocations: [0, labelBandTop, labelBandBottom, labelBandBottom + 0.1, 1],
         colorSpace: .sRGB
     )?
         .draw(
@@ -40,7 +40,7 @@ func drawBackground() {
             options: [.drawsBeforeStartingLocation, .drawsAfterEndingLocation]
         )
 
-    NSGradient(colors: [color(0xFFFFFF, alpha: 0.10), color(0xFFFFFF, alpha: 0)])?
+    NSGradient(colors: [color(0xFFFFFF, alpha: 0.18), color(0xFFFFFF, alpha: 0)])?
         .draw(
             fromCenter: NSPoint(x: windowSize.width / 2, y: 0),
             radius: 0,
@@ -63,8 +63,8 @@ func drawBackground() {
     arrow.lineWidth = 7
     arrow.lineCapStyle = .round
     arrow.lineJoinStyle = .round
-    // Light brand blue from the website's dark theme (--blue-dark).
-    color(0x91C0FF).setStroke()
+    // The icon's navy keeps the arrow at least 5:1 against the sky blue.
+    color(0x1A2F4B).setStroke()
     arrow.stroke()
 
     let paragraph = NSMutableParagraphStyle()
