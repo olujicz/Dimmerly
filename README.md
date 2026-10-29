@@ -240,6 +240,22 @@ Common reasons DDC/CI is unavailable:
 Try connecting the monitor directly over USB-C or DisplayPort and check the
 monitor's settings for DDC/CI support.
 
+### A monitor that supports DDC/CI stops responding
+
+A monitor's DDC/CI controller can lock up and stay silent through cable swaps,
+input changes, and an on-screen-menu reset, while the picture keeps working.
+Unplug the monitor from mains power for one to two minutes, then reconnect it.
+Dimmerly re-probes the display automatically and shows the hardware indicator
+again once the monitor answers. A standby power-button press is not enough,
+because the controller keeps running in standby.
+
+Run only one DDC/CI tool at a time. Two apps talking to the same monitor
+interleave each other's replies and can make a working monitor look broken.
+
+Many USB-C to HDMI cables and adapters have a built-in converter chip that
+passes the picture but drops DDC/CI entirely. If hardware controls never appear
+through one, use a USB-C to DisplayPort cable or the Mac's HDMI port instead.
+
 ### Keyboard shortcuts do not work
 
 In the App Store build, shortcuts need no Accessibility permission. Choose a
