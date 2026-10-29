@@ -130,6 +130,36 @@ Every public release should start with a small release-prep PR. The PR should co
 
 Do not mix feature work into the release-prep PR. Merge it only after CI passes and the release owner has checked the pre-release checklist.
 
+## DMG Packaging
+
+The Release workflow builds the DMG with `packaging/dmg/build-dmg.sh`, which runs [dmgbuild](https://github.com/dmgbuild/dmgbuild) from a temporary virtual environment. `packaging/dmg/requirements.txt` pins dmgbuild and its dependencies by version and SHA-256, and pip installs wheels only. dmgbuild writes the Finder window layout directly, so the job does not need Finder or a logged-in desktop.
+
+| File | Purpose |
+| --- | --- |
+| `packaging/dmg/dmgbuild-settings.py` | Window size, icon size and positions, hidden toolbar and sidebar, ULMO (LZMA) format, and the volume icon taken from the app's `AppIcon.icns`. |
+| `packaging/dmg/background.png`, `background@2x.png` | Installer window background. dmgbuild combines both into one HiDPI TIFF. |
+| `packaging/dmg/make-background.swift` | Regenerates both background images: `swift packaging/dmg/make-background.swift packaging/dmg`. |
+| `packaging/dmg/verify-dmg.sh` | Read-only inspection of the final stapled DMG. |
+
+Keep the layout constants in `dmgbuild-settings.py` and `make-background.swift` in sync. Over a background picture, Finder draws icon labels black in both light and dark mode, so the label band must keep at least 4.5:1 contrast with black. It uses slate `#687690`, because black text on saturated blue looks heavy. `window_rect` is the outer window frame, so its height includes a 28 pt title bar on top of the 400 pt background. Do not set dmgbuild's `hide_extensions`: it adds `com.apple.FinderInfo` to the app bundle, which breaks `codesign --verify --strict`.
+
+After stapling, the workflow runs `verify-dmg.sh`. It fails the release if any of these checks fail:
+
+- the image format is ULMO
+- the DMG is signed by the release team with a secure timestamp
+- the volume contains only `Dimmerly.app`, the `Applications` shortcut, and the layout files
+- the app version and build match the release
+- `LSMinimumSystemVersion` matches the app target's `MACOSX_DEPLOYMENT_TARGET`
+- the app is universal (`arm64` and `x86_64`)
+- the app passes strict signature verification, is signed by the release team, has the Hardened Runtime and a secure timestamp, and has a stapled ticket
+
+To preview the layout locally, build a DMG from any exported or downloaded `Dimmerly.app`:
+
+```bash
+packaging/dmg/build-dmg.sh /path/to/Dimmerly.app "Dimmerly preview" build/Dimmerly-preview.dmg
+open build/Dimmerly-preview.dmg
+```
+
 ## Release Candidate Build
 
 For **1.3.0 only**, the maintainer has explicitly waived the separate manual
@@ -167,7 +197,7 @@ shasum -a 256 Dimmerly-<version>.dmg
 cat Dimmerly-<version>.dmg.sha256
 ```
 
-6. Install from the downloaded DMG on a clean macOS account or separate Mac.
+6. Open the downloaded DMG and confirm the installer window shows the background, the arrow from Dimmerly to Applications, readable icon labels, and the Dimmerly volume icon. Then install from it on a clean macOS account or separate Mac.
 7. Verify Gatekeeper accepts the app:
 
 ```bash
@@ -204,6 +234,7 @@ was waived. Also verify:
 
 - the draft release notes match `CHANGELOG.md`
 - the DMG filename and checksum contain the intended version
+- the installer window layout is intact, with black, readable labels, in both light and dark mode
 - the app reports the intended version in Finder and system metadata
 - no quarantine, signing, or notarization warnings appear on first launch
 
