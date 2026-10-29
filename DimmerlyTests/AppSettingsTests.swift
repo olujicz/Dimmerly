@@ -214,6 +214,20 @@ final class AppSettingsTests: XCTestCase {
             XCTAssertEqual(ddcDisplayAccessibilityStatus(for: unsupported), "uses software brightness")
         }
 
+        func testDDCDisplayStatusTellsUserToPowerCycleASilentMonitor() {
+            let silent = HardwareDisplayCapability.notSupported(displayID: 28, transportReachable: true)
+
+            XCTAssertEqual(ddcDisplayStatusSymbolName(for: silent), "powerplug")
+            XCTAssertEqual(
+                ddcDisplayStatusText(for: silent),
+                "No DDC/CI reply. Unplug the monitor from power for a minute."
+            )
+            XCTAssertEqual(
+                ddcDisplayAccessibilityStatus(for: silent),
+                "no DDC/CI reply, unplug the monitor from power for a minute"
+            )
+        }
+
         func testDDCControlModeAvailabilityRequiresEnabledHardwareBrightness() async {
             let manager = HardwareBrightnessManager(forTesting: true, ddcInterface: MockDDCInterface())
 

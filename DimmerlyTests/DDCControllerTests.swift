@@ -543,6 +543,48 @@ import XCTest
                 XCTAssertEqual(mode.id, mode.rawValue)
             }
         }
+
+        // MARK: - Silent monitor detection
+
+        func testSilentProbeRecordsWhetherADDCTransportWasReachable() {
+            var queried: [CGDirectDisplayID] = []
+            let reachable = HardwareDisplayCapability.probe(
+                displayID: 81,
+                read: { _, _ in nil },
+                transportReachable: { displayID in
+                    queried.append(displayID)
+                    return true
+                }
+            )
+            let unreachable = HardwareDisplayCapability.probe(
+                displayID: 82,
+                read: { _, _ in nil },
+                transportReachable: { _ in false }
+            )
+
+            XCTAssertFalse(reachable.supportsDDC)
+            XCTAssertTrue(reachable.transportReachable, "A found service that never answers is a silent monitor")
+            XCTAssertEqual(queried, [81])
+            XCTAssertFalse(unreachable.supportsDDC)
+            XCTAssertFalse(unreachable.transportReachable)
+            XCTAssertNotEqual(reachable, HardwareDisplayCapability.notSupported(displayID: 81))
+        }
+
+        func testRespondingProbeDoesNotQueryTransportReachability() {
+            var queried = false
+            let capability = HardwareDisplayCapability.probe(
+                displayID: 83,
+                read: { code, _ in code == .brightness ? DDCReadResult(currentValue: 40, maxValue: 100) : nil },
+                transportReachable: { _ in
+                    queried = true
+                    return false
+                }
+            )
+
+            XCTAssertTrue(capability.supportsDDC)
+            XCTAssertTrue(capability.transportReachable, "A reply proves the transport is reachable")
+            XCTAssertFalse(queried)
+        }
     }
 
 #endif // !APPSTORE

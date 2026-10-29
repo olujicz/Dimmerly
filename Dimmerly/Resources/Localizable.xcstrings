@@ -1496,6 +1496,77 @@
         }
       }
     },
+    "no DDC/CI reply, unplug the monitor from power for a minute" : {
+      "comment" : "DDC accessibility status: monitor reached but its DDC/CI controller never answered",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "keine DDC/CI-Antwort, trennen Sie den Monitor für eine Minute vom Stromnetz"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "no DDC/CI reply, unplug the monitor from power for a minute"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "sin respuesta DDC/CI, desenchufa el monitor de la corriente durante un minuto"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "aucune réponse DDC/CI, débranchez le moniteur du secteur pendant une minute"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "nessuna risposta DDC/CI, scollega il monitor dalla corrente per un minuto"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DDC/CI の応答なし、モニターの電源プラグを1分間抜いてください"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DDC/CI 응답 없음, 모니터 전원 플러그를 1분간 뽑아 주세요"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "geen DDC/CI-antwoord, haal de stekker van de monitor een minuut uit het stopcontact"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "sem resposta DDC/CI, desconecte o monitor da tomada por um minuto"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "nema DDC/CI odgovora, isključite monitor iz struje na jedan minut"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有 DDC/CI 响应，请拔掉显示器电源一分钟"
+          }
+        }
+      }
+    },
     "\"%@\" will be permanently deleted." : {
       "localizations" : {
         "de" : {
@@ -13300,6 +13371,77 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未找到此显示器的 IOKit 显示服务。这通常表示该连接方式（例如 DisplayLink USB）在 macOS 上不支持 DDC/CI。"
+          }
+        }
+      }
+    },
+    "No DDC/CI reply. Unplug the monitor from power for a minute." : {
+      "comment" : "DDC display status: monitor reached but its DDC/CI controller never answered",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine DDC/CI-Antwort. Trennen Sie den Monitor für eine Minute vom Stromnetz."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No DDC/CI reply. Unplug the monitor from power for a minute."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin respuesta DDC/CI. Desenchufa el monitor de la corriente durante un minuto."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune réponse DDC/CI. Débranchez le moniteur du secteur pendant une minute."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessuna risposta DDC/CI. Scollega il monitor dalla corrente per un minuto."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DDC/CI の応答がありません。モニターの電源プラグを1分間抜いてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DDC/CI 응답이 없습니다. 모니터 전원 플러그를 1분간 뽑아 주세요."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen DDC/CI-antwoord. Haal de stekker van de monitor een minuut uit het stopcontact."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sem resposta DDC/CI. Desconecte o monitor da tomada por um minuto."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nema DDC/CI odgovora. Isključite monitor iz struje na jedan minut."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有 DDC/CI 响应。请拔掉显示器电源一分钟。"
           }
         }
       }

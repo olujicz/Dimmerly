@@ -1064,7 +1064,8 @@
                                 supportedCodes: remainingCodes,
                                 maxBrightness: cap.maxBrightness,
                                 maxContrast: cap.maxContrast,
-                                maxVolume: cap.maxVolume
+                                maxVolume: cap.maxVolume,
+                                transportReachable: cap.transportReachable
                             )
                             scheduleWriteFailureRecovery(
                                 for: writeKey,
