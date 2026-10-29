@@ -7,6 +7,8 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-29
+
 ### Added
 - Added an opt-in experimental native-brightness setting for external displays in the direct-download build. It is off by default and falls back to software brightness if a native write fails; monitor-model compatibility is still unverified. Existing DDC/CI controls are unchanged.
 

@@ -25,14 +25,14 @@ brew install --cask dimmerly
 
 ![Dimmerly menu bar panel on macOS](images/image1.png)
 
-## New in 1.3.0
+## New in 1.4.0
 
-- Display Dimming, Auto Warmth, and configurable Apply Preset controls in Control Center and the menu bar on macOS 26 and later
-- Native Liquid Glass panel and dark and tinted app icons on macOS 26 and later, plus sharper menu bar symbols
-- Widgets that follow the system appearance, clearer preset feedback, and more VoiceOver and localization coverage
-- Reliable widget action delivery and permission-free global shortcuts in the App Store build
+- Opt-in experimental native brightness for compatible external displays in the direct-download build
+- Safer monitor control: hardware commands never go to the wrong one of two identical monitors, and unplugging one monitor no longer affects the others
+- Presets, blanking, and Auto Warmth no longer override each other's settings, and a slow monitor no longer delays the sliders
+- Complete translations for every supported language, plus a download window that shows where to drag Dimmerly
 
-See [the 1.3.0 changelog](CHANGELOG.md#130---2026-10-04) for the full release notes.
+See [the 1.4.0 changelog](CHANGELOG.md#140---2026-10-29) for the full release notes.
 
 ## Why Dimmerly?
 
