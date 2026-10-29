@@ -252,6 +252,10 @@ because the controller keeps running in standby.
 Run only one DDC/CI tool at a time. Two apps talking to the same monitor
 interleave each other's replies and can make a working monitor look broken.
 
+Many USB-C to HDMI cables and adapters have a built-in converter chip that
+passes the picture but drops DDC/CI entirely. If hardware controls never appear
+through one, use a USB-C to DisplayPort cable or the Mac's HDMI port instead.
+
 ### Keyboard shortcuts do not work
 
 In the App Store build, shortcuts need no Accessibility permission. Choose a
