@@ -141,7 +141,7 @@ The Release workflow builds the DMG with `packaging/dmg/build-dmg.sh`, which run
 | `packaging/dmg/make-background.swift` | Regenerates both background images: `swift packaging/dmg/make-background.swift packaging/dmg`. |
 | `packaging/dmg/verify-dmg.sh` | Read-only inspection of the final stapled DMG. |
 
-Keep the layout constants in `dmgbuild-settings.py` and `make-background.swift` in sync. Over a background picture, Finder draws icon labels black in both light and dark mode, so the label band must keep at least 4.5:1 contrast with black. It uses slate `#687690`, because black text on saturated blue looks heavy. `window_rect` is the outer window frame, so its height includes a 28 pt title bar on top of the 400 pt background. Do not set dmgbuild's `hide_extensions`: it adds `com.apple.FinderInfo` to the app bundle, which breaks `codesign --verify --strict`.
+Keep the layout constants in `dmgbuild-settings.py` and `make-background.swift` in sync. Over a background picture, Finder draws icon labels black in both light and dark mode, so the label band must keep at least 4.5:1 contrast with black. It uses a light brand blue, `#5DA0EE` (about 7.7:1 with black), taken from the app icon's sky blue; the white hint below the labels sits on the icon's navy, `#1A2F4B`. `window_rect` is the outer window frame, so its height includes a 28 pt title bar on top of the 400 pt background. Do not set dmgbuild's `hide_extensions`: it adds `com.apple.FinderInfo` to the app bundle, which breaks `codesign --verify --strict`.
 
 After stapling, the workflow runs `verify-dmg.sh`. It fails the release if any of these checks fail:
 
