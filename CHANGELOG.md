@@ -10,6 +10,9 @@ Semantic Versioning.
 ### Added
 - Added an opt-in experimental native-brightness setting for external displays in the direct-download build. It is off by default and falls back to software brightness if a native write fails; monitor-model compatibility is still unverified. Existing DDC/CI controls are unchanged.
 
+### Changed
+- The download disk image now opens to an installer window that shows where to drag Dimmerly, has a Dimmerly volume icon, and is a little smaller.
+
 ### Fixed
 - Animated presets preserve display settings they do not specify, including low native brightness and brightness changes reported during warmth transitions. Hardware brightness writes apply only to displays with an explicit brightness target, even when a transition is interrupted.
 - Disconnecting one monitor during hardware discovery no longer discards results for other connected monitors. Changing brightness control ownership also preserves unrelated volume, contrast, mute, and input-source reads.

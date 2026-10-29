@@ -297,15 +297,9 @@ jobs:
         run: |
           set -euo pipefail
 
-          mkdir -p build/dmg-root
-          cp -R "$EXPORT_PATH/Dimmerly.app" build/dmg-root/
-          ln -s /Applications build/dmg-root/Applications
-
-          hdiutil create \
-            -volname "Dimmerly $RELEASE_VERSION" \
-            -srcfolder build/dmg-root \
-            -ov \
-            -format UDZO \
+          bash packaging/dmg/build-dmg.sh \
+            "$EXPORT_PATH/Dimmerly.app" \
+            "Dimmerly $RELEASE_VERSION" \
             "$DMG_PATH"
 
       - name: Sign DMG
@@ -332,6 +326,20 @@ jobs:
           xcrun stapler staple "$DMG_PATH"
           xcrun stapler validate "$DMG_PATH"
           spctl --assess --type open --context context:primary-signature --verbose=4 "$DMG_PATH"
+
+      - name: Inspect final DMG
+        run: |
+          set -euo pipefail
+
+          MINIMUM_MACOS="$(xcodebuild -project Dimmerly.xcodeproj -target Dimmerly -configuration Release -showBuildSettings \
+            | awk '$1 == "MACOSX_DEPLOYMENT_TARGET" { print $3; exit }')"
+
+          bash packaging/dmg/verify-dmg.sh \
+            "$DMG_PATH" \
+            "$RELEASE_VERSION" \
+            "$BUILD_NUMBER" \
+            "$MINIMUM_MACOS" \
+            "$APPLE_TEAM_ID"
 
       - name: Create checksum
         run: |

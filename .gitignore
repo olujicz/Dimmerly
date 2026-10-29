@@ -128,3 +128,5 @@ tools/
 
 # paseo
 paseo.json
+
+__pycache__/
