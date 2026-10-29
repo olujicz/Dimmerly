@@ -276,6 +276,19 @@
             #endif
         }
 
+        /// Reports whether an I2C path to the display exists, without sending DDC/CI.
+        ///
+        /// Used after a silent capability probe to distinguish a connection with no
+        /// DDC service (hub, adapter, unsupported port) from a monitor that was reached
+        /// but did not answer, which usually needs a mains power cycle.
+        static func hasTransport(for displayID: CGDirectDisplayID) -> Bool {
+            #if arch(arm64)
+                hasAppleSiliconTransport(for: displayID)
+            #else
+                hasIntelTransport(for: displayID)
+            #endif
+        }
+
         /// Writes a value to a VCP code on a display.
         ///
         /// Performs a DDC/CI "Set VCP Feature" transaction:
@@ -966,6 +979,16 @@
                 return writeVCP(using: transport, chipAddress: chipAddress, vcp: vcp, value: value)
             }
 
+            /// True when any Apple Silicon lookup path yields a service for the display.
+            private static func hasAppleSiliconTransport(for displayID: CGDirectDisplayID) -> Bool {
+                if findIOAVTransport(for: displayID) != nil || findIOAVDevice(for: displayID) != nil {
+                    return true
+                }
+                guard let rawTransport = findRawTransport(for: displayID) else { return false }
+                IOObjectRelease(rawTransport.service)
+                return true
+            }
+
             // MARK: Apple Silicon I2C Transactions
 
             /// VCP GET with retries over an IOAVService or IOAVDevice transport.
@@ -1283,6 +1306,16 @@
                     IOObjectRelease(candidate.service)
                 }
                 return candidates[selectedIndex].service
+            }
+
+            /// True when a framebuffer with at least one I2C bus exists for the display.
+            private static func hasIntelTransport(for displayID: CGDirectDisplayID) -> Bool {
+                let framebuffer = findFramebufferService(for: displayID)
+                guard framebuffer != IO_OBJECT_NULL else { return false }
+                defer { IOObjectRelease(framebuffer) }
+
+                var busCount: IOItemCount = 0
+                return IOFBGetI2CInterfaceCount(framebuffer, &busCount) == KERN_SUCCESS && busCount > 0
             }
 
             /// Reads a VCP code via IOI2CRequest on Intel Macs.

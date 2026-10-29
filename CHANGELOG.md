@@ -7,6 +7,9 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+### Changed
+- Settings now tells apart a monitor that blocks hardware control from one that was reached but never answered. The second case shows a hint to unplug the monitor from power for a minute, which is what revives a locked-up DDC/CI controller.
+
 ## [1.4.0] - 2026-10-29
 
 ### Added

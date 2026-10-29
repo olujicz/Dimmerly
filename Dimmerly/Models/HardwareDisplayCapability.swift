@@ -41,6 +41,12 @@
         /// Cached maximum volume value reported by the monitor (typically 100).
         let maxVolume: UInt16
 
+        /// Whether an I2C path to the display was found at all. `true` with
+        /// `supportsDDC == false` means the monitor was reached but never answered:
+        /// usually a DDC/CI controller that needs a mains power cycle, not a
+        /// connection that blocks DDC.
+        var transportReachable: Bool = false
+
         // MARK: - Convenience Accessors
 
         /// Whether the display supports hardware brightness control (VCP 0x10)
@@ -83,14 +89,19 @@
         // MARK: - Factory Methods
 
         /// Creates a capability record for a display that does not support DDC.
-        static func notSupported(displayID: CGDirectDisplayID) -> HardwareDisplayCapability {
+        /// Pass `transportReachable: true` when a DDC service existed but stayed silent.
+        static func notSupported(
+            displayID: CGDirectDisplayID,
+            transportReachable: Bool = false
+        ) -> HardwareDisplayCapability {
             HardwareDisplayCapability(
                 displayID: displayID,
                 supportsDDC: false,
                 supportedCodes: [],
                 maxBrightness: 0,
                 maxContrast: 0,
-                maxVolume: 0
+                maxVolume: 0,
+                transportReachable: transportReachable
             )
         }
 
@@ -101,12 +112,18 @@
         /// native brightness is intentionally excluded from discovery.
         /// Each read can involve transport retries, so call this on a background thread.
         ///
-        /// - Parameter displayID: CoreGraphics display identifier to probe
+        /// A silent display is additionally checked for a reachable transport, so the
+        /// UI can tell "no DDC path" apart from "monitor reached but not answering".
+        ///
+        /// - Parameters:
+        ///   - displayID: CoreGraphics display identifier to probe
+        ///   - transportReachable: Injected in tests; defaults to the IOKit lookup
         /// - Returns: Capability record with supported codes and max values
         static func probe(
             displayID: CGDirectDisplayID,
             skippingBrightness: Bool = false,
-            read: ((VCPCode, CGDirectDisplayID) -> DDCReadResult?)? = nil
+            read: ((VCPCode, CGDirectDisplayID) -> DDCReadResult?)? = nil,
+            transportReachable: ((CGDirectDisplayID) -> Bool)? = nil
         ) -> HardwareDisplayCapability {
             let readResults = DDCController.capabilityReadResults(
                 for: displayID,
@@ -116,7 +133,8 @@
             let supportedCodes = Set(readResults.keys)
 
             guard !supportedCodes.isEmpty else {
-                return .notSupported(displayID: displayID)
+                let isReachable = transportReachable ?? DDCController.hasTransport(for:)
+                return .notSupported(displayID: displayID, transportReachable: isReachable(displayID))
             }
 
             return HardwareDisplayCapability(
@@ -125,7 +143,8 @@
                 supportedCodes: supportedCodes,
                 maxBrightness: readResults[.brightness]?.maxValue ?? 100,
                 maxContrast: readResults[.contrast]?.maxValue ?? 100,
-                maxVolume: readResults[.volume]?.maxValue ?? 100
+                maxVolume: readResults[.volume]?.maxValue ?? 100,
+                transportReachable: true
             )
         }
     }

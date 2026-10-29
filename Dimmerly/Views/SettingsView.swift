@@ -105,11 +105,17 @@ func applyLaunchAtLoginChange(
         if cap.supportsDDC {
             return "exclamationmark.circle"
         }
-        return "tv.and.mediabox"
+        return cap.transportReachable ? "powerplug" : "tv.and.mediabox"
     }
 
     func ddcDisplayStatusText(for cap: HardwareDisplayCapability) -> String {
         guard cap.supportsDDC else {
+            if cap.transportReachable {
+                return String(
+                    localized: "No DDC/CI reply. Unplug the monitor from power for a minute.",
+                    comment: "DDC display status: monitor reached but its DDC/CI controller never answered"
+                )
+            }
             return String(localized: "Uses software brightness", comment: "DDC display status: software fallback")
         }
 
@@ -139,6 +145,12 @@ func applyLaunchAtLoginChange(
 
     func ddcDisplayAccessibilityStatus(for cap: HardwareDisplayCapability) -> String {
         guard cap.supportsDDC else {
+            if cap.transportReachable {
+                return String(
+                    localized: "no DDC/CI reply, unplug the monitor from power for a minute",
+                    comment: "DDC accessibility status: monitor reached but its DDC/CI controller never answered"
+                )
+            }
             return String(localized: "uses software brightness", comment: "DDC accessibility status: software fallback")
         }
 
