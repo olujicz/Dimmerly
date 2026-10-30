@@ -287,6 +287,56 @@ private struct DisplayControlSlider: View {
     }
 }
 
+/// A decorative symbol beside a display slider. The slider carries the accessibility
+/// label and value, so the symbol is hidden from VoiceOver and fades when disabled.
+private struct DisplaySliderIcon: View {
+    let systemName: String
+    var style: AnyShapeStyle = .init(.secondary)
+
+    var body: some View {
+        Image(systemName: systemName)
+            .font(.caption2)
+            .frame(width: 12)
+            .foregroundStyle(style)
+            .accessibilityHidden(true)
+            .dimmedWhenDisabled()
+    }
+}
+
+/// One control row of a display: a leading symbol or control, the slider, and a
+/// trailing symbol.
+private struct DisplaySliderRow<Leading: View, Slider: View>: View {
+    let trailingSymbol: String
+    var trailingStyle = AnyShapeStyle(.secondary)
+    @ViewBuilder let leading: Leading
+    @ViewBuilder let slider: Slider
+
+    var body: some View {
+        HStack(spacing: 6) {
+            leading
+            slider
+            DisplaySliderIcon(systemName: trailingSymbol, style: trailingStyle)
+        }
+    }
+}
+
+extension DisplaySliderRow where Leading == DisplaySliderIcon {
+    init(
+        leadingSymbol: String,
+        trailingSymbol: String,
+        leadingStyle: some ShapeStyle = .secondary,
+        trailingStyle: some ShapeStyle = .secondary,
+        @ViewBuilder slider: () -> Slider
+    ) {
+        self.init(
+            trailingSymbol: trailingSymbol,
+            trailingStyle: AnyShapeStyle(trailingStyle),
+            leading: { DisplaySliderIcon(systemName: leadingSymbol, style: AnyShapeStyle(leadingStyle)) },
+            slider: slider
+        )
+    }
+}
+
 struct DisplayBrightnessRow: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -420,14 +470,7 @@ struct DisplayBrightnessRow: View {
                 )
             }
 
-            HStack(spacing: 6) {
-                Image(systemName: "sun.min")
-                    .font(.caption2)
-                    .frame(width: 12)
-                    .foregroundStyle(.secondary)
-                    .accessibilityHidden(true)
-                    .dimmedWhenDisabled()
-
+            DisplaySliderRow(leadingSymbol: "sun.min", trailingSymbol: "sun.max") {
                 DisplayControlSlider(
                     value: $sliderValue,
                     modelValue: display.brightness,
@@ -451,26 +494,17 @@ struct DisplayBrightnessRow: View {
                     ) },
                     onChange: onChange
                 )
-
-                Image(systemName: "sun.max")
-                    .font(.caption2)
-                    .frame(width: 12)
-                    .foregroundStyle(.secondary)
-                    .accessibilityHidden(true)
-                    .dimmedWhenDisabled()
             }
             .disabled(isBlanked)
 
             if showAdjustments {
                 VStack(spacing: 2) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "thermometer.snowflake")
-                            .font(.caption2)
-                            .frame(width: 12)
-                            .foregroundStyle(.blue)
-                            .accessibilityHidden(true)
-                            .dimmedWhenDisabled()
-
+                    DisplaySliderRow(
+                        leadingSymbol: "thermometer.snowflake",
+                        trailingSymbol: "thermometer.sun",
+                        leadingStyle: .blue,
+                        trailingStyle: .orange
+                    ) {
                         DisplayControlSlider(
                             value: $warmthValue,
                             modelValue: display.warmth,
@@ -495,13 +529,6 @@ struct DisplayBrightnessRow: View {
                             onChange: onWarmthChange
                         )
                         .tint(.orange)
-
-                        Image(systemName: "thermometer.sun")
-                            .font(.caption2)
-                            .frame(width: 12)
-                            .foregroundStyle(.orange)
-                            .accessibilityHidden(true)
-                            .dimmedWhenDisabled()
                     }
 
                     HStack {
@@ -535,14 +562,7 @@ struct DisplayBrightnessRow: View {
                 .transition(.opacity.combined(with: .move(edge: .top)))
                 .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8), value: showAdjustments)
 
-                HStack(spacing: 6) {
-                    Image(systemName: "circle.lefthalf.filled")
-                        .font(.caption2)
-                        .frame(width: 12)
-                        .foregroundStyle(.secondary)
-                        .accessibilityHidden(true)
-                        .dimmedWhenDisabled()
-
+                DisplaySliderRow(leadingSymbol: "circle.lefthalf.filled", trailingSymbol: "circle.righthalf.filled") {
                     DisplayControlSlider(
                         value: $contrastValue,
                         modelValue: display.contrast,
@@ -566,13 +586,6 @@ struct DisplayBrightnessRow: View {
                         ) },
                         onChange: onContrastChange
                     )
-
-                    Image(systemName: "circle.righthalf.filled")
-                        .font(.caption2)
-                        .frame(width: 12)
-                        .foregroundStyle(.secondary)
-                        .accessibilityHidden(true)
-                        .dimmedWhenDisabled()
                 }
                 .disabled(isBlanked)
                 .transition(.opacity.combined(with: .move(edge: .top)))
@@ -589,7 +602,7 @@ struct DisplayBrightnessRow: View {
                     // MARK: Volume Slider + Mute (DDC only)
 
                     if hasDDC, onVolumeChange != nil {
-                        HStack(spacing: 6) {
+                        DisplaySliderRow(trailingSymbol: "speaker.wave.3") {
                             if let onMuteToggle {
                                 Button {
                                     onMuteToggle()
@@ -605,14 +618,9 @@ struct DisplayBrightnessRow: View {
                             } else {
                                 // The monitor reports volume but not mute: keep the icon
                                 // for alignment, but don't offer a control that does nothing.
-                                Image(systemName: "speaker.wave.2")
-                                    .font(.caption2)
-                                    .frame(width: 12)
-                                    .foregroundStyle(.secondary)
-                                    .accessibilityHidden(true)
-                                    .dimmedWhenDisabled()
+                                DisplaySliderIcon(systemName: "speaker.wave.2")
                             }
-
+                        } slider: {
                             DisplayControlSlider(
                                 value: $volumeValue,
                                 modelValue: hardwareVolume,
@@ -636,13 +644,6 @@ struct DisplayBrightnessRow: View {
                                 ) },
                                 onChange: { onVolumeChange?($0) }
                             )
-
-                            Image(systemName: "speaker.wave.3")
-                                .font(.caption2)
-                                .frame(width: 12)
-                                .foregroundStyle(.secondary)
-                                .accessibilityHidden(true)
-                                .dimmedWhenDisabled()
                         }
                         .disabled(isBlanked)
                         .transition(.opacity.combined(with: .move(edge: .top)))
