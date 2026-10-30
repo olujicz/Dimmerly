@@ -426,7 +426,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
             }
             guard CGDisplayIsBuiltin(displayID) != 0,
                   isBuiltInBacklightAPIAvailable() else { return false }
-            let clamped = Float(min(max(value, 0.0), 1.0))
+            let clamped = Float(clamp01(value))
             return DisplayServicesAPI.setBrightness(displayID, clamped) == 0
         }
 
@@ -449,7 +449,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
             }
             guard !isTestingInstance, isBuiltInDisplay(displayID) == false,
                   isBuiltInBacklightAPIAvailable() else { return false }
-            let clamped = Float(min(max(value, 0.0), 1.0))
+            let clamped = Float(clamp01(value))
             return DisplayServicesAPI.setBrightness(displayID, clamped) == 0
         }
 
@@ -464,7 +464,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
                     // A panel can report a native level below the app's interactive gamma
                     // floor. Preserve that hardware value rather than brightening it during the
                     // next poll; the user can still recover through the native backlight path.
-                    let clamped = min(max(hw, 0.0), 1.0)
+                    let clamped = clamp01(hw)
                     if abs(displays[i].brightness - clamped) > 0.005 {
                         displays[i].brightness = clamped
                         debouncePersist()
@@ -862,7 +862,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
     ///   - displayID: Core Graphics display identifier
     ///   - value: Warmth level (0.0–1.0), will be clamped to valid range
     func setWarmth(for displayID: CGDirectDisplayID, to value: Double) {
-        let clamped = min(max(value, 0.0), 1.0)
+        let clamped = clamp01(value)
 
         guard let index = displays.firstIndex(where: { $0.id == displayID }) else { return }
         // The change check gates the *side effects* only — it still prevents SwiftUI onChange
@@ -900,7 +900,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
     ///   - displayID: Core Graphics display identifier
     ///   - value: Contrast level (0.0–1.0), will be clamped to valid range
     func setContrast(for displayID: CGDirectDisplayID, to value: Double) {
-        let clamped = min(max(value, 0.0), 1.0)
+        let clamped = clamp01(value)
 
         guard let index = displays.firstIndex(where: { $0.id == displayID }) else { return }
         displays[index].contrast = clamped
@@ -996,21 +996,21 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
             }
 
             let endWarmth: Double? = if let universal = preset.universalWarmth {
-                min(max(universal, 0), 1)
+                clamp01(universal)
             } else if let values = preset.displayWarmth,
                       let value = savedValue(values, for: display.id, identity: identity)
             {
-                min(max(value, 0), 1)
+                clamp01(value)
             } else {
                 nil
             }
 
             let endContrast: Double? = if let universal = preset.universalContrast {
-                min(max(universal, 0), 1)
+                clamp01(universal)
             } else if let values = preset.displayContrast,
                       let value = savedValue(values, for: display.id, identity: identity)
             {
-                min(max(value, 0), 1)
+                clamp01(value)
             } else {
                 nil
             }
@@ -1034,7 +1034,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
     /// - Returns: `true` if animation was started, `false` if the caller should apply instantly
     @discardableResult
     func animateAllWarmth(to targetWarmth: Double) -> Bool {
-        let endWarmth = min(max(targetWarmth, 0), 1)
+        let endWarmth = clamp01(targetWarmth)
         let targets = displays.map { display in
             TransitionTarget(
                 displayID: display.id,
@@ -1059,7 +1059,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
             return TransitionTarget(
                 displayID: display.id,
                 start: (display.brightness, display.warmth, display.contrast),
-                end: (nil, min(max(raw, 0), 1), nil)
+                end: (nil, clamp01(raw), nil)
             )
         }
         return runTransition(targets: targets)
@@ -1283,7 +1283,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
 
             // Mirror the built-in path: a hardware level below the slider minimum is real state,
             // not a request to raise.
-            let brightness = min(max(value, 0.0), 1.0)
+            let brightness = clamp01(value)
             guard abs(displays[index].brightness - brightness) > 0.005 else { return }
             displays[index].brightness = brightness
             debouncePersist()
@@ -1366,6 +1366,12 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
             }
         }
     #endif
+}
+
+/// Clamps a normalized display value to 0...1 without a brightness floor.
+/// Brightness entering the slider range uses `clampedBrightness` instead.
+private func clamp01(_ value: Double) -> Double {
+    min(max(value, 0.0), 1.0)
 }
 
 // MARK: - Display Reconfiguration Callback
