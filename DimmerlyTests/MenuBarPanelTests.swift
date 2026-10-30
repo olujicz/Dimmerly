@@ -977,3 +977,40 @@ extension MenuBarPanelTests {
         }
     #endif
 }
+
+// MARK: - Wording and order
+
+extension MenuBarPanelTests {
+    func testFooterUsesTheQuickActionsMenuWording() throws {
+        let viewsURL = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Dimmerly/Views")
+        let panel = try String(contentsOf: viewsURL.appendingPathComponent("MenuBarPanel.swift"), encoding: .utf8)
+        let shortcutsTab = try String(
+            contentsOf: viewsURL.appendingPathComponent("SettingsShortcutsTab.swift"),
+            encoding: .utf8
+        )
+
+        // Same titles as `StatusItemQuickActions.makeQuickActionsMenu`.
+        XCTAssertTrue(panel.contains("FooterLabel(\"Settings…\""))
+        XCTAssertTrue(panel.contains("FooterLabel(\"Quit Dimmerly\""))
+        // The main shortcut row names the action exactly as the panel and menu do.
+        XCTAssertTrue(shortcutsTab.contains("Text(StatusItemQuickActions.turnOffTitle(settings: settings))"))
+        XCTAssertFalse(shortcutsTab.contains("Sleep Displays"))
+    }
+
+    func testDisplayContextMenuListsBrightnessFromBrightestToMinimum() throws {
+        let source = try menuBarDisplayControlsSource()
+        let titles = ["Set to 100%", "Set to 75%", "Set to 50%", "Set to 25%", "Set to Minimum"]
+        let offsets = try titles.map { title in
+            try XCTUnwrap(source.range(of: "Button(\"\(title)\")"), "missing \(title)").lowerBound
+        }
+
+        XCTAssertEqual(offsets, offsets.sorted())
+    }
+
+    func testBrightnessPercentUsesLocaleAwareFormatting() throws {
+        XCTAssertTrue(try menuBarDisplayControlsSource().contains("Text(Int(sliderValue * 100), format: .percent)"))
+    }
+}

@@ -133,6 +133,30 @@ final class AppSettingsTests: XCTestCase {
             XCTAssertTrue(source.contains("Display compatibility"))
         }
 
+        /// A Toggle's accessibility value is its checked state; overriding it hides that state.
+        func testSettingsTogglesKeepTheirOwnAccessibilityValue() throws {
+            let repositoryURL = URL(fileURLWithPath: #filePath)
+                .deletingLastPathComponent()
+                .deletingLastPathComponent()
+            let source = try String(
+                contentsOf: repositoryURL.appendingPathComponent("Dimmerly/Views/SettingsDisplayTab.swift"),
+                encoding: .utf8
+            )
+            let lines = source.components(separatedBy: .newlines)
+
+            for (index, line) in lines.enumerated() where line.contains("Toggle(") {
+                // Modifiers on a Toggle end at the first blank line or closing brace.
+                let modifiers = lines[(index + 1)...].prefix { line in
+                    let trimmed = line.trimmingCharacters(in: .whitespaces)
+                    return !trimmed.isEmpty && trimmed != "}"
+                }
+                XCTAssertFalse(
+                    modifiers.contains { $0.contains(".accessibilityValue(") },
+                    "Toggle on line \(index + 1) overrides its accessibility value"
+                )
+            }
+        }
+
         func testSettingsKeepsAdvancedDDCControlsBehindDisclosure() throws {
             let repositoryURL = URL(fileURLWithPath: #filePath)
                 .deletingLastPathComponent()
