@@ -10,18 +10,41 @@ import AppKit
 import MenuBarExtraAccess
 import SwiftUI
 
+/// How long after a request's deadline its acknowledgement may still be read. The extension
+/// checks once more right after its deadline passes, then removes its keys and stops reading.
+let widgetActionAcknowledgementGrace: TimeInterval = 5
+
 /// An acknowledgement follows the action and its state publication, never just receipt.
 /// `performCommand` returns whether it did the action; the acknowledgement carries that result.
+///
+/// The extension removes the acknowledgement when it stops waiting. One written after that
+/// (an action that outlasted the deadline, or an extension that was cancelled) would stay until
+/// the next launch, so the app removes it itself once the extension can no longer be reading it.
+/// `scheduleRemoval` runs the removal at the given date.
 @MainActor
 func handleWidgetActionRequest(
     _ id: UUID,
     defaults: UserDefaults? = SharedConstants.sharedDefaults,
     now: Date = Date(),
+    scheduleRemoval: (Date, @escaping @MainActor () -> Void) -> Void = runOnMainActor(at:_:),
     performCommand: (WidgetActionCommand) -> Bool
 ) {
-    guard let request = SharedConstants.consumeWidgetActionRequest(id, from: defaults, now: now) else { return }
+    guard let defaults,
+          let request = SharedConstants.consumeWidgetActionRequest(id, from: defaults, now: now)
+    else { return }
     let succeeded = performCommand(request.command)
     SharedConstants.acknowledgeWidgetAction(id, succeeded: succeeded, in: defaults)
+    scheduleRemoval(request.expiresAt.addingTimeInterval(widgetActionAcknowledgementGrace)) {
+        SharedConstants.removeWidgetActionAcknowledgement(id, from: defaults)
+    }
+}
+
+/// Runs `work` on the main actor at `date`, or right away if `date` has passed.
+func runOnMainActor(at date: Date, _ work: @escaping @MainActor () -> Void) {
+    Task { @MainActor in
+        try? await Task.sleep(for: .seconds(max(0, date.timeIntervalSinceNow)))
+        work()
+    }
 }
 
 @main
