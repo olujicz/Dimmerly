@@ -559,21 +559,12 @@
         ///   - value: Brightness value (0.0–1.0)
         func setHardwareBrightness(for displayID: CGDirectDisplayID, to value: Double) {
             guard !isExternalNativeBrightnessActive(for: displayID) else { return }
-            guard sessionGate.capture() != nil else { return }
-            guard let cap = capabilities[displayID], cap.supportsBrightness else { return }
-
             let clamped = min(max(value, 0.0), 1.0)
-            let connection = displayConnectionGate.current(for: displayID)
-            markLocalWrite(vcp: .brightness, connection: connection)
-            hardwareBrightness[displayID] = clamped
-
-            let rawValue = UInt16((clamped * Double(cap.maxBrightness)).rounded())
-            debouncedWrite(
-                vcp: .brightness,
-                value: rawValue,
+            writeLocalValue(
+                .brightness,
                 for: displayID,
-                connection: connection,
-                nativeWorkSession: nativeBrightnessWorkGate.capture()
+                rawValue: { UInt16((clamped * Double($0.maxBrightness)).rounded()) },
+                publish: { hardwareBrightness[displayID] = clamped }
             )
         }
 
@@ -583,16 +574,13 @@
         ///   - displayID: CoreGraphics display identifier
         ///   - value: Contrast value (0.0–1.0)
         func setHardwareContrast(for displayID: CGDirectDisplayID, to value: Double) {
-            guard sessionGate.capture() != nil else { return }
-            guard let cap = capabilities[displayID], cap.supportsContrast else { return }
-
             let clamped = min(max(value, 0.0), 1.0)
-            let connection = displayConnectionGate.current(for: displayID)
-            markLocalWrite(vcp: .contrast, connection: connection)
-            hardwareContrast[displayID] = clamped
-
-            let rawValue = UInt16((clamped * Double(cap.maxContrast)).rounded())
-            debouncedWrite(vcp: .contrast, value: rawValue, for: displayID, connection: connection)
+            writeLocalValue(
+                .contrast,
+                for: displayID,
+                rawValue: { UInt16((clamped * Double($0.maxContrast)).rounded()) },
+                publish: { hardwareContrast[displayID] = clamped }
+            )
         }
 
         /// Sets the hardware volume for a display via DDC/CI.
@@ -601,16 +589,13 @@
         ///   - displayID: CoreGraphics display identifier
         ///   - value: Volume value (0.0–1.0)
         func setHardwareVolume(for displayID: CGDirectDisplayID, to value: Double) {
-            guard sessionGate.capture() != nil else { return }
-            guard let cap = capabilities[displayID], cap.supportsVolume else { return }
-
             let clamped = min(max(value, 0.0), 1.0)
-            let connection = displayConnectionGate.current(for: displayID)
-            markLocalWrite(vcp: .volume, connection: connection)
-            hardwareVolume[displayID] = clamped
-
-            let rawValue = UInt16((clamped * Double(cap.maxVolume)).rounded())
-            debouncedWrite(vcp: .volume, value: rawValue, for: displayID, connection: connection)
+            writeLocalValue(
+                .volume,
+                for: displayID,
+                rawValue: { UInt16((clamped * Double($0.maxVolume)).rounded()) },
+                publish: { hardwareVolume[displayID] = clamped }
+            )
         }
 
         /// Toggles audio mute for a display via DDC/CI.
@@ -619,17 +604,13 @@
         ///
         /// - Parameter displayID: CoreGraphics display identifier
         func toggleMute(for displayID: CGDirectDisplayID) {
-            guard sessionGate.capture() != nil else { return }
-            guard let cap = capabilities[displayID], cap.supportsAudioMute else { return }
-
-            let currentlyMuted = hardwareMute[displayID] ?? false
-            let newMuted = !currentlyMuted
-            let connection = displayConnectionGate.current(for: displayID)
-            markLocalWrite(vcp: .audioMute, connection: connection)
-            hardwareMute[displayID] = newMuted
-
-            let rawValue: UInt16 = newMuted ? 1 : 2
-            debouncedWrite(vcp: .audioMute, value: rawValue, for: displayID, connection: connection)
+            let newMuted = !(hardwareMute[displayID] ?? false)
+            writeLocalValue(
+                .audioMute,
+                for: displayID,
+                rawValue: { _ in newMuted ? 1 : 2 },
+                publish: { hardwareMute[displayID] = newMuted }
+            )
         }
 
         /// Sets the input source for a display via DDC/CI.
@@ -638,13 +619,12 @@
         ///   - displayID: CoreGraphics display identifier
         ///   - source: The input source to switch to
         func setInputSource(for displayID: CGDirectDisplayID, to source: InputSource) {
-            guard sessionGate.capture() != nil else { return }
-            guard let cap = capabilities[displayID], cap.supportsInputSource else { return }
-
-            let connection = displayConnectionGate.current(for: displayID)
-            markLocalWrite(vcp: .inputSource, connection: connection)
-            activeInputSource[displayID] = source
-            debouncedWrite(vcp: .inputSource, value: source.rawValue, for: displayID, connection: connection)
+            writeLocalValue(
+                .inputSource,
+                for: displayID,
+                rawValue: { _ in source.rawValue },
+                publish: { activeInputSource[displayID] = source }
+            )
         }
 
         /// Returns the available input sources for a display.
@@ -1154,6 +1134,35 @@
             guard (pendingHardwareWrites[writeKey] ?? 0) == 0 else { return false }
             guard let localWriteTime = lastLocalWriteTime[writeKey] else { return true }
             return localWriteTime <= readStartedAt
+        }
+    }
+
+    // MARK: - Local Writes
+
+    fileprivate extension HardwareBrightnessManager {
+        /// Shared body of the user-facing setters: requires a live session and a display
+        /// that supports `vcp`, marks the write as local so in-flight reads cannot undo it,
+        /// publishes the new value, then queues the debounced hardware write. Brightness
+        /// writes also carry the current native/DDC ownership so a later change cancels them.
+        func writeLocalValue(
+            _ vcp: VCPCode,
+            for displayID: CGDirectDisplayID,
+            rawValue: (HardwareDisplayCapability) -> UInt16,
+            publish: () -> Void
+        ) {
+            guard sessionGate.capture() != nil else { return }
+            guard let cap = capabilities[displayID], cap.supportedCodes.contains(vcp) else { return }
+
+            let connection = displayConnectionGate.current(for: displayID)
+            markLocalWrite(vcp: vcp, connection: connection)
+            publish()
+            debouncedWrite(
+                vcp: vcp,
+                value: rawValue(cap),
+                for: displayID,
+                connection: connection,
+                nativeWorkSession: vcp == .brightness ? nativeBrightnessWorkGate.capture() : nil
+            )
         }
     }
 
