@@ -457,6 +457,28 @@ extension GlobalShortcutTests {
     final class KeyboardShortcutManagerTests: XCTestCase {
         private final class MonitorToken {}
 
+        /// macOS shows the permission dialog only once per build, so the button must also open
+        /// the Accessibility pane itself or it does nothing after the first click.
+        func testRequestingAccessibilityOpensThePaneWhenNotYetTrusted() {
+            var opened: [URL] = []
+            KeyboardShortcutManager.requestAccessibilityPermission(
+                promptIfNeeded: { false },
+                openURL: { opened.append($0) }
+            )
+            XCTAssertEqual(opened.count, 1)
+            XCTAssertEqual(opened.first, KeyboardShortcutManager.accessibilitySettingsURL)
+            XCTAssertEqual(opened.first?.absoluteString.contains("Privacy_Accessibility"), true)
+        }
+
+        func testRequestingAccessibilityOpensNothingWhenAlreadyTrusted() {
+            var opened: [URL] = []
+            KeyboardShortcutManager.requestAccessibilityPermission(
+                promptIfNeeded: { true },
+                openURL: { opened.append($0) }
+            )
+            XCTAssertTrue(opened.isEmpty)
+        }
+
         private final class PermissionProbe: @unchecked Sendable {
             var isGranted = false
         }

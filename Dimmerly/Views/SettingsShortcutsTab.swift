@@ -97,7 +97,7 @@ struct ShortcutsSettingsTab: View {
                         ExternalLinkButton(
                             title: Text("Open Accessibility Settings"),
                             help: Text("Open macOS Accessibility settings"),
-                            action: KeyboardShortcutManager.requestAccessibilityPermission
+                            action: { KeyboardShortcutManager.requestAccessibilityPermission() }
                         )
                         .font(.caption)
                     }
