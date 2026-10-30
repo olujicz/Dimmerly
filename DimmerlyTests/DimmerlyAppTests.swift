@@ -123,6 +123,32 @@ final class DimmerlyAppTests: XCTestCase {
         )
     }
 
+    func testLaunchSetupRunsOnceWhenLaunchingFinishesWithoutAnyView() {
+        var setupRuns = 0
+        let services = AppServices(launchSetupOverride: { setupRuns += 1 })
+        let delegate = DimmerlyAppDelegate(services: services, isHostingUnitTests: false)
+        XCTAssertFalse(services.isConfigured)
+
+        let didFinishLaunching = Notification(name: NSApplication.didFinishLaunchingNotification)
+        delegate.applicationDidFinishLaunching(didFinishLaunching)
+        delegate.applicationDidFinishLaunching(didFinishLaunching)
+        services.configure()
+
+        XCTAssertEqual(setupRuns, 1)
+        XCTAssertTrue(services.isConfigured)
+    }
+
+    func testLaunchSetupIsSkippedWhileHostingUnitTests() {
+        var setupRuns = 0
+        let services = AppServices(launchSetupOverride: { setupRuns += 1 })
+        let delegate = DimmerlyAppDelegate(services: services, isHostingUnitTests: true)
+
+        delegate.applicationDidFinishLaunching(Notification(name: NSApplication.didFinishLaunchingNotification))
+
+        XCTAssertEqual(setupRuns, 0, "A test run must not configure the app against real displays")
+        XCTAssertFalse(services.isConfigured)
+    }
+
     func testDiscardingLegacyWidgetCommandsPreservesPublishedStateAndPresets() throws {
         let suiteName = "WidgetLaunchTests-\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
@@ -316,6 +342,73 @@ final class DimmerlyAppTests: XCTestCase {
         handleWidgetActionRequest(request.id, defaults: defaults) { _ in false }
 
         XCTAssertEqual(SharedConstants.widgetActionOutcome(request.id, in: defaults), .failed)
+    }
+
+    func testAppRemovesItsAcknowledgementOnceTheExtensionStoppedReadingIt() throws {
+        let suiteName = "WidgetAcknowledgementRemovalTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let now = Date()
+        let request = WidgetActionRequest(command: .dimDisplays, expiresAt: now.addingTimeInterval(5))
+        let other = UUID()
+        try SharedConstants.storeWidgetActionRequest(request, in: defaults)
+        SharedConstants.acknowledgeWidgetAction(other, succeeded: true, in: defaults)
+        var scheduled: [(date: Date, work: @MainActor () -> Void)] = []
+
+        handleWidgetActionRequest(
+            request.id,
+            defaults: defaults,
+            now: now,
+            scheduleRemoval: { scheduled.append(($0, $1)) },
+            performCommand: { _ in true }
+        )
+
+        XCTAssertEqual(SharedConstants.widgetActionOutcome(request.id, in: defaults), .succeeded)
+        XCTAssertEqual(scheduled.map(\.date), [request.expiresAt.addingTimeInterval(widgetActionAcknowledgementGrace)])
+
+        // By then the extension has stopped reading, and nothing else would remove the answer.
+        for removal in scheduled {
+            removal.work()
+        }
+
+        XCTAssertNil(SharedConstants.widgetActionOutcome(request.id, in: defaults))
+        XCTAssertEqual(SharedConstants.widgetActionOutcome(other, in: defaults), .succeeded)
+    }
+
+    func testActionOutlastingTheDeadlineIsStillAcknowledgedDuringTheFinalWait() async throws {
+        let suiteName = "WidgetLateActionTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        var now = Date()
+        var requestID: UUID?
+        var removals: [@MainActor () -> Void] = []
+
+        try await WidgetActionExecution.perform(
+            .dimDisplays,
+            defaults: defaults,
+            launchApp: {},
+            signalApp: { requestID = $0 },
+            now: { now },
+            wait: {
+                // The app takes the request in time, but the action ends after the deadline.
+                try handleWidgetActionRequest(
+                    XCTUnwrap(requestID),
+                    defaults: defaults,
+                    now: now,
+                    scheduleRemoval: { removals.append($1) },
+                    performCommand: { _ in
+                        now = now.addingTimeInterval(6)
+                        return true
+                    }
+                )
+            }
+        )
+
+        XCTAssertEqual(removals.count, 1)
+        for removal in removals {
+            removal()
+        }
+        XCTAssertTrue((defaults.persistentDomain(forName: suiteName) ?? [:]).isEmpty)
     }
 
     /// A widget preset button or Control Center preset control can still name a preset that was

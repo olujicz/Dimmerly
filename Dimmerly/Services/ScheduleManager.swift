@@ -83,7 +83,7 @@ class ScheduleManager {
     /// UserDefaults key for persisting schedules as JSON.
     static let schedulesKey = "dimmerlyDimmingSchedules"
 
-    /// UserDefaults key holding the original schedule data when some schedules could not be decoded.
+    /// UserDefaults key holding schedules that could not be decoded, until a build can restore them.
     static let schedulesBackupKey = "dimmerlyDimmingSchedulesBackup"
 
     /// UserDefaults key persisting `firedToday` as schedule ID string → day string.
@@ -407,6 +407,6 @@ class ScheduleManager {
 
     // MARK: - Lifecycle
 
-    // No deinit needed: the manager is held by @State in DimmerlyApp for the app's
+    // No deinit needed: the manager is owned by AppServices for the app's
     // lifetime, and polling stops when `apply(enabled: false)` is called.
 }

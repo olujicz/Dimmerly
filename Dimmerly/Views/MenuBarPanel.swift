@@ -431,7 +431,7 @@ private struct MenuBarDisplaySliders: View {
                 hardwareManager: hardwareManager,
                 displayID: display.id,
                 isBuiltIn: display.isBuiltIn,
-                supportsNativeBacklight: display.supportsNativeBacklight
+                supportsNativeBacklight: brightnessManager.supportsNativeBacklight(for: display.id)
             )
             #endif
         }

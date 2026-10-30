@@ -486,7 +486,11 @@ final class PresetManagerTests: XCTestCase {
         let reloaded = reloadedManager()
 
         XCTAssertEqual(reloaded.presets.map(\.id), [first.id, last.id])
-        XCTAssertEqual(testDefaults.data(forKey: PresetManager.backupKey), raw)
+        let backup = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: XCTUnwrap(testDefaults.data(forKey: PresetManager.backupKey)))
+                as? [[String: Any]]
+        )
+        XCTAssertEqual(backup.map { $0["name"] as? String }, ["From a newer build"])
         XCTAssertEqual(
             testDefaults.data(forKey: PresetManager.persistenceKey),
             raw,
@@ -500,11 +504,58 @@ final class PresetManagerTests: XCTestCase {
         let raw = try presetsData(withUnsupportedModifierBetween: first, and: last)
         testDefaults.set(raw, forKey: PresetManager.persistenceKey)
         let reloaded = reloadedManager()
+        let backup = try XCTUnwrap(testDefaults.data(forKey: PresetManager.backupKey))
 
         reloaded.deletePreset(id: first.id)
 
         XCTAssertEqual(reloaded.presets.map(\.id), [last.id])
-        XCTAssertEqual(testDefaults.data(forKey: PresetManager.backupKey), raw)
+        XCTAssertEqual(testDefaults.data(forKey: PresetManager.backupKey), backup)
+        XCTAssertEqual(reloadedManager().presets.map(\.id), [last.id], "A deleted preset must not come back")
+    }
+
+    func testLoadRestoresBackedUpPresetsThatThisBuildCanDecode() throws {
+        let current = BrightnessPreset(name: "Current", universalBrightness: 0.6)
+        let dropped = BrightnessPreset(name: "Dropped by an older build", universalBrightness: 0.3)
+        try testDefaults.set(JSONEncoder().encode([current]), forKey: PresetManager.persistenceKey)
+        try testDefaults.set(JSONEncoder().encode([current, dropped]), forKey: PresetManager.backupKey)
+        let widgetSuite = "PresetManagerRestoreWidgetTests-\(UUID().uuidString)"
+        let restoreWidgetDefaults = try XCTUnwrap(UserDefaults(suiteName: widgetSuite))
+        defer { restoreWidgetDefaults.removePersistentDomain(forName: widgetSuite) }
+
+        let reloaded = PresetManager(
+            defaults: testDefaults,
+            mainShortcutProvider: { GlobalShortcut.default },
+            widgetSynchronizer: AppGroupWidgetPresetSynchronizer(
+                defaults: restoreWidgetDefaults,
+                reloadAllTimelines: {},
+                reloadPresetControls: {}
+            ),
+            notifyWarmthPresetApplied: {}
+        )
+
+        XCTAssertEqual(reloaded.presets, [current, dropped])
+        XCTAssertNil(testDefaults.data(forKey: PresetManager.backupKey))
+        XCTAssertEqual(reloadedManager().presets, [current, dropped])
+        let widgetData = try XCTUnwrap(restoreWidgetDefaults.data(forKey: SharedConstants.widgetPresetsKey))
+        let widgetPresets = try JSONDecoder().decode([WidgetPresetInfo].self, from: widgetData)
+        XCTAssertEqual(widgetPresets.map(\.id), [current.id.uuidString, dropped.id.uuidString])
+    }
+
+    func testRestoringFromBackupDoesNotExceedThePresetLimit() throws {
+        let current = (0 ..< PresetManager.maxPresets).map { BrightnessPreset(name: "Preset \($0)") }
+        let dropped = BrightnessPreset(name: "Dropped by an older build")
+        let backup = try JSONEncoder().encode([dropped])
+        try testDefaults.set(JSONEncoder().encode(current), forKey: PresetManager.persistenceKey)
+        testDefaults.set(backup, forKey: PresetManager.backupKey)
+
+        let reloaded = reloadedManager()
+
+        XCTAssertEqual(reloaded.presets, current)
+        let keptBackup = try JSONDecoder().decode(
+            [BrightnessPreset].self,
+            from: XCTUnwrap(testDefaults.data(forKey: PresetManager.backupKey))
+        )
+        XCTAssertEqual(keptBackup, [dropped])
     }
 
     func testLossyLoadKeepsAnExistingBackup() throws {

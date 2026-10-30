@@ -18,7 +18,7 @@ Semantic Versioning.
 
 ### Fixed
 - A DDC/CI monitor keeps the brightness it has when Dimmerly starts, hardware control is turned on, or the monitor is plugged in, including a level set with the monitor's own buttons while Dimmerly wasn't running. Dimmerly no longer pushes its saved level or 100% over it. Brightness set below 10% on the monitor itself is no longer raised to 10%.
-- One preset or schedule that can't be read no longer erases the rest. The original data is kept in a backup.
+- One preset or schedule that can't be read no longer erases the rest. Entries a version of Dimmerly couldn't read are kept aside and come back once a version that understands them runs again.
 - Turning off automatic color temperature after a relaunch restores your earlier warmth instead of the night tint.
 - Keyboard shortcuts start working as soon as Accessibility access is granted, without opening Settings or relaunching, and stop if access is removed.
 - Recording a shortcut ends when you click elsewhere, so global shortcuts no longer stay paused.

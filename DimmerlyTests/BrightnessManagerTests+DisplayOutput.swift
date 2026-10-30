@@ -517,6 +517,30 @@ extension BrightnessManagerTests {
             XCTAssertEqual(policy.gammaBrightness, 1.0)
         }
 
+        /// Registers native backlight support the way the app discovers it: an opted-in refresh
+        /// whose DisplayServices read succeeds for the display's identity. A no-DDC capability
+        /// is recorded first (unless one exists) so the refresh doesn't probe the live DDC bus.
+        private func discoverNativeBacklight(
+            for displayID: CGDirectDisplayID,
+            identity: String = "native-display",
+            brightness: Double = 1.0
+        ) {
+            let hardwareManager = HardwareBrightnessManager.shared
+            if hardwareManager.capabilities[displayID] == nil {
+                hardwareManager.capabilities[displayID] = HardwareDisplayCapability(
+                    displayID: displayID, supportsDDC: false, supportedCodes: [],
+                    maxBrightness: 0, maxContrast: 0, maxVolume: 0
+                )
+            }
+            bm.displayIdentityHook = { _ in identity }
+            bm.activeDisplayIDsHook = { [displayID] }
+            bm.isBuiltInDisplayHook = { _ in false }
+            bm.applyGammaHook = { _, _, _, _ in }
+            bm.readExternalNativeBacklightHook = { _ in brightness }
+            bm.refreshDisplays()
+            XCTAssertTrue(bm.supportsNativeBacklight(for: displayID))
+        }
+
         func testNativeExternalBacklightWriteWinsOverDDCWithoutGammaDoubleDimming() {
             let displayID: CGDirectDisplayID = 91
             HardwareBrightnessManager.shared.applyRuntimeSettings(
@@ -525,10 +549,6 @@ extension BrightnessManagerTests {
                 writeDelayMilliseconds: 50,
                 experimentalNativeBrightnessEnabled: true
             )
-            var external = ExternalDisplay(id: displayID, name: "Apple Studio Display", brightness: 1.0)
-            external.supportsNativeBacklight = true
-            bm.displays = [external]
-
             HardwareBrightnessManager.shared.capabilities[displayID] = HardwareDisplayCapability(
                 displayID: displayID,
                 supportsDDC: true,
@@ -537,6 +557,7 @@ extension BrightnessManagerTests {
                 maxContrast: 100,
                 maxVolume: 0
             )
+            discoverNativeBacklight(for: displayID)
 
             var nativeWrites: [(CGDirectDisplayID, Double)] = []
             bm.setExternalNativeBacklightHook = { id, value in
@@ -568,9 +589,7 @@ extension BrightnessManagerTests {
                 writeDelayMilliseconds: 50,
                 experimentalNativeBrightnessEnabled: true
             )
-            var external = ExternalDisplay(id: displayID, name: "LG UltraFine", brightness: 1.0)
-            external.supportsNativeBacklight = true
-            bm.displays = [external]
+            discoverNativeBacklight(for: displayID)
 
             var nativeWriteSucceeds = false
             bm.setExternalNativeBacklightHook = { _, _ in nativeWriteSucceeds }
@@ -598,9 +617,13 @@ extension BrightnessManagerTests {
                 maxContrast: 100,
                 maxVolume: 0
             )
-            var external = ExternalDisplay(id: displayID, name: "Apple Studio Display", brightness: 1.0)
-            external.supportsNativeBacklight = true
-            bm.displays = [external]
+            HardwareBrightnessManager.shared.applyRuntimeSettings(
+                controlMode: .hardware,
+                pollingInterval: 5,
+                writeDelayMilliseconds: 50,
+                experimentalNativeBrightnessEnabled: true
+            )
+            discoverNativeBacklight(for: displayID)
             var nativeWrites = 0
             bm.setExternalNativeBacklightHook = { _, _ in
                 nativeWrites += 1
@@ -609,12 +632,6 @@ extension BrightnessManagerTests {
             var ddcWrites = 0
             bm.setExternalHardwareBrightnessHook = { _, _ in ddcWrites += 1 }
 
-            HardwareBrightnessManager.shared.applyRuntimeSettings(
-                controlMode: .hardware,
-                pollingInterval: 5,
-                writeDelayMilliseconds: 50,
-                experimentalNativeBrightnessEnabled: true
-            )
             HardwareBrightnessManager.shared.applyRuntimeSettings(
                 controlMode: .hardware,
                 pollingInterval: 5,
@@ -648,7 +665,7 @@ extension BrightnessManagerTests {
 
             bm.refreshDisplays()
 
-            XCTAssertTrue(bm.displays[0].supportsNativeBacklight)
+            XCTAssertTrue(bm.supportsNativeBacklight(for: displayID))
             XCTAssertEqual(bm.displays[0].brightness, 0.9, accuracy: 0.001)
             XCTAssertEqual(gammaBrightness ?? -1, 1.0, accuracy: 0.001)
 
@@ -691,7 +708,7 @@ extension BrightnessManagerTests {
             )
             bm.refreshDisplays()
             XCTAssertEqual(reads, 1)
-            XCTAssertTrue(bm.displays[0].supportsNativeBacklight)
+            XCTAssertTrue(bm.supportsNativeBacklight(for: displayID))
 
             HardwareBrightnessManager.shared.applyRuntimeSettings(
                 controlMode: .hardware, pollingInterval: 5, writeDelayMilliseconds: 50,
@@ -702,7 +719,7 @@ extension BrightnessManagerTests {
             bm.refreshDisplays()
             XCTAssertEqual(reads, 1, "Cached native support must not allow reads after opt-out")
             XCTAssertEqual(writes, 0, "Cached native support must not allow writes after opt-out")
-            XCTAssertFalse(bm.displays[0].supportsNativeBacklight)
+            XCTAssertFalse(bm.supportsNativeBacklight(for: displayID))
         }
 
         func testSoftwareOnlyDoesNotProbeOrProjectExternalNativeBrightness() {
@@ -729,33 +746,49 @@ extension BrightnessManagerTests {
             bm.refreshDisplays()
 
             XCTAssertEqual(nativeReads, 0)
-            XCTAssertFalse(bm.displays[0].supportsNativeBacklight)
+            XCTAssertFalse(bm.supportsNativeBacklight(for: displayID))
             XCTAssertEqual(bm.displays[0].brightness, 0.4, accuracy: 0.001)
             XCTAssertEqual(gammaBrightness ?? -1, 0.4, accuracy: 0.001)
         }
 
-        func testReusedDisplayIDDoesNotInheritNativeBacklightCapabilityAfterIdentityChange() async {
+        func testReusedDisplayIDDoesNotInheritNativeBacklightCapabilityAfterIdentityChange() {
             let displayID: CGDirectDisplayID = 94
-            var previous = ExternalDisplay(id: displayID, name: "Previous", brightness: 0.4)
-            previous.supportsNativeBacklight = true
-            bm.displays = [previous]
-            var identity = "old-display"
-            bm.displayIdentityHook = { _ in identity }
-            bm.activeDisplayIDsHook = { [displayID] }
-            bm.readExternalNativeBacklightHook = { _ in nil }
             HardwareBrightnessManager.shared.applyRuntimeSettings(
                 controlMode: .hardware,
                 pollingInterval: 5,
                 writeDelayMilliseconds: 50,
                 experimentalNativeBrightnessEnabled: true
             )
-            await HardwareBrightnessManager.shared.disable()
-            identity = "replacement-display"
+            discoverNativeBacklight(for: displayID, identity: "old-display", brightness: 0.4)
+            var nativeWrites = 0
+            bm.setExternalNativeBacklightHook = { _, _ in
+                nativeWrites += 1
+                return true
+            }
+            var gammaBrightness: Double?
+            bm.applyGammaHook = { _, brightness, _, _ in gammaBrightness = brightness }
+
+            // CoreGraphics hands the ID to another monitor before the reconfiguration refresh.
+            var identity = "replacement-display"
+            bm.displayIdentityHook = { _ in identity }
+            bm.readExternalNativeBacklightHook = { _ in nil }
+
+            XCTAssertFalse(
+                bm.supportsNativeBacklight(for: displayID),
+                "Support follows the live identity, not the display last enumerated under this ID"
+            )
+            bm.setBrightness(for: displayID, to: 0.3)
+            XCTAssertEqual(nativeWrites, 0, "The replacement monitor must not get a native write")
+            XCTAssertEqual(gammaBrightness ?? -1, 0.3, accuracy: 0.001)
 
             bm.refreshDisplays()
-
-            XCTAssertFalse(bm.displays[0].supportsNativeBacklight)
             XCTAssertFalse(bm.supportsNativeBacklight(for: displayID))
+
+            identity = "old-display"
+            XCTAssertFalse(
+                bm.supportsNativeBacklight(for: displayID),
+                "A refresh without the old monitor prunes its cached support"
+            )
         }
 
         func testDisplayOutputPolicyFallsBackWhenDDCIsUnavailable() {

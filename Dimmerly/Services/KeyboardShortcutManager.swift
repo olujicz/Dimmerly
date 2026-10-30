@@ -325,7 +325,7 @@ final class ShortcutRecordingCoordinator {
         // MARK: - Lifecycle
 
         // Note: deinit intentionally omitted to avoid @MainActor data race warnings in Swift 6.
-        // This manager is held by @State in DimmerlyApp for the app's lifetime, so deinit
+        // This manager is owned by AppServices for the app's lifetime, so deinit
         // never executes. Cleanup is handled explicitly via stopMonitoring() when needed.
     }
 
