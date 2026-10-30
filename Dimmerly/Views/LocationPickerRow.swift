@@ -41,7 +41,7 @@ struct LocationPickerRow: View {
             } else {
                 LabeledContent {
                     HStack(spacing: 8) {
-                        Button("Use Current") {
+                        Button("Use Current Location") {
                             locationProvider.requestLocation()
                         }
                         Button("Enter Manually\u{2026}") {

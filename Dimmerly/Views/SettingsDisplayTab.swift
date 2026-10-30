@@ -46,8 +46,8 @@ struct DisplaySettingsTab: View {
                     get: { settings.preventScreenLock ? 1 : 0 },
                     set: { settings.preventScreenLock = $0 == 1 }
                 )) {
-                    Text("Sleep & Lock").tag(0)
-                    Text("Dim Only").tag(1)
+                    Text("Sleep & lock").tag(0)
+                    Text("Dim only").tag(1)
                 }
                 .pickerStyle(.radioGroup)
                 .help("Choose between sleeping displays or dimming them")

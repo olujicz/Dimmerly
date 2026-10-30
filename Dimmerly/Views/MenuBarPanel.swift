@@ -371,7 +371,7 @@ struct MenuBarPanel: View {
             Button {
                 openSettingsAction()
             } label: {
-                FooterLabel("Settings", icon: "gearshape", isHovered: isSettingsHovered)
+                FooterLabel("Settings…", icon: "gearshape", isHovered: isSettingsHovered)
             }
             .buttonStyle(.borderless)
             .keyboardShortcut(",", modifiers: .command)
@@ -383,7 +383,7 @@ struct MenuBarPanel: View {
             Button {
                 NSApplication.shared.terminate(nil)
             } label: {
-                FooterLabel("Quit", icon: "power", isHovered: isQuitHovered)
+                FooterLabel("Quit Dimmerly", icon: "power", isHovered: isQuitHovered)
             }
             .buttonStyle(.borderless)
             .keyboardShortcut("q", modifiers: .command)

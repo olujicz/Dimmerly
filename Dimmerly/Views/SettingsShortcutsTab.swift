@@ -39,11 +39,8 @@ struct ShortcutsSettingsTab: View {
     private var keyboardShortcutSection: some View {
         Section {
             HStack {
-                #if APPSTORE
-                    Text("Dim Displays")
-                #else
-                    Text(settings.preventScreenLock ? "Dim Displays" : "Sleep Displays")
-                #endif
+                // Same name as the panel button and the quick-actions menu item.
+                Text(StatusItemQuickActions.turnOffTitle(settings: settings))
                 KeyboardShortcutRecorder(
                     shortcut: Binding(
                         get: { settings.keyboardShortcut },

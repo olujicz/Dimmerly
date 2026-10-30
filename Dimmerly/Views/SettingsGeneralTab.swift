@@ -23,7 +23,7 @@ struct GeneralSettingsTab: View {
     var body: some View {
         Form {
             Section {
-                Toggle("Launch at Login", isOn: Binding(
+                Toggle("Launch at login", isOn: Binding(
                     get: { settings.launchAtLogin },
                     set: { newValue in
                         launchAtLoginAlert = applyLaunchAtLoginChange(
