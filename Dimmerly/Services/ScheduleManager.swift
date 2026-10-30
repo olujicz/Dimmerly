@@ -48,15 +48,26 @@ class ScheduleManager {
     /// Checks schedules every 30 seconds.
     private let pollingTimer = PollingTimer()
 
-    /// Tracks which schedules have fired today to prevent duplicate execution.
+    /// Tracks which schedules have fired recently to prevent duplicate execution.
     /// Key: schedule ID, Value: "yyyy-MM-dd" of the day the trigger fell on.
-    /// Entries from earlier days are pruned on every check.
-    private var firedToday: [UUID: String] = [:]
+    /// Persisted so a relaunch inside the startup look-back window does not re-apply a
+    /// schedule that already fired. Entries the look-back can no longer reach are pruned
+    /// on every check.
+    private var firedToday: [UUID: String] = [:] {
+        didSet {
+            guard firedToday != oldValue else { return }
+            saveFiredDays()
+        }
+    }
 
     /// Timestamp of the most recent schedule check.
     /// Used to detect the time range that needs checking on next poll.
     /// Enables catch-up after sleep/wake (system time jumps forward).
     private var lastCheckDate: Date?
+
+    /// How far back the first check after launch (or after time moves backwards) looks for
+    /// triggers, so a schedule set for 10:00 still applies when the app starts at 10:01.
+    private static let startupLookback: TimeInterval = 120
 
     /// Cached enabled state to detect changes and avoid redundant timer restarts.
     private var lastEnabled: Bool?
@@ -74,6 +85,9 @@ class ScheduleManager {
 
     /// UserDefaults key holding the original schedule data when some schedules could not be decoded.
     static let schedulesBackupKey = "dimmerlyDimmingSchedulesBackup"
+
+    /// UserDefaults key persisting `firedToday` as schedule ID string → day string.
+    static let firedDaysKey = "dimmerlyScheduleFiredDays"
 
     /// The `UserDefaults` suite to read from and persist to. Defaults to `.standard` for
     /// production use; tests should inject an isolated suite so they don't read or overwrite
@@ -96,6 +110,7 @@ class ScheduleManager {
         self.defaults = defaults
         locationCoordinatesProvider = locationCoordinates
         loadSchedules()
+        loadFiredDays()
     }
 
     // MARK: - Enable/Disable
@@ -158,8 +173,14 @@ class ScheduleManager {
             onScheduleTriggered?(candidate.schedule.presetID)
         }
 
-        // Clean up stale entries from firedToday (schedules fired on previous days)
-        firedToday = firedToday.filter { $0.value == todayString }
+        // Drop entries for deleted schedules and for days the startup look-back can no
+        // longer reach. Yesterday's entry survives just past midnight so a relaunch then
+        // does not re-fire a late-evening trigger.
+        let lookbackDayString = Self.dateString(for: now.addingTimeInterval(-Self.startupLookback))
+        let scheduleIDs = Set(schedules.map(\.id))
+        firedToday = firedToday.filter { id, day in
+            scheduleIDs.contains(id) && (day == todayString || day == lookbackDayString)
+        }
         lastCheckDate = now
     }
 
@@ -178,7 +199,7 @@ class ScheduleManager {
     private func effectivePreviousCheckDate(for now: Date) -> Date {
         guard let lastCheckDate, lastCheckDate <= now else {
             // First check or time went backwards: use 2-minute lookback
-            return now.addingTimeInterval(-120)
+            return now.addingTimeInterval(-Self.startupLookback)
         }
         return lastCheckDate
     }
@@ -360,6 +381,20 @@ class ScheduleManager {
             defaults: defaults,
             logger: scheduleManagerLogger
         )
+    }
+
+    private func loadFiredDays() {
+        guard let stored = defaults.dictionary(forKey: Self.firedDaysKey) as? [String: String] else { return }
+        firedToday = stored.reduce(into: [:]) { result, entry in
+            if let id = UUID(uuidString: entry.key) {
+                result[id] = entry.value
+            }
+        }
+    }
+
+    private func saveFiredDays() {
+        let stored = Dictionary(uniqueKeysWithValues: firedToday.map { ($0.key.uuidString, $0.value) })
+        defaults.set(stored, forKey: Self.firedDaysKey)
     }
 
     private func saveSchedules() {
