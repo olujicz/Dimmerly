@@ -104,6 +104,7 @@ final class ScreenBlanker {
         cursor: CursorVisibilityControlling = SystemCursorVisibilityController(),
         clock: BlankingClock = SystemBlankingClock(),
         displays: ActiveDisplayProviding = SystemActiveDisplayProvider(),
+        notificationCenter: NotificationCenter = .default,
         gracePeriod: TimeInterval = 0.5,
         failurePresenter: @escaping @MainActor (BlankingInputMonitorError) -> Void = { error in
             NSApp.activate()
@@ -134,6 +135,19 @@ final class ScreenBlanker {
         self.displays = displays
         self.gracePeriod = gracePeriod
         self.failurePresenter = failurePresenter
+
+        // AppKit can publish a new display's NSScreen after the CoreGraphics reconfiguration
+        // callback has already run. Reconciling again once the screen list changes covers a
+        // display that had no screen to put a window on the first time round.
+        notificationCenter.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.displayTopologyDidChange()
+            }
+        }
     }
 
     func blank() {
@@ -220,7 +234,8 @@ final class ScreenBlanker {
     /// A visible display can disappear while another display remains covered. In that case the
     /// remaining covered set may now include every active display and must become recoverable.
     /// Global blanking also needs to remove disconnected windows and cover newly-arrived displays
-    /// while the session is still active.
+    /// while the session is still active. A display AppKit has no screen for yet is left for a
+    /// later pass; this also runs when the screen parameters change.
     func displayTopologyDidChange() {
         guard state.isGlobal || !state.perDisplayCovered.isEmpty || state.recoveryArmed else { return }
         let activeDisplayIDs = Set(displays.activeDisplayIDs)
@@ -249,21 +264,15 @@ final class ScreenBlanker {
             // synchronously so a newly-arrived display cannot remain visible during it.
             fadeTask?.cancel()
             fadeTask = nil
-            guard showWindowsAndBlank(activeDisplayIDs.sorted()) else {
-                restoreAllAndFinish()
-                failurePresenter(.unavailable)
-                return
-            }
+            guard let covered = coverDisplaysWithScreens(activeDisplayIDs, alreadyCovered: []) else { return }
             windows.beginBlankingSession()
-            state.global = .blanked(activeDisplayIDs)
+            state.global = .blanked(covered)
         case let .blanked(currentlyBlanked):
-            let missingDisplayIDs = activeDisplayIDs.subtracting(currentlyBlanked)
-            guard missingDisplayIDs.isEmpty || showWindowsAndBlank(missingDisplayIDs.sorted()) else {
-                restoreAllAndFinish()
-                failurePresenter(.unavailable)
-                return
-            }
-            state.global = .blanked(activeDisplayIDs)
+            guard let covered = coverDisplaysWithScreens(
+                activeDisplayIDs,
+                alreadyCovered: currentlyBlanked.intersection(activeDisplayIDs)
+            ) else { return }
+            state.global = .blanked(covered)
         case .none:
             break
         }
@@ -291,6 +300,26 @@ final class ScreenBlanker {
         } else {
             stopPerDisplayRecovery()
         }
+    }
+
+    /// Puts windows up for the active displays not yet covered, returning the new covered set.
+    ///
+    /// A display without an NSScreen cannot get a window yet; it stays out of the covered set so
+    /// a later reconcile picks it up. Only a window that fails for a display AppKit does know about
+    /// ends the session (returning nil). That is not an input-filtering failure, so the displays
+    /// waking is the only feedback rather than the input-filtering alert.
+    private func coverDisplaysWithScreens(
+        _ activeDisplayIDs: Set<CGDirectDisplayID>,
+        alreadyCovered: Set<CGDirectDisplayID>
+    ) -> Set<CGDirectDisplayID>? {
+        let readyDisplayIDs = activeDisplayIDs
+            .subtracting(alreadyCovered)
+            .filter { displays.hasScreen(for: $0) }
+        guard showWindowsAndBlank(readyDisplayIDs.sorted()) else {
+            restoreAllAndFinish()
+            return nil
+        }
+        return alreadyCovered.union(readyDisplayIDs)
     }
 
     static func shouldEnablePerDisplayRecovery(
