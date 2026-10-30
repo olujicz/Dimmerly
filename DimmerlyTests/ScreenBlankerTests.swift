@@ -281,6 +281,188 @@ final class ScreenBlankerTests: XCTestCase {
         XCTAssertEqual(harness.cursor.unhideCount, 1)
     }
 
+    // MARK: - Blanking while a display has no screen yet
+
+    func testBlankSkipsDisplayWithoutScreenAndCoversItOnceItAppears() async {
+        let harness = makeHarness()
+        // Turn Displays Off right after plugging in: CoreGraphics lists 9, AppKit has no screen.
+        harness.displays.displayIDsWithoutScreen = [9]
+        harness.windows.failingDisplayIDs = [9]
+
+        harness.sut.blank()
+
+        XCTAssertTrue(harness.sut.isBlanking)
+        XCTAssertTrue(harness.failures.errors.isEmpty)
+        XCTAssertEqual(harness.input.stopCount, 0)
+        XCTAssertEqual(harness.windows.events, ["show:7", "begin"])
+        XCTAssertEqual(harness.gamma.blankedDisplayIDs, [7])
+
+        harness.displays.displayIDsWithoutScreen = []
+        harness.windows.failingDisplayIDs = []
+        await harness.postScreenParametersChange()
+
+        XCTAssertTrue(harness.sut.isBlanking)
+        XCTAssertEqual(harness.windows.shownDisplayIDs, [7, 9])
+        XCTAssertEqual(harness.gamma.blankedDisplayIDs, [7, 9])
+        XCTAssertEqual(harness.windows.beginSessionCount, 1)
+    }
+
+    func testFadeSkipsDisplayWithoutScreenAndCoversItOnceItAppears() async {
+        let harness = makeHarness()
+        harness.sut.useFadeTransition = true
+        harness.clock.completesSleepsImmediately = true
+        harness.displays.displayIDsWithoutScreen = [9]
+        harness.windows.failingDisplayIDs = [9]
+
+        harness.sut.blank()
+        for _ in 0 ..< 1000 where harness.windows.beginSessionCount == 0 {
+            await Task.yield()
+        }
+
+        XCTAssertTrue(harness.sut.isBlanking)
+        XCTAssertTrue(harness.failures.errors.isEmpty)
+        XCTAssertEqual(harness.input.stopCount, 0)
+        XCTAssertEqual(harness.windows.events, ["show:7", "begin"])
+        XCTAssertEqual(harness.gamma.blankedDisplayIDs, [7])
+        XCTAssertEqual(Set(harness.gamma.applications.map(\.displayID)), [7], "Only a covered display fades")
+
+        harness.displays.displayIDsWithoutScreen = []
+        harness.windows.failingDisplayIDs = []
+        await harness.postScreenParametersChange()
+
+        XCTAssertEqual(harness.windows.shownDisplayIDs, [7, 9])
+        XCTAssertEqual(harness.gamma.blankedDisplayIDs, [7, 9])
+        XCTAssertEqual(harness.windows.beginSessionCount, 1)
+    }
+
+    func testOverlayFailureAtEndOfFadeEndsBlankWithoutInputFilteringError() async {
+        let harness = makeHarness()
+        harness.sut.useFadeTransition = true
+        harness.clock.completesSleepsImmediately = true
+        harness.windows.failingDisplayIDs = [9]
+
+        harness.sut.blank()
+        for _ in 0 ..< 1000 where harness.sut.isBlanking {
+            await Task.yield()
+        }
+
+        XCTAssertFalse(harness.sut.isBlanking)
+        XCTAssertTrue(harness.failures.errors.isEmpty, "A window failure is not an input-filtering failure")
+        XCTAssertEqual(harness.input.stopCount, 1)
+        XCTAssertEqual(harness.windows.removeAllCount, 1)
+        XCTAssertEqual(harness.gamma.restoredDisplayIDs, [7, 9])
+        XCTAssertEqual(harness.cursor.unhideCount, 1)
+    }
+
+    func testBlankWithNoScreenForAnyDisplayStartsNothing() async {
+        let harness = makeHarness()
+        harness.displays.displayIDsWithoutScreen = [7, 9]
+        harness.windows.failingDisplayIDs = [7, 9]
+
+        harness.sut.blank()
+
+        XCTAssertFalse(harness.sut.isBlanking)
+        XCTAssertTrue(harness.failures.errors.isEmpty)
+        XCTAssertTrue(harness.input.startPolicies.isEmpty, "No input may be swallowed while nothing is covered")
+        XCTAssertEqual(harness.cursor.hideCount, 0)
+        XCTAssertTrue(harness.gamma.blankedDisplayIDs.isEmpty)
+        XCTAssertEqual(harness.windows.beginSessionCount, 0)
+
+        // A screen appearing later does not start a blank the user can no longer see coming.
+        harness.displays.displayIDsWithoutScreen = []
+        harness.windows.failingDisplayIDs = []
+        await harness.postScreenParametersChange()
+
+        XCTAssertFalse(harness.sut.isBlanking)
+        XCTAssertTrue(harness.windows.shownDisplayIDs.isEmpty)
+    }
+
+    // MARK: - Restoring display output after a blank
+
+    #if !APPSTORE
+        /// Connects a real `BrightnessManager` to the harness: display 7 is a built-in panel driven
+        /// by its backlight, display 9 an external display dimmed by gamma.
+        private func makeOutputRecorder(for harness: ScreenBlankerHarness) -> DisplayOutputRecorder {
+            let manager = BrightnessManager(forTesting: true)
+            var builtIn = ExternalDisplay(id: 7, name: "Built-in", brightness: 0.4, warmth: 0.1, contrast: 0.5)
+            builtIn.isBuiltIn = true
+            let external = ExternalDisplay(id: 9, name: "External", brightness: 0.6, warmth: 0.2, contrast: 0.5)
+            manager.displays = [builtIn, external]
+            manager.displayIdentityHook = { "display-\($0)" }
+            manager.isBlankingHook = { [weak blanker = harness.sut] in blanker?.isBlanking ?? false }
+            let recorder = DisplayOutputRecorder(manager: manager)
+            manager.setBuiltInBacklightHook = { [weak recorder] displayID, value in
+                recorder?.backlightWrites.append((displayID, value))
+                return true
+            }
+            manager.applyGammaHook = { [weak recorder] displayID, brightness, _, _ in
+                recorder?.gammaBrightness[displayID, default: []].append(brightness)
+            }
+            manager.coordinateBlanking(with: harness.sut)
+            return recorder
+        }
+
+        private func assertEachDisplayRestoredOnce(
+            _ recorder: DisplayOutputRecorder,
+            file: StaticString = #filePath,
+            line: UInt = #line
+        ) {
+            XCTAssertEqual(recorder.backlightWrites.map(\.displayID), [7], file: file, line: line)
+            XCTAssertEqual(recorder.backlightWrites.first?.value ?? -1, 0.4, accuracy: 0.0001, file: file, line: line)
+            XCTAssertEqual(recorder.gammaBrightness[7], [1.0], "Backlight-driven panel keeps neutral gamma",
+                           file: file, line: line)
+            XCTAssertEqual(recorder.gammaBrightness[9], [0.6], file: file, line: line)
+        }
+
+        func testGlobalBlankEndRestoresEachDisplayOutputOnce() throws {
+            let harness = makeHarness()
+            let recorder = makeOutputRecorder(for: harness)
+            harness.sut.blank()
+
+            harness.clock.now = 100.5
+            try harness.input.sendWake()
+
+            XCTAssertFalse(harness.sut.isBlanking)
+            assertEachDisplayRestoredOnce(recorder)
+        }
+
+        func testGlobalBlankOverPerDisplayBlankRestoresEachDisplayOutputOnce() {
+            let harness = makeHarness()
+            let recorder = makeOutputRecorder(for: harness)
+            harness.sut.blankDisplay(7)
+            harness.sut.blank()
+
+            harness.sut.dismiss(force: true)
+
+            XCTAssertFalse(harness.sut.isBlankingAnyDisplay)
+            assertEachDisplayRestoredOnce(recorder)
+        }
+
+        func testPerDisplayRecoveryRestoresEachDisplayOutputOnce() throws {
+            let harness = makeHarness()
+            let recorder = makeOutputRecorder(for: harness)
+            harness.sut.blankDisplay(7)
+            harness.sut.blankDisplay(9)
+
+            harness.clock.now = 100.5
+            try harness.input.sendWake()
+
+            XCTAssertFalse(harness.sut.isBlankingAnyDisplay)
+            assertEachDisplayRestoredOnce(recorder)
+        }
+
+        func testForcedDismissOfPartialBlankStillReappliesTheUncoveredDisplayOnce() {
+            let harness = makeHarness()
+            let recorder = makeOutputRecorder(for: harness)
+            harness.sut.blankDisplay(7)
+
+            harness.sut.dismiss(force: true)
+
+            XCTAssertFalse(harness.sut.isBlankingAnyDisplay)
+            assertEachDisplayRestoredOnce(recorder)
+        }
+    #endif
+
     func testScreenParametersChangeWithoutBlankingDoesNothing() async {
         let harness = makeHarness()
 
@@ -346,9 +528,10 @@ final class ScreenBlankerTests: XCTestCase {
         harness.sut.blank()
 
         XCTAssertFalse(harness.sut.isBlanking)
-        XCTAssertEqual(harness.failures.errors, [.unavailable])
+        XCTAssertTrue(harness.failures.errors.isEmpty, "A window failure is not an input-filtering failure")
         XCTAssertEqual(harness.input.stopCount, 1)
         XCTAssertEqual(harness.windows.removeAllCount, 1)
+        XCTAssertEqual(harness.gamma.restoredDisplayIDs, [7, 9])
         XCTAssertEqual(harness.cursor.unhideCount, 1)
     }
 
@@ -641,6 +824,21 @@ private struct ScreenBlankerHarness {
         }
     }
 }
+
+#if !APPSTORE
+    /// Records the hardware and gamma output a `BrightnessManager` produces. Holds the manager so
+    /// the blanker's weak callbacks stay connected for the length of a test.
+    @MainActor
+    private final class DisplayOutputRecorder {
+        let manager: BrightnessManager
+        var backlightWrites: [(displayID: CGDirectDisplayID, value: Double)] = []
+        var gammaBrightness: [CGDirectDisplayID: [Double]] = [:]
+
+        init(manager: BrightnessManager) {
+            self.manager = manager
+        }
+    }
+#endif
 
 @MainActor
 private final class FailureRecorder {
