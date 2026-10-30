@@ -326,6 +326,10 @@
         /// Supplies native backlight eligibility without making tests depend on live displays.
         private let nativeBrightnessSupportProvider: (CGDirectDisplayID) -> Bool
 
+        /// Reapplies a display's output after repeated write failures dropped a VCP code, so
+        /// brightness falls back to software. Injectable so tests need not use the singleton.
+        private let writeFallbackHandler: @MainActor (CGDirectDisplayID) -> Void
+
         /// Short retry window for a newly connected display whose DDC service is still starting.
         private let automaticProbeRetryDelays: [Duration] = [.milliseconds(250), .seconds(1)]
 
@@ -344,6 +348,9 @@
             },
             nativeBrightnessSupportProvider: @escaping (CGDirectDisplayID) -> Bool = {
                 BrightnessManager.shared.supportsNativeBacklight(for: $0)
+            },
+            writeFallbackHandler: @escaping @MainActor (CGDirectDisplayID) -> Void = {
+                BrightnessManager.shared.applyCurrentBrightness(for: $0)
             }
         ) {
             self.ddcInterface = ddcInterface
@@ -351,6 +358,7 @@
             self.displayRefreshHandler = displayRefreshHandler
             self.hardwareBrightnessReadHandler = hardwareBrightnessReadHandler
             self.nativeBrightnessSupportProvider = nativeBrightnessSupportProvider
+            self.writeFallbackHandler = writeFallbackHandler
             nativeBrightnessWorkGate.beginEnabledSession()
         }
 
@@ -368,14 +376,18 @@
             hardwareBrightnessReadHandler: @escaping @MainActor (CGDirectDisplayID, Double) -> Void = {
                 BrightnessManager.shared.synchronizeExternalHardwareBrightness(for: $0, to: $1)
             },
-            nativeBrightnessSupportProvider: @escaping (CGDirectDisplayID) -> Bool = { _ in false }
+            nativeBrightnessSupportProvider: @escaping (CGDirectDisplayID) -> Bool = { _ in false },
+            writeFallbackHandler: @escaping @MainActor (CGDirectDisplayID) -> Void = {
+                BrightnessManager.shared.applyCurrentBrightness(for: $0)
+            }
         ) {
             self.init(
                 ddcInterface: ddcInterface,
                 connectedExternalDisplayIDsProvider: connectedExternalDisplayIDsProvider,
                 displayRefreshHandler: displayRefreshHandler,
                 hardwareBrightnessReadHandler: hardwareBrightnessReadHandler,
-                nativeBrightnessSupportProvider: nativeBrightnessSupportProvider
+                nativeBrightnessSupportProvider: nativeBrightnessSupportProvider,
+                writeFallbackHandler: writeFallbackHandler
             )
         }
 
@@ -1029,7 +1041,7 @@
                                 session: session,
                                 retryDelays: writeFailureRecoveryDelays
                             )
-                            BrightnessManager.shared.applyCurrentBrightness(for: displayID)
+                            writeFallbackHandler(displayID)
                         }
                     }
                 }
