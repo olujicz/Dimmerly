@@ -82,6 +82,72 @@
         }
     }
 
+    /// Several DDC reads of one display that share a single transport lookup.
+    ///
+    /// Discovery walks the IOKit registry and can read EDID over I2C, so repeating it
+    /// for every VCP code of a probe or poll is wasteful. A batch looks up the primary
+    /// transport for its first read and reuses it only after it has answered. Any read
+    /// that fails on the transport drops it and continues through the remaining
+    /// fallbacks exactly like a standalone read, and the next read looks the transport
+    /// up again.
+    ///
+    /// The transport is never reused after the batch ends. There is no reconnection
+    /// signal at this level, so a longer-lived cache could address the wrong one of
+    /// two identical monitors after they swap ports. A batch is not thread-safe and
+    /// must stay on the queue that created it (the serial DDC queue in production).
+    final class DDCReadBatch<Transport> {
+        typealias Resolve = () -> Transport?
+        typealias ReadOnTransport = (Transport, VCPCode) -> DDCReadResult?
+        typealias Fallback = (VCPCode) -> DDCReadResult?
+
+        private let resolve: Resolve
+        private let readOnTransport: ReadOnTransport
+        private let fallback: Fallback
+        private var answeringTransport: Transport?
+        private var isOpen = true
+
+        init(
+            resolve: @escaping Resolve,
+            read readOnTransport: @escaping ReadOnTransport,
+            fallback: @escaping Fallback
+        ) {
+            self.resolve = resolve
+            self.readOnTransport = readOnTransport
+            self.fallback = fallback
+        }
+
+        /// Runs `body` with one batch and ends it afterwards, releasing the transport.
+        static func run<Result>(
+            resolve: @escaping Resolve,
+            read readOnTransport: @escaping ReadOnTransport,
+            fallback: @escaping Fallback,
+            _ body: (_ read: (VCPCode) -> DDCReadResult?) -> Result
+        ) -> Result {
+            let batch = DDCReadBatch(resolve: resolve, read: readOnTransport, fallback: fallback)
+            defer { batch.end() }
+            return body(batch.read)
+        }
+
+        func read(_ vcp: VCPCode) -> DDCReadResult? {
+            if let transport = answeringTransport ?? resolve() {
+                if let result = readOnTransport(transport, vcp) {
+                    if isOpen {
+                        answeringTransport = transport
+                    }
+                    return result
+                }
+                answeringTransport = nil
+            }
+            return fallback(vcp)
+        }
+
+        /// Releases the transport. Later reads look it up again and never keep it.
+        func end() {
+            isOpen = false
+            answeringTransport = nil
+        }
+    }
+
     // MARK: - VCP Code Definitions
 
     /// MCCS (Monitor Control Command Set) VCP code definitions.
@@ -331,25 +397,35 @@
         /// Native-brightness displays probe all other codes because their brightness is
         /// deliberately omitted and they may expose only optional DDC controls.
         /// Injected reader supports deterministic tests without opening IOKit services.
+        /// Without one, the whole probe runs as one read batch.
         static func capabilityReadResults(
             for displayID: CGDirectDisplayID,
             skippingBrightness: Bool = false,
             read reader: ((VCPCode, CGDirectDisplayID) -> DDCReadResult?)? = nil
         ) -> [VCPCode: DDCReadResult] {
-            let readCode = reader ?? { code, targetDisplayID in
-                DDCController.read(vcp: code, for: targetDisplayID)
+            if let reader {
+                return probeCapabilityCodes(skippingBrightness: skippingBrightness) { reader($0, displayID) }
             }
+            return withReadBatch(for: displayID) { read in
+                probeCapabilityCodes(skippingBrightness: skippingBrightness, read: read)
+            }
+        }
+
+        private static func probeCapabilityCodes(
+            skippingBrightness: Bool,
+            read: (VCPCode) -> DDCReadResult?
+        ) -> [VCPCode: DDCReadResult] {
             var results: [VCPCode: DDCReadResult] = [:]
 
             for code in primaryCapabilityProbeCodes where !(skippingBrightness && code == .brightness) {
-                if let result = validCapabilityRead(readCode, code: code, displayID: displayID) {
+                if let result = validCapabilityRead(read, code: code) {
                     results[code] = result
                 }
             }
 
             guard skippingBrightness || !results.isEmpty else { return results }
             for code in optionalCapabilityProbeCodes {
-                if let result = validCapabilityRead(readCode, code: code, displayID: displayID) {
+                if let result = validCapabilityRead(read, code: code) {
                     results[code] = result
                 }
             }
@@ -357,11 +433,10 @@
         }
 
         private static func validCapabilityRead(
-            _ read: (VCPCode, CGDirectDisplayID) -> DDCReadResult?,
-            code: VCPCode,
-            displayID: CGDirectDisplayID
+            _ read: (VCPCode) -> DDCReadResult?,
+            code: VCPCode
         ) -> DDCReadResult? {
-            guard let result = read(code, displayID) else { return nil }
+            guard let result = read(code) else { return nil }
             guard !continuousCapabilityCodes.contains(code) || result.maxValue > 0 else { return nil }
             return result
         }
@@ -812,17 +887,16 @@
             /// 3. Direct IOConnectCallMethod — last resort with raw IOConnect selectors
             ///
             /// Each transport uses retry logic with multiple write cycles per attempt.
+            /// A standalone read is a batch of one, so it looks up every transport afresh.
             private static func readAppleSilicon(vcp: VCPCode, for displayID: CGDirectDisplayID) -> DDCReadResult? {
-                if let avTransport = findIOAVTransport(for: displayID) {
-                    if let result = readViaService(
-                        avService: avTransport.service,
-                        chipAddress: avTransport.chipAddress,
-                        vcp: vcp
-                    ) {
-                        return result
-                    }
-                }
+                withReadBatch(for: displayID) { read in read(vcp) }
+            }
 
+            /// Transports 2 and 3 of `readAppleSilicon`, looked up for this read only.
+            private static func readAppleSiliconFallbacks(
+                vcp: VCPCode,
+                for displayID: CGDirectDisplayID
+            ) -> DDCReadResult? {
                 if let avDevice = findIOAVDevice(for: displayID) {
                     if let result = readViaDevice(
                         avDevice: avDevice.service,
@@ -1215,6 +1289,34 @@
             }
 
         #endif
+    }
+
+    // MARK: - Read Batches
+
+    extension DDCController {
+        /// Runs several reads of one display as a single `DDCReadBatch`.
+        ///
+        /// On Apple Silicon the IOAVService found for the first read is reused for the
+        /// following reads while it keeps answering; it is released when `body` returns.
+        /// Each read still has the full fallback chain and retry budget of `read(vcp:for:)`.
+        /// Intel reads are passed through unchanged. Call on the serial DDC queue only.
+        static func withReadBatch<Result>(
+            for displayID: CGDirectDisplayID,
+            _ body: (_ read: (VCPCode) -> DDCReadResult?) -> Result
+        ) -> Result {
+            #if arch(arm64)
+                DDCReadBatch<AppleSiliconDDCTransport>.run(
+                    resolve: { findIOAVTransport(for: displayID) },
+                    read: { transport, vcp in
+                        readViaService(avService: transport.service, chipAddress: transport.chipAddress, vcp: vcp)
+                    },
+                    fallback: { vcp in readAppleSiliconFallbacks(vcp: vcp, for: displayID) },
+                    body
+                )
+            #else
+                body { vcp in readIntel(vcp: vcp, for: displayID) }
+            #endif
+        }
     }
 
     #if arch(x86_64)

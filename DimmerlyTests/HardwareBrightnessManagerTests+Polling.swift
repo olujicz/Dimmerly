@@ -3,7 +3,7 @@
 //  DimmerlyTests
 //
 //  Tests that DDC polling and capability probing keep at most one read or probe per
-//  display on the DDC queue.
+//  display on the DDC queue, and that one poll of a display runs as one read batch.
 //
 
 @testable import Dimmerly
@@ -80,6 +80,59 @@ import XCTest
 
         func releaseFirstCall() {
             firstCallCanFinish.signal()
+        }
+    }
+
+    /// Records the read batches the manager opens and the reads made inside them.
+    final class ReadBatchRecorder: @unchecked Sendable {
+        enum Event: Equatable {
+            case begin(CGDirectDisplayID)
+            case read(VCPCode)
+            case end
+        }
+
+        private let lock = NSLock()
+        private var recordedEvents: [Event] = []
+
+        var events: [Event] {
+            lock.withLock { recordedEvents }
+        }
+
+        func record(_ event: Event) {
+            lock.withLock { recordedEvents.append(event) }
+        }
+    }
+
+    /// Wraps the mock interface so batch boundaries become visible to tests.
+    struct BatchRecordingDDCInterface: DDCInterface {
+        let base: MockDDCInterface
+        let recorder: ReadBatchRecorder
+
+        func read(vcp: VCPCode, for displayID: CGDirectDisplayID) -> DDCReadResult? {
+            base.read(vcp: vcp, for: displayID)
+        }
+
+        func withReadBatch<Result>(
+            for displayID: CGDirectDisplayID,
+            _ body: (_ read: (VCPCode) -> DDCReadResult?) -> Result
+        ) -> Result {
+            recorder.record(.begin(displayID))
+            defer { recorder.record(.end) }
+            return body { vcp in
+                recorder.record(.read(vcp))
+                return base.read(vcp: vcp, for: displayID)
+            }
+        }
+
+        func write(vcp: VCPCode, value: UInt16, for displayID: CGDirectDisplayID) -> Bool {
+            base.write(vcp: vcp, value: value, for: displayID)
+        }
+
+        func probeCapabilities(
+            for displayID: CGDirectDisplayID,
+            skippingBrightness: Bool
+        ) -> HardwareDisplayCapability {
+            base.probeCapabilities(for: displayID, skippingBrightness: skippingBrightness)
         }
     }
 
@@ -326,6 +379,49 @@ import XCTest
 
             XCTAssertEqual(probe.callCount, 2, "The reconnected display needs a probe of its own")
             XCTAssertEqual(manager.capability(for: 1)?.supportedCodes, [.volume])
+        }
+
+        /// One poll of a display is one read batch, so the transport is looked up once
+        /// for all of its codes, and the next poll starts a new batch.
+        func testPollReadsAllCodesOfADisplayInOneBatch() async {
+            let firstPublication = expectation(description: "First poll published")
+            let secondPublication = expectation(description: "Second poll published")
+            let recorder = ReadBatchRecorder()
+            var mock = MockDDCInterface()
+            mock.readHandler = { _, _ in DDCReadResult(currentValue: 20, maxValue: 100) }
+            let manager = HardwareBrightnessManager(
+                forTesting: true,
+                ddcInterface: BatchRecordingDDCInterface(base: mock, recorder: recorder)
+            )
+            var publications = 0
+            manager.readPublicationHookForTesting = {
+                publications += 1
+                if publications == 1 {
+                    firstPublication.fulfill()
+                } else if publications == 2 {
+                    secondPublication.fulfill()
+                }
+            }
+            manager.enable()
+            manager.pollingInterval = 0.01
+            manager.capabilities[2] = HardwareDisplayCapability(
+                displayID: 2,
+                supportsDDC: true,
+                supportedCodes: [.brightness, .contrast, .volume],
+                maxBrightness: 100,
+                maxContrast: 100,
+                maxVolume: 100
+            )
+
+            manager.startPolling()
+            await fulfillment(of: [firstPublication, secondPublication], timeout: 1, enforceOrder: true)
+            manager.stopPolling()
+            await manager.disable()
+
+            let onePoll: [ReadBatchRecorder.Event] = [
+                .begin(2), .read(.brightness), .read(.contrast), .read(.volume), .end,
+            ]
+            XCTAssertEqual(Array(recorder.events.prefix(onePoll.count * 2)), onePoll + onePoll)
         }
     }
 
