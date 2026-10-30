@@ -267,7 +267,9 @@ struct DisplaySettingsTab: View {
                     let hardwareControlModesAvailable = isDDCControlModeAvailable(
                         .hardware,
                         hardwareManager: hardwareManager,
-                        supportsNativeBacklight: brightnessManager.displays.contains(where: \.supportsNativeBacklight)
+                        supportsNativeBacklight: brightnessManager.displays.contains {
+                            brightnessManager.supportsNativeBacklight(for: $0.id)
+                        }
                     )
 
                     // Keep the picker reachable while opted in, since native support is only
@@ -363,9 +365,9 @@ struct DisplaySettingsTab: View {
                     }
 
                     // Per-display native brightness and DDC status.
-                    let nativeDisplays = hardwareManager.isExternalNativeBrightnessActive
-                        ? brightnessManager.displays.filter(\.supportsNativeBacklight)
-                        : []
+                    let nativeDisplays = brightnessManager.displays.filter {
+                        brightnessManager.supportsNativeBacklight(for: $0.id)
+                    }
                     if !hardwareManager.capabilities.isEmpty || !nativeDisplays.isEmpty {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Display compatibility")

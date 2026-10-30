@@ -74,13 +74,6 @@ struct ExternalDisplay: Identifiable {
     var contrast: Double = Self.neutralContrast
     /// Whether this is the built-in (laptop) display
     var isBuiltIn: Bool = false
-
-    #if !APPSTORE
-        /// Whether DisplayServices successfully read this display's native backlight.
-        /// This is separate from DDC support and is detected per connected display.
-        var supportsNativeBacklight: Bool = false
-
-    #endif
 }
 
 /// Manages software-based brightness, warmth, and contrast control for all displays.
@@ -418,7 +411,11 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
                 return isBuiltInBacklightAPIAvailable() ? .failed : .unavailable
             }
             if !isBuiltIn {
-                nativeBacklightDisplayIdentities.insert(displayIdentity(for: displayID))
+                let identity = displayIdentity(for: displayID)
+                // Polling re-reads every second; only a new identity is a change views observe.
+                if !nativeBacklightDisplayIdentities.contains(identity) {
+                    nativeBacklightDisplayIdentities.insert(identity)
+                }
                 nativeBrightnessReadsThisRefresh[displayID] = brightness
             }
             return .value(brightness)
@@ -437,10 +434,14 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
             return DisplayServicesAPI.setBrightness(displayID, clamped) == 0
         }
 
-        /// Whether a connected external display has returned a valid native brightness value.
-        /// The cache is keyed by stable identity and refreshed/pruned during display enumeration.
+        /// Whether native backlight control applies to an external display right now: the user
+        /// opted in, hardware control is active, and the display's current identity has returned
+        /// a valid native brightness read. This is the only source of truth for native external
+        /// brightness; the identity set is filled by reads and pruned during display enumeration,
+        /// and resolving the identity live keeps a reused display ID from inheriting support.
         func supportsNativeBacklight(for displayID: CGDirectDisplayID) -> Bool {
-            nativeBacklightDisplayIdentities.contains(displayIdentity(for: displayID))
+            HardwareBrightnessManager.shared.isExternalNativeBrightnessActive
+                && nativeBacklightDisplayIdentities.contains(displayIdentity(for: displayID))
         }
 
         private func hasExternalBacklightFallback(for displayID: CGDirectDisplayID) -> Bool {
@@ -753,13 +754,6 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
             contrast: contrast
         )
         display.isBuiltIn = builtIn
-        #if !APPSTORE
-            // Native backlight discovery only applies to external monitors.
-            if !builtIn {
-                display.supportsNativeBacklight = HardwareBrightnessManager.shared.isExternalNativeBrightnessActive
-                    && supportsNativeBacklight(for: displayID)
-            }
-        #endif
 
         return (display, refreshedBrightness.suppressHardwareBrightnessWrite)
     }
@@ -805,9 +799,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
                 }
             }
 
-            if HardwareBrightnessManager.shared.isExternalNativeBrightnessActive,
-               supportsNativeBacklight(for: displayID)
-            {
+            if supportsNativeBacklight(for: displayID) {
                 let fallback = previousBrightness ?? clampedBrightness(savedBrightness ?? 1.0)
                 let fallbackActive = hasExternalBacklightFallback(for: displayID)
                 if fallbackActive {
@@ -1252,8 +1244,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
                 isBuiltIn: display.isBuiltIn,
                 isDDCEnabled: hardwareManager.isEnabled,
                 supportsDDCBrightness: hardwareManager.capability(for: display.id)?.supportsBrightness ?? false,
-                supportsNativeBacklight: display.supportsNativeBacklight
-                    || supportsNativeBacklight(for: display.id),
+                supportsNativeBacklight: supportsNativeBacklight(for: display.id),
                 experimentalNativeBrightnessEnabled: hardwareManager.experimentalNativeBrightnessEnabled,
                 requestedBrightness: display.brightness,
                 builtInBacklightAvailable: !softwareBacklightFallbackDisplayIDs.contains(display.id),
@@ -1267,8 +1258,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
         func synchronizeExternalHardwareBrightness(for displayID: CGDirectDisplayID, to value: Double) {
             guard let index = displays.firstIndex(where: { $0.id == displayID }),
                   !displays[index].isBuiltIn,
-                  !(HardwareBrightnessManager.shared.isExternalNativeBrightnessActive
-                      && supportsNativeBacklight(for: displayID))
+                  !supportsNativeBacklight(for: displayID)
             else { return }
 
             // Mirror the built-in path: a hardware level below the slider minimum is real state,
