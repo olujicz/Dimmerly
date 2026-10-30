@@ -977,3 +977,40 @@ extension MenuBarPanelTests {
         }
     #endif
 }
+
+// MARK: - Panel Interactions
+
+extension MenuBarPanelTests {
+    func testPanelPresetDeleteUsesTheSettingsConfirmationWording() {
+        let confirmation = ConfirmationAlert.deletePreset(named: "Evening")
+
+        XCTAssertEqual(confirmation.title, "Delete Preset?")
+        XCTAssertEqual(confirmation.message, "\"Evening\" will be permanently deleted.")
+        XCTAssertEqual(confirmation.confirmButtonTitle, "Delete")
+        XCTAssertTrue(confirmation.isDestructive)
+    }
+
+    func testPanelPresetOverwriteAsksBeforeReplacingSavedSettings() {
+        let confirmation = ConfirmationAlert.updatePreset(named: "Evening")
+
+        XCTAssertEqual(confirmation.title, "Update \"Evening\"?")
+        XCTAssertEqual(confirmation.confirmButtonTitle, "Update")
+        XCTAssertFalse(confirmation.isDestructive)
+    }
+
+    func testPanelPresetContextMenuConfirmsBeforeChangingAPreset() throws {
+        let source = try Self.repositorySource("Dimmerly/Views/MenuBarPresetControls.swift")
+
+        XCTAssertTrue(source.contains("confirm(.updatePreset(named: preset.name))"))
+        XCTAssertTrue(source.contains("confirm(.deletePreset(named: preset.name))"))
+        XCTAssertTrue(source.contains("AlertPresenter.confirm(confirmation)"))
+    }
+
+    static func repositorySource(_ relativePath: String) throws -> String {
+        let url = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent(relativePath)
+        return try String(contentsOf: url, encoding: .utf8)
+    }
+}

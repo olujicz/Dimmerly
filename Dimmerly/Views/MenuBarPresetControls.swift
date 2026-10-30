@@ -134,11 +134,26 @@ struct PresetsSectionView: View {
         .help(preset.name)
         .contextMenu {
             Button("Save Current Settings") {
-                presetManager.updatePreset(id: preset.id, brightnessManager: brightnessManager)
+                confirm(.updatePreset(named: preset.name)) { [presetManager, brightnessManager] in
+                    presetManager.updatePreset(id: preset.id, brightnessManager: brightnessManager)
+                }
             }
             Divider()
             Button("Delete", role: .destructive) {
-                presetManager.deletePreset(id: preset.id)
+                confirm(.deletePreset(named: preset.name)) { [presetManager] in
+                    presetManager.deletePreset(id: preset.id)
+                }
+            }
+        }
+    }
+
+    /// Asks before changing a saved preset, once the context menu has finished closing.
+    /// The decision comes back synchronously, so the action no longer depends on this view.
+    private func confirm(_ confirmation: ConfirmationAlert, then action: @escaping @MainActor () -> Void) {
+        Task { @MainActor in
+            await Task.yield()
+            if AlertPresenter.confirm(confirmation) {
+                action()
             }
         }
     }
