@@ -70,11 +70,27 @@
     }
 
     private struct HardwareReadValues {
+        /// The VCP codes a full read covers, in bus order.
+        static let codes: [VCPCode] = [.brightness, .contrast, .volume, .audioMute, .inputSource]
+
         let brightness: Double?
         let contrast: Double?
         let volume: Double?
         let muted: Bool?
         let inputSource: InputSource?
+
+        init(results: [VCPCode: DDCReadResult]) {
+            func level(_ vcp: VCPCode) -> Double? {
+                guard let result = results[vcp], result.maxValue > 0 else { return nil }
+                return Double(result.currentValue) / Double(result.maxValue)
+            }
+            brightness = level(.brightness)
+            contrast = level(.contrast)
+            volume = level(.volume)
+            // Non-continuous VCP codes return the value in the low byte only.
+            muted = results[.audioMute].map { ($0.currentValue & 0xFF) == 1 }
+            inputSource = results[.inputSource].flatMap { InputSource(rawValue: $0.currentValue & 0xFF) }
+        }
     }
 
     /// Manages hardware (DDC/CI) display control for external monitors.
@@ -761,56 +777,15 @@
             // The display can be unplugged or DDC disabled mid-read; re-check before each
             // transaction so an abandoned poll never publishes values from a dead connection.
             let isLive = { sessionGate.isCurrent(session) && displayConnectionGate.isCurrent(connection) }
-            var brightness: Double?
-            var contrast: Double?
-            var volume: Double?
-            var muted: Bool?
-            var inputSource: InputSource?
-
-            if capability.supportsBrightness, !skippingBrightness {
-                guard isLive() else { return nil }
-                if let result = ddcInterface.read(vcp: .brightness, for: displayID), result.maxValue > 0 {
-                    brightness = Double(result.currentValue) / Double(result.maxValue)
+            var results: [VCPCode: DDCReadResult] = [:]
+            for vcp in HardwareReadValues.codes where capability.supportedCodes.contains(vcp) {
+                if vcp == .brightness, skippingBrightness {
+                    continue
                 }
-            }
-
-            if capability.supportsContrast {
                 guard isLive() else { return nil }
-                if let result = ddcInterface.read(vcp: .contrast, for: displayID), result.maxValue > 0 {
-                    contrast = Double(result.currentValue) / Double(result.maxValue)
-                }
+                results[vcp] = ddcInterface.read(vcp: vcp, for: displayID)
             }
-
-            if capability.supportsVolume {
-                guard isLive() else { return nil }
-                if let result = ddcInterface.read(vcp: .volume, for: displayID), result.maxValue > 0 {
-                    volume = Double(result.currentValue) / Double(result.maxValue)
-                }
-            }
-
-            if capability.supportsAudioMute {
-                guard isLive() else { return nil }
-                if let result = ddcInterface.read(vcp: .audioMute, for: displayID) {
-                    // Non-continuous VCP: value in low byte only
-                    muted = (result.currentValue & 0xFF) == 1
-                }
-            }
-
-            if capability.supportsInputSource {
-                guard isLive() else { return nil }
-                if let result = ddcInterface.read(vcp: .inputSource, for: displayID) {
-                    // Non-continuous VCP codes return the value in the low byte only
-                    inputSource = InputSource(rawValue: result.currentValue & 0xFF)
-                }
-            }
-
-            return HardwareReadValues(
-                brightness: brightness,
-                contrast: contrast,
-                volume: volume,
-                muted: muted,
-                inputSource: inputSource
-            )
+            return HardwareReadValues(results: results)
         }
 
         /// Reads all supported VCP values for a display.
