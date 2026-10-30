@@ -654,9 +654,9 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
         #endif
 
         let baseline = RefreshBaseline(
-            savedBrightness: loadPersistedBrightness(),
-            savedWarmth: loadPersistedWarmth(),
-            savedContrast: loadPersistedContrast(),
+            savedBrightness: loadPersistedValues(forKey: persistenceKey),
+            savedWarmth: loadPersistedValues(forKey: warmthPersistenceKey),
+            savedContrast: loadPersistedValues(forKey: contrastPersistenceKey),
             displaysByID: Dictionary(uniqueKeysWithValues: displays.map { ($0.id, $0) }),
             displaysByIdentity: displays.reduce(into: [String: ExternalDisplay]()) { result, display in
                 result[displayIdentity(for: display.id)] = display
@@ -1217,22 +1217,15 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
         saved[identity] ?? saved[String(displayID)]
     }
 
-    private func loadPersistedBrightness() -> [String: Double] {
-        defaults.dictionary(forKey: persistenceKey) as? [String: Double] ?? [:]
-    }
-
-    private func loadPersistedWarmth() -> [String: Double] {
-        defaults.dictionary(forKey: warmthPersistenceKey) as? [String: Double] ?? [:]
-    }
-
-    private func loadPersistedContrast() -> [String: Double] {
-        defaults.dictionary(forKey: contrastPersistenceKey) as? [String: Double] ?? [:]
+    /// Per-display values saved under `key` (brightness, warmth, or contrast).
+    private func loadPersistedValues(forKey key: String) -> [String: Double] {
+        defaults.dictionary(forKey: key) as? [String: Double] ?? [:]
     }
 
     func persistAll() {
-        var brightnessDict = loadPersistedBrightness()
-        var warmthDict = loadPersistedWarmth()
-        var contrastDict = loadPersistedContrast()
+        var brightnessDict = loadPersistedValues(forKey: persistenceKey)
+        var warmthDict = loadPersistedValues(forKey: warmthPersistenceKey)
+        var contrastDict = loadPersistedValues(forKey: contrastPersistenceKey)
         for display in displays {
             // Keyed by stable identity, so the values are still found after the display is
             // re-enumerated under a different CGDirectDisplayID.
