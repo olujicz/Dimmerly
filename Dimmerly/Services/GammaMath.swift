@@ -98,20 +98,26 @@ enum GammaMath {
         }
     }
 
+    /// The contrast curve sampled at the 256 gamma table positions.
+    static func contrastCurve(_ contrast: Double) -> [Double] {
+        (0 ..< 256).map { applyContrast(Double($0) / 255.0, contrast: contrast) }
+    }
+
+    /// Scales a sampled contrast curve into one channel's gamma table.
+    static func buildTable(curve: [Double], brightness: Double, channelMultiplier: Double) -> [CGGammaValue] {
+        let scale = brightness * channelMultiplier
+        return curve.map { CGGammaValue($0 * scale) }
+    }
+
     /// Builds a 256-entry gamma lookup table for a single color channel.
     static func buildTable(brightness: Double, channelMultiplier: Double, contrast: Double) -> [CGGammaValue] {
-        let scale = brightness * channelMultiplier
-        return (0 ..< 256).map { i in
-            let t = Double(i) / 255.0
-            let curved = applyContrast(t, contrast: contrast)
-            return CGGammaValue(curved * scale)
-        }
+        buildTable(curve: contrastCurve(contrast), brightness: brightness, channelMultiplier: channelMultiplier)
     }
 
     /// Builds the three channel tables for a display and installs them.
     ///
     /// The contrast curve is shared by every channel, so it is evaluated once rather than
-    /// per channel. Entries match `buildTable` exactly.
+    /// per channel.
     static func setTransferTables(
         for displayID: CGDirectDisplayID,
         brightness: Double,
@@ -119,14 +125,10 @@ enum GammaMath {
         contrast: Double
     ) {
         let multipliers = channelMultipliers(for: warmth)
-        let curve = (0 ..< 256).map { applyContrast(Double($0) / 255.0, contrast: contrast) }
-        func table(_ channelMultiplier: Double) -> [CGGammaValue] {
-            let scale = brightness * channelMultiplier
-            return curve.map { CGGammaValue($0 * scale) }
-        }
-        var red = table(multipliers.r)
-        var green = table(multipliers.g)
-        var blue = table(multipliers.b)
+        let curve = contrastCurve(contrast)
+        var red = buildTable(curve: curve, brightness: brightness, channelMultiplier: multipliers.r)
+        var green = buildTable(curve: curve, brightness: brightness, channelMultiplier: multipliers.g)
+        var blue = buildTable(curve: curve, brightness: brightness, channelMultiplier: multipliers.b)
         // Return value intentionally ignored — no recovery action if gamma set fails
         CGSetDisplayTransferByTable(displayID, 256, &red, &green, &blue)
     }
