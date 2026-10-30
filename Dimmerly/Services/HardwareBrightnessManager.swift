@@ -719,6 +719,14 @@
             vcp != .brightness || session.map(nativeBrightnessWorkGate.isCurrent) == true
         }
 
+        /// Whether a queued write may still touch the bus or publish its outcome: DDC is still
+        /// on, the display has not reconnected, and brightness ownership has not changed.
+        private nonisolated func isLive(_ context: DDCWriteContext, for vcp: VCPCode) -> Bool {
+            sessionGate.isCurrent(context.session)
+                && displayConnectionGate.isCurrent(context.connection)
+                && isNativeConfigurationCurrent(context.nativeWorkSession, for: vcp)
+        }
+
         /// Cleans up state for disconnected displays.
         func removeDisplay(_ displayID: CGDirectDisplayID) {
             advanceDisplayConnection(for: displayID)
@@ -982,33 +990,20 @@
             context: DDCWriteContext
         ) {
             let session = context.session
-            let connection = context.connection
-            let nativeWorkSession = context.nativeWorkSession
             let ddcIO = ddcInterface
             let minInterval = minimumWriteInterval
             let threshold = maxWriteFailuresBeforeFallback
             let ddcQueue = ddcQueue
             let writeTiming = writeTiming
-            let writeKey = WriteKey(vcp: vcp, connection: connection)
+            let writeKey = WriteKey(vcp: vcp, connection: context.connection)
             ddcQueue.async { [weak self] in
-                guard let self else { return }
-                guard sessionGate.isCurrent(session),
-                      displayConnectionGate.isCurrent(connection),
-                      isNativeConfigurationCurrent(nativeWorkSession, for: vcp)
-                else { return }
+                guard let self, isLive(context, for: vcp) else { return }
                 writeTiming.waitUntilReady(for: displayID, minimumInterval: minInterval)
-                guard sessionGate.isCurrent(session),
-                      displayConnectionGate.isCurrent(connection),
-                      isNativeConfigurationCurrent(nativeWorkSession, for: vcp)
-                else { return }
+                guard isLive(context, for: vcp) else { return }
                 let success = ddcIO.write(vcp: vcp, value: value, for: displayID)
 
                 Task { @MainActor [weak self] in
-                    guard let self,
-                          sessionGate.isCurrent(session),
-                          displayConnectionGate.isCurrent(connection),
-                          isNativeConfigurationCurrent(nativeWorkSession, for: vcp)
-                    else { return }
+                    guard let self, isLive(context, for: vcp) else { return }
                     decrementPendingHardwareWrite(writeKey)
 
                     if success {
