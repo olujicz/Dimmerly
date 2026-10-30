@@ -111,6 +111,9 @@ private final class SearchableIndexAcknowledgement: @unchecked Sendable {
 
 @MainActor
 final class CSSearchablePresetEntityIndexingClient: NSObject, PresetEntityIndexingClient, CSSearchableIndexDelegate {
+    /// Keeps the index delegate registered. Writes use a fresh `CSSearchableIndex` for the
+    /// same name instead: the index isn't Sendable, and its async methods run off the main
+    /// actor, so passing this stored instance to them is rejected as a data race.
     let searchableIndex: CSSearchableIndex
 
     override init() {
