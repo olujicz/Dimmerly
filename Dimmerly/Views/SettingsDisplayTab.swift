@@ -214,24 +214,27 @@ struct DisplaySettingsTab: View {
         private var hardwareControlSection: some View {
             @Bindable var settings = settings
             return Section {
-                Toggle("Use hardware controls when available", isOn: Binding(
-                    get: { settings.ddcEnabled },
-                    set: { newValue in
+                Toggle("Use hardware controls when available", isOn: $settings.ddcEnabled)
+                    // The toggle flips the setting at once; enabling or disabling the
+                    // hardware manager follows asynchronously. A change the user has
+                    // already reverted is skipped, so the setting is never written back
+                    // to a stale value (which would fire this handler again).
+                    .onChange(of: settings.ddcEnabled) { _, isEnabled in
                         Task {
+                            guard settings.ddcEnabled == isEnabled else { return }
                             await applyDDCEnabledChange(
-                                newValue,
+                                isEnabled,
                                 settings: settings,
                                 hardwareManager: hardwareManager
                             )
                         }
                     }
-                ))
-                .help(
-                    """
-                    Uses native brightness or DDC/CI to control compatible external displays directly. \
-                    Unsupported displays continue using software brightness.
-                    """
-                )
+                    .help(
+                        """
+                        Uses native brightness or DDC/CI to control compatible external displays directly. \
+                        Unsupported displays continue using software brightness.
+                        """
+                    )
 
                 if settings.ddcEnabled {
                     Toggle("Experimental native brightness", isOn: Binding(
