@@ -15,7 +15,9 @@ final class ColorTemperatureManagerTests: XCTestCase {
     private var testSuiteName: String!
     private var testDefaults: UserDefaults!
     private var testSettings: AppSettings!
-    private weak var fixtureBrightnessManager: BrightnessManager?
+    /// Weakly held so tearDown can wait for every fixture's debounced persistence, including
+    /// the first session of the relaunch tests.
+    private var fixtureBrightnessManagers = NSHashTable<BrightnessManager>.weakObjects()
 
     override func setUp() async throws {
         testSuiteName = "ColorTemperatureManagerTests-\(UUID().uuidString)"
@@ -27,10 +29,13 @@ final class ColorTemperatureManagerTests: XCTestCase {
         // Warmth setters retain their manager through debounced persistence. Wait
         // for that work before removing its suite so a late write cannot recreate it.
         let deadline = ContinuousClock.now + .seconds(2)
-        while fixtureBrightnessManager != nil, ContinuousClock.now < deadline {
+        while !fixtureBrightnessManagers.allObjects.isEmpty, ContinuousClock.now < deadline {
             try await Task.sleep(for: .milliseconds(10))
         }
-        XCTAssertNil(fixtureBrightnessManager, "Brightness persistence should finish before removing its defaults")
+        XCTAssertTrue(
+            fixtureBrightnessManagers.allObjects.isEmpty,
+            "Brightness persistence should finish before removing its defaults"
+        )
         testDefaults.removePersistentDomain(forName: testSuiteName)
         testSettings = nil
         testDefaults = nil
@@ -234,9 +239,12 @@ final class ColorTemperatureManagerTests: XCTestCase {
     /// Drives an injected BrightnessManager rather than the shared one. Using the singleton meant
     /// `apply(enabled:)` ran `restoreSavedWarmth()` against real displays, so the suite rewrote
     /// the developer's live gamma and persisted warmth just by running.
-    private func isolatedManager() -> (ColorTemperatureManager, BrightnessManager) {
+    private func isolatedManager(
+        warmth: Double = 0.3,
+        settings: AppSettings? = nil
+    ) -> (ColorTemperatureManager, BrightnessManager) {
         let brightnessManager = BrightnessManager(forTesting: true, defaults: testDefaults)
-        fixtureBrightnessManager = brightnessManager
+        fixtureBrightnessManagers.add(brightnessManager)
         brightnessManager.applyGammaHook = { _, _, _, _ in }
         // Enabling auto warmth animates its first update, which applies gamma from a detached
         // task. Forcing the non-animated path keeps these assertions synchronous.
@@ -244,9 +252,12 @@ final class ColorTemperatureManagerTests: XCTestCase {
         // Pin identity so the key doesn't depend on whatever EDID the host reports for this ID.
         brightnessManager.displayIdentityHook = { "identity-\($0)" }
         brightnessManager.displays = [
-            ExternalDisplay(id: 1, name: "Test", brightness: 1.0, warmth: 0.3, contrast: 0.5),
+            ExternalDisplay(id: 1, name: "Test", brightness: 1.0, warmth: warmth, contrast: 0.5),
         ]
-        let manager = ColorTemperatureManager(brightnessManager: brightnessManager, settings: testSettings)
+        let manager = ColorTemperatureManager(
+            brightnessManager: brightnessManager,
+            settings: settings ?? testSettings
+        )
         return (manager, brightnessManager)
     }
 
@@ -438,6 +449,65 @@ final class ColorTemperatureManagerTests: XCTestCase {
 
         XCTAssertGreaterThan(gammaApplications, 0, "Warmth must be applied via the injected manager")
         XCTAssertEqual(injected.displays.count, 1, "Effects belong to the injected manager")
+    }
+
+    // MARK: - Pre-Auto Warmth Across Relaunch
+
+    /// Auto ticks persist their warmth, so after a relaunch at night the displays come back at
+    /// the night tint. Enabling auto at launch must not snapshot that: turning auto off the next
+    /// day has to return the warmth the user had before they first enabled it.
+    func testDisablingAfterRelaunchRestoresWarmthFromBeforeAutoWasEnabled() {
+        let (firstSession, _) = isolatedManager(warmth: 0.3)
+        firstSession.locationCoordinatesHook = { nil }
+        firstSession.apply(enabled: true)
+        // Quit with auto still on; the persisted display warmth is now the night value.
+
+        let relaunchedSettings = AppSettings(defaults: testDefaults)
+        let (relaunched, brightnessManager) = isolatedManager(warmth: 0.8, settings: relaunchedSettings)
+        relaunched.locationCoordinatesHook = { nil }
+        relaunched.apply(enabled: true)
+        relaunched.apply(enabled: false)
+
+        XCTAssertEqual(
+            brightnessManager.displays.first?.warmth ?? -1, 0.3, accuracy: 0.0001,
+            "Disabling auto warmth must restore the warmth from before auto was enabled, not the night tint"
+        )
+    }
+
+    /// A snapshot left behind while auto was off at launch (it was switched off outside the app)
+    /// is stale; enabling auto later must snapshot the warmth the user has then.
+    func testStalePreAutoWarmthIsDiscardedWhenAutoLaunchesDisabled() {
+        let (firstSession, _) = isolatedManager(warmth: 0.3)
+        firstSession.locationCoordinatesHook = { nil }
+        firstSession.apply(enabled: true)
+
+        let relaunchedSettings = AppSettings(defaults: testDefaults)
+        let (relaunched, brightnessManager) = isolatedManager(warmth: 0.6, settings: relaunchedSettings)
+        relaunched.locationCoordinatesHook = { nil }
+        relaunched.apply(enabled: false)
+        relaunched.apply(enabled: true)
+        relaunched.apply(enabled: false)
+
+        XCTAssertEqual(
+            brightnessManager.displays.first?.warmth ?? -1, 0.6, accuracy: 0.0001,
+            "Enabling auto must snapshot the current warmth when no auto session carried over"
+        )
+    }
+
+    /// Disabling ends the auto session, so the next launch must not restore its snapshot again.
+    func testDisablingClearsThePersistedPreAutoWarmth() {
+        let (firstSession, _) = isolatedManager(warmth: 0.3)
+        firstSession.locationCoordinatesHook = { nil }
+        firstSession.apply(enabled: true)
+        firstSession.apply(enabled: false)
+
+        let relaunchedSettings = AppSettings(defaults: testDefaults)
+        let (relaunched, brightnessManager) = isolatedManager(warmth: 0.6, settings: relaunchedSettings)
+        relaunched.locationCoordinatesHook = { nil }
+        relaunched.apply(enabled: true)
+        relaunched.apply(enabled: false)
+
+        XCTAssertEqual(brightnessManager.displays.first?.warmth ?? -1, 0.6, accuracy: 0.0001)
     }
 
     // MARK: - Zero Transition Duration

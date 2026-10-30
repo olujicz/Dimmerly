@@ -163,6 +163,19 @@ class AppSettings {
         didSet { defaults.set(autoColorTempEnabled, forKey: Self.autoColorTempEnabledKey) }
     }
 
+    /// Warmth each display had before auto color temperature took over, keyed by stable display
+    /// identity. Persisted because auto-driven warmth is persisted too: without it, a relaunch
+    /// while auto is on would treat the last auto (night) warmth as the user's own.
+    var preAutoWarmthSnapshot: [String: Double]? {
+        didSet {
+            if let preAutoWarmthSnapshot {
+                defaults.set(preAutoWarmthSnapshot, forKey: "dimmerlyPreAutoWarmthSnapshot")
+            } else {
+                defaults.removeObject(forKey: "dimmerlyPreAutoWarmthSnapshot")
+            }
+        }
+    }
+
     /// Daytime color temperature in Kelvin (used when sun is up)
     var dayTemperature: Int {
         didSet { defaults.set(dayTemperature, forKey: "dimmerlyDayTemperature") }
@@ -267,6 +280,7 @@ class AppSettings {
         requireEscapeToDismiss = d.bool(forKey: "dimmerlyRequireEscapeToDismiss")
         scheduleEnabled = d.bool(forKey: Self.scheduleEnabledKey)
         autoColorTempEnabled = d.bool(forKey: Self.autoColorTempEnabledKey)
+        preAutoWarmthSnapshot = d.dictionary(forKey: "dimmerlyPreAutoWarmthSnapshot") as? [String: Double]
 
         // String properties
         menuBarIconRaw = d.string(forKey: "dimmerlyMenuBarIcon") ?? MenuBarIconStyle.defaultIcon.rawValue
