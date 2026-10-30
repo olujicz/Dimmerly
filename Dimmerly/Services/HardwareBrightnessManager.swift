@@ -363,7 +363,8 @@
         }
 
         /// Test-only initializer: the same seams as `init`, but native backlight support
-        /// defaults to off so tests never consult the live display model for it.
+        /// defaults to off and a failed write falls back to nothing, so tests never consult or
+        /// reapply the live display model (a mock display ID can match a real display).
         convenience init(
             forTesting _: Bool,
             ddcInterface: DDCInterface = DefaultDDCInterface(),
@@ -377,9 +378,7 @@
                 BrightnessManager.shared.synchronizeExternalHardwareBrightness(for: $0, to: $1)
             },
             nativeBrightnessSupportProvider: @escaping (CGDirectDisplayID) -> Bool = { _ in false },
-            writeFallbackHandler: @escaping @MainActor (CGDirectDisplayID) -> Void = {
-                BrightnessManager.shared.applyCurrentBrightness(for: $0)
-            }
+            writeFallbackHandler: @escaping @MainActor (CGDirectDisplayID) -> Void = { _ in }
         ) {
             self.init(
                 ddcInterface: ddcInterface,
