@@ -28,31 +28,31 @@ struct PresetManagementRow: View {
     @State private var editedName: String = ""
     @State private var conflictMessage: String?
     @State private var showDeleteConfirmation = false
+    @FocusState private var isNameFieldFocused: Bool
 
     var body: some View {
         HStack {
             if isEditing {
-                TextField("Name", text: $editedName, onCommit: {
-                    let trimmed = editedName.trimmingCharacters(in: .whitespaces)
-                    if !trimmed.isEmpty {
-                        onRename(trimmed)
+                TextField("Name", text: $editedName)
+                    .textFieldStyle(.roundedBorder)
+                    .focused($isNameFieldFocused)
+                    .onAppear { isNameFieldFocused = true }
+                    .onSubmit(commitRename)
+                    .onExitCommand(perform: cancelRename)
+                    // Clicking or tabbing away keeps the typed name, as renaming in Finder
+                    // does, rather than silently dropping it and leaving the row in edit mode.
+                    .onChange(of: isNameFieldFocused) { _, isFocused in
+                        if !isFocused {
+                            commitRename()
+                        }
                     }
-                    isEditing = false
-                })
-                .textFieldStyle(.roundedBorder)
             } else {
                 Text(preset.name)
                     .contextMenu {
-                        Button("Rename") {
-                            editedName = preset.name
-                            isEditing = true
-                        }
+                        Button("Rename", action: startRename)
                     }
 
-                Button {
-                    editedName = preset.name
-                    isEditing = true
-                } label: {
+                Button(action: startRename) {
                     Image(systemName: "pencil")
                         .font(.callout)
                         .foregroundStyle(.secondary)
@@ -124,6 +124,32 @@ struct PresetManagementRow: View {
     }
 
     /// Name of the main shortcut or another preset already bound to `shortcut`.
+    private func startRename() {
+        editedName = preset.name
+        isEditing = true
+    }
+
+    /// Ends editing and saves the name. Runs once: Return, then the field losing focus as
+    /// it goes away, both land here.
+    private func commitRename() {
+        guard isEditing else { return }
+        isEditing = false
+        if let newName = Self.renamedName(from: editedName, current: preset.name) {
+            onRename(newName)
+        }
+    }
+
+    private func cancelRename() {
+        isEditing = false
+    }
+
+    /// The trimmed name to save, or nil when it is blank or unchanged.
+    nonisolated static func renamedName(from editedName: String, current: String) -> String? {
+        let trimmed = editedName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed != current else { return nil }
+        return trimmed
+    }
+
     private func conflictingName(for shortcut: GlobalShortcut) -> String? {
         if shortcut == mainShortcut {
             return mainShortcutName

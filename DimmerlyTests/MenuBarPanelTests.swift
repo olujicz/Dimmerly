@@ -1061,6 +1061,21 @@ extension MenuBarPanelTests {
         }
     }
 
+    func testPresetRenameSavesOnlyANewNonBlankName() {
+        XCTAssertEqual(PresetManagementRow.renamedName(from: "  Night  ", current: "Evening"), "Night")
+        XCTAssertNil(PresetManagementRow.renamedName(from: "   ", current: "Evening"))
+        XCTAssertNil(PresetManagementRow.renamedName(from: "Evening ", current: "Evening"))
+    }
+
+    func testPresetRenameFieldFocusesSubmitsAndCancels() throws {
+        let source = try Self.repositorySource("Dimmerly/Views/PresetManagementRow.swift")
+
+        XCTAssertFalse(source.contains("onCommit:"))
+        XCTAssertTrue(source.contains(".focused($isNameFieldFocused)"))
+        XCTAssertTrue(source.contains(".onSubmit(commitRename)"))
+        XCTAssertTrue(source.contains(".onExitCommand(perform: cancelRename)"))
+    }
+
     static func repositorySource(_ relativePath: String) throws -> String {
         let url = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
