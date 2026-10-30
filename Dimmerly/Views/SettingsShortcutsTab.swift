@@ -97,7 +97,7 @@ struct ShortcutsSettingsTab: View {
                         ExternalLinkButton(
                             title: Text("Open Accessibility Settings"),
                             help: Text("Open macOS Accessibility settings"),
-                            action: KeyboardShortcutManager.requestAccessibilityPermission
+                            action: { KeyboardShortcutManager.requestAccessibilityPermission() }
                         )
                         .font(.caption)
                     }
@@ -138,9 +138,7 @@ struct ShortcutsSettingsTab: View {
             ForEach(presetManager.presets) { preset in
                 PresetManagementRow(
                     preset: preset,
-                    mainShortcut: settings.keyboardShortcut,
                     mainShortcutName: StatusItemQuickActions.turnOffTitle(settings: settings),
-                    allPresets: presetManager.presets,
                     onRename: { newName in
                         presetManager.renamePreset(id: preset.id, to: newName)
                     },

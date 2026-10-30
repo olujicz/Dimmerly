@@ -265,12 +265,24 @@ final class ShortcutRecordingCoordinator {
             AXIsProcessTrusted()
         }
 
+        /// Accessibility pane of Privacy & Security in System Settings.
+        static let accessibilitySettingsURL = URL(
+            string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+        )
+
         /// Requests accessibility permissions from the user
         ///
-        /// This will show the system dialog prompting the user to grant access
-        static func requestAccessibilityPermission() {
-            let options = ["AXTrustedCheckOptionPrompt": true]
-            AXIsProcessTrustedWithOptions(options as CFDictionary)
+        /// The prompt check adds Dimmerly to the Accessibility list, but macOS shows its dialog
+        /// only once per app build, so the pane is also opened directly. Without it, the
+        /// "Open Accessibility Settings" button would do nothing after the first time.
+        static func requestAccessibilityPermission(
+            promptIfNeeded: () -> Bool = {
+                AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
+            },
+            openURL: (URL) -> Void = { NSWorkspace.shared.open($0) }
+        ) {
+            guard !promptIfNeeded(), let url = accessibilitySettingsURL else { return }
+            openURL(url)
         }
 
         /// Starts monitoring for the configured keyboard shortcut
