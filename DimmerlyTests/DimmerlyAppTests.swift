@@ -123,6 +123,21 @@ final class DimmerlyAppTests: XCTestCase {
         )
     }
 
+    func testLaunchSetupRunsOnceWhenLaunchingFinishesWithoutAnyView() {
+        var setupRuns = 0
+        let services = AppServices(launchSetupOverride: { setupRuns += 1 })
+        let delegate = DimmerlyAppDelegate(services: services)
+        XCTAssertFalse(services.isConfigured)
+
+        let didFinishLaunching = Notification(name: NSApplication.didFinishLaunchingNotification)
+        delegate.applicationDidFinishLaunching(didFinishLaunching)
+        delegate.applicationDidFinishLaunching(didFinishLaunching)
+        services.configure()
+
+        XCTAssertEqual(setupRuns, 1)
+        XCTAssertTrue(services.isConfigured)
+    }
+
     func testDiscardingLegacyWidgetCommandsPreservesPublishedStateAndPresets() throws {
         let suiteName = "WidgetLaunchTests-\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))

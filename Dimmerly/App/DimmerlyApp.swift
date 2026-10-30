@@ -26,14 +26,16 @@ func handleWidgetActionRequest(
 
 @main
 struct DimmerlyApp: App {
-    /// Handles `dimmerly://` URLs from the widget.
+    /// Handles `dimmerly://` URLs from the widget and runs launch setup.
     @NSApplicationDelegateAdaptor(DimmerlyAppDelegate.self) private var appDelegate
+
+    /// Managers and observers that must exist whether or not any view appears.
+    private var services: AppServices {
+        appDelegate.services
+    }
 
     /// Application settings shared across all views
     @State private var settings = AppSettings.shared
-
-    /// Manager for global keyboard shortcuts
-    @State private var shortcutManager = KeyboardShortcutManager()
 
     /// Manager for external display brightness
     @State private var brightnessManager = BrightnessManager.shared
@@ -41,17 +43,8 @@ struct DimmerlyApp: App {
     /// Manager for brightness presets
     @State private var presetManager = PresetManager.shared
 
-    /// Manager for idle timer auto-dim (not @Observable — held for lifecycle only)
-    @State private var idleTimerManager = IdleTimerManager()
-
-    /// Manager for preset keyboard shortcuts
-    @State private var presetShortcutManager = PresetShortcutManager()
-
     /// Provider for location data (solar calculations)
     @State private var locationProvider = LocationProvider.shared
-
-    /// Manager for time-based dimming schedules
-    @State private var scheduleManager = ScheduleManager()
 
     /// Manager for automatic color temperature adjustment
     @State private var colorTempManager = ColorTemperatureManager.shared
@@ -60,9 +53,6 @@ struct DimmerlyApp: App {
         /// Manager for DDC/CI hardware display control (direct distribution only)
         @State private var hardwareManager = HardwareBrightnessManager.shared
     #endif
-
-    /// Guard against duplicate observer registration if onAppear fires more than once
-    @State private var isConfigured = false
 
     /// Coordinates programmatic menu panel presentation, including Spotlight preset selection.
     @State private var menuBarPanelCoordinator = MenuBarPanelCoordinator.shared
@@ -90,47 +80,28 @@ struct DimmerlyApp: App {
                 brightnessManager: brightnessManager,
                 statusItemAccessibility: statusItemAccessibility
             )
-            .onAppear {
-                guard !isConfigured else { return }
-                isConfigured = true
-                // Load saved shortcut before starting monitoring
-                shortcutManager.updateShortcut(settings.keyboardShortcut)
-                startGlobalShortcutMonitoring()
-                configureIdleTimer()
-                configurePresetShortcuts()
-                configureScheduleManager()
-                observeWidgetActionRequests()
-                observeTermination()
-                SharedConstants.discardLegacyWidgetCommands()
-                SharedConstants.discardStaleWidgetActionKeys()
-                AppEntityIndexingService.shared.reindexPresets(presetManager.presets)
-                // Initial sync for settings-driven managers. `.onChange` below
-                // keeps them current for subsequent edits without needing each
-                // manager to observe UserDefaults directly.
-                syncManagerStateFromSettings()
-                #if !APPSTORE
-                    configureHardwareControl()
-                #endif
-            }
+            // Launch setup, including the initial sync of these managers, runs once in
+            // `AppServices.configure()` from `applicationDidFinishLaunching`. These
+            // handlers only follow later edits to the settings.
             .onChange(of: menuBarPanelCoordinator.isPresented) { _, isPresented in
                 if !isPresented {
                     menuBarPanelCoordinator.requestedPresetID = nil
                 }
             }
             .onChange(of: settings.idleTimerEnabled) { _, _ in
-                idleTimerManager.apply(
+                services.idleTimerManager.apply(
                     enabled: settings.idleTimerEnabled,
                     thresholdMinutes: settings.idleTimerMinutes
                 )
             }
             .onChange(of: settings.idleTimerMinutes) { _, _ in
-                idleTimerManager.apply(
+                services.idleTimerManager.apply(
                     enabled: settings.idleTimerEnabled,
                     thresholdMinutes: settings.idleTimerMinutes
                 )
             }
             .onChange(of: settings.scheduleEnabled) { _, _ in
-                scheduleManager.apply(enabled: settings.scheduleEnabled)
+                services.scheduleManager.apply(enabled: settings.scheduleEnabled)
             }
             .onChange(of: settings.autoColorTempEnabled) { _, _ in
                 colorTempManager.apply(enabled: settings.autoColorTempEnabled)
@@ -139,11 +110,11 @@ struct DimmerlyApp: App {
             .onChange(of: settings.preventScreenLock) { _, _ in
                 ControlCenterStatePublisher.live.publishDisplayOffMode(DisplayAction.offMode(settings: settings))
             }
-            .onChange(of: screenBlanker.isBlankingAnyDisplay, initial: true) { _, isBlanking in
+            .onChange(of: screenBlanker.isBlankingAnyDisplay) { _, isBlanking in
                 ControlCenterStatePublisher.live.publishDimState(isBlanking)
             }
             .onChange(of: presetManager.presets) { _, newValue in
-                presetShortcutManager.updateShortcuts(from: newValue)
+                services.presetShortcutManager.updateShortcuts(from: newValue)
                 AppEntityIndexingService.shared.reindexPresets(newValue)
             }
         }
@@ -180,26 +151,16 @@ struct DimmerlyApp: App {
         Settings {
             SettingsView()
                 .environment(settings)
-                .environment(shortcutManager)
-                .environment(presetShortcutManager)
+                .environment(services.shortcutManager)
+                .environment(services.presetShortcutManager)
                 .environment(presetManager)
                 .environment(brightnessManager)
-                .environment(scheduleManager)
+                .environment(services.scheduleManager)
                 .environment(locationProvider)
                 .environment(colorTempManager)
             #if !APPSTORE
                 .environment(hardwareManager)
             #endif
-        }
-    }
-
-    /// Configures the global keyboard shortcut monitor to trigger display sleep.
-    ///
-    /// The shortcut is loaded from settings before monitoring starts.
-    /// App Store builds register Carbon hotkeys without requiring special permissions.
-    private func startGlobalShortcutMonitoring() {
-        shortcutManager.startMonitoring { [settings] in
-            DisplayAction.performSleep(settings: settings)
         }
     }
 
@@ -221,9 +182,130 @@ struct DimmerlyApp: App {
         openSettings()
         NSApp.activate()
     }
+}
+
+/// Menu bar icon view that adapts to the user's selected icon style, and to
+/// whether Dimmerly is currently affecting the displays.
+///
+/// Displays either a system SF Symbol or one of Dimmerly's custom symbols from the asset
+/// catalog. Custom styles that define an active variant switch to it while displays are
+/// being adjusted.
+///
+/// The label is handed to AppKit as a flat status item image, so it cannot carry an
+/// accessibility value or a symbol content transition: SwiftUI forwards only the
+/// accessibility label, and swaps the image in a single step. The value is set on the
+/// status item itself by `StatusItemAccessibility`.
+///
+/// This is a separate view rather than part of the scene body because
+/// `isAffectingDisplays` is derived from every display's brightness, warmth and contrast.
+/// Reading it in `DimmerlyApp.body` would re-evaluate the whole scene on each slider tick.
+struct MenuBarStatusLabel: View {
+    let settings: AppSettings
+    let brightnessManager: BrightnessManager
+    let statusItemAccessibility: StatusItemAccessibility
+
+    var body: some View {
+        icon
+            .onChange(of: brightnessManager.isAffectingDisplays, initial: true) { _, isAffecting in
+                statusItemAccessibility.update(isAffectingDisplays: isAffecting)
+            }
+    }
+
+    @ViewBuilder
+    private var icon: some View {
+        if let systemImage = settings.menuBarIcon.systemImageName {
+            Image(systemName: systemImage)
+                .accessibilityLabel("Dimmerly")
+        } else {
+            Image(settings.menuBarIcon
+                .resolvedAssetName(isActive: brightnessManager.isAffectingDisplays) ?? "MenuBarIcon")
+                .accessibilityLabel("Dimmerly")
+        }
+    }
+}
+
+/// The `dimmerly://` URLs the app responds to.
+enum DimmerlyURL {
+    /// Sent by a tap on the widget outside its buttons.
+    static let openPanel = URL(string: "dimmerly://open")!
+
+    static func opensPanel(_ url: URL) -> Bool {
+        url.scheme?.lowercased() == openPanel.scheme && url.host()?.lowercased() == openPanel.host()
+    }
+}
+
+/// Owns the app-lifetime managers and runs launch setup once, from
+/// `applicationDidFinishLaunching`, so none of it depends on a view appearing.
+/// The scenes read the managers from here and pass them on through `.environment(_:)`.
+@MainActor
+final class AppServices {
+    let shortcutManager = KeyboardShortcutManager()
+    let presetShortcutManager = PresetShortcutManager()
+    let scheduleManager = ScheduleManager()
+    /// Not @Observable: held for its lifecycle only.
+    let idleTimerManager = IdleTimerManager()
+
+    private let settings = AppSettings.shared
+    private let presetManager = PresetManager.shared
+    private let brightnessManager = BrightnessManager.shared
+    private let colorTempManager = ColorTemperatureManager.shared
+    #if !APPSTORE
+        private let hardwareManager = HardwareBrightnessManager.shared
+    #endif
+
+    /// Replaces the launch setup in tests, which must not touch hotkeys or displays.
+    private let launchSetupOverride: (() -> Void)?
+
+    private(set) var isConfigured = false
+
+    init(launchSetupOverride: (() -> Void)? = nil) {
+        self.launchSetupOverride = launchSetupOverride
+    }
+
+    /// Runs launch setup. Later calls do nothing, so observers are registered once.
+    func configure() {
+        guard !isConfigured else { return }
+        isConfigured = true
+        if let launchSetupOverride {
+            launchSetupOverride()
+        } else {
+            performLaunchSetup()
+        }
+    }
+
+    private func performLaunchSetup() {
+        // Load saved shortcut before starting monitoring
+        shortcutManager.updateShortcut(settings.keyboardShortcut)
+        startGlobalShortcutMonitoring()
+        configureIdleTimer()
+        configurePresetShortcuts()
+        configureScheduleManager()
+        observeWidgetActionRequests()
+        observeTermination()
+        SharedConstants.discardLegacyWidgetCommands()
+        SharedConstants.discardStaleWidgetActionKeys()
+        AppEntityIndexingService.shared.reindexPresets(presetManager.presets)
+        // Initial sync for settings-driven managers. `.onChange` in the scene body
+        // keeps them current for subsequent edits without needing each
+        // manager to observe UserDefaults directly.
+        syncManagerStateFromSettings()
+        #if !APPSTORE
+            configureHardwareControl()
+        #endif
+    }
+
+    /// Configures the global keyboard shortcut monitor to trigger display sleep.
+    ///
+    /// The shortcut is loaded from settings before monitoring starts.
+    /// App Store builds register Carbon hotkeys without requiring special permissions.
+    private func startGlobalShortcutMonitoring() {
+        shortcutManager.startMonitoring { [settings] in
+            DisplayAction.performSleep(settings: settings)
+        }
+    }
 
     /// Wires the idle-timer callback. Actual start/stop is driven by `.onChange(of:)`
-    /// on `settings.idleTimerEnabled` / `.idleTimerMinutes` in the scene body, plus
+    /// on `settings.idleTimerEnabled` / `.idleTimerMinutes` in the app's scene body, plus
     /// a one-time `syncManagerStateFromSettings()` at launch.
     private func configureIdleTimer() {
         idleTimerManager.onIdleThresholdReached = { [settings] in
@@ -291,6 +373,8 @@ struct DimmerlyApp: App {
         colorTempManager.apply(enabled: settings.autoColorTempEnabled)
         ControlCenterStatePublisher.live.publishAutoWarmthState(settings.autoColorTempEnabled)
         ControlCenterStatePublisher.live.publishDisplayOffMode(DisplayAction.offMode(settings: settings))
+        // The dim toggle's later changes are published from the scene's `.onChange`.
+        ControlCenterStatePublisher.live.publishDimState(ScreenBlanker.shared.isBlankingAnyDisplay)
         presetShortcutManager.updateShortcuts(from: presetManager.presets)
     }
 
@@ -323,59 +407,28 @@ struct DimmerlyApp: App {
     #endif
 }
 
-/// Menu bar icon view that adapts to the user's selected icon style, and to
-/// whether Dimmerly is currently affecting the displays.
-///
-/// Displays either a system SF Symbol or one of Dimmerly's custom symbols from the asset
-/// catalog. Custom styles that define an active variant switch to it while displays are
-/// being adjusted.
-///
-/// The label is handed to AppKit as a flat status item image, so it cannot carry an
-/// accessibility value or a symbol content transition: SwiftUI forwards only the
-/// accessibility label, and swaps the image in a single step. The value is set on the
-/// status item itself by `StatusItemAccessibility`.
-///
-/// This is a separate view rather than part of the scene body because
-/// `isAffectingDisplays` is derived from every display's brightness, warmth and contrast.
-/// Reading it in `DimmerlyApp.body` would re-evaluate the whole scene on each slider tick.
-struct MenuBarStatusLabel: View {
-    let settings: AppSettings
-    let brightnessManager: BrightnessManager
-    let statusItemAccessibility: StatusItemAccessibility
-
-    var body: some View {
-        icon
-            .onChange(of: brightnessManager.isAffectingDisplays, initial: true) { _, isAffecting in
-                statusItemAccessibility.update(isAffectingDisplays: isAffecting)
-            }
-    }
-
-    @ViewBuilder
-    private var icon: some View {
-        if let systemImage = settings.menuBarIcon.systemImageName {
-            Image(systemName: systemImage)
-                .accessibilityLabel("Dimmerly")
-        } else {
-            Image(settings.menuBarIcon
-                .resolvedAssetName(isActive: brightnessManager.isAffectingDisplays) ?? "MenuBarIcon")
-                .accessibilityLabel("Dimmerly")
-        }
-    }
-}
-
-/// The `dimmerly://` URLs the app responds to.
-enum DimmerlyURL {
-    /// Sent by a tap on the widget outside its buttons.
-    static let openPanel = URL(string: "dimmerly://open")!
-
-    static func opensPanel(_ url: URL) -> Bool {
-        url.scheme?.lowercased() == openPanel.scheme && url.host()?.lowercased() == openPanel.host()
-    }
-}
-
 /// Receives `dimmerly://` URLs. Dimmerly has no window scene for `onOpenURL`, so the
 /// app delegate is the one place that sees them, including the URL that launches the app.
+///
+/// It also owns `AppServices`, created once with the delegate, and configures it when
+/// launching finishes.
+@MainActor
 final class DimmerlyAppDelegate: NSObject, NSApplicationDelegate {
+    let services: AppServices
+
+    init(services: AppServices) {
+        self.services = services
+        super.init()
+    }
+
+    override convenience init() {
+        self.init(services: AppServices())
+    }
+
+    func applicationDidFinishLaunching(_: Notification) {
+        services.configure()
+    }
+
     func application(_: NSApplication, open urls: [URL]) {
         guard urls.contains(where: DimmerlyURL.opensPanel) else { return }
         MenuBarPanelCoordinator.shared.openPanel()
