@@ -94,6 +94,9 @@ class ScheduleManager {
     /// the developer's real saved schedules.
     private let defaults: UserDefaults
 
+    /// JSON persistence for `schedules` under `schedulesKey`.
+    private let store: JSONDefaultsArrayStore<DimmingSchedule>
+
     /// Supplies coordinates for solar trigger resolution. The seam keeps schedule tests
     /// deterministic and makes the source-day/occurrence-day boundary explicit.
     private let locationCoordinatesProvider: () -> (latitude: Double, longitude: Double)?
@@ -108,6 +111,13 @@ class ScheduleManager {
         }
     ) {
         self.defaults = defaults
+        store = JSONDefaultsArrayStore(
+            key: Self.schedulesKey,
+            backupKey: Self.schedulesBackupKey,
+            defaults: defaults,
+            logger: scheduleManagerLogger,
+            elementsDescription: "dimming schedules"
+        )
         locationCoordinatesProvider = locationCoordinates
         loadSchedules()
         loadFiredDays()
@@ -374,13 +384,7 @@ class ScheduleManager {
     // MARK: - Persistence
 
     private func loadSchedules() {
-        schedules = LossyDefaultsArray.load(
-            DimmingSchedule.self,
-            key: Self.schedulesKey,
-            backupKey: Self.schedulesBackupKey,
-            defaults: defaults,
-            logger: scheduleManagerLogger
-        )
+        schedules = store.load()
     }
 
     private func loadFiredDays() {
@@ -398,14 +402,7 @@ class ScheduleManager {
     }
 
     private func saveSchedules() {
-        do {
-            let data = try JSONEncoder().encode(schedules)
-            defaults.set(data, forKey: Self.schedulesKey)
-        } catch {
-            scheduleManagerLogger.error(
-                "Failed to encode dimming schedules: \(error.localizedDescription, privacy: .public)"
-            )
-        }
+        store.save(schedules)
     }
 
     // MARK: - Lifecycle
