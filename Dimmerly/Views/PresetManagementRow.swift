@@ -12,14 +12,12 @@ import SwiftUI
 
 struct PresetManagementRow: View {
     let preset: BrightnessPreset
-    let mainShortcut: GlobalShortcut
     /// Display name for the main shortcut's action, matching
     /// `StatusItemQuickActions.turnOffTitle(settings:)` — the same label shown in the menu
     /// bar panel and quick-actions menu, so this conflict message never disagrees with what
     /// the user actually sees (e.g. never says "Sleep Displays" in the App Store build, which
     /// only ever offers "Dim Displays").
     let mainShortcutName: String
-    let allPresets: [BrightnessPreset]
     let onRename: (String) -> Void
     let onDelete: () -> Void
     let onShortcutChanged: (GlobalShortcut?) throws -> Void
@@ -69,20 +67,16 @@ struct PresetManagementRow: View {
                 presetName: preset.name,
                 shortcut: preset.shortcut,
                 onRecord: { newShortcut in
-                    // Check for conflicts
-                    if let sc = newShortcut, let conflictName = conflictingName(for: sc) {
-                        conflictMessage = String(
-                            format: NSLocalizedString(
-                                "This shortcut conflicts with %@",
-                                comment: "Shortcut conflict message"
-                            ),
-                            conflictName
-                        )
-                        return
-                    }
+                    // PresetManager enforces uniqueness; only the main-shortcut message is
+                    // reworded here to name the action the user sees in this tab.
                     do {
                         try onShortcutChanged(newShortcut)
                         conflictMessage = nil
+                    } catch PresetShortcutError.conflictsWithMainShortcut {
+                        conflictMessage = String(
+                            format: String(localized: "This shortcut conflicts with %@."),
+                            mainShortcutName
+                        )
                     } catch {
                         conflictMessage = error.localizedDescription
                     }
@@ -148,13 +142,6 @@ struct PresetManagementRow: View {
         let trimmed = editedName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, trimmed != current else { return nil }
         return trimmed
-    }
-
-    private func conflictingName(for shortcut: GlobalShortcut) -> String? {
-        if shortcut == mainShortcut {
-            return mainShortcutName
-        }
-        return allPresets.first { $0.id != preset.id && $0.shortcut == shortcut }?.name
     }
 }
 

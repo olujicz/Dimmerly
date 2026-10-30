@@ -138,9 +138,7 @@ struct ShortcutsSettingsTab: View {
             ForEach(presetManager.presets) { preset in
                 PresetManagementRow(
                     preset: preset,
-                    mainShortcut: settings.keyboardShortcut,
                     mainShortcutName: StatusItemQuickActions.turnOffTitle(settings: settings),
-                    allPresets: presetManager.presets,
                     onRename: { newName in
                         presetManager.renamePreset(id: preset.id, to: newName)
                     },
