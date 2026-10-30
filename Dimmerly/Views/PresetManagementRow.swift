@@ -71,6 +71,7 @@ struct PresetManagementRow: View {
 
             // Shortcut recorder
             PresetShortcutRecorderButton(
+                presetName: preset.name,
                 shortcut: preset.shortcut,
                 onRecord: { newShortcut in
                     // Check for conflicts
@@ -141,6 +142,7 @@ struct PresetManagementRow: View {
 // MARK: - Preset Shortcut Recorder Button
 
 struct PresetShortcutRecorderButton: View {
+    let presetName: String
     let shortcut: GlobalShortcut?
     let onRecord: (GlobalShortcut?) -> Void
     var onConflictDetected: ((String) -> Void)?
@@ -187,6 +189,16 @@ struct PresetShortcutRecorderButton: View {
             .allowsHitTesting(isRecording)
             .opacity(0)
         )
+        .accessibilityLabel(Text("Shortcut for \(presetName)"))
+        .accessibilityValue(
+            isRecording
+                ? Text("Press shortcut\u{2026}")
+                : shortcut.map { Text(verbatim: $0.displayString) } ?? Text("None")
+        )
+        .accessibilityHint(
+            Text(isRecording ? "Press a key combination to record" : "Click to record a new shortcut")
+        )
+        .help(Text("Click to record a new shortcut"))
         .onChange(of: isRecording) { _, newValue in
             ShortcutRecordingCoordinator.shared.setRecording(newValue, for: recorderID)
             onRecordingChanged?(newValue)
