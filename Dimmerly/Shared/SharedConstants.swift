@@ -145,6 +145,13 @@ enum SharedConstants {
         return succeeded ? .succeeded : .failed
     }
 
+    /// Removes only the acknowledgement of a request, for when the app answered after the
+    /// extension stopped waiting and removed its own keys.
+    static func removeWidgetActionAcknowledgement(_ id: UUID, from defaults: UserDefaults) {
+        defaults.removeObject(forKey: widgetActionAcknowledgementPrefix + id.uuidString)
+        defaults.synchronize()
+    }
+
     static func removeWidgetActionRequest(_ id: UUID, from defaults: UserDefaults) {
         defaults.removeObject(forKey: widgetActionRequestPrefix + id.uuidString)
         defaults.removeObject(forKey: widgetActionAcknowledgementPrefix + id.uuidString)
@@ -174,10 +181,11 @@ enum SharedConstants {
     /// Removes request and acknowledgement keys that no exchange will clean up any more.
     ///
     /// The extension removes its own keys when it stops waiting, so an acknowledgement the app
-    /// writes after the extension's deadline, or a request left by an extension that was killed
-    /// mid-wait, stays in the suite. Call at launch, before any request of this session has been
-    /// handled. A request that has not expired is kept: the extension stores it right after
-    /// LaunchServices reports the app open, which can be before the app gets here.
+    /// wrote after the extension's deadline and could not remove before quitting, or a request
+    /// left by an extension that was killed mid-wait, stays in the suite. Call at launch, before
+    /// any request of this session has been handled. A request that has not expired is kept: the
+    /// extension stores it right after LaunchServices reports the app open, which can be before
+    /// the app gets here.
     static func discardStaleWidgetActionKeys(in defaults: UserDefaults? = sharedDefaults, now: Date = Date()) {
         guard let defaults else { return }
         for (key, value) in defaults.dictionaryRepresentation() {

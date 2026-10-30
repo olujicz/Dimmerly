@@ -121,7 +121,7 @@ class PresetManager {
     /// UserDefaults key for preset persistence (JSON array)
     static let persistenceKey = "dimmerlyBrightnessPresets"
 
-    /// UserDefaults key holding the original preset data when some presets could not be decoded
+    /// UserDefaults key holding presets that could not be decoded, until a build can restore them
     static let backupKey = "dimmerlyBrightnessPresetsBackup"
 
     /// UserDefaults flag to track whether default presets have been seeded
@@ -155,7 +155,8 @@ class PresetManager {
             backupKey: Self.backupKey,
             defaults: defaults,
             logger: presetManagerLogger,
-            elementsDescription: "brightness presets"
+            elementsDescription: "brightness presets",
+            maxCount: Self.maxPresets
         )
         self.mainShortcutProvider = mainShortcutProvider
         self.widgetSynchronizer = widgetSynchronizer
