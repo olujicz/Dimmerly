@@ -191,17 +191,20 @@ final class CSSearchablePresetEntityIndexingClient: NSObject, PresetEntityIndexi
             for identifiers: [PresetEntity.ID],
             indexDescription _: CSSearchableIndexDescription
         ) async throws {
-            let entities = await MainActor.run {
-                makePresetEntities(for: identifiers)
+            // Queued behind preset edits and Spotlight recovery so a stale snapshot can't
+            // land after a newer delete and index. Presets are read inside the queue so the
+            // snapshot is current when it is written.
+            try await PresetEntityIndexWriteQueue.shared.run {
+                let entities = makePresetEntities(for: identifiers)
+                try await CSSearchableIndex(name: presetEntityIndexName).indexAppEntities(entities)
             }
-            try await CSSearchableIndex(name: presetEntityIndexName).indexAppEntities(entities)
         }
 
         func reindexAllEntities(indexDescription _: CSSearchableIndexDescription) async throws {
-            let entities = await MainActor.run {
-                makePresetEntities()
+            try await PresetEntityIndexWriteQueue.shared.run {
+                let entities = makePresetEntities()
+                try await CSSearchableIndex(name: presetEntityIndexName).indexAppEntities(entities)
             }
-            try await CSSearchableIndex(name: presetEntityIndexName).indexAppEntities(entities)
         }
     }
 #endif
