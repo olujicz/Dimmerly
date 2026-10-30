@@ -10,50 +10,56 @@ import AppKit
 import CoreLocation
 import Foundation
 import Observation
+import Synchronization
 
-private final class LocationRequestGate: @unchecked Sendable {
-    private let lock = NSLock()
-    private var generation: UInt64 = 0
-    private var activeRequest: UInt64?
+/// Tracks which location request is live. CoreLocation's delegate callbacks are
+/// nonisolated, so the state sits behind a mutex rather than on the main actor.
+private final class LocationRequestGate: Sendable {
+    private struct State {
+        var generation: UInt64 = 0
+        var activeRequest: UInt64?
+    }
+
+    private let state = Mutex(State())
 
     func begin() -> UInt64 {
-        lock.withLock {
-            generation &+= 1
-            activeRequest = generation
-            return generation
+        state.withLock { state in
+            state.generation &+= 1
+            state.activeRequest = state.generation
+            return state.generation
         }
     }
 
     func invalidate() {
-        lock.withLock {
-            generation &+= 1
-            activeRequest = nil
+        state.withLock { state in
+            state.generation &+= 1
+            state.activeRequest = nil
         }
     }
 
     func current() -> UInt64 {
-        lock.withLock { generation }
+        state.withLock { $0.generation }
     }
 
     func isCurrent(_ token: UInt64) -> Bool {
-        lock.withLock { token == generation }
+        state.withLock { token == $0.generation }
     }
 
     /// A callback is only honoured while the request that asked for it is still the live one.
     /// Unsolicited deliveries, and deliveries that lost a race with a manual edit, clear, or a
     /// newer request, are all dropped.
     func acceptsCallback(_ token: UInt64) -> Bool {
-        lock.withLock {
-            guard let activeRequest else { return false }
-            return token == activeRequest && token == generation
+        state.withLock { state in
+            guard let activeRequest = state.activeRequest else { return false }
+            return token == activeRequest && token == state.generation
         }
     }
 
     func complete(_ token: UInt64) {
-        lock.withLock {
-            guard token == generation, activeRequest == token else { return }
-            activeRequest = nil
-            generation &+= 1
+        state.withLock { state in
+            guard token == state.generation, state.activeRequest == token else { return }
+            state.activeRequest = nil
+            state.generation &+= 1
         }
     }
 }
@@ -128,13 +134,11 @@ class LocationProvider: NSObject {
     func requestLocation() {
         let requestToken = requestGate.begin()
         // `CLLocationManager.locationServicesEnabled()` can block briefly and is
-        // flagged as non-main-thread-safe by Apple. Run it on a background task,
-        // then hop back to @MainActor to start updating.
+        // flagged as non-main-thread-safe by Apple, so the check runs off the main
+        // actor. This task inherits the main actor, so it resumes there to start updating.
         Task { [weak self, locationServicesAvailable] in
             guard await locationServicesAvailable() else { return }
-            await MainActor.run {
-                self?.beginLocationRequest(token: requestToken)
-            }
+            self?.beginLocationRequest(token: requestToken)
         }
     }
 

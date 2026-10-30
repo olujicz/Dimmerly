@@ -61,6 +61,8 @@ enum SharedConstants {
         return unsignedBuildFallbackAppGroupID
     }
 
+    /// `UserDefaults` isn't Sendable in the SDK, but Apple documents it as thread-safe, and
+    /// this constant is never reassigned after its one-time initialization.
     nonisolated(unsafe) static let sharedDefaults: UserDefaults? = {
         // Sandboxed apps (App Store, widget): containerURL creates the directory automatically.
         // Non-sandboxed apps (direct distribution): containerURL returns nil,

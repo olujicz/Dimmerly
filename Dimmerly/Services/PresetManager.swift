@@ -182,6 +182,17 @@ class PresetManager {
         persistPresets()
     }
 
+    /// Returns the saved preset with `id`, or nil if it has been deleted.
+    func preset(withID id: UUID) -> BrightnessPreset? {
+        presets.first { $0.id == id }
+    }
+
+    /// Applies the preset with `id`; does nothing if it has since been deleted.
+    func applyPreset(id: UUID, to brightnessManager: BrightnessManager, animated: Bool = false) {
+        guard let preset = preset(withID: id) else { return }
+        applyPreset(preset, to: brightnessManager, animated: animated)
+    }
+
     /// Applies a preset's brightness, warmth, and contrast values to currently connected displays.
     ///
     /// This method handles backward compatibility:
@@ -199,16 +210,6 @@ class PresetManager {
     ///   - preset: The preset to apply
     ///   - brightnessManager: The brightness manager to apply values to
     ///   - animated: Whether to animate the transition (default: false)
-    func preset(withID id: UUID) -> BrightnessPreset? {
-        presets.first { $0.id == id }
-    }
-
-    /// Applies the preset with `id`; does nothing if it has since been deleted.
-    func applyPreset(id: UUID, to brightnessManager: BrightnessManager, animated: Bool = false) {
-        guard let preset = preset(withID: id) else { return }
-        applyPreset(preset, to: brightnessManager, animated: animated)
-    }
-
     func applyPreset(_ preset: BrightnessPreset, to brightnessManager: BrightnessManager, animated: Bool = false) {
         // An explicit warmth target overrides auto warmth even if its value already matches.
         // Reuse the snapshot identities and legacy numeric IDs accepted by BrightnessManager.
