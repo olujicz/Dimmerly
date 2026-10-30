@@ -587,7 +587,113 @@ import XCTest
             XCTAssertFalse(queried)
         }
 
+        // MARK: - Read batches
+
+        func testReadBatchLooksUpTheTransportOnceForConsecutiveReads() {
+            let fake = FakeBatchTransports()
+
+            let results = fake.runBatch { read in
+                [VCPCode.brightness, .contrast, .volume, .inputSource].map(read)
+            }
+
+            XCTAssertEqual(fake.lookups, 1)
+            XCTAssertEqual(fake.transportReads.map(\.vcp), [.brightness, .contrast, .volume, .inputSource])
+            XCTAssertEqual(Set(fake.transportReads.map(\.transport)), [1])
+            XCTAssertTrue(fake.fallbackReads.isEmpty)
+            XCTAssertEqual(results, Array(repeating: FakeBatchTransports.answer, count: 4))
+        }
+
+        func testReadBatchFailureFallsBackAndLooksUpTheTransportAgain() {
+            let fake = FakeBatchTransports(failingReads: [.contrast])
+
+            let results = fake.runBatch { read in
+                [VCPCode.brightness, .contrast, .volume].map(read)
+            }
+
+            XCTAssertEqual(fake.lookups, 2, "A transport that failed a read must not be reused")
+            XCTAssertEqual(fake.transportReads.map(\.vcp), [.brightness, .contrast, .volume])
+            XCTAssertEqual(fake.transportReads.map(\.transport), [1, 1, 2])
+            XCTAssertEqual(fake.fallbackReads, [.contrast])
+            let answer = FakeBatchTransports.answer
+            XCTAssertEqual(results, [answer, FakeBatchTransports.fallbackAnswer, answer])
+        }
+
+        func testReadBatchWithoutTransportLooksUpAndFallsBackForEveryRead() {
+            let fake = FakeBatchTransports(availableTransports: 0)
+
+            let results = fake.runBatch { read in
+                [VCPCode.brightness, .contrast].map(read)
+            }
+
+            XCTAssertEqual(fake.lookups, 2)
+            XCTAssertTrue(fake.transportReads.isEmpty)
+            XCTAssertEqual(fake.fallbackReads, [.brightness, .contrast])
+            XCTAssertEqual(results, [FakeBatchTransports.fallbackAnswer, FakeBatchTransports.fallbackAnswer])
+        }
+
+        func testReadBatchesNeverShareATransport() {
+            let fake = FakeBatchTransports()
+
+            _ = fake.runBatch { read in read(.brightness) }
+            _ = fake.runBatch { read in read(.brightness) }
+
+            XCTAssertEqual(fake.lookups, 2)
+            XCTAssertEqual(fake.transportReads.map(\.transport), [1, 2])
+            XCTAssertTrue(fake.liveTransports.isEmpty, "Each batch releases its transport when it ends")
+        }
+
+        func testEndedReadBatchLooksUpTheTransportForEveryRead() {
+            let fake = FakeBatchTransports()
+            let batch = fake.makeBatch()
+            XCTAssertNotNil(batch.read(.brightness))
+            batch.end()
+
+            XCTAssertTrue(fake.liveTransports.isEmpty)
+            XCTAssertNotNil(batch.read(.contrast))
+            XCTAssertNotNil(batch.read(.volume))
+
+            XCTAssertEqual(fake.lookups, 3)
+            XCTAssertEqual(fake.transportReads.map(\.transport), [1, 2, 3])
+        }
+
         #if arch(arm64)
+
+            /// Reusing the transport inside a batch must not change the retry loop: a
+            /// failing read still spends all three attempts before the fallbacks run.
+            func testBatchedServiceReadKeepsTheFullRetryBudgetBeforeFallingBack() {
+                let bus = ScriptedI2CBus(reads: [
+                    makeReply(vcp: .brightness, maximum: 100, current: 42), nil, nil, nil,
+                ])
+                var lookups = 0
+                var fallbacks: [VCPCode] = []
+
+                let results = DDCReadBatch<ScriptedI2CBus>.run(
+                    resolve: {
+                        lookups += 1
+                        return bus
+                    },
+                    read: { bus, vcp in
+                        DDCController.readVCP(using: bus.transport, chipAddress: 0x37, vcp: vcp, sleep: bus.sleep)
+                    },
+                    fallback: { vcp in
+                        fallbacks.append(vcp)
+                        return nil
+                    },
+                    { read in [VCPCode.brightness, .contrast].map(read) }
+                )
+
+                XCTAssertEqual(results, [DDCReadResult(currentValue: 42, maxValue: 100), nil])
+                XCTAssertEqual(lookups, 1)
+                XCTAssertEqual(fallbacks, [.contrast])
+                let attempt: [ScriptedI2CBus.Event] = [
+                    .write(chip: 0x37, register: 0x51), .sleep(10), .write(chip: 0x37, register: 0x51),
+                    .sleep(50), .read(chip: 0x37, register: 0),
+                ]
+                XCTAssertEqual(
+                    bus.events,
+                    attempt + attempt + [.sleep(20)] + attempt + [.sleep(20)] + attempt
+                )
+            }
 
             // MARK: - Apple Silicon retry loops
 
@@ -707,6 +813,67 @@ import XCTest
             }
 
         #endif
+    }
+
+    /// Hands out numbered transports to `DDCReadBatch` and records lookups, reads,
+    /// fallbacks, and which transports are still retained.
+    private final class FakeBatchTransports {
+        final class Transport {
+            let number: Int
+            private let onRelease: () -> Void
+
+            init(number: Int, onRelease: @escaping () -> Void) {
+                self.number = number
+                self.onRelease = onRelease
+            }
+
+            deinit {
+                onRelease()
+            }
+        }
+
+        static let answer = DDCReadResult(currentValue: 40, maxValue: 100)
+        static let fallbackAnswer = DDCReadResult(currentValue: 7, maxValue: 100)
+
+        private(set) var lookups = 0
+        private(set) var transportReads: [(transport: Int, vcp: VCPCode)] = []
+        private(set) var fallbackReads: [VCPCode] = []
+        private(set) var liveTransports: Set<Int> = []
+        private let availableTransports: Int
+        private let failingReads: Set<VCPCode>
+
+        init(availableTransports: Int = .max, failingReads: Set<VCPCode> = []) {
+            self.availableTransports = availableTransports
+            self.failingReads = failingReads
+        }
+
+        func makeBatch() -> DDCReadBatch<Transport> {
+            DDCReadBatch(resolve: resolve, read: read, fallback: fallback)
+        }
+
+        func runBatch<Result>(_ body: (_ read: (VCPCode) -> DDCReadResult?) -> Result) -> Result {
+            DDCReadBatch.run(resolve: resolve, read: read, fallback: fallback, body)
+        }
+
+        private func resolve() -> Transport? {
+            lookups += 1
+            guard lookups <= availableTransports else { return nil }
+            let number = lookups
+            liveTransports.insert(number)
+            return Transport(number: number) { [weak self] in
+                self?.liveTransports.remove(number)
+            }
+        }
+
+        private func read(_ transport: Transport, _ vcp: VCPCode) -> DDCReadResult? {
+            transportReads.append((transport.number, vcp))
+            return failingReads.contains(vcp) ? nil : Self.answer
+        }
+
+        private func fallback(_ vcp: VCPCode) -> DDCReadResult? {
+            fallbackReads.append(vcp)
+            return Self.fallbackAnswer
+        }
     }
 
     #if arch(arm64)

@@ -39,6 +39,11 @@
     protocol DDCInterface: Sendable {
         /// Reads a VCP code from a display.
         func read(vcp: VCPCode, for displayID: CGDirectDisplayID) -> DDCReadResult?
+        /// Runs consecutive reads of one display as a batch that may share transport lookup.
+        func withReadBatch<Result>(
+            for displayID: CGDirectDisplayID,
+            _ body: (_ read: (VCPCode) -> DDCReadResult?) -> Result
+        ) -> Result
         /// Writes a VCP code value to a display.
         func write(vcp: VCPCode, value: UInt16, for displayID: CGDirectDisplayID) -> Bool
         /// Probes a display for DDC capabilities.
@@ -48,10 +53,27 @@
         ) -> HardwareDisplayCapability
     }
 
+    extension DDCInterface {
+        /// Without a batching transport, each read stands alone.
+        func withReadBatch<Result>(
+            for displayID: CGDirectDisplayID,
+            _ body: (_ read: (VCPCode) -> DDCReadResult?) -> Result
+        ) -> Result {
+            body { vcp in read(vcp: vcp, for: displayID) }
+        }
+    }
+
     /// Default DDC interface that delegates to the real DDCController.
     struct DefaultDDCInterface: DDCInterface {
         func read(vcp: VCPCode, for displayID: CGDirectDisplayID) -> DDCReadResult? {
             DDCController.read(vcp: vcp, for: displayID)
+        }
+
+        func withReadBatch<Result>(
+            for displayID: CGDirectDisplayID,
+            _ body: (_ read: (VCPCode) -> DDCReadResult?) -> Result
+        ) -> Result {
+            DDCController.withReadBatch(for: displayID, body)
         }
 
         func write(vcp: VCPCode, value: UInt16, for displayID: CGDirectDisplayID) -> Bool {
@@ -796,15 +818,17 @@
             // The display can be unplugged or DDC disabled mid-read; re-check before each
             // transaction so an abandoned poll never publishes values from a dead connection.
             let isLive = { sessionGate.isCurrent(session) && displayConnectionGate.isCurrent(connection) }
-            var results: [VCPCode: DDCReadResult] = [:]
-            for vcp in HardwareReadValues.codes where capability.supportedCodes.contains(vcp) {
-                if vcp == .brightness, skippingBrightness {
-                    continue
+            return ddcInterface.withReadBatch(for: displayID) { read in
+                var results: [VCPCode: DDCReadResult] = [:]
+                for vcp in HardwareReadValues.codes where capability.supportedCodes.contains(vcp) {
+                    if vcp == .brightness, skippingBrightness {
+                        continue
+                    }
+                    guard isLive() else { return nil }
+                    results[vcp] = read(vcp)
                 }
-                guard isLive() else { return nil }
-                results[vcp] = ddcInterface.read(vcp: vcp, for: displayID)
+                return HardwareReadValues(results: results)
             }
-            return HardwareReadValues(results: results)
         }
 
         /// Reads all supported VCP values for a display.
