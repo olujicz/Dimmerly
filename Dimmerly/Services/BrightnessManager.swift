@@ -220,7 +220,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
         /// Test initializer skips implicit private API probes; explicit hooks still exercise them.
         private let isTestingInstance: Bool
 
-        private enum BuiltInBrightnessReadResult {
+        private enum NativeBrightnessReadResult {
             case value(Double)
             case unavailable
             case failed
@@ -391,7 +391,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
         private func nativeBrightnessReadResult(
             for displayID: CGDirectDisplayID,
             isBuiltIn: Bool
-        ) -> BuiltInBrightnessReadResult {
+        ) -> NativeBrightnessReadResult {
             if !isBuiltIn, !HardwareBrightnessManager.shared.isExternalNativeBrightnessActive {
                 return .unavailable
             }
@@ -415,16 +415,6 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
                 nativeBrightnessReadsThisRefresh[displayID] = brightness
             }
             return .value(brightness)
-        }
-
-        private func builtInBrightnessReadResult(for displayID: CGDirectDisplayID) -> BuiltInBrightnessReadResult {
-            nativeBrightnessReadResult(for: displayID, isBuiltIn: true)
-        }
-
-        private func externalNativeBrightnessReadResult(
-            for displayID: CGDirectDisplayID
-        ) -> BuiltInBrightnessReadResult {
-            nativeBrightnessReadResult(for: displayID, isBuiltIn: false)
         }
 
         /// Sets the hardware backlight brightness of the built-in display.
@@ -469,7 +459,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
             for i in displays.indices where displays[i].isBuiltIn {
                 let displayID = displays[i].id
                 guard !softwareBacklightFallbackDisplayIDs.contains(displayID) else { continue }
-                switch builtInBrightnessReadResult(for: displayID) {
+                switch nativeBrightnessReadResult(for: displayID, isBuiltIn: true) {
                 case let .value(hw):
                     // A panel can report a native level below the app's interactive gamma
                     // floor. Preserve that hardware value rather than brightening it during the
@@ -492,7 +482,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
                 let displayID = displays[i].id
                 guard supportsNativeBacklight(for: displayID),
                       !hasExternalBacklightFallback(for: displayID),
-                      case let .value(brightness) = externalNativeBrightnessReadResult(for: displayID)
+                      case let .value(brightness) = nativeBrightnessReadResult(for: displayID, isBuiltIn: false)
                 else { continue }
                 if abs(displays[i].brightness - brightness) > 0.005 {
                     displays[i].brightness = brightness
@@ -640,7 +630,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
             // Apple-managed external backlights so DDC discovery can skip VCP 0x10.
             if HardwareBrightnessManager.shared.isExternalNativeBrightnessActive {
                 for displayID in externalDisplayIDs {
-                    _ = externalNativeBrightnessReadResult(for: displayID)
+                    _ = nativeBrightnessReadResult(for: displayID, isBuiltIn: false)
                 }
             }
 
@@ -784,7 +774,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
             if isBuiltIn {
                 let fallback = previousBrightness ?? clampedBrightness(savedBrightness ?? 1.0)
                 let fallbackActive = softwareBacklightFallbackDisplayIDs.contains(displayID)
-                switch builtInBrightnessReadResult(for: displayID) {
+                switch nativeBrightnessReadResult(for: displayID, isBuiltIn: true) {
                 case let .value(hardwareBrightness):
                     if fallbackActive {
                         // A successful read is only a retry opportunity after a write failure;
