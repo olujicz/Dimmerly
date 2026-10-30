@@ -526,7 +526,11 @@ final class ScheduleManagerTests: XCTestCase {
         let reloaded = ScheduleManager(defaults: testDefaults)
 
         XCTAssertEqual(reloaded.schedules.map(\.id), [first.id, last.id])
-        XCTAssertEqual(testDefaults.data(forKey: ScheduleManager.schedulesBackupKey), raw)
+        let backup = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: XCTUnwrap(testDefaults.data(forKey: ScheduleManager.schedulesBackupKey)))
+                as? [[String: Any]]
+        )
+        XCTAssertEqual(backup.map { $0["name"] as? String }, ["From a newer build"])
         XCTAssertEqual(testDefaults.data(forKey: ScheduleManager.schedulesKey), raw)
     }
 
@@ -536,11 +540,25 @@ final class ScheduleManagerTests: XCTestCase {
         let raw = try schedulesData(withUnknownTriggerBetween: first, and: last)
         testDefaults.set(raw, forKey: ScheduleManager.schedulesKey)
         let reloaded = ScheduleManager(defaults: testDefaults)
+        let backup = try XCTUnwrap(testDefaults.data(forKey: ScheduleManager.schedulesBackupKey))
 
         reloaded.toggleSchedule(id: first.id)
 
         XCTAssertEqual(reloaded.schedules.map(\.id), [first.id, last.id])
-        XCTAssertEqual(testDefaults.data(forKey: ScheduleManager.schedulesBackupKey), raw)
+        XCTAssertEqual(testDefaults.data(forKey: ScheduleManager.schedulesBackupKey), backup)
+    }
+
+    func testLoadRestoresBackedUpSchedulesThatThisBuildCanDecode() throws {
+        let current = makeSchedule(name: "Current", hour: 7)
+        let dropped = makeSchedule(name: "Dropped by an older build", hour: 22)
+        try testDefaults.set(JSONEncoder().encode([current]), forKey: ScheduleManager.schedulesKey)
+        try testDefaults.set(JSONEncoder().encode([dropped, current]), forKey: ScheduleManager.schedulesBackupKey)
+
+        let reloaded = ScheduleManager(defaults: testDefaults)
+
+        XCTAssertEqual(reloaded.schedules, [current, dropped])
+        XCTAssertNil(testDefaults.data(forKey: ScheduleManager.schedulesBackupKey))
+        XCTAssertEqual(ScheduleManager(defaults: testDefaults).schedules, [current, dropped])
     }
 
     func testLossyScheduleLoadKeepsAnExistingBackup() throws {
