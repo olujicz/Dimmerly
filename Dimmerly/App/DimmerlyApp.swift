@@ -244,7 +244,7 @@ struct DimmerlyApp: App {
             object: nil, queue: .main
         ) { [settings] notification in
             guard let idString = notification.object as? String, let id = UUID(uuidString: idString) else { return }
-            Task { @MainActor in
+            MainActor.assumeIsolated {
                 handleWidgetActionRequest(id) { $0.performInApp(settings: settings) }
             }
         }
