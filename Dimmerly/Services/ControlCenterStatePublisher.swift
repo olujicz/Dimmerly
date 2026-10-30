@@ -96,37 +96,50 @@ struct ControlCenterStatePublisher {
 @MainActor
 extension WidgetActionCommand {
     /// Runs a widget or Control Center command inside the app process.
-    func performInApp(settings: AppSettings = .shared) {
+    ///
+    /// Returns false when there was nothing to do it with: a preset that was deleted after the
+    /// widget or control was set up, or an ID that is not a preset ID at all. The other commands
+    /// publish whatever state they actually reached, so they report true.
+    @discardableResult
+    func performInApp(settings: AppSettings = .shared, presetManager: PresetManager = .shared) -> Bool {
         switch self {
         case .dimDisplays:
             DisplayAction.performSleep(settings: settings)
         case let .applyPreset(presetID):
-            guard let uuid = UUID(uuidString: presetID) else { return }
-            PresetManager.shared.applyPreset(id: uuid, to: BrightnessManager.shared, animated: true)
+            guard let uuid = UUID(uuidString: presetID), let preset = presetManager.preset(withID: uuid) else {
+                return false
+            }
+            presetManager.applyPreset(preset, to: BrightnessManager.shared, animated: true)
         case let .setDimming(value):
-            handleWidgetDimStateCommand(settings: settings, consumeCommand: { value })
+            handleWidgetDimStateCommand(value, settings: settings)
         case let .setAutoWarmth(value):
-            handleWidgetAutoWarmthCommand(settings: settings, consumeCommand: { value })
+            handleWidgetAutoWarmthCommand(value, settings: settings)
         }
+        return true
+    }
+
+    /// Runs the command for an intent the app performs itself, throwing the error the extension
+    /// would show for the same failure.
+    func performForIntent(settings: AppSettings = .shared) throws {
+        guard performInApp(settings: settings) else { throw WidgetActionExecution.failure(for: self) }
     }
 }
 
-/// Applies a pending dim toggle command written by the Control Center extension.
+/// Applies the Control Center dim toggle's requested state.
 /// Publishes actual blanking state before reloading, even when the action leaves it unchanged.
 @MainActor
 func handleWidgetDimStateCommand(
+    _ isDimmed: Bool,
     settings: AppSettings,
-    consumeCommand: () -> Bool? = { SharedConstants.consumeWidgetDimStateCommand() },
     setDimmed: (Bool, AppSettings) -> Void = { DisplayAction.setDimmed($0, settings: $1) },
     isBlankingAnyDisplay: () -> Bool = { ScreenBlanker.shared.isBlankingAnyDisplay },
     publisher: ControlCenterStatePublisher = .live
 ) {
-    guard let isDimmed = consumeCommand() else { return }
     setDimmed(isDimmed, settings)
     publisher.publishDimState(isBlankingAnyDisplay(), forceReload: true)
 }
 
-/// Applies a pending Auto Warmth toggle command written by the Control Center extension.
+/// Applies the Control Center Auto Warmth toggle's requested state.
 ///
 /// Only the setting changes here. The scene's `.onChange` on `autoColorTempEnabled` starts or
 /// stops the colour temperature manager, exactly as it does when the setting is changed in the
@@ -134,11 +147,10 @@ func handleWidgetDimStateCommand(
 /// next view update to read it.
 @MainActor
 func handleWidgetAutoWarmthCommand(
+    _ isEnabled: Bool,
     settings: AppSettings,
-    consumeCommand: () -> Bool? = { SharedConstants.consumeWidgetAutoWarmthCommand() },
     publisher: ControlCenterStatePublisher = .live
 ) {
-    guard let isEnabled = consumeCommand() else { return }
     settings.autoColorTempEnabled = isEnabled
     publisher.publishAutoWarmthState(settings.autoColorTempEnabled)
     publisher.refreshAutoWarmthToggle()

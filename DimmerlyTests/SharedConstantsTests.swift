@@ -2,7 +2,7 @@
 //  SharedConstantsTests.swift
 //  DimmerlyTests
 //
-//  Unit tests for shared app-group resolution.
+//  Unit tests for shared app-group resolution and widget action bookkeeping.
 //
 
 @testable import Dimmerly
@@ -46,64 +46,49 @@ final class SharedConstantsTests: XCTestCase {
         )
     }
 
-    func testConsumeWidgetDimCommandReturnsTrueOnceAndClearsCommand() {
-        SharedConstants.storeWidgetDimCommand(in: defaults)
+    func testWidgetActionOutcomeReportsWhatTheAppAcknowledged() {
+        let succeeded = UUID()
+        let failed = UUID()
+        let pending = UUID()
 
-        XCTAssertTrue(SharedConstants.consumeWidgetDimCommand(from: defaults))
-        XCTAssertFalse(SharedConstants.consumeWidgetDimCommand(from: defaults))
+        SharedConstants.acknowledgeWidgetAction(succeeded, succeeded: true, in: defaults)
+        SharedConstants.acknowledgeWidgetAction(failed, succeeded: false, in: defaults)
+
+        XCTAssertEqual(SharedConstants.widgetActionOutcome(succeeded, in: defaults), .succeeded)
+        XCTAssertEqual(SharedConstants.widgetActionOutcome(failed, in: defaults), .failed)
+        XCTAssertNil(SharedConstants.widgetActionOutcome(pending, in: defaults))
     }
 
-    @MainActor
-    func testHandleWidgetDimNotificationIgnoresMissingCommand() {
-        let settings = AppSettings()
-        var sleepCallCount = 0
+    /// An acknowledgement written after the extension stopped waiting, or a request left by an
+    /// extension that was killed mid-wait, is never removed by its own exchange. Launch clears
+    /// them, but keeps a request that is still live: the extension may have stored it while
+    /// LaunchServices was still starting the app.
+    func testDiscardingStaleWidgetActionKeysKeepsLiveRequestsOnly() throws {
+        let now = Date()
+        let live = WidgetActionRequest(command: .setDimming(true), expiresAt: now.addingTimeInterval(5))
+        let expired = WidgetActionRequest(command: .dimDisplays, expiresAt: now)
+        try SharedConstants.storeWidgetActionRequest(live, in: defaults)
+        try SharedConstants.storeWidgetActionRequest(expired, in: defaults)
+        defaults.set(Data([1, 2, 3]), forKey: "widgetActionRequest.\(UUID().uuidString)")
+        let orphanedAcknowledgement = UUID()
+        SharedConstants.acknowledgeWidgetAction(orphanedAcknowledgement, succeeded: true, in: defaults)
+        SharedConstants.publishControlState(true, forKey: SharedConstants.controlDimStateKey, in: defaults)
 
-        handleWidgetDimNotification(
-            settings: settings,
-            consumeCommand: { false },
-            performSleep: { _ in sleepCallCount += 1 }
+        SharedConstants.discardStaleWidgetActionKeys(in: defaults, now: now)
+
+        let remainingKeys = Set((defaults.persistentDomain(forName: defaultsSuiteName) ?? [:]).keys)
+        XCTAssertEqual(
+            remainingKeys,
+            ["widgetActionRequest.\(live.id.uuidString)", SharedConstants.controlDimStateKey]
         )
-
-        XCTAssertEqual(sleepCallCount, 0)
-    }
-
-    @MainActor
-    func testHandleWidgetDimNotificationPerformsSleepForPendingCommand() {
-        let settings = AppSettings()
-        var sleepCallCount = 0
-
-        handleWidgetDimNotification(
-            settings: settings,
-            consumeCommand: { true },
-            performSleep: { _ in sleepCallCount += 1 }
+        XCTAssertNil(SharedConstants.widgetActionOutcome(orphanedAcknowledgement, in: defaults))
+        XCTAssertEqual(
+            SharedConstants.consumeWidgetActionRequest(live.id, from: defaults, now: now)?.command,
+            .setDimming(true)
         )
-
-        XCTAssertEqual(sleepCallCount, 1)
     }
 
-    /// `sharedDefaults` is nil when the app-group suite can't be opened at all. Every widget
-    /// command helper takes `UserDefaults?` so that degrades to a no-op instead of trapping —
-    /// the widget buttons stop working, but neither process crashes.
-    func testWidgetCommandHelpersDegradeToNoOpWithoutSharedDefaults() {
-        SharedConstants.storeWidgetDimCommand(in: nil)
-        XCTAssertFalse(SharedConstants.consumeWidgetDimCommand(from: nil))
-
-        SharedConstants.storeWidgetPresetCommand(UUID().uuidString, in: nil)
-        XCTAssertNil(SharedConstants.consumeWidgetPresetCommand(from: nil))
-    }
-
-    func testConsumeWidgetPresetCommandReturnsUUIDOnceAndClearsCommand() {
-        let id = UUID()
-        SharedConstants.storeWidgetPresetCommand(id.uuidString, in: defaults)
-
-        XCTAssertEqual(SharedConstants.consumeWidgetPresetCommand(from: defaults), id)
-        XCTAssertNil(SharedConstants.consumeWidgetPresetCommand(from: defaults))
-    }
-
-    func testConsumeWidgetPresetCommandClearsInvalidCommand() {
-        SharedConstants.storeWidgetPresetCommand("not-a-uuid", in: defaults)
-
-        XCTAssertNil(SharedConstants.consumeWidgetPresetCommand(from: defaults))
-        XCTAssertNil(defaults.string(forKey: SharedConstants.widgetPresetCommandKey))
+    func testDiscardingStaleWidgetActionKeysWithoutSharedDefaultsIsANoOp() {
+        SharedConstants.discardStaleWidgetActionKeys(in: nil)
     }
 }
