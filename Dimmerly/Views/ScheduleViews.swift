@@ -124,6 +124,13 @@ struct AddScheduleSheet: View {
     @State private var offsetMinutes = 0
     @State private var selectedPresetID: UUID?
 
+    /// Starts on the first preset, so the picker never shows an empty choice that would only
+    /// disable Add.
+    init(presets: [BrightnessPreset]) {
+        self.presets = presets
+        _selectedPresetID = State(initialValue: presets.first?.id)
+    }
+
     var body: some View {
         Form {
             Section {
@@ -161,7 +168,6 @@ struct AddScheduleSheet: View {
                         .foregroundStyle(.secondary)
                 } else {
                     Picker("Apply", selection: $selectedPresetID) {
-                        Text("None").tag(nil as UUID?)
                         ForEach(presets) { preset in
                             Text(preset.name).tag(preset.id as UUID?)
                         }
@@ -180,11 +186,6 @@ struct AddScheduleSheet: View {
                 Button("Add") { addSchedule() }
                     .disabled(!isValid)
                     .help("Create this schedule")
-            }
-        }
-        .onAppear {
-            if let first = presets.first {
-                selectedPresetID = first.id
             }
         }
     }

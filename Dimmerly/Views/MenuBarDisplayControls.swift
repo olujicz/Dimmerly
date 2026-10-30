@@ -719,11 +719,12 @@ struct DisplayBrightnessRow: View {
                 onToggleBlank()
             }
             Divider()
-            Button("Set to Minimum") { onChange(BrightnessManager.minimumBrightness) }
+            // Brightest to dimmest, so Minimum follows 25% instead of sitting above 100%.
             Button("Set to 100%") { onChange(1.0) }
             Button("Set to 75%") { onChange(0.75) }
             Button("Set to 50%") { onChange(0.5) }
             Button("Set to 25%") { onChange(0.25) }
+            Button("Set to Minimum") { onChange(BrightnessManager.minimumBrightness) }
             Divider()
             Button("Reset Warmth") { onWarmthChange(0.0) }
             Button("Reset Contrast") { onContrastChange(ExternalDisplay.neutralContrast) }
