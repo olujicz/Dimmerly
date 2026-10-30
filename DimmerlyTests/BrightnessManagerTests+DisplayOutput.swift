@@ -1043,6 +1043,125 @@ extension BrightnessManagerTests {
         }
     }
 
+    @MainActor
+    extension BrightnessManagerTests {
+        /// Registers a DDC display with brightness support and records every DDC brightness write.
+        private func prepareRefreshedDDCDisplay(
+            _ displayID: CGDirectDisplayID,
+            manager: BrightnessManager
+        ) -> LockedWriteRecorder {
+            manager.displayIdentityHook = { _ in "ddc-display" }
+            manager.activeDisplayIDsHook = { [displayID] }
+            manager.isBuiltInDisplayHook = { _ in false }
+            manager.applyGammaHook = { _, _, _, _ in }
+            HardwareBrightnessManager.shared.capabilities[displayID] = HardwareDisplayCapability(
+                displayID: displayID,
+                supportsDDC: true,
+                supportedCodes: [.brightness],
+                maxBrightness: 100,
+                maxContrast: 0,
+                maxVolume: 0
+            )
+            let writes = LockedWriteRecorder()
+            manager.setExternalHardwareBrightnessHook = { id, value in
+                writes.record(code: .brightness, value: UInt16((value * 100).rounded()), displayID: id)
+            }
+            return writes
+        }
+
+        func testNewDDCDisplayAdoptsFirstReadInsteadOfWritingModelDefault() {
+            let displayID: CGDirectDisplayID = 61
+            let writes = prepareRefreshedDDCDisplay(displayID, manager: bm)
+
+            // Probe completion refreshes before the queued initial read lands.
+            bm.refreshDisplays()
+            XCTAssertTrue(writes.values.isEmpty, "A display the user never set must not get the model default")
+
+            bm.synchronizeExternalHardwareBrightness(for: displayID, to: 0.3)
+            XCTAssertEqual(bm.brightness(for: displayID), 0.3, accuracy: 0.0001)
+
+            bm.refreshDisplays()
+            bm.reapplyAll()
+            XCTAssertTrue(writes.values.isEmpty, "Refresh and wake must not echo a hardware-owned read")
+            XCTAssertEqual(bm.brightness(for: displayID), 0.3, accuracy: 0.0001)
+
+            bm.setBrightness(for: displayID, to: 0.6)
+            bm.refreshDisplays()
+            XCTAssertEqual(writes.values.map(\.value), [60, 60], "A user-set value is owned and restored on refresh")
+        }
+
+        func testDDCDisplayWithSavedBrightnessRestoresItOnRefresh() throws {
+            let suiteName = "BrightnessManagerTests-\(UUID().uuidString)"
+            let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+            defer { defaults.removePersistentDomain(forName: suiteName) }
+            defaults.set(["ddc-display": 0.45], forKey: "dimmerlyDisplayBrightness")
+            let manager = BrightnessManager(forTesting: true, defaults: defaults)
+            let displayID: CGDirectDisplayID = 62
+            let writes = prepareRefreshedDDCDisplay(displayID, manager: manager)
+
+            manager.refreshDisplays()
+
+            XCTAssertEqual(writes.values.map(\.value), [45])
+            XCTAssertEqual(manager.brightness(for: displayID), 0.45, accuracy: 0.0001)
+        }
+
+        func testDDCPresetTransitionClaimsBrightnessOfUnsetDisplay() async {
+            let displayID: CGDirectDisplayID = 63
+            let writes = prepareRefreshedDDCDisplay(displayID, manager: bm)
+            bm.canAnimateTransitionsHook = { true }
+            bm.refreshDisplays()
+            XCTAssertTrue(writes.values.isEmpty)
+
+            let finished = expectation(description: "Preset hardware brightness committed")
+            bm.setExternalHardwareBrightnessHook = { id, value in
+                writes.record(code: .brightness, value: UInt16((value * 100).rounded()), displayID: id)
+                finished.fulfill()
+            }
+            XCTAssertTrue(bm.animateToPreset(BrightnessPreset(name: "Dim", universalBrightness: 0.4)))
+            await fulfillment(of: [finished], timeout: 2)
+
+            XCTAssertEqual(writes.values.map(\.value), [40])
+        }
+
+        func testUnsetDDCDisplayBrightnessIsNotPersistedUntilTheUserSetsIt() throws {
+            let suiteName = "BrightnessManagerTests-\(UUID().uuidString)"
+            let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+            defer { defaults.removePersistentDomain(forName: suiteName) }
+            let manager = BrightnessManager(forTesting: true, defaults: defaults)
+            let displayID: CGDirectDisplayID = 64
+            _ = prepareRefreshedDDCDisplay(displayID, manager: manager)
+            manager.refreshDisplays()
+            manager.setWarmth(for: displayID, to: 0.3)
+
+            manager.persistAll()
+            let brightness = defaults.dictionary(forKey: "dimmerlyDisplayBrightness") as? [String: Double]
+            XCTAssertNil(brightness?["ddc-display"], "A persisted default would be pushed to DDC after relaunch")
+
+            manager.setBrightness(for: displayID, to: 0.5)
+            manager.persistAll()
+            XCTAssertEqual(
+                defaults.dictionary(forKey: "dimmerlyDisplayBrightness")?["ddc-display"] as? Double,
+                0.5
+            )
+        }
+
+        func testDDCReadBelowMinimumIsPreservedThroughRefresh() {
+            let displayID: CGDirectDisplayID = 65
+            let writes = prepareRefreshedDDCDisplay(displayID, manager: bm)
+            bm.displays = [ExternalDisplay(id: displayID, name: "External", brightness: 0.5)]
+
+            bm.synchronizeExternalHardwareBrightness(for: displayID, to: 0.05)
+            XCTAssertEqual(bm.brightness(for: displayID), 0.05, accuracy: 0.0001)
+
+            bm.refreshDisplays()
+            XCTAssertEqual(bm.brightness(for: displayID), 0.05, accuracy: 0.0001)
+            XCTAssertTrue(
+                writes.values.allSatisfy { $0.value == 5 },
+                "Refresh must not raise a hardware level below the slider minimum"
+            )
+        }
+    }
+
 #endif
 
 @MainActor
