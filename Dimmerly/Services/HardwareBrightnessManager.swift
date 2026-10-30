@@ -338,8 +338,9 @@
             nativeBrightnessWorkGate.beginEnabledSession()
         }
 
-        /// Test-only initializer that accepts a mock DDC interface.
-        init(
+        /// Test-only initializer: the same seams as `init`, but native backlight support
+        /// defaults to off so tests never consult the live display model for it.
+        convenience init(
             forTesting _: Bool,
             ddcInterface: DDCInterface = DefaultDDCInterface(),
             connectedExternalDisplayIDsProvider: @escaping () -> [CGDirectDisplayID] = {
@@ -353,12 +354,13 @@
             },
             nativeBrightnessSupportProvider: @escaping (CGDirectDisplayID) -> Bool = { _ in false }
         ) {
-            self.ddcInterface = ddcInterface
-            self.connectedExternalDisplayIDsProvider = connectedExternalDisplayIDsProvider
-            self.displayRefreshHandler = displayRefreshHandler
-            self.hardwareBrightnessReadHandler = hardwareBrightnessReadHandler
-            self.nativeBrightnessSupportProvider = nativeBrightnessSupportProvider
-            nativeBrightnessWorkGate.beginEnabledSession()
+            self.init(
+                ddcInterface: ddcInterface,
+                connectedExternalDisplayIDsProvider: connectedExternalDisplayIDsProvider,
+                displayRefreshHandler: displayRefreshHandler,
+                hardwareBrightnessReadHandler: hardwareBrightnessReadHandler,
+                nativeBrightnessSupportProvider: nativeBrightnessSupportProvider
+            )
         }
 
         // MARK: - Public API
