@@ -152,6 +152,27 @@ struct PresetShortcutRecorderButton: View {
     @State private var recorderID = UUID()
 
     var body: some View {
+        HStack(spacing: 4) {
+            recorderButton
+
+            // Mirrors the main recorder's trailing reset button. Hidden rather than removed
+            // when there is nothing to clear, so the recorder doesn't shift sideways.
+            Button {
+                onRecord(nil)
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.borderless)
+            .help(Text("Clear Shortcut"))
+            .accessibilityLabel(Text("Clear Shortcut for \(presetName)"))
+            .opacity(shortcut == nil ? 0 : 1)
+            .disabled(shortcut == nil || isRecording)
+            .accessibilityHidden(shortcut == nil)
+        }
+    }
+
+    private var recorderButton: some View {
         Button {
             isRecording.toggle()
         } label: {

@@ -978,7 +978,7 @@ extension MenuBarPanelTests {
     #endif
 }
 
-// MARK: - Panel Interactions
+// MARK: - Panel and Preset Row Interactions
 
 extension MenuBarPanelTests {
     func testPanelPresetDeleteUsesTheSettingsConfirmationWording() {
@@ -1004,6 +1004,15 @@ extension MenuBarPanelTests {
         XCTAssertTrue(source.contains("confirm(.updatePreset(named: preset.name))"))
         XCTAssertTrue(source.contains("confirm(.deletePreset(named: preset.name))"))
         XCTAssertTrue(source.contains("AlertPresenter.confirm(confirmation)"))
+    }
+
+    /// The preset recorder in Settings offers a visible clear button, not only a context menu.
+    func testPresetShortcutRecorderHasVisibleClearButton() throws {
+        let source = try Self.repositorySource("Dimmerly/Views/PresetManagementRow.swift")
+
+        XCTAssertTrue(source.contains("Image(systemName: \"xmark.circle.fill\")"))
+        XCTAssertTrue(source.contains(".accessibilityLabel(Text(\"Clear Shortcut for \\(presetName)\"))"))
+        XCTAssertTrue(source.contains(".accessibilityHidden(shortcut == nil)"))
     }
 
     static func repositorySource(_ relativePath: String) throws -> String {
