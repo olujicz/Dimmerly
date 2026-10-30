@@ -920,3 +920,60 @@ final class MenuBarPanelTests: XCTestCase {
         EnvironmentValues().closeMenuBarPanel()
     }
 }
+
+// MARK: - Control Availability
+
+@MainActor
+extension MenuBarPanelTests {
+    /// AppKit offers key equivalents to the window before the focused text field sees the
+    /// keystroke, so bare Return must not turn displays off while a preset is being named.
+    func testTurnOffReturnShortcutIsDroppedWhileNamingAPreset() {
+        XCTAssertEqual(
+            MenuBarPanel.turnOffShortcut(isAddingPreset: false),
+            KeyboardShortcut(.return, modifiers: [])
+        )
+        XCTAssertNil(MenuBarPanel.turnOffShortcut(isAddingPreset: true))
+    }
+
+    #if !APPSTORE
+        /// A monitor can report VCP volume without VCP mute. The row then has a volume
+        /// slider but no mute action, so the speaker must not be a button that does nothing.
+        func testVolumeWithoutMuteSupportShowsSpeakerIconInsteadOfMuteButton() throws {
+            let displayID: CGDirectDisplayID = 42
+            let manager = HardwareBrightnessManager(forTesting: true)
+            manager.enable()
+            manager.capabilities[displayID] = HardwareDisplayCapability(
+                displayID: displayID,
+                supportsDDC: true,
+                supportedCodes: [.brightness, .volume],
+                maxBrightness: 100,
+                maxContrast: 100,
+                maxVolume: 100
+            )
+            let row = DisplayBrightnessRow(
+                display: ExternalDisplay(id: displayID, name: "External", brightness: 0.6),
+                isBlanked: false,
+                onChange: { _ in },
+                onWarmthChange: { _ in },
+                onContrastChange: { _ in },
+                onToggleBlank: {}
+            )
+
+            let wired = row.ddcControls(hardwareManager: manager, displayID: displayID)
+
+            XCTAssertTrue(wired.hasDDC)
+            XCTAssertNotNil(wired.onVolumeChange)
+            XCTAssertNil(wired.onMuteToggle)
+
+            let source = try menuBarDisplayControlsSource()
+            XCTAssertTrue(
+                source.contains("if let onMuteToggle {"),
+                "The mute Button must only be built when a mute action exists"
+            )
+            XCTAssertFalse(
+                source.contains("onMuteToggle?()"),
+                "An optional-chained mute call means the Button can be shown without an action"
+            )
+        }
+    #endif
+}

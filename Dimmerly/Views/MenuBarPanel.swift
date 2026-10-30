@@ -222,6 +222,7 @@ struct MenuBarPanel: View {
     @State private var isSettingsHovered = false
     @State private var isQuitHovered = false
     @State private var scrollContentHeight: CGFloat = 200
+    @State private var isAddingPreset = false
 
     init(
         selectedPresetID: UUID? = nil,
@@ -304,7 +305,7 @@ struct MenuBarPanel: View {
     // MARK: - Presets
 
     private var presetsSection: some View {
-        PresetsSectionView(selectedPresetID: selectedPresetID)
+        PresetsSectionView(selectedPresetID: selectedPresetID, isAddingPreset: $isAddingPreset)
     }
 
     // MARK: - Turn Off Button
@@ -346,7 +347,7 @@ struct MenuBarPanel: View {
             .frame(maxWidth: .infinity)
         }
         .controlSize(.large)
-        .keyboardShortcut(.return, modifiers: [])
+        .keyboardShortcut(Self.turnOffShortcut(isAddingPreset: isAddingPreset))
         #if APPSTORE
             .accessibilityLabel(Text("Dim all displays"))
             .help("Dim all displays (↩)")
@@ -354,6 +355,13 @@ struct MenuBarPanel: View {
             .accessibilityLabel(settings.preventScreenLock ? Text("Dim all displays") : Text("Turn off all displays"))
             .help(settings.preventScreenLock ? Text("Dim all displays (↩)") : Text("Turn off all displays (↩)"))
         #endif
+    }
+
+    /// Bare Return turns displays off, except while the preset name field is showing: AppKit
+    /// offers key equivalents to the window before the focused field sees the keystroke, so
+    /// Return there must save the preset rather than turn the displays off.
+    static func turnOffShortcut(isAddingPreset: Bool) -> KeyboardShortcut? {
+        isAddingPreset ? nil : KeyboardShortcut(.return, modifiers: [])
     }
 
     // MARK: - Footer

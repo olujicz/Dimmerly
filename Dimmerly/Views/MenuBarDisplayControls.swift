@@ -582,17 +582,27 @@ struct DisplayBrightnessRow: View {
 
                     if hasDDC, onVolumeChange != nil {
                         HStack(spacing: 6) {
-                            Button {
-                                onMuteToggle?()
-                            } label: {
-                                Image(systemName: isMuted ? "speaker.slash.fill" : "speaker.wave.2")
+                            if let onMuteToggle {
+                                Button {
+                                    onMuteToggle()
+                                } label: {
+                                    Image(systemName: isMuted ? "speaker.slash.fill" : "speaker.wave.2")
+                                        .font(.caption2)
+                                        .frame(width: 12)
+                                        .foregroundStyle(isMuted ? .red : .secondary)
+                                }
+                                .buttonStyle(.borderless)
+                                .help(isMuted ? "Unmute" : "Mute")
+                                .accessibilityLabel(isMuted ? Text("Unmute") : Text("Mute"))
+                            } else {
+                                // The monitor reports volume but not mute: keep the icon
+                                // for alignment, but don't offer a control that does nothing.
+                                Image(systemName: "speaker.wave.2")
                                     .font(.caption2)
                                     .frame(width: 12)
-                                    .foregroundStyle(isMuted ? .red : .secondary)
+                                    .foregroundStyle(.secondary)
+                                    .accessibilityHidden(true)
                             }
-                            .buttonStyle(.borderless)
-                            .help(isMuted ? "Unmute" : "Mute")
-                            .accessibilityLabel(isMuted ? Text("Unmute") : Text("Mute"))
 
                             DisplayControlSlider(
                                 value: $volumeValue,

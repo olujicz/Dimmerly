@@ -107,12 +107,10 @@ enum DisplayNameResolver {
             ) == KERN_SUCCESS else { return nil }
             defer { IOObjectRelease(iterator) }
 
-            var service = IOIteratorNext(iterator)
-            while service != 0 {
-                defer {
-                    IOObjectRelease(service)
-                    service = IOIteratorNext(iterator)
-                }
+            // Fetch at the top and release per iteration, so an early `return` inside the
+            // loop doesn't pull (and leak) the next service the way a fetch in `defer` would.
+            while case let service = IOIteratorNext(iterator), service != 0 {
+                defer { IOObjectRelease(service) }
 
                 var properties: Unmanaged<CFMutableDictionary>?
                 guard IORegistryEntryCreateCFProperties(service, &properties, kCFAllocatorDefault, 0) == KERN_SUCCESS,
@@ -155,12 +153,10 @@ enum DisplayNameResolver {
             ) == KERN_SUCCESS else { return nil }
             defer { IOObjectRelease(iterator) }
 
-            var service = IOIteratorNext(iterator)
-            while service != 0 {
-                defer {
-                    IOObjectRelease(service)
-                    service = IOIteratorNext(iterator)
-                }
+            // Fetch at the top and release per iteration, so an early `return` inside the
+            // loop doesn't pull (and leak) the next service the way a fetch in `defer` would.
+            while case let service = IOIteratorNext(iterator), service != 0 {
+                defer { IOObjectRelease(service) }
 
                 var properties: Unmanaged<CFMutableDictionary>?
                 guard IORegistryEntryCreateCFProperties(service, &properties, kCFAllocatorDefault, 0) == KERN_SUCCESS,
