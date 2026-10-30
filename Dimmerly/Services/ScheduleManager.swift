@@ -407,6 +407,6 @@ class ScheduleManager {
 
     // MARK: - Lifecycle
 
-    // No deinit needed: the manager is held by @State in DimmerlyApp for the app's
+    // No deinit needed: the manager is owned by AppServices for the app's
     // lifetime, and polling stops when `apply(enabled: false)` is called.
 }

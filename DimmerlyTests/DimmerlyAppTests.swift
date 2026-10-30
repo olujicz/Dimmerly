@@ -123,6 +123,32 @@ final class DimmerlyAppTests: XCTestCase {
         )
     }
 
+    func testLaunchSetupRunsOnceWhenLaunchingFinishesWithoutAnyView() {
+        var setupRuns = 0
+        let services = AppServices(launchSetupOverride: { setupRuns += 1 })
+        let delegate = DimmerlyAppDelegate(services: services, isHostingUnitTests: false)
+        XCTAssertFalse(services.isConfigured)
+
+        let didFinishLaunching = Notification(name: NSApplication.didFinishLaunchingNotification)
+        delegate.applicationDidFinishLaunching(didFinishLaunching)
+        delegate.applicationDidFinishLaunching(didFinishLaunching)
+        services.configure()
+
+        XCTAssertEqual(setupRuns, 1)
+        XCTAssertTrue(services.isConfigured)
+    }
+
+    func testLaunchSetupIsSkippedWhileHostingUnitTests() {
+        var setupRuns = 0
+        let services = AppServices(launchSetupOverride: { setupRuns += 1 })
+        let delegate = DimmerlyAppDelegate(services: services, isHostingUnitTests: true)
+
+        delegate.applicationDidFinishLaunching(Notification(name: NSApplication.didFinishLaunchingNotification))
+
+        XCTAssertEqual(setupRuns, 0, "A test run must not configure the app against real displays")
+        XCTAssertFalse(services.isConfigured)
+    }
+
     func testDiscardingLegacyWidgetCommandsPreservesPublishedStateAndPresets() throws {
         let suiteName = "WidgetLaunchTests-\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
