@@ -128,7 +128,6 @@ struct DisplaySettingsTab: View {
         return Section {
             Toggle("Auto-dim after inactivity", isOn: $settings.idleTimerEnabled)
                 .help("Automatically dim displays after a period of inactivity")
-                .accessibilityValue(settings.idleTimerEnabled ? "\(settings.idleTimerMinutes) minutes" : "Off")
 
             if settings.idleTimerEnabled {
                 Stepper(value: $settings.idleTimerMinutes, in: 1 ... 60) {
@@ -177,11 +176,6 @@ struct DisplaySettingsTab: View {
         return Section {
             Toggle("Automatic color temperature", isOn: $settings.autoColorTempEnabled)
                 .help("Adjust warmth automatically based on sunrise and sunset")
-                .accessibilityValue(
-                    settings.autoColorTempEnabled
-                        ? "\(settings.dayTemperature)K day, \(settings.nightTemperature)K night"
-                        : "Off"
-                )
 
             if settings.autoColorTempEnabled {
                 LocationPickerRow()
