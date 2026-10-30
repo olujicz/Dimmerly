@@ -212,6 +212,11 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
         /// for discovery and initial state, but a failed/transient read must not erase the model.
         private var nativeBrightnessReadsThisRefresh: [CGDirectDisplayID: Double] = [:]
 
+        /// External display identities that appeared with neither a saved nor a live brightness.
+        /// Their model value is only a default, so DDC is never written from it: the display
+        /// adopts its hardware reads until a user, preset, or schedule change claims it.
+        private var unclaimedExternalBrightnessIdentities: Set<String> = []
+
         /// Test initializer skips implicit private API probes; explicit hooks still exercise them.
         private let isTestingInstance: Bool
 
@@ -820,7 +825,14 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
             }
         #endif
 
-        return (clampedBrightness(previousBrightness ?? savedBrightness ?? 1.0), false)
+        #if !APPSTORE
+            if previousBrightness == nil, savedBrightness == nil {
+                unclaimedExternalBrightnessIdentities.insert(displayIdentity(for: displayID))
+            }
+        #endif
+        // Like the built-in path, keep a live value exact: it can only be below the slider
+        // minimum when it came from a hardware read, and raising it would brighten the panel.
+        return (previousBrightness ?? clampedBrightness(savedBrightness ?? 1.0), false)
     }
 
     private func clampedBrightness(_ value: Double) -> Double {
@@ -841,6 +853,9 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
 
         guard let index = displays.firstIndex(where: { $0.id == displayID }) else { return }
         displays[index].brightness = clamped
+        #if !APPSTORE
+            unclaimedExternalBrightnessIdentities.remove(displayIdentity(for: displayID))
+        #endif
 
         cancelActiveTransition()
         debouncePersist()
@@ -1078,6 +1093,11 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
         let hardwareBrightnessDisplayIDs = Set(targets.compactMap { target in
             target.end.brightness == nil ? nil : target.displayID
         })
+        #if !APPSTORE
+            for displayID in hardwareBrightnessDisplayIDs {
+                unclaimedExternalBrightnessIdentities.remove(displayIdentity(for: displayID))
+            }
+        #endif
 
         let task = Task { @MainActor in
             let steps = Self.transitionSteps
@@ -1228,7 +1248,14 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
             // re-enumerated under a different CGDirectDisplayID.
             let key = displayIdentity(for: display.id)
             let legacyKey = String(display.id)
-            brightnessDict[key] = display.brightness
+            #if !APPSTORE
+                // A persisted default would be restored as a claimed value after relaunch.
+                if !unclaimedExternalBrightnessIdentities.contains(key) {
+                    brightnessDict[key] = display.brightness
+                }
+            #else
+                brightnessDict[key] = display.brightness
+            #endif
             warmthDict[key] = display.warmth
             contrastDict[key] = display.contrast
             if key != legacyKey {
@@ -1271,7 +1298,9 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
                       && supportsNativeBacklight(for: displayID))
             else { return }
 
-            let brightness = clampedBrightness(value)
+            // Mirror the built-in path: a hardware level below the slider minimum is real state,
+            // not a request to raise.
+            let brightness = min(max(value, 0.0), 1.0)
             guard abs(displays[index].brightness - brightness) > 0.005 else { return }
             displays[index].brightness = brightness
             debouncePersist()
@@ -1328,7 +1357,9 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
                 externalBacklightFallbackIdentities[display.id] =
                     setExternalNativeBacklight(for: display.id, to: display.brightness)
                         ? nil : displayIdentity(for: display.id)
-            } else if output == .ddc {
+            } else if output == .ddc, !suppressHardwareBrightnessWrite,
+                      !unclaimedExternalBrightnessIdentities.contains(displayIdentity(for: display.id))
+            {
                 setExternalHardwareBrightness(for: display.id, to: display.brightness)
             }
         #endif
