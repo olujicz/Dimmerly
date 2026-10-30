@@ -32,120 +32,33 @@ import Observation
     @MainActor
     @Observable
     class PresetShortcutManager {
-        typealias PermissionChecker = @MainActor () -> Bool
-        typealias GlobalMonitorInstaller = @MainActor (@escaping (NSEvent) -> Void) -> Any?
-        typealias LocalMonitorInstaller = @MainActor (@escaping (NSEvent) -> NSEvent?) -> Any?
-        typealias MonitorRemover = @MainActor (Any) -> Void
-        /// Whether a recorder overlay is capturing keys, in which case normal actions stay suppressed.
-        /// Injected like the monitor seams so `handleKeyEvent` is testable without the shared coordinator.
-        typealias RecordingSuppressionChecker = @MainActor () -> Bool
-        typealias PermissionChangeHandler = KeyboardShortcutManager.PermissionChangeHandler
-        typealias PermissionChangeObserver = KeyboardShortcutManager.PermissionChangeObserver
-
         /// Callback invoked when a preset shortcut is pressed (passes preset ID)
         var onPresetTriggered: ((UUID) -> Void)?
 
-        /// Global event monitor (active when app is not frontmost)
-        private var globalEventMonitor: Any?
+        /// Owns the event monitors. Its bindings are the active (preset ID, shortcut) pairs in
+        /// preset order, compared against incoming bindings so unrelated preset edits don't
+        /// needlessly restart monitoring.
+        private let monitor: NSEventShortcutMonitor
 
-        /// Local event monitor (active when app is frontmost)
-        private var localEventMonitor: Any?
-
-        private struct ShortcutBinding: Equatable {
-            let presetID: UUID
-            let shortcut: GlobalShortcut
-        }
-
-        /// Active bindings, in preset order. Also compared against incoming bindings so
-        /// unrelated preset edits don't needlessly restart monitoring.
-        private var presetShortcuts: [ShortcutBinding] = []
-
-        private let permissionChecker: PermissionChecker
-        private let globalMonitorInstaller: GlobalMonitorInstaller
-        private let localMonitorInstaller: LocalMonitorInstaller
-        private let monitorRemover: MonitorRemover
-        private let isRecordingSuppressed: RecordingSuppressionChecker
-
-        init(
-            permissionChecker: @escaping PermissionChecker = KeyboardShortcutManager.checkAccessibilityPermission,
-            globalMonitorInstaller: @escaping GlobalMonitorInstaller = { handler in
-                NSEvent.addGlobalMonitorForEvents(matching: .keyDown, handler: handler)
-            },
-            localMonitorInstaller: @escaping LocalMonitorInstaller = { handler in
-                NSEvent.addLocalMonitorForEvents(matching: .keyDown, handler: handler)
-            },
-            monitorRemover: @escaping MonitorRemover = { monitor in
-                NSEvent.removeMonitor(monitor)
-            },
-            isRecordingSuppressed: @escaping RecordingSuppressionChecker = {
-                ShortcutRecordingCoordinator.shared.isRecording
-            },
-            permissionChangeObserver: PermissionChangeObserver = KeyboardShortcutManager
-                .observeAccessibilityPermissionChanges
-        ) {
-            self.permissionChecker = permissionChecker
-            self.globalMonitorInstaller = globalMonitorInstaller
-            self.localMonitorInstaller = localMonitorInstaller
-            self.monitorRemover = monitorRemover
-            self.isRecordingSuppressed = isRecordingSuppressed
-            permissionChangeObserver { [weak self] in
-                self?.refreshAccessibilityPermissionAndRestartIfNeeded()
-            }
+        init(monitor: NSEventShortcutMonitor = NSEventShortcutMonitor()) {
+            self.monitor = monitor
+            monitor.onTriggered = { [weak self] id in self?.onPresetTriggered?(id) }
         }
 
         /// Updates the registered shortcuts from the current preset list.
         func updateShortcuts(from presets: [BrightnessPreset]) {
-            let bindings: [ShortcutBinding] = presets.compactMap { preset in
+            let bindings: [NSEventShortcutMonitor.Binding] = presets.compactMap { preset in
                 guard let shortcut = preset.shortcut else { return nil }
-                return ShortcutBinding(presetID: preset.id, shortcut: shortcut)
+                return .init(id: preset.id, shortcut: shortcut)
             }
 
-            guard bindings != presetShortcuts else { return }
-            presetShortcuts = bindings
+            guard bindings != monitor.bindings else { return }
+            monitor.bindings = bindings
 
-            if presetShortcuts.isEmpty {
-                stopMonitoring()
+            if bindings.isEmpty {
+                monitor.stop()
             } else {
-                startMonitoring()
-            }
-        }
-
-        private func startMonitoring() {
-            stopMonitoring()
-
-            guard permissionChecker() else { return }
-
-            globalEventMonitor = globalMonitorInstaller { [weak self] event in
-                let keyCode = event.keyCode
-                let modifierFlags = event.modifierFlags
-                Task { @MainActor in
-                    _ = self?.handleKeyEvent(keyCode: keyCode, modifierFlags: modifierFlags)
-                }
-            }
-
-            // Matched events are swallowed (return nil) instead of always passing through —
-            // otherwise a preset shortcut both applies the preset and reaches whatever UI
-            // element has focus. The match check runs synchronously via
-            // `MainActor.assumeIsolated`, since NSEvent local monitor callbacks always fire
-            // on the main thread.
-            localEventMonitor = localMonitorInstaller { [weak self] event in
-                let keyCode = event.keyCode
-                let modifierFlags = event.modifierFlags
-                let matched = MainActor.assumeIsolated {
-                    self?.handleKeyEvent(keyCode: keyCode, modifierFlags: modifierFlags) ?? false
-                }
-                return matched ? nil : event
-            }
-        }
-
-        private func stopMonitoring() {
-            if let monitor = globalEventMonitor {
-                monitorRemover(monitor)
-                globalEventMonitor = nil
-            }
-            if let monitor = localEventMonitor {
-                monitorRemover(monitor)
-                localEventMonitor = nil
+                monitor.start()
             }
         }
 
@@ -153,36 +66,14 @@ import Observation
         /// when permission was granted after the shortcut set was already registered, or stops
         /// it if permission was revoked. Called automatically on permission-change notifications.
         func refreshAccessibilityPermissionAndRestartIfNeeded() {
-            guard permissionChecker() else {
-                stopMonitoring()
-                return
-            }
-            guard !presetShortcuts.isEmpty,
-                  globalEventMonitor == nil,
-                  localEventMonitor == nil
-            else {
-                return
-            }
-            startMonitoring()
-        }
-
-        /// - Returns: `true` if the event matched a registered preset shortcut (and the callback fired).
-        @discardableResult
-        private func handleKeyEvent(keyCode: UInt16, modifierFlags: NSEvent.ModifierFlags) -> Bool {
-            guard !isRecordingSuppressed(),
-                  let binding = presetShortcuts.first(where: {
-                      $0.shortcut.matches(keyCode: keyCode, modifierFlags: modifierFlags)
-                  })
-            else { return false }
-            onPresetTriggered?(binding.presetID)
-            return true
+            monitor.refreshAccessibilityPermissionAndRestartIfNeeded()
         }
 
         // MARK: - Lifecycle
 
         // Note: deinit intentionally omitted to avoid @MainActor data race warnings in Swift 6.
         // This manager is held by @State in DimmerlyApp for the app's lifetime, so deinit
-        // never executes. Cleanup is handled explicitly via stopMonitoring() when presets are empty.
+        // never executes. Cleanup is handled by stopping the monitor when presets are empty.
     }
 
 #endif
