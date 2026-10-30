@@ -1042,6 +1042,25 @@ extension MenuBarPanelTests {
         }
     #endif
 
+    /// Disabled controls draw their own dimmed state; only the decoration beside them fades.
+    func testBlankedDisplayControlsAreDimmedOnce() throws {
+        let source = try Self.repositorySource("Dimmerly/Views/MenuBarDisplayControls.swift")
+
+        XCTAssertFalse(source.contains(".opacity(isBlanked ?"))
+        XCTAssertTrue(source.contains(".disabled(isBlanked)"))
+        XCTAssertTrue(source.contains(".dimmedWhenDisabled()"))
+    }
+
+    func testHintsAndRowButtonsKeepReadableContrast() throws {
+        let presetControls = try Self.repositorySource("Dimmerly/Views/MenuBarPresetControls.swift")
+        XCTAssertFalse(presetControls.contains(".foregroundStyle(.quaternary)"))
+
+        for path in ["Dimmerly/Views/PresetManagementRow.swift", "Dimmerly/Views/ScheduleViews.swift"] {
+            let source = try Self.repositorySource(path)
+            XCTAssertFalse(source.contains("? 1 : 0.3)"), "\(path) fades a row button until hover")
+        }
+    }
+
     static func repositorySource(_ relativePath: String) throws -> String {
         let url = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()

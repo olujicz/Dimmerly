@@ -28,9 +28,6 @@ struct PresetManagementRow: View {
     @State private var editedName: String = ""
     @State private var conflictMessage: String?
     @State private var showDeleteConfirmation = false
-    @State private var isHovered = false
-    @FocusState private var renameButtonFocused: Bool
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         HStack {
@@ -61,8 +58,6 @@ struct PresetManagementRow: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.borderless)
-                .opacity(isHovered || renameButtonFocused ? 1 : 0.3)
-                .focused($renameButtonFocused)
                 .accessibilityLabel(Text("Rename \(preset.name)"))
                 .help(Text("Rename Preset"))
             }
@@ -119,8 +114,6 @@ struct PresetManagementRow: View {
                 Text("\"\(preset.name)\" will be permanently deleted.")
             }
         }
-        .onHover { isHovered = $0 }
-        .animation(reduceMotion ? nil : .spring(response: 0.2, dampingFraction: 0.8), value: isHovered)
 
         if let conflictMessage {
             Label(conflictMessage, systemImage: "exclamationmark.triangle.fill")

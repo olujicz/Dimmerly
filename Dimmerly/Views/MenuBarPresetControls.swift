@@ -167,7 +167,7 @@ struct PresetsSectionView: View {
         } else {
             Text("\u{2318}\((index + 1) % 10)")
                 .font(.caption)
-                .foregroundStyle(.quaternary)
+                .foregroundStyle(.secondary)
         }
     }
 

@@ -199,6 +199,24 @@ private struct SliderSnapMarkerLayer: View {
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+        .dimmedWhenDisabled()
+    }
+}
+
+extension View {
+    /// Fades decoration that sits beside a control (icons, captions, snap ticks) when the
+    /// control is disabled. Controls draw their own disabled state, so only the decoration
+    /// is faded here; fading a whole row with `.opacity` dimmed the controls twice.
+    func dimmedWhenDisabled() -> some View {
+        modifier(DisabledDecorationOpacity())
+    }
+}
+
+private struct DisabledDecorationOpacity: ViewModifier {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func body(content: Content) -> some View {
+        content.opacity(isEnabled ? 1 : 0.4)
     }
 }
 
@@ -408,6 +426,7 @@ struct DisplayBrightnessRow: View {
                     .frame(width: 12)
                     .foregroundStyle(.secondary)
                     .accessibilityHidden(true)
+                    .dimmedWhenDisabled()
 
                 DisplayControlSlider(
                     value: $sliderValue,
@@ -438,8 +457,8 @@ struct DisplayBrightnessRow: View {
                     .frame(width: 12)
                     .foregroundStyle(.secondary)
                     .accessibilityHidden(true)
+                    .dimmedWhenDisabled()
             }
-            .opacity(isBlanked ? 0.4 : 1.0)
             .disabled(isBlanked)
 
             if showAdjustments {
@@ -450,6 +469,7 @@ struct DisplayBrightnessRow: View {
                             .frame(width: 12)
                             .foregroundStyle(.blue)
                             .accessibilityHidden(true)
+                            .dimmedWhenDisabled()
 
                         DisplayControlSlider(
                             value: $warmthValue,
@@ -481,6 +501,7 @@ struct DisplayBrightnessRow: View {
                             .frame(width: 12)
                             .foregroundStyle(.orange)
                             .accessibilityHidden(true)
+                            .dimmedWhenDisabled()
                     }
 
                     HStack {
@@ -508,8 +529,8 @@ struct DisplayBrightnessRow: View {
                         Spacer()
                     }
                     .padding(.leading, 18)
+                    .dimmedWhenDisabled()
                 }
-                .opacity(isBlanked ? 0.4 : 1.0)
                 .disabled(isBlanked)
                 .transition(.opacity.combined(with: .move(edge: .top)))
                 .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8), value: showAdjustments)
@@ -520,6 +541,7 @@ struct DisplayBrightnessRow: View {
                         .frame(width: 12)
                         .foregroundStyle(.secondary)
                         .accessibilityHidden(true)
+                        .dimmedWhenDisabled()
 
                     DisplayControlSlider(
                         value: $contrastValue,
@@ -550,8 +572,8 @@ struct DisplayBrightnessRow: View {
                         .frame(width: 12)
                         .foregroundStyle(.secondary)
                         .accessibilityHidden(true)
+                        .dimmedWhenDisabled()
                 }
-                .opacity(isBlanked ? 0.4 : 1.0)
                 .disabled(isBlanked)
                 .transition(.opacity.combined(with: .move(edge: .top)))
 
@@ -588,6 +610,7 @@ struct DisplayBrightnessRow: View {
                                     .frame(width: 12)
                                     .foregroundStyle(.secondary)
                                     .accessibilityHidden(true)
+                                    .dimmedWhenDisabled()
                             }
 
                             DisplayControlSlider(
@@ -619,8 +642,8 @@ struct DisplayBrightnessRow: View {
                                 .frame(width: 12)
                                 .foregroundStyle(.secondary)
                                 .accessibilityHidden(true)
+                                .dimmedWhenDisabled()
                         }
-                        .opacity(isBlanked ? 0.4 : 1.0)
                         .disabled(isBlanked)
                         .transition(.opacity.combined(with: .move(edge: .top)))
                     }
@@ -634,6 +657,7 @@ struct DisplayBrightnessRow: View {
                                 .frame(width: 12)
                                 .foregroundStyle(.secondary)
                                 .accessibilityHidden(true)
+                                .dimmedWhenDisabled()
 
                             // A Menu keeps the input list compact without adding vertical space.
                             // The inline Picker inside it gives the items native checkmarks and
@@ -674,7 +698,6 @@ struct DisplayBrightnessRow: View {
                                 activeInputSource?.displayName ?? String(localized: "No input source detected")
                             )
                         }
-                        .opacity(isBlanked ? 0.4 : 1.0)
                         .disabled(isBlanked)
                         .transition(.opacity.combined(with: .move(edge: .top)))
                         // Warn that switching away from the current input may lose the display.
