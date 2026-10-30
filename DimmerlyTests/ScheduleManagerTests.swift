@@ -307,6 +307,72 @@ final class ScheduleManagerTests: XCTestCase {
         XCTAssertEqual(triggerCount, 2, "Should fire again on a new day")
     }
 
+    // MARK: - Relaunch
+
+    /// A new manager on the same defaults stands in for the app relaunching.
+    private func relaunchedManager() -> ScheduleManager {
+        ScheduleManager(defaults: testDefaults, locationCoordinates: { (latitude: 0.0, longitude: -40.0) })
+    }
+
+    func testRelaunchShortlyAfterTriggerDoesNotRefire() {
+        var triggerCount = 0
+        manager.onScheduleTriggered = { _ in triggerCount += 1 }
+        manager.addSchedule(makeSchedule(hour: 22, minute: 0))
+
+        manager.checkSchedules(now: makeDate(hour: 21, minute: 59, second: 30))
+        manager.checkSchedules(now: makeDate(hour: 22, minute: 0, second: 30))
+        XCTAssertEqual(triggerCount, 1)
+
+        let relaunched = relaunchedManager()
+        relaunched.onScheduleTriggered = { _ in triggerCount += 1 }
+        relaunched.checkSchedules(now: makeDate(hour: 22, minute: 1))
+
+        XCTAssertEqual(triggerCount, 1, "A relaunch must not re-apply a schedule that already fired")
+    }
+
+    func testRelaunchJustAfterMidnightDoesNotRefireLateTrigger() {
+        var triggerCount = 0
+        manager.onScheduleTriggered = { _ in triggerCount += 1 }
+        manager.addSchedule(makeSchedule(hour: 23, minute: 59))
+
+        manager.checkSchedules(now: makeDate(day: 1, hour: 23, minute: 58, second: 50))
+        manager.checkSchedules(now: makeDate(day: 1, hour: 23, minute: 59, second: 20))
+        manager.checkSchedules(now: makeDate(day: 2, hour: 0, minute: 0, second: 10))
+        XCTAssertEqual(triggerCount, 1)
+
+        let relaunched = relaunchedManager()
+        relaunched.onScheduleTriggered = { _ in triggerCount += 1 }
+        relaunched.checkSchedules(now: makeDate(day: 2, hour: 0, minute: 0, second: 40))
+
+        XCTAssertEqual(triggerCount, 1, "Yesterday's late trigger must not re-fire after a relaunch past midnight")
+    }
+
+    func testFirstLaunchShortlyAfterTriggerStillFires() {
+        var triggerCount = 0
+        manager.onScheduleTriggered = { _ in triggerCount += 1 }
+        manager.addSchedule(makeSchedule(hour: 22, minute: 0))
+
+        manager.checkSchedules(now: makeDate(hour: 22, minute: 1))
+
+        XCTAssertEqual(triggerCount, 1, "Launching just after an unfired trigger should still apply it")
+    }
+
+    func testRelaunchNextDayFiresAgain() {
+        var triggerCount = 0
+        manager.onScheduleTriggered = { _ in triggerCount += 1 }
+        manager.addSchedule(makeSchedule(hour: 22, minute: 0))
+
+        manager.checkSchedules(now: makeDate(day: 1, hour: 21, minute: 59, second: 30))
+        manager.checkSchedules(now: makeDate(day: 1, hour: 22, minute: 0, second: 30))
+        XCTAssertEqual(triggerCount, 1)
+
+        let relaunched = relaunchedManager()
+        relaunched.onScheduleTriggered = { _ in triggerCount += 1 }
+        relaunched.checkSchedules(now: makeDate(day: 2, hour: 22, minute: 1))
+
+        XCTAssertEqual(triggerCount, 2, "Fire state from an earlier day must not block today's trigger")
+    }
+
     func testUpdateScheduleClearsSameDayFiredState() {
         var triggerCount = 0
         manager.onScheduleTriggered = { _ in triggerCount += 1 }
