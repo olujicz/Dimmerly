@@ -415,9 +415,16 @@ final class AppServices {
 @MainActor
 final class DimmerlyAppDelegate: NSObject, NSApplicationDelegate {
     let services: AppServices
+    /// When the app only hosts the unit tests, launch setup is skipped so a test run doesn't
+    /// apply schedules, color temperature, or hardware control to the developer's displays.
+    private let isHostingUnitTests: Bool
 
-    init(services: AppServices) {
+    init(
+        services: AppServices,
+        isHostingUnitTests: Bool = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+    ) {
         self.services = services
+        self.isHostingUnitTests = isHostingUnitTests
         super.init()
     }
 
@@ -426,6 +433,7 @@ final class DimmerlyAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_: Notification) {
+        guard !isHostingUnitTests else { return }
         services.configure()
     }
 
