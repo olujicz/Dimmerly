@@ -21,6 +21,19 @@ import Foundation
 /// - **App Store build**: Always uses gamma-based blanking (sandbox prevents pmset)
 /// - **Direct download build**: Respects user preference (pmset vs blanking)
 enum DisplayAction {
+    /// What `performSleep(settings:)` does with the current settings and build.
+    ///
+    /// Every place that names the action reads this, so the panel, the menus, the widgets, and
+    /// the Control Center button never promise a dim when the displays will sleep and lock.
+    @MainActor
+    static func offMode(settings: AppSettings) -> DisplayOffMode {
+        #if APPSTORE
+            .dim
+        #else
+            settings.preventScreenLock ? .dim : .turnOff
+        #endif
+    }
+
     /// Performs the display sleep/blank action based on app settings and build configuration.
     ///
     /// Decision tree:
@@ -57,26 +70,27 @@ enum DisplayAction {
 
     /// Turns dimming on or off for the Control Center dim toggle.
     ///
-    /// Turning it on runs the same action as every other "dim" entry point, so the toggle and the
-    /// Dim Displays button never disagree. Turning it off wakes every display Dimmerly is blanking,
-    /// whether blanked globally or one at a time. Real display sleep through `pmset` leaves nothing
-    /// for Dimmerly to undo, since macOS wakes the displays itself on input.
+    /// Turning it on always blanks the displays, even when "Turn Displays Off" is chosen in
+    /// Settings. The toggle shows whether Dimmerly is blanking a display; real display sleep
+    /// through `pmset` leaves no such state, so the toggle would snap back off and misreport what
+    /// happened. Turning it off wakes every display Dimmerly is blanking, whether blanked globally
+    /// or one at a time.
     ///
     /// - Parameters:
     ///   - isDimmed: The state the toggle asked for.
     ///   - settings: Current app settings, used when dimming.
     ///   - blanker: The blanker to wake. Injectable for tests.
-    ///   - performSleep: The dim action. Injectable for tests.
+    ///   - blank: The dim action. Injectable for tests.
     @MainActor
     static func setDimmed(
         _ isDimmed: Bool,
         settings: AppSettings,
         blanker: ScreenBlanker = .shared,
-        performSleep: (AppSettings) -> Void = { DisplayAction.performSleep(settings: $0) }
+        blank: (AppSettings) -> Void = { DisplayAction.blankWithSettings($0) }
     ) {
         if isDimmed {
             guard !blanker.isBlankingAnyDisplay else { return }
-            performSleep(settings)
+            blank(settings)
         } else {
             blanker.dismiss(force: true)
         }
@@ -84,7 +98,7 @@ enum DisplayAction {
 
     /// Configures ScreenBlanker from app settings and triggers blanking.
     @MainActor
-    private static func blankWithSettings(_ settings: AppSettings) {
+    static func blankWithSettings(_ settings: AppSettings) {
         ScreenBlanker.shared.ignoreMouseMovement = settings.ignoreMouseMovement
         let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         ScreenBlanker.shared.useFadeTransition = settings.fadeTransition && !reduceMotion

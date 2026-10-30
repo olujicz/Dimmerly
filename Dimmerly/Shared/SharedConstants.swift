@@ -29,6 +29,8 @@ enum SharedConstants {
     /// never writes these keys, so a toggle can only show what the running app really did.
     static let controlDimStateKey = "controlDimState"
     static let controlAutoWarmthStateKey = "controlAutoWarmthState"
+    /// What the dim button does, so the widgets and the Control Center button can name it.
+    static let displayOffModeKey = "displayOffMode"
 
     /// Control Center control kinds. The main app reloads controls by kind when the state
     /// they show changes, so these must match the kinds the widget extension declares.
@@ -253,6 +255,28 @@ enum SharedConstants {
         return true
     }
 
+    /// What the dim button does in the app, as the app last published it.
+    ///
+    /// App Store builds always dim, because the sandbox rules out real display sleep. Direct
+    /// builds read the published mode. Missing or unreadable state reads as turning displays
+    /// off: that is the setting's default, and a button that says "dim" must never lock the Mac.
+    static func publishedDisplayOffMode(in defaults: UserDefaults? = sharedDefaults) -> DisplayOffMode {
+        #if APPSTORE
+            .dim
+        #else
+            defaults?.string(forKey: displayOffModeKey).flatMap(DisplayOffMode.init(rawValue:)) ?? .turnOff
+        #endif
+    }
+
+    /// Records the dim button's mode for the extension to read. Returns true when it changed.
+    @discardableResult
+    static func publishDisplayOffMode(_ mode: DisplayOffMode, in defaults: UserDefaults? = sharedDefaults) -> Bool {
+        guard let defaults else { return false }
+        guard defaults.string(forKey: displayOffModeKey) != mode.rawValue else { return false }
+        defaults.set(mode.rawValue, forKey: displayOffModeKey)
+        return true
+    }
+
     // MARK: - Presets
 
     /// The presets the main app last shared with its widgets, in menu order.
@@ -270,6 +294,14 @@ enum SharedConstants {
         guard let id else { return nil }
         return widgetPresets(in: defaults).first { $0.id == id }
     }
+}
+
+/// What the dim button, the widgets, and the Control Center button do when used.
+enum DisplayOffMode: String {
+    /// Blank the screens with Dimmerly's overlay. The session stays unlocked.
+    case dim
+    /// Put the displays to sleep through `pmset`, which locks the Mac.
+    case turnOff
 }
 
 /// Lightweight preset info shared between main app and widget via App Group UserDefaults.

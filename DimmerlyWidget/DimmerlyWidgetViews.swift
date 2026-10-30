@@ -16,11 +16,11 @@ struct DimmerlyWidgetEntryView: View {
     var body: some View {
         switch family {
         case .systemSmall:
-            SmallWidgetView()
+            SmallWidgetView(mode: entry.displayOffMode)
         case .systemMedium:
-            MediumWidgetView(presets: entry.presets)
+            MediumWidgetView(presets: entry.presets, mode: entry.displayOffMode)
         default:
-            SmallWidgetView()
+            SmallWidgetView(mode: entry.displayOffMode)
         }
     }
 }
@@ -28,22 +28,24 @@ struct DimmerlyWidgetEntryView: View {
 // MARK: - Small Widget
 
 struct SmallWidgetView: View {
+    let mode: DisplayOffMode
+
     var body: some View {
         Button(intent: DimDisplaysWidgetIntent()) {
             VStack(spacing: 8) {
                 // largeTitle is 26 pt on macOS; the large symbol scale brings
                 // the glyph back to roughly the previous fixed 32 pt.
-                Image(systemName: "moon.fill")
+                Image(systemName: mode.symbolName)
                     .font(.largeTitle.weight(.medium))
                     .imageScale(.large)
                     .widgetAccentable()
-                Text("Dim Displays")
+                Text(mode.title)
                     .font(.system(.callout, weight: .semibold))
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(Text("Dim Displays"))
+        .accessibilityLabel(Text(mode.title))
     }
 }
 
@@ -51,6 +53,7 @@ struct SmallWidgetView: View {
 
 struct MediumWidgetView: View {
     let presets: [WidgetPresetInfo]
+    let mode: DisplayOffMode
 
     var body: some View {
         HStack(spacing: 0) {
@@ -69,17 +72,17 @@ struct MediumWidgetView: View {
     private var dimButton: some View {
         Button(intent: DimDisplaysWidgetIntent()) {
             VStack(spacing: 6) {
-                Image(systemName: "moon.fill")
+                Image(systemName: mode.symbolName)
                     .font(.largeTitle.weight(.medium))
                     .widgetAccentable()
-                Text("Dim Displays")
+                Text(mode.title)
                     .font(.system(.caption, weight: .semibold))
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(WidgetButtonBackground(cornerRadius: 10, tint: .blue))
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(Text("Dim Displays"))
+        .accessibilityLabel(Text(mode.title))
     }
 
     private var emptyPresetsHint: some View {
@@ -119,6 +122,34 @@ struct MediumWidgetView: View {
     }
 }
 
+// MARK: - Dim Button Wording
+
+extension DisplayOffMode {
+    /// The dim button's name, worded like the app's own button for the same setting.
+    var title: LocalizedStringResource {
+        switch self {
+        case .dim: "Dim Displays"
+        case .turnOff: "Turn Displays Off"
+        }
+    }
+
+    /// The symbol the app's own button shows for the same setting.
+    var symbolName: String {
+        switch self {
+        case .dim: "sun.min.fill"
+        case .turnOff: "moon.fill"
+        }
+    }
+
+    /// What the Control Center button says it does, in the controls gallery.
+    var controlDescription: LocalizedStringResource {
+        switch self {
+        case .dim: "Quickly dim all connected displays."
+        case .turnOff: "Quickly turn off all connected displays."
+        }
+    }
+}
+
 // MARK: - Button Background
 
 /// Rounded fill behind a widget button.
@@ -149,7 +180,13 @@ private struct WidgetButtonBackground: View {
 #Preview("Small", as: .systemSmall) {
     DimmerlyWidget()
 } timeline: {
-    PresetEntry(date: .now, presets: [])
+    PresetEntry(date: .now, presets: [], displayOffMode: .dim)
+}
+
+#Preview("Small, Turn Off", as: .systemSmall) {
+    DimmerlyWidget()
+} timeline: {
+    PresetEntry(date: .now, presets: [], displayOffMode: .turnOff)
 }
 
 #Preview("Medium", as: .systemMedium) {

@@ -10,6 +10,8 @@ import WidgetKit
 struct PresetEntry: TimelineEntry {
     let date: Date
     let presets: [WidgetPresetInfo]
+    /// What the dim button does, so it can say "Dim Displays" or "Turn Displays Off".
+    var displayOffMode: DisplayOffMode = SharedConstants.publishedDisplayOffMode()
 }
 
 struct DimmerlyWidgetProvider: TimelineProvider {
