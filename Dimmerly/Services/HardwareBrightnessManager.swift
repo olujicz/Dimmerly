@@ -267,6 +267,15 @@
         /// reads that user-initiated writes would then wait behind.
         private var pollReadsInFlight: Set<CGDirectDisplayID> = []
 
+        /// Capability probes still queued or running. A probe for a display that already has
+        /// a live one is skipped: a silent monitor holds `ddcQueue` for about a second per VCP
+        /// code, and launch, the Settings toggle, and each reconfiguration callback all ask.
+        private var probesInFlight: [CGDirectDisplayID: DDCInFlightProbe] = [:]
+        private var nextProbeID: UInt64 = 0
+
+        /// Pending automatic retries for displays whose first probe found no DDC support.
+        private var automaticProbeRetryTasks: [CGDirectDisplayID: Task<Void, Never>] = [:]
+
         var pendingWorkCountForTesting: Int {
             pendingWrites.count + pendingHardwareWrites.values.reduce(0, +)
         }
@@ -375,6 +384,8 @@
             isDisabling = true
             stopPolling()
             cancelPendingWrites()
+            probesInFlight.removeAll()
+            cancelAutomaticProbeRetries()
 
             await withCheckedContinuation { continuation in
                 ddcQueue.async {
@@ -413,10 +424,15 @@
         /// Results are merged into `capabilities` rather than replacing it wholesale, and
         /// any display that disconnected while the (multi-display) probe was in flight is
         /// dropped instead of being resurrected.
+        ///
+        /// A display that already has a probe running for this session and connection is
+        /// skipped either way: that probe will publish fresh capabilities.
         func probeAllDisplays(force: Bool = true) {
             guard let session = sessionGate.capture() else { return }
             let connectedDisplayIDs = connectedExternalDisplayIDsProvider()
-            let idsToProbe = force ? connectedDisplayIDs : connectedDisplayIDs.filter { capabilities[$0] == nil }
+            let idsToProbe = connectedDisplayIDs.filter {
+                (force || capabilities[$0] == nil) && !isProbeInFlight(for: $0)
+            }
             guard !idsToProbe.isEmpty else { return }
 
             probe(
@@ -440,15 +456,27 @@
             let connectionTokens = Dictionary(uniqueKeysWithValues: displayIDs.map {
                 ($0, displayConnectionGate.current(for: $0))
             })
+            nextProbeID &+= 1
+            let probeID = nextProbeID
+            for (displayID, connection) in connectionTokens {
+                probesInFlight[displayID] = DDCInFlightProbe(
+                    id: probeID,
+                    session: session,
+                    nativeWorkSession: nativeWorkSession,
+                    connection: connection
+                )
+            }
 
             ddcQueue.async { [weak self] in
                 guard let self else { return }
                 var results: [CGDirectDisplayID: HardwareDisplayCapability] = [:]
 
                 for displayID in displayIDs {
+                    // Stop early but still hop to the main actor below to release the
+                    // in-flight entries; the publication guards there reject the results.
                     guard sessionGate.isCurrent(session),
                           isNativeConfigurationCurrent(nativeWorkSession)
-                    else { return }
+                    else { break }
                     // A disconnected monitor invalidates only its own work. Keep probing and
                     // publishing the rest of the batch while the global session is still live.
                     guard let connectionToken = connectionTokens[displayID],
@@ -462,8 +490,9 @@
                 }
 
                 Task { @MainActor [weak self] in
-                    guard let self,
-                          sessionGate.isCurrent(session),
+                    guard let self else { return }
+                    finishProbe(probeID, for: displayIDs)
+                    guard sessionGate.isCurrent(session),
                           isNativeConfigurationCurrent(nativeWorkSession)
                     else { return }
                     let stillConnected = Set(connectedExternalDisplayIDsProvider())
@@ -515,32 +544,6 @@
                     // the newly-probed capabilities
                     displayRefreshHandler()
                 }
-            }
-        }
-
-        private func scheduleAutomaticProbeRetry(
-            for displayID: CGDirectDisplayID,
-            session: DDCSession,
-            retryDelays: [Duration]
-        ) {
-            guard let delay = retryDelays.first else { return }
-
-            Task { [weak self] in
-                do {
-                    try await Task.sleep(for: delay)
-                } catch {
-                    return
-                }
-
-                guard let self, sessionGate.isCurrent(session) else { return }
-                guard connectedExternalDisplayIDsProvider().contains(displayID) else { return }
-                guard capabilities[displayID]?.supportsDDC != true else { return }
-
-                probe(
-                    displayIDs: [displayID],
-                    session: session,
-                    retryDelays: Array(retryDelays.dropFirst())
-                )
             }
         }
 
@@ -729,6 +732,8 @@
             activeInputSource.removeValue(forKey: displayID)
             writeTiming.removeDisplay(displayID)
             cancelRecoveryProbes(for: displayID)
+            probesInFlight.removeValue(forKey: displayID)
+            automaticProbeRetryTasks.removeValue(forKey: displayID)?.cancel()
         }
 
         private func cancelPendingWrites() {
@@ -1147,6 +1152,74 @@
             guard (pendingHardwareWrites[writeKey] ?? 0) == 0 else { return false }
             guard let localWriteTime = lastLocalWriteTime[writeKey] else { return true }
             return localWriteTime <= readStartedAt
+        }
+    }
+
+    // MARK: - Probe Bookkeeping
+
+    /// A capability probe queued or running on `ddcQueue` for one display.
+    private struct DDCInFlightProbe {
+        let id: UInt64
+        let session: DDCSession
+        let nativeWorkSession: DDCSession?
+        let connection: DDCDisplayConnectionToken
+    }
+
+    fileprivate extension HardwareBrightnessManager {
+        func scheduleAutomaticProbeRetry(
+            for displayID: CGDirectDisplayID,
+            session: DDCSession,
+            retryDelays: [Duration]
+        ) {
+            guard let delay = retryDelays.first else { return }
+
+            automaticProbeRetryTasks[displayID]?.cancel()
+            automaticProbeRetryTasks[displayID] = Task { [weak self] in
+                do {
+                    try await Task.sleep(for: delay)
+                } catch {
+                    return
+                }
+
+                guard let self, !Task.isCancelled else { return }
+                automaticProbeRetryTasks.removeValue(forKey: displayID)
+                guard sessionGate.isCurrent(session) else { return }
+                guard connectedExternalDisplayIDsProvider().contains(displayID) else { return }
+                guard capabilities[displayID]?.supportsDDC != true else { return }
+                // Another probe already running will publish (and retry) for this display.
+                guard !isProbeInFlight(for: displayID) else { return }
+
+                probe(
+                    displayIDs: [displayID],
+                    session: session,
+                    retryDelays: Array(retryDelays.dropFirst())
+                )
+            }
+        }
+
+        /// Whether a probe for `displayID` is still queued or running and its results can
+        /// still be published. Entries from a disabled session, an older brightness
+        /// ownership, or a previous connection of the same ID do not count.
+        func isProbeInFlight(for displayID: CGDirectDisplayID) -> Bool {
+            guard let probe = probesInFlight[displayID] else { return false }
+            return sessionGate.isCurrent(probe.session)
+                && isNativeConfigurationCurrent(probe.nativeWorkSession)
+                && displayConnectionGate.isCurrent(probe.connection)
+        }
+
+        /// Releases the in-flight entries a finished probe still owns. A newer probe for the
+        /// same display may have replaced an entry and keeps it.
+        func finishProbe(_ probeID: UInt64, for displayIDs: [CGDirectDisplayID]) {
+            for displayID in displayIDs where probesInFlight[displayID]?.id == probeID {
+                probesInFlight.removeValue(forKey: displayID)
+            }
+        }
+
+        func cancelAutomaticProbeRetries() {
+            for task in automaticProbeRetryTasks.values {
+                task.cancel()
+            }
+            automaticProbeRetryTasks.removeAll()
         }
     }
 

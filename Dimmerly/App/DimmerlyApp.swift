@@ -360,8 +360,9 @@ struct DimmerlyApp: App {
                 writeDelayMilliseconds: settings.ddcWriteDelay,
                 experimentalNativeBrightnessEnabled: settings.experimentalNativeBrightnessEnabled
             )
+            // Nothing has been probed yet, so this refresh probes every external display
+            // (with the automatic retries a still-starting DDC service needs).
             BrightnessManager.shared.refreshDisplays()
-            hardwareManager.probeAllDisplays()
             hardwareManager.startPolling()
         }
     #endif
