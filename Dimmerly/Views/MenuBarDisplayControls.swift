@@ -391,7 +391,7 @@ struct DisplayBrightnessRow: View {
                 #endif
 
                 Spacer()
-                Text("\(Int(sliderValue * 100))%")
+                Text(Int(sliderValue * 100), format: .percent)
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .monospacedDigit()

@@ -422,7 +422,10 @@ struct DisplaySettingsTab: View {
             capability: HardwareDisplayCapability
         ) -> some View {
             let displayName = brightnessManager.displays.first(where: { $0.id == displayID })?.name
-                ?? "Display \(displayID)"
+                ?? String(
+                    localized: "Display \(Int(displayID))",
+                    comment: "Fallback name for a display without a known name; the number is its display ID"
+                )
             let statusText = ddcDisplayStatusText(for: capability)
             let supportsHardwareBrightness = capability.supportsDDC && capability.supportsBrightness
 

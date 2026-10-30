@@ -69,23 +69,23 @@ struct ScheduleRow: View {
         }
     }
 
+    /// One format string per shape, so translators can reorder the trigger, time and preset.
     private var triggerSummary: String {
-        var parts: [String] = []
-        parts.append(schedule.trigger.displayDescription)
-        if let timeDesc = triggerTimeDescription {
-            parts.append("(\(timeDesc))")
-        }
-        if let name = presetName {
-            parts.append("\u{2192} \(name)")
-        } else {
-            parts.append(
-                "\u{2192} " + NSLocalizedString(
-                    "Deleted Preset",
-                    comment: "Schedule row: referenced preset was deleted"
-                )
+        let trigger = schedule.trigger.displayDescription
+        let preset = presetName ?? String(
+            localized: "Deleted Preset",
+            comment: "Schedule row: referenced preset was deleted"
+        )
+        guard let triggerTimeDescription else {
+            return String(
+                localized: "\(trigger) → \(preset)",
+                comment: "Schedule summary: when it fires, then the preset it applies (22:00 → Night)"
             )
         }
-        return parts.joined(separator: " ")
+        return String(
+            localized: "\(trigger) (\(triggerTimeDescription)) → \(preset)",
+            comment: "Schedule summary: sun trigger, today's time for it, then the preset (Sunset (19:42) → Night)"
+        )
     }
 }
 
