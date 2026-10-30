@@ -995,7 +995,7 @@ final class CarbonShortcutMonitorTests: XCTestCase {
     func testCarbonModifiersAndLegacyPhysicalKeyMapping() throws {
         let data = Data(#"{"key":"d","modifiers":["command","option","control","shift"]}"#.utf8)
         let shortcut = try JSONDecoder().decode(GlobalShortcut.self, from: data)
-        XCTAssertEqual(shortcut.registrationKeyCode, UInt16(kVK_ANSI_D))
+        XCTAssertEqual(shortcut.physicalKeyCode, UInt16(kVK_ANSI_D))
         XCTAssertEqual(CarbonHotKeyRegistration.modifiers(for: shortcut),
                        UInt32(cmdKey | optionKey | controlKey | shiftKey))
     }

@@ -356,7 +356,7 @@ final class CarbonHotKeyRegistration {
         shortcut: GlobalShortcut,
         onTriggered: @escaping @MainActor () -> Void
     ) -> Any? {
-        guard let keyCode = shortcut.registrationKeyCode, shortcut.isValidCarbonShortcut else { return nil }
+        guard let keyCode = shortcut.physicalKeyCode, shortcut.isValidCarbonShortcut else { return nil }
         let registration = CarbonHotKeyRegistration(onTriggered: onTriggered)
         var eventType = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
         let context = Unmanaged.passUnretained(registration).toOpaque()

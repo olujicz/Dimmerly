@@ -354,18 +354,24 @@ class PresetManager {
         persistPresets()
     }
 
+    /// The conflict that assigning `shortcut` would cause, shared by the preset and main shortcut
+    /// editors. For a preset (`presetID` set) that includes the main display shortcut; any other
+    /// preset already using `shortcut` conflicts either way.
+    func shortcutConflict(for shortcut: GlobalShortcut, assigningTo presetID: UUID?) -> PresetShortcutError? {
+        if presetID != nil, shortcut == mainShortcutProvider() {
+            return .conflictsWithMainShortcut
+        }
+        if let conflictingPreset = presets.first(where: { $0.id != presetID && $0.shortcut == shortcut }) {
+            return .conflictsWithPreset(name: conflictingPreset.name)
+        }
+        return nil
+    }
+
     /// Updates the shortcut for a preset after enforcing global uniqueness.
     func updateShortcut(for presetID: UUID, shortcut: GlobalShortcut?) throws {
         guard let index = presets.firstIndex(where: { $0.id == presetID }) else { return }
-        if let shortcut {
-            guard shortcut != mainShortcutProvider() else {
-                throw PresetShortcutError.conflictsWithMainShortcut
-            }
-            if let conflictingPreset = presets.first(where: {
-                $0.id != presetID && $0.shortcut == shortcut
-            }) {
-                throw PresetShortcutError.conflictsWithPreset(name: conflictingPreset.name)
-            }
+        if let shortcut, let conflict = shortcutConflict(for: shortcut, assigningTo: presetID) {
+            throw conflict
         }
         presets[index].shortcut = shortcut
         persistPresets()

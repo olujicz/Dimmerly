@@ -116,11 +116,8 @@ struct ShortcutsSettingsTab: View {
     }
 
     private func updateMainShortcut(_ shortcut: GlobalShortcut) {
-        if let conflictingPreset = presetManager.presets.first(where: { $0.shortcut == shortcut }) {
-            mainShortcutConflictMessage = String(
-                format: NSLocalizedString("This shortcut conflicts with %@", comment: "Shortcut conflict message"),
-                conflictingPreset.name
-            )
+        if let conflict = presetManager.shortcutConflict(for: shortcut, assigningTo: nil) {
+            mainShortcutConflictMessage = conflict.localizedDescription
             return
         }
 

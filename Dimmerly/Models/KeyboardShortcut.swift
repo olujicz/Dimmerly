@@ -90,14 +90,10 @@ struct GlobalShortcut: Codable, Equatable {
         self.keyCode = keyCode ?? Self.legacyKeyCodeMap[key]
     }
 
-    /// Canonical physical ANSI key identity for equality and conflict detection.
-    private var physicalKeyCode: UInt16? {
+    /// Canonical physical ANSI key identity for equality, conflict detection and Carbon
+    /// registration, including shortcuts decoded from older settings.
+    var physicalKeyCode: UInt16? {
         keyCode ?? Self.legacyKeyCodeMap[key]
-    }
-
-    /// Physical key used by Carbon, including shortcuts decoded from older settings.
-    var registrationKeyCode: UInt16? {
-        physicalKeyCode
     }
 
     static func == (lhs: Self, rhs: Self) -> Bool {
@@ -254,11 +250,12 @@ struct GlobalShortcut: Codable, Equatable {
             ("p", [.command]), ("w", [.command]),
             // App lifecycle
             ("q", [.command]), ("h", [.command]), ("m", [.command]),
+            // A layout label, e.g. the AZERTY key at the ANSI M position.
             (",", [.command]),
             // Find
             ("f", [.command]), ("g", [.command]),
             // System-wide
-            ("tab", [.command]), ("space", [.command]),
+            ("space", [.command]),
         ]
 
         return reserved.contains { $0.key == key && $0.modifiers == modifiers }
