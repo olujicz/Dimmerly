@@ -48,8 +48,6 @@ struct ScheduleSettingsTab: View {
                             .environment(scheduleManager)
                     }
                 }
-            } header: {
-                Label("Schedule", systemImage: "calendar.badge.clock")
             }
         }
         .formStyle(.grouped)
