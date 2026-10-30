@@ -986,39 +986,18 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
             // Per-display preset values are keyed by stable identity, with a fallback to the
             // legacy display-ID key so presets saved by earlier versions still resolve.
             let identity = displayIdentity(for: display.id)
-
-            let endBrightness: Double? = if let universal = preset.universalBrightness {
-                clampedBrightness(universal)
-            } else if let value = savedValue(preset.displayBrightness, for: display.id, identity: identity) {
-                clampedBrightness(value)
-            } else {
-                nil
+            // A universal value applies to every display and wins over its own saved value.
+            let target = { (universal: Double?, perDisplay: [String: Double]?) -> Double? in
+                universal ?? perDisplay.flatMap { self.savedValue($0, for: display.id, identity: identity) }
             }
-
-            let endWarmth: Double? = if let universal = preset.universalWarmth {
-                clamp01(universal)
-            } else if let values = preset.displayWarmth,
-                      let value = savedValue(values, for: display.id, identity: identity)
-            {
-                clamp01(value)
-            } else {
-                nil
-            }
-
-            let endContrast: Double? = if let universal = preset.universalContrast {
-                clamp01(universal)
-            } else if let values = preset.displayContrast,
-                      let value = savedValue(values, for: display.id, identity: identity)
-            {
-                clamp01(value)
-            } else {
-                nil
-            }
-
             return TransitionTarget(
                 displayID: display.id,
                 start: (display.brightness, display.warmth, display.contrast),
-                end: (endBrightness, endWarmth, endContrast)
+                end: (
+                    target(preset.universalBrightness, preset.displayBrightness).map(clampedBrightness),
+                    target(preset.universalWarmth, preset.displayWarmth).map(clamp01),
+                    target(preset.universalContrast, preset.displayContrast).map(clamp01)
+                )
             )
         }
 
