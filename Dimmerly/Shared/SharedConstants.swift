@@ -124,14 +124,23 @@ enum SharedConstants {
         return request
     }
 
-    static func acknowledgeWidgetAction(_ id: UUID, in defaults: UserDefaults? = sharedDefaults) {
-        defaults?.set(true, forKey: widgetActionAcknowledgementPrefix + id.uuidString)
+    /// Records whether the app performed a request. The extension reports a failure to the user
+    /// rather than claiming success for an action that did nothing.
+    static func acknowledgeWidgetAction(
+        _ id: UUID,
+        succeeded: Bool,
+        in defaults: UserDefaults? = sharedDefaults
+    ) {
+        defaults?.set(succeeded, forKey: widgetActionAcknowledgementPrefix + id.uuidString)
         defaults?.synchronize()
     }
 
-    static func widgetActionWasAcknowledged(_ id: UUID, in defaults: UserDefaults) -> Bool {
+    /// What the app acknowledged for a request, or nil while it has not answered.
+    static func widgetActionOutcome(_ id: UUID, in defaults: UserDefaults) -> WidgetActionOutcome? {
         defaults.synchronize()
-        return defaults.bool(forKey: widgetActionAcknowledgementPrefix + id.uuidString)
+        guard let succeeded = defaults.object(forKey: widgetActionAcknowledgementPrefix + id.uuidString) as? Bool
+        else { return nil }
+        return succeeded ? .succeeded : .failed
     }
 
     static func removeWidgetActionRequest(_ id: UUID, from defaults: UserDefaults) {
@@ -157,6 +166,27 @@ enum SharedConstants {
     static func discardLegacyWidgetCommands(in defaults: UserDefaults? = sharedDefaults) {
         for key in legacyWidgetCommandKeys {
             defaults?.removeObject(forKey: key)
+        }
+    }
+
+    /// Removes request and acknowledgement keys that no exchange will clean up any more.
+    ///
+    /// The extension removes its own keys when it stops waiting, so an acknowledgement the app
+    /// writes after the extension's deadline, or a request left by an extension that was killed
+    /// mid-wait, stays in the suite. Call at launch, before any request of this session has been
+    /// handled. A request that has not expired is kept: the extension stores it right after
+    /// LaunchServices reports the app open, which can be before the app gets here.
+    static func discardStaleWidgetActionKeys(in defaults: UserDefaults? = sharedDefaults, now: Date = Date()) {
+        guard let defaults else { return }
+        for (key, value) in defaults.dictionaryRepresentation() {
+            if key.hasPrefix(widgetActionAcknowledgementPrefix) {
+                defaults.removeObject(forKey: key)
+            } else if key.hasPrefix(widgetActionRequestPrefix) {
+                let request = (value as? Data).flatMap { try? JSONDecoder().decode(WidgetActionRequest.self, from: $0) }
+                if request.map({ $0.expiresAt <= now }) ?? true {
+                    defaults.removeObject(forKey: key)
+                }
+            }
         }
     }
 
@@ -248,6 +278,13 @@ enum WidgetActionCommand: Codable, Equatable {
     case applyPreset(String)
     case setDimming(Bool)
     case setAutoWarmth(Bool)
+}
+
+/// How the app answered a widget action request.
+enum WidgetActionOutcome: Equatable {
+    case succeeded
+    /// The app handled the request but could not perform it, such as a preset that was deleted.
+    case failed
 }
 
 struct WidgetActionRequest: Codable {

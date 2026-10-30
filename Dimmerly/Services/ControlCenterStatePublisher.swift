@@ -96,18 +96,32 @@ struct ControlCenterStatePublisher {
 @MainActor
 extension WidgetActionCommand {
     /// Runs a widget or Control Center command inside the app process.
-    func performInApp(settings: AppSettings = .shared) {
+    ///
+    /// Returns false when there was nothing to do it with: a preset that was deleted after the
+    /// widget or control was set up, or an ID that is not a preset ID at all. The other commands
+    /// publish whatever state they actually reached, so they report true.
+    @discardableResult
+    func performInApp(settings: AppSettings = .shared, presetManager: PresetManager = .shared) -> Bool {
         switch self {
         case .dimDisplays:
             DisplayAction.performSleep(settings: settings)
         case let .applyPreset(presetID):
-            guard let uuid = UUID(uuidString: presetID) else { return }
-            PresetManager.shared.applyPreset(id: uuid, to: BrightnessManager.shared, animated: true)
+            guard let uuid = UUID(uuidString: presetID), let preset = presetManager.preset(withID: uuid) else {
+                return false
+            }
+            presetManager.applyPreset(preset, to: BrightnessManager.shared, animated: true)
         case let .setDimming(value):
             handleWidgetDimStateCommand(value, settings: settings)
         case let .setAutoWarmth(value):
             handleWidgetAutoWarmthCommand(value, settings: settings)
         }
+        return true
+    }
+
+    /// Runs the command for an intent the app performs itself, throwing the error the extension
+    /// would show for the same failure.
+    func performForIntent(settings: AppSettings = .shared) throws {
+        guard performInApp(settings: settings) else { throw WidgetActionExecution.failure(for: self) }
     }
 }
 

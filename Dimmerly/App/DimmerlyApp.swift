@@ -11,16 +11,17 @@ import MenuBarExtraAccess
 import SwiftUI
 
 /// An acknowledgement follows the action and its state publication, never just receipt.
+/// `performCommand` returns whether it did the action; the acknowledgement carries that result.
 @MainActor
 func handleWidgetActionRequest(
     _ id: UUID,
     defaults: UserDefaults? = SharedConstants.sharedDefaults,
     now: Date = Date(),
-    performCommand: (WidgetActionCommand) -> Void
+    performCommand: (WidgetActionCommand) -> Bool
 ) {
     guard let request = SharedConstants.consumeWidgetActionRequest(id, from: defaults, now: now) else { return }
-    performCommand(request.command)
-    SharedConstants.acknowledgeWidgetAction(id, in: defaults)
+    let succeeded = performCommand(request.command)
+    SharedConstants.acknowledgeWidgetAction(id, succeeded: succeeded, in: defaults)
 }
 
 @main
@@ -101,6 +102,7 @@ struct DimmerlyApp: App {
                 observeWidgetActionRequests()
                 observeTermination()
                 SharedConstants.discardLegacyWidgetCommands()
+                SharedConstants.discardStaleWidgetActionKeys()
                 AppEntityIndexingService.shared.reindexPresets(presetManager.presets)
                 // Initial sync for settings-driven managers. `.onChange` below
                 // keeps them current for subsequent edits without needing each

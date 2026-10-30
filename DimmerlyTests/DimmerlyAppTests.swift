@@ -162,7 +162,10 @@ final class DimmerlyAppTests: XCTestCase {
                 requestID = id
                 signals += 1
                 guard signals == 3 else { return }
-                handleWidgetActionRequest(id, defaults: defaults) { appliedCommands.append($0) }
+                handleWidgetActionRequest(id, defaults: defaults) { command in
+                    appliedCommands.append(command)
+                    return true
+                }
             },
             wait: {}
         )
@@ -171,7 +174,7 @@ final class DimmerlyAppTests: XCTestCase {
         XCTAssertEqual(appliedCommands, [.setAutoWarmth(true)])
         let id = try XCTUnwrap(requestID)
         XCTAssertNil(SharedConstants.consumeWidgetActionRequest(id, from: defaults))
-        XCTAssertFalse(SharedConstants.widgetActionWasAcknowledged(id, in: defaults))
+        XCTAssertNil(SharedConstants.widgetActionOutcome(id, in: defaults))
     }
 
     func testWidgetRequestAcceptsAcknowledgementArrivingDuringItsFinalWait() async throws {
@@ -188,14 +191,14 @@ final class DimmerlyAppTests: XCTestCase {
             signalApp: { requestID = $0 },
             now: { now },
             wait: {
-                try SharedConstants.acknowledgeWidgetAction(XCTUnwrap(requestID), in: defaults)
+                try SharedConstants.acknowledgeWidgetAction(XCTUnwrap(requestID), succeeded: true, in: defaults)
                 now = now.addingTimeInterval(6)
             }
         )
 
         let id = try XCTUnwrap(requestID)
         XCTAssertNil(SharedConstants.consumeWidgetActionRequest(id, from: defaults))
-        XCTAssertFalse(SharedConstants.widgetActionWasAcknowledged(id, in: defaults))
+        XCTAssertNil(SharedConstants.widgetActionOutcome(id, in: defaults))
     }
 
     func testWidgetRequestTimesOutAndCleansOnlyItsOwnCommand() async throws {
@@ -223,7 +226,7 @@ final class DimmerlyAppTests: XCTestCase {
 
         let id = try XCTUnwrap(requestID)
         XCTAssertNil(SharedConstants.consumeWidgetActionRequest(id, from: defaults))
-        XCTAssertFalse(SharedConstants.widgetActionWasAcknowledged(id, in: defaults))
+        XCTAssertNil(SharedConstants.widgetActionOutcome(id, in: defaults))
         XCTAssertEqual(
             SharedConstants.consumeWidgetActionRequest(otherRequest.id, from: defaults)?.command,
             .setDimming(false)
@@ -251,7 +254,7 @@ final class DimmerlyAppTests: XCTestCase {
 
         let id = try XCTUnwrap(requestID)
         XCTAssertNil(SharedConstants.consumeWidgetActionRequest(id, from: defaults))
-        XCTAssertFalse(SharedConstants.widgetActionWasAcknowledged(id, in: defaults))
+        XCTAssertNil(SharedConstants.widgetActionOutcome(id, in: defaults))
     }
 
     func testFailedAppLaunchDoesNotLeaveAWidgetRequest() async throws {
@@ -284,11 +287,12 @@ final class DimmerlyAppTests: XCTestCase {
         let request = WidgetActionRequest(command: .setDimming(true), expiresAt: Date().addingTimeInterval(5))
         try SharedConstants.storeWidgetActionRequest(request, in: defaults)
         var actions = 0
-        let apply: (WidgetActionCommand) -> Void = { command in
+        let apply: (WidgetActionCommand) -> Bool = { command in
             XCTAssertEqual(command, .setDimming(true))
-            XCTAssertFalse(SharedConstants.widgetActionWasAcknowledged(request.id, in: defaults))
+            XCTAssertNil(SharedConstants.widgetActionOutcome(request.id, in: defaults))
             actions += 1
             SharedConstants.publishControlState(true, forKey: SharedConstants.controlDimStateKey, in: defaults)
+            return true
         }
 
         handleWidgetActionRequest(request.id, defaults: defaults, performCommand: apply)
@@ -296,7 +300,74 @@ final class DimmerlyAppTests: XCTestCase {
 
         XCTAssertEqual(actions, 1)
         XCTAssertTrue(SharedConstants.publishedDimState(in: defaults))
-        XCTAssertTrue(SharedConstants.widgetActionWasAcknowledged(request.id, in: defaults))
+        XCTAssertEqual(SharedConstants.widgetActionOutcome(request.id, in: defaults), .succeeded)
+    }
+
+    func testWidgetRequestAcknowledgesAnActionTheAppCouldNotPerformAsFailed() throws {
+        let suiteName = "WidgetFailureAcknowledgementTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let request = WidgetActionRequest(
+            command: .applyPreset(UUID().uuidString),
+            expiresAt: Date().addingTimeInterval(5)
+        )
+        try SharedConstants.storeWidgetActionRequest(request, in: defaults)
+
+        handleWidgetActionRequest(request.id, defaults: defaults) { _ in false }
+
+        XCTAssertEqual(SharedConstants.widgetActionOutcome(request.id, in: defaults), .failed)
+    }
+
+    /// A widget preset button or Control Center preset control can still name a preset that was
+    /// deleted in the app. The extension must report that instead of claiming success.
+    func testWidgetRequestThrowsWhenTheAppReportsFailure() async throws {
+        let suiteName = "WidgetFailureTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        var requestID: UUID?
+
+        do {
+            try await WidgetActionExecution.perform(
+                .applyPreset(UUID().uuidString),
+                defaults: defaults,
+                launchApp: {},
+                signalApp: { id in
+                    requestID = id
+                    handleWidgetActionRequest(id, defaults: defaults) { _ in false }
+                },
+                wait: {}
+            )
+            XCTFail("An action the app could not perform must not return success")
+        } catch WidgetActionExecution.Failure.presetUnavailable {
+            // Expected.
+        }
+
+        let id = try XCTUnwrap(requestID)
+        XCTAssertNil(SharedConstants.widgetActionOutcome(id, in: defaults))
+        XCTAssertTrue((defaults.persistentDomain(forName: suiteName) ?? [:]).isEmpty)
+    }
+
+    func testFailedWidgetActionsMapToTheirUserFacingError() {
+        XCTAssertEqual(WidgetActionExecution.failure(for: .applyPreset("x")), .presetUnavailable)
+        XCTAssertEqual(WidgetActionExecution.failure(for: .dimDisplays), .didNotComplete)
+        XCTAssertEqual(WidgetActionExecution.failure(for: .setDimming(true)), .didNotComplete)
+        XCTAssertEqual(WidgetActionExecution.failure(for: .setAutoWarmth(false)), .didNotComplete)
+        XCTAssertNotNil(WidgetActionExecution.Failure.presetUnavailable.errorDescription)
+    }
+
+    func testApplyingAMissingOrMalformedPresetReportsThatNothingHappened() {
+        let fixture = IsolatedPresetManagerFixture()
+        defer { fixture.cleanup() }
+        let settings = AppSettings(defaults: fixture.defaults)
+
+        XCTAssertFalse(
+            WidgetActionCommand.applyPreset(UUID().uuidString)
+                .performInApp(settings: settings, presetManager: fixture.manager)
+        )
+        XCTAssertFalse(
+            WidgetActionCommand.applyPreset("not-a-uuid")
+                .performInApp(settings: settings, presetManager: fixture.manager)
+        )
     }
 
     func testExpiredWidgetRequestNeverAppliesOrAcknowledges() throws {
@@ -308,10 +379,13 @@ final class DimmerlyAppTests: XCTestCase {
         try SharedConstants.storeWidgetActionRequest(request, in: defaults)
         var didApply = false
 
-        handleWidgetActionRequest(request.id, defaults: defaults, now: now) { _ in didApply = true }
+        handleWidgetActionRequest(request.id, defaults: defaults, now: now) { _ in
+            didApply = true
+            return true
+        }
 
         XCTAssertFalse(didApply)
-        XCTAssertFalse(SharedConstants.widgetActionWasAcknowledged(request.id, in: defaults))
+        XCTAssertNil(SharedConstants.widgetActionOutcome(request.id, in: defaults))
         XCTAssertNil(SharedConstants.consumeWidgetActionRequest(request.id, from: defaults, now: now))
     }
 
