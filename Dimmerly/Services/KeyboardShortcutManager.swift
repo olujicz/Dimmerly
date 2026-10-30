@@ -59,6 +59,11 @@ final class ShortcutRecordingCoordinator {
         /// Whether a recorder overlay is capturing keys, in which case normal actions stay suppressed.
         /// Injected like the monitor seams so `handleKeyEvent` is testable without the shared coordinator.
         typealias RecordingSuppressionChecker = @MainActor () -> Bool
+        /// Re-checks Accessibility permission after the system may have changed it.
+        typealias PermissionChangeHandler = @MainActor @Sendable () -> Void
+        /// Arranges for the handler to run whenever Accessibility permission may have changed.
+        /// Injected so tests can drive grant and revocation without real notifications.
+        typealias PermissionChangeObserver = @MainActor (@escaping PermissionChangeHandler) -> Void
 
         /// The currently registered keyboard shortcut
         var currentShortcut: GlobalShortcut
@@ -97,7 +102,9 @@ final class ShortcutRecordingCoordinator {
             },
             isRecordingSuppressed: @escaping RecordingSuppressionChecker = {
                 ShortcutRecordingCoordinator.shared.isRecording
-            }
+            },
+            permissionChangeObserver: PermissionChangeObserver = KeyboardShortcutManager
+                .observeAccessibilityPermissionChanges
         ) {
             currentShortcut = shortcut
             self.permissionChecker = permissionChecker
@@ -106,6 +113,40 @@ final class ShortcutRecordingCoordinator {
             self.monitorRemover = monitorRemover
             self.isRecordingSuppressed = isRecordingSuppressed
             hasAccessibilityPermission = permissionChecker()
+            permissionChangeObserver { [weak self] in
+                self?.refreshAccessibilityPermissionAndRestartIfNeeded()
+            }
+        }
+
+        /// Delays after a `com.apple.accessibility.api` notification before re-checking. The
+        /// notification is posted before `AXIsProcessTrusted()` reflects the new state, so an
+        /// immediate check would read the old value; the second pass covers slow updates.
+        private static let accessibilityChangeRecheckDelays: [Duration] = [.milliseconds(500), .seconds(2)]
+
+        /// Runs `handler` whenever Accessibility permission may have changed: when the app becomes
+        /// active (e.g. returning from System Settings) and when the system broadcasts a change to
+        /// any app's Accessibility trust. The observers live for the app's lifetime, matching the
+        /// managers that install them; `handler` holds its manager weakly.
+        static func observeAccessibilityPermissionChanges(_ handler: @escaping PermissionChangeHandler) {
+            NotificationCenter.default.addObserver(
+                forName: NSApplication.didBecomeActiveNotification,
+                object: nil,
+                queue: .main
+            ) { _ in
+                Task { @MainActor in handler() }
+            }
+            DistributedNotificationCenter.default().addObserver(
+                forName: NSNotification.Name("com.apple.accessibility.api"),
+                object: nil,
+                queue: .main
+            ) { _ in
+                Task { @MainActor in
+                    for delay in accessibilityChangeRecheckDelays {
+                        try? await Task.sleep(for: delay)
+                        handler()
+                    }
+                }
+            }
         }
 
         /// Checks if the app has accessibility permissions
@@ -176,7 +217,8 @@ final class ShortcutRecordingCoordinator {
         }
 
         /// Rechecks Accessibility permission and starts monitoring if permission was
-        /// granted after an earlier failed start attempt.
+        /// granted after an earlier failed start attempt, or stops it if permission was revoked.
+        /// Called automatically on permission-change notifications; safe to call repeatedly.
         func refreshAccessibilityPermissionAndRestartIfNeeded() {
             hasAccessibilityPermission = permissionChecker()
             guard hasAccessibilityPermission else {

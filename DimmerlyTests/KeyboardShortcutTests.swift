@@ -573,6 +573,83 @@ extension GlobalShortcutTests {
             XCTAssertEqual(localMonitorInstallCount, 1)
         }
 
+        func testMainShortcutMonitoringStartsWhenPermissionIsGrantedWithoutSettingsOpen() throws {
+            let permissionProbe = PermissionProbe()
+            var permissionChangeHandler: KeyboardShortcutManager.PermissionChangeHandler?
+            var installCount = 0
+            var removalCount = 0
+
+            let manager = KeyboardShortcutManager(
+                permissionChecker: { @MainActor @Sendable in permissionProbe.isGranted },
+                globalMonitorInstaller: { _ in
+                    installCount += 1
+                    return MonitorToken()
+                },
+                localMonitorInstaller: { _ in
+                    installCount += 1
+                    return MonitorToken()
+                },
+                monitorRemover: { _ in removalCount += 1 },
+                permissionChangeObserver: { permissionChangeHandler = $0 }
+            )
+
+            manager.startMonitoring {}
+            XCTAssertEqual(installCount, 0)
+
+            // Granting in System Settings is noticed by the manager itself.
+            permissionProbe.isGranted = true
+            try XCTUnwrap(permissionChangeHandler)()
+            XCTAssertTrue(manager.hasAccessibilityPermission)
+            XCTAssertEqual(installCount, 2)
+
+            // An unchanged permission state must not reinstall monitors.
+            try XCTUnwrap(permissionChangeHandler)()
+            XCTAssertEqual(installCount, 2)
+            XCTAssertEqual(removalCount, 0)
+
+            // Revocation tears the monitors down.
+            permissionProbe.isGranted = false
+            try XCTUnwrap(permissionChangeHandler)()
+            XCTAssertFalse(manager.hasAccessibilityPermission)
+            XCTAssertEqual(removalCount, 2)
+        }
+
+        func testPresetShortcutMonitoringFollowsPermissionChangesWithoutSettingsOpen() throws {
+            let permissionProbe = PermissionProbe()
+            var permissionChangeHandler: PresetShortcutManager.PermissionChangeHandler?
+            var installCount = 0
+            var removalCount = 0
+
+            let manager = PresetShortcutManager(
+                permissionChecker: { @MainActor @Sendable in permissionProbe.isGranted },
+                globalMonitorInstaller: { _ in
+                    installCount += 1
+                    return MonitorToken()
+                },
+                localMonitorInstaller: { _ in
+                    installCount += 1
+                    return MonitorToken()
+                },
+                monitorRemover: { _ in removalCount += 1 },
+                permissionChangeObserver: { permissionChangeHandler = $0 }
+            )
+            manager.updateShortcuts(from: [
+                BrightnessPreset(name: "Night", shortcut: GlobalShortcut(key: "1", modifiers: [.command, .option])),
+            ])
+            XCTAssertEqual(installCount, 0)
+
+            permissionProbe.isGranted = true
+            try XCTUnwrap(permissionChangeHandler)()
+            XCTAssertEqual(installCount, 2)
+
+            try XCTUnwrap(permissionChangeHandler)()
+            XCTAssertEqual(installCount, 2)
+
+            permissionProbe.isGranted = false
+            try XCTUnwrap(permissionChangeHandler)()
+            XCTAssertEqual(removalCount, 2)
+        }
+
         func testPresetShortcutUpdateDoesNotRestartMonitorForUnchangedBindings() {
             var installCount = 0
             var removalCount = 0

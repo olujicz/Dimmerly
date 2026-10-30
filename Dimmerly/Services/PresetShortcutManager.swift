@@ -39,6 +39,8 @@ import Observation
         /// Whether a recorder overlay is capturing keys, in which case normal actions stay suppressed.
         /// Injected like the monitor seams so `handleKeyEvent` is testable without the shared coordinator.
         typealias RecordingSuppressionChecker = @MainActor () -> Bool
+        typealias PermissionChangeHandler = KeyboardShortcutManager.PermissionChangeHandler
+        typealias PermissionChangeObserver = KeyboardShortcutManager.PermissionChangeObserver
 
         /// Callback invoked when a preset shortcut is pressed (passes preset ID)
         var onPresetTriggered: ((UUID) -> Void)?
@@ -77,13 +79,18 @@ import Observation
             },
             isRecordingSuppressed: @escaping RecordingSuppressionChecker = {
                 ShortcutRecordingCoordinator.shared.isRecording
-            }
+            },
+            permissionChangeObserver: PermissionChangeObserver = KeyboardShortcutManager
+                .observeAccessibilityPermissionChanges
         ) {
             self.permissionChecker = permissionChecker
             self.globalMonitorInstaller = globalMonitorInstaller
             self.localMonitorInstaller = localMonitorInstaller
             self.monitorRemover = monitorRemover
             self.isRecordingSuppressed = isRecordingSuppressed
+            permissionChangeObserver { [weak self] in
+                self?.refreshAccessibilityPermissionAndRestartIfNeeded()
+            }
         }
 
         /// Updates the registered shortcuts from the current preset list.
@@ -143,7 +150,8 @@ import Observation
         }
 
         /// Rechecks Accessibility permission and starts preset shortcut monitoring
-        /// when permission was granted after the shortcut set was already registered.
+        /// when permission was granted after the shortcut set was already registered, or stops
+        /// it if permission was revoked. Called automatically on permission-change notifications.
         func refreshAccessibilityPermissionAndRestartIfNeeded() {
             guard permissionChecker() else {
                 stopMonitoring()

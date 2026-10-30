@@ -163,6 +163,52 @@ final class ShortcutCaptureNSView: NSView {
         isActive
     }
 
+    /// Observer for the hosting window resigning key, so switching apps or windows ends recording.
+    private var windowResignKeyObserver: NSObjectProtocol?
+
+    /// Ends an in-progress recording without capturing. Clearing `isActive` first makes every
+    /// later exit path (resign, Escape, click) a no-op, so `onCancel` fires at most once.
+    private func cancelRecording() {
+        guard isActive else { return }
+        isActive = false
+        onCancel?()
+    }
+
+    /// Focus moving to another recorder, field, or window must end recording; otherwise the
+    /// label stays on "Press shortcut…" and the recording coordinator keeps suppressing every
+    /// global shortcut.
+    override func resignFirstResponder() -> Bool {
+        let didResign = super.resignFirstResponder()
+        if didResign {
+            cancelRecording()
+        }
+        return didResign
+    }
+
+    override func viewWillMove(toWindow newWindow: NSWindow?) {
+        super.viewWillMove(toWindow: newWindow)
+        if let windowResignKeyObserver {
+            NotificationCenter.default.removeObserver(windowResignKeyObserver)
+            self.windowResignKeyObserver = nil
+        }
+        if newWindow == nil, isActive {
+            // Leaving the window can happen inside a SwiftUI update; defer the state change.
+            isActive = false
+            let onCancel = onCancel
+            DispatchQueue.main.async { onCancel?() }
+        }
+        guard let newWindow else { return }
+        windowResignKeyObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.didResignKeyNotification,
+            object: newWindow,
+            queue: nil // Posted on the main thread; deliver synchronously.
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.cancelRecording()
+            }
+        }
+    }
+
     override func keyDown(with event: NSEvent) {
         guard isActive else {
             super.keyDown(with: event)
@@ -171,8 +217,7 @@ final class ShortcutCaptureNSView: NSView {
 
         // Escape cancels recording (HIG Rule 5.3)
         if event.keyCode == 53 { // kVK_Escape
-            isActive = false
-            onCancel?()
+            cancelRecording()
             return
         }
 
@@ -183,11 +228,15 @@ final class ShortcutCaptureNSView: NSView {
         ) {
             #if APPSTORE
                 guard shortcut.isValid else {
+                    isActive = false
                     onConflictDetected?(GlobalShortcut.carbonShortcutRequirementMessage)
                     return
                 }
             #endif
             guard shortcut.isValid else { return }
+            // Recording ends here; clear `isActive` before the callbacks so the focus change
+            // that follows isn't also reported as a cancel.
+            isActive = false
             if shortcut.isReservedSystemShortcut {
                 onConflictDetected?(
                     String(
@@ -206,10 +255,7 @@ final class ShortcutCaptureNSView: NSView {
     }
 
     override func mouseDown(with event: NSEvent) {
-        if isActive {
-            isActive = false
-            onCancel?()
-        }
+        cancelRecording()
         super.mouseDown(with: event)
     }
 }
