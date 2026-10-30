@@ -1090,7 +1090,9 @@ extension BrightnessManagerTests {
             XCTAssertEqual(writes.values.map(\.value), [60, 60], "A user-set value is owned and restored on refresh")
         }
 
-        func testDDCDisplayWithSavedBrightnessRestoresItOnRefresh() throws {
+        /// The monitor may have been changed with its own buttons while Dimmerly wasn't running,
+        /// so a saved value seeds the slider but is never pushed over the monitor's level.
+        func testDDCDisplayWithSavedBrightnessAdoptsMonitorLevelAtLaunch() throws {
             let suiteName = "BrightnessManagerTests-\(UUID().uuidString)"
             let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
             defer { defaults.removePersistentDomain(forName: suiteName) }
@@ -1100,9 +1102,18 @@ extension BrightnessManagerTests {
             let writes = prepareRefreshedDDCDisplay(displayID, manager: manager)
 
             manager.refreshDisplays()
-
-            XCTAssertEqual(writes.values.map(\.value), [45])
+            XCTAssertTrue(writes.values.isEmpty, "A saved value must not overwrite the monitor's own level")
             XCTAssertEqual(manager.brightness(for: displayID), 0.45, accuracy: 0.0001)
+
+            manager.synchronizeExternalHardwareBrightness(for: displayID, to: 0.3)
+            manager.refreshDisplays()
+            manager.reapplyAll()
+            XCTAssertTrue(writes.values.isEmpty)
+            XCTAssertEqual(manager.brightness(for: displayID), 0.3, accuracy: 0.0001)
+
+            manager.setBrightness(for: displayID, to: 0.6)
+            manager.refreshDisplays()
+            XCTAssertEqual(writes.values.map(\.value), [60, 60], "A value set this session is restored on refresh")
         }
 
         func testDDCPresetTransitionClaimsBrightnessOfUnsetDisplay() async {

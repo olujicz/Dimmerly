@@ -212,9 +212,9 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
         /// for discovery and initial state, but a failed/transient read must not erase the model.
         private var nativeBrightnessReadsThisRefresh: [CGDirectDisplayID: Double] = [:]
 
-        /// External display identities that appeared with neither a saved nor a live brightness.
-        /// Their model value is only a default, so DDC is never written from it: the display
-        /// adopts its hardware reads until a user, preset, or schedule change claims it.
+        /// External display identities whose brightness hasn't been set this session. A monitor
+        /// keeps its own brightness, so DDC is never written from a default or saved value: the
+        /// display adopts its hardware reads until a user, preset, or schedule change claims it.
         private var unclaimedExternalBrightnessIdentities: Set<String> = []
 
         /// Test initializer skips implicit private API probes; explicit hooks still exercise them.
@@ -816,7 +816,11 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
         #endif
 
         #if !APPSTORE
-            if previousBrightness == nil, savedBrightness == nil {
+            // A monitor keeps its own brightness and may have been changed with its buttons
+            // while Dimmerly wasn't running, so a saved value only seeds the slider until the
+            // first hardware read. It is written again once the user, a preset, or a schedule
+            // sets a brightness this session.
+            if previousBrightness == nil {
                 unclaimedExternalBrightnessIdentities.insert(displayIdentity(for: displayID))
             }
         #endif
