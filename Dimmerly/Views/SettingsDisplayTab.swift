@@ -63,19 +63,12 @@ struct DisplaySettingsTab: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                    Button {
-                        if let url = URL(string: "x-apple.systempreferences:com.apple.Lock-Screen-Settings.extension") {
-                            NSWorkspace.shared.open(url)
-                        }
-                    } label: {
-                        HStack(spacing: 2) {
-                            Text("Open Lock Screen Settings")
-                            Image(systemName: "arrow.up.forward")
-                                .imageScale(.small)
-                        }
-                    }
+                    ExternalLinkButton(
+                        Text("Open Lock Screen Settings"),
+                        url: URL(string: "x-apple.systempreferences:com.apple.Lock-Screen-Settings.extension"),
+                        help: Text("Open macOS Lock Screen settings")
+                    )
                     .font(.caption)
-                    .help("Open macOS Lock Screen settings")
                 } else {
                     Text("Dims screens without putting displays to sleep. Your session stays unlocked.")
                         .font(.caption)

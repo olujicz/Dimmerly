@@ -274,6 +274,34 @@ struct SettingsView: View {
     }
 }
 
+/// A button that leaves Dimmerly for a web page or System Settings, marked with an
+/// arrow so it reads as a link out of the app.
+struct ExternalLinkButton: View {
+    let title: Text
+    let help: Text
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 2) {
+                title
+                Image(systemName: "arrow.up.forward")
+                    .imageScale(.small)
+            }
+        }
+        .help(help)
+    }
+}
+
+extension ExternalLinkButton {
+    init(_ title: Text, url: URL?, help: Text) {
+        self.init(title: title, help: help) {
+            guard let url else { return }
+            NSWorkspace.shared.open(url)
+        }
+    }
+}
+
 // MARK: - Preview
 
 #Preview {

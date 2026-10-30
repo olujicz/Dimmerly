@@ -94,17 +94,12 @@ struct ShortcutsSettingsTab: View {
                         .foregroundStyle(.secondary)
                         .symbolRenderingMode(.multicolor)
 
-                        Button {
-                            KeyboardShortcutManager.requestAccessibilityPermission()
-                        } label: {
-                            HStack(spacing: 2) {
-                                Text("Open Accessibility Settings")
-                                Image(systemName: "arrow.up.forward")
-                                    .imageScale(.small)
-                            }
-                        }
+                        ExternalLinkButton(
+                            title: Text("Open Accessibility Settings"),
+                            help: Text("Open macOS Accessibility settings"),
+                            action: KeyboardShortcutManager.requestAccessibilityPermission
+                        )
                         .font(.caption)
-                        .help("Open macOS Accessibility settings")
                     }
                     .accessibilityElement(children: .combine)
                     .padding(.top, 4)
