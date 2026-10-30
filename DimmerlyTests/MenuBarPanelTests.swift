@@ -134,18 +134,6 @@ final class MenuBarPanelTests: XCTestCase {
         XCTAssertTrue(source.contains("Capsule().stroke(.orange, lineWidth: 0.75)"))
     }
 
-    #if !APPSTORE
-        func testInputSourceMenuMarksOnlyTheActiveSource() {
-            let active = InputSourceMenuItemPresentation.forSource(.hdmi1, active: .hdmi1)
-            let inactive = InputSourceMenuItemPresentation.forSource(.displayPort1, active: .hdmi1)
-
-            XCTAssertEqual(active.title, "HDMI 1")
-            XCTAssertEqual(active.systemImageName, "checkmark")
-            XCTAssertEqual(inactive.title, "DisplayPort 1")
-            XCTAssertNil(inactive.systemImageName)
-        }
-    #endif
-
     @MainActor
     func testCloseMenuBarPanelEnvironmentRoundTripsItsAction() {
         let spy = ClosePanelSpy()
@@ -1014,6 +1002,45 @@ extension MenuBarPanelTests {
         XCTAssertTrue(source.contains(".accessibilityLabel(Text(\"Clear Shortcut for \\(presetName)\"))"))
         XCTAssertTrue(source.contains(".accessibilityHidden(shortcut == nil)"))
     }
+
+    #if !APPSTORE
+        func testInputSourceSwitchConfirmationNamesDisplayAndInput() {
+            let confirmation = ConfirmationAlert.switchInputSource(displayName: "Studio", sourceName: "HDMI 2")
+
+            XCTAssertEqual(confirmation.title, "Switch Studio to HDMI 2?")
+            XCTAssertTrue(confirmation.message.contains("\"No Signal\""))
+            XCTAssertEqual(confirmation.confirmButtonTitle, "Switch")
+        }
+
+        /// The menu is a Picker so VoiceOver hears which input is selected, and it shows the
+        /// active input until a switch is confirmed. Reselecting it asks nothing.
+        @MainActor
+        func testInputSourceMenuSelectsTheActiveInput() throws {
+            var switched: [InputSource] = []
+            var row = DisplayBrightnessRow(
+                display: ExternalDisplay(id: 42, name: "External", brightness: 0.6),
+                isBlanked: false,
+                onChange: { _ in },
+                onWarmthChange: { _ in },
+                onContrastChange: { _ in },
+                onToggleBlank: {}
+            )
+            row.activeInputSource = .hdmi1
+            row.availableInputSources = [.hdmi1, .displayPort1]
+            row.onInputSourceChange = { switched.append($0) }
+
+            let selection = row.inputSourceSelection
+            XCTAssertEqual(selection.wrappedValue, .hdmi1)
+            selection.wrappedValue = .hdmi1
+            selection.wrappedValue = nil
+            XCTAssertEqual(switched, [])
+
+            let source = try Self.repositorySource("Dimmerly/Views/MenuBarDisplayControls.swift")
+            XCTAssertTrue(source.contains("Picker(selection: inputSourceSelection)"))
+            XCTAssertTrue(source.contains(".tag(Optional(source))"))
+            XCTAssertTrue(source.contains("AlertPresenter.confirm(confirmation)"))
+        }
+    #endif
 
     static func repositorySource(_ relativePath: String) throws -> String {
         let url = URL(fileURLWithPath: #filePath)

@@ -106,4 +106,33 @@ struct ConfirmationAlert: Equatable {
             isDestructive: false
         )
     }
+
+    #if !APPSTORE
+        /// Switching a monitor to an input the Mac isn't connected to leaves it showing
+        /// "No Signal", and Dimmerly can't switch it back over that input.
+        static func switchInputSource(displayName: String, sourceName: String) -> Self {
+            Self(
+                title: String(
+                    format: NSLocalizedString(
+                        "Switch %1$@ to %2$@?",
+                        comment: "Confirmation title: switch a monitor (1) to another input source (2)"
+                    ),
+                    displayName,
+                    sourceName
+                ),
+                message: NSLocalizedString(
+                    """
+                    If this Mac isn't connected to that input, the display shows "No Signal" \
+                    until you switch it back with the monitor's own buttons.
+                    """,
+                    comment: "Confirmation message: switching a monitor's input source"
+                ),
+                confirmButtonTitle: NSLocalizedString(
+                    "Switch",
+                    comment: "Confirmation button: switch a monitor's input source"
+                ),
+                isDestructive: false
+            )
+        }
+    #endif
 }

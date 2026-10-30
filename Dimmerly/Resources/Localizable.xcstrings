@@ -28261,6 +28261,219 @@
           }
         }
       }
+    },
+    "Switch %1$@ to %2$@?" : {
+      "comment" : "Confirmation title: switch a monitor (1) to another input source (2)",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ auf %2$@ umschalten?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switch %1$@ to %2$@?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Cambiar %1$@ a %2$@?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Basculer %1$@ sur %2$@ ?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passare %1$@ a %2$@?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@を%2$@に切り替えますか？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@을(를) %2$@(으)로 전환하겠습니까?"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ overschakelen naar %2$@?"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mudar %1$@ para %2$@?"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prebaciti %1$@ na %2$@?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要将%1$@切换到%2$@吗？"
+          }
+        }
+      }
+    },
+    "If this Mac isn't connected to that input, the display shows \"No Signal\" until you switch it back with the monitor's own buttons." : {
+      "comment" : "Confirmation message: switching a monitor's input source",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wenn dieser Mac nicht an diesem Eingang angeschlossen ist, zeigt der Bildschirm „Kein Signal“ an, bis du ihn mit den Tasten des Monitors zurückschaltest."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If this Mac isn't connected to that input, the display shows \"No Signal\" until you switch it back with the monitor's own buttons."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si este Mac no está conectado a esa entrada, la pantalla mostrará \"Sin señal\" hasta que vuelvas a cambiarla con los botones del propio monitor."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si ce Mac n’est pas connecté à cette entrée, l’écran affiche « Pas de signal » jusqu’à ce que vous reveniez en arrière avec les boutons du moniteur."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se questo Mac non è collegato a quell’ingresso, il display mostra \"Nessun segnale\" finché non lo riporti indietro con i pulsanti del monitor."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このMacがその入力に接続されていない場合、モニター本体のボタンで戻すまでディスプレイに「信号なし」と表示されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 Mac이 해당 입력에 연결되어 있지 않으면 모니터 자체 버튼으로 다시 전환할 때까지 디스플레이에 \"신호 없음\"이 표시됩니다."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Als deze Mac niet op die invoer is aangesloten, toont het scherm \"Geen signaal\" totdat je het met de knoppen van de monitor terugschakelt."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se este Mac não estiver conectado a essa entrada, a tela mostrará \"Sem sinal\" até que você volte usando os botões do próprio monitor."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ako ovaj Mac nije povezan na taj ulaz, ekran prikazuje „Nema signala“ dok ga ne vratite dugmadima na samom monitoru."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如果此 Mac 未连接到该输入，显示器会显示“无信号”，直到你使用显示器自身的按钮切换回来。"
+          }
+        }
+      }
+    },
+    "Switch" : {
+      "comment" : "Confirmation button: switch a monitor's input source",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Umschalten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switch"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambiar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Basculer"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambia"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切り替える"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "전환"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schakel over"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mudar"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prebaci"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切换"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

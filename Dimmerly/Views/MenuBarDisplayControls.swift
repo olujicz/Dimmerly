@@ -30,20 +30,6 @@ private struct DisplayEntityContextModifier: ViewModifier {
     }
 }
 
-#if !APPSTORE
-    struct InputSourceMenuItemPresentation: Equatable {
-        let title: String
-        let systemImageName: String?
-
-        static func forSource(_ source: InputSource, active: InputSource?) -> Self {
-            Self(
-                title: source.displayName,
-                systemImageName: source == active ? "checkmark" : nil
-            )
-        }
-    }
-#endif
-
 // MARK: - Display Brightness Row
 
 struct SliderSyncGate {
@@ -650,23 +636,19 @@ struct DisplayBrightnessRow: View {
                                 .accessibilityHidden(true)
 
                             // A Menu keeps the input list compact without adding vertical space.
+                            // The inline Picker inside it gives the items native checkmarks and
+                            // tells VoiceOver which input is selected.
                             Menu {
-                                ForEach(availableInputSources, id: \.self) { source in
-                                    Button {
-                                        onInputSourceChange?(source)
-                                    } label: {
-                                        let presentation = InputSourceMenuItemPresentation.forSource(
-                                            source,
-                                            active: activeInputSource
-                                        )
-                                        if let systemImageName = presentation.systemImageName {
-                                            Label(presentation.title, systemImage: systemImageName)
-                                                .labelStyle(.titleAndIcon)
-                                        } else {
-                                            Text(presentation.title)
-                                        }
+                                Picker(selection: inputSourceSelection) {
+                                    ForEach(availableInputSources, id: \.self) { source in
+                                        Text(source.displayName)
+                                            .tag(Optional(source))
                                     }
+                                } label: {
+                                    Text("Input Source")
                                 }
+                                .pickerStyle(.inline)
+                                .labelsHidden()
                             } label: {
                                 HStack(spacing: 4) {
                                     Text(activeInputSource?.displayName ?? String(localized: "Unknown"))
@@ -739,3 +721,37 @@ struct DisplayBrightnessRow: View {
         )
     }
 }
+
+// MARK: - Input Source Switching
+
+#if !APPSTORE
+    extension DisplayBrightnessRow {
+        /// Reads the monitor's active input. Choosing another one asks first, because the
+        /// display goes dark if the Mac isn't connected to that input. Until then the menu
+        /// keeps showing the current input.
+        var inputSourceSelection: Binding<InputSource?> {
+            Binding(
+                get: { activeInputSource },
+                set: { source in
+                    guard let source, source != activeInputSource else { return }
+                    confirmInputSourceChange(to: source)
+                }
+            )
+        }
+
+        private func confirmInputSourceChange(to source: InputSource) {
+            guard let onInputSourceChange else { return }
+            let confirmation = ConfirmationAlert.switchInputSource(
+                displayName: display.name,
+                sourceName: source.displayName
+            )
+            // Run once the menu has finished tracking, so the alert isn't nested inside it.
+            Task { @MainActor in
+                await Task.yield()
+                if AlertPresenter.confirm(confirmation) {
+                    onInputSourceChange(source)
+                }
+            }
+        }
+    }
+#endif
