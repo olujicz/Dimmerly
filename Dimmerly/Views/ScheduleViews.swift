@@ -19,9 +19,6 @@ struct ScheduleRow: View {
     let onDelete: () -> Void
 
     @State private var showDeleteConfirmation = false
-    @State private var isHovered = false
-    @FocusState private var deleteButtonFocused: Bool
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         HStack {
@@ -44,8 +41,6 @@ struct ScheduleRow: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
-            .opacity(isHovered || deleteButtonFocused ? 1 : 0.3)
-            .focused($deleteButtonFocused)
             .accessibilityLabel(Text("Delete \(schedule.name)"))
             .help(Text("Delete Schedule"))
             .alert("Delete Schedule?", isPresented: $showDeleteConfirmation) {
@@ -55,8 +50,6 @@ struct ScheduleRow: View {
                 Text("\"\(schedule.name)\" will be permanently deleted.")
             }
         }
-        .onHover { isHovered = $0 }
-        .animation(reduceMotion ? nil : .spring(response: 0.2, dampingFraction: 0.8), value: isHovered)
 
         if presetName == nil {
             Label(

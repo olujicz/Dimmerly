@@ -134,18 +134,6 @@ final class MenuBarPanelTests: XCTestCase {
         XCTAssertTrue(source.contains("Capsule().stroke(.orange, lineWidth: 0.75)"))
     }
 
-    #if !APPSTORE
-        func testInputSourceMenuMarksOnlyTheActiveSource() {
-            let active = InputSourceMenuItemPresentation.forSource(.hdmi1, active: .hdmi1)
-            let inactive = InputSourceMenuItemPresentation.forSource(.displayPort1, active: .hdmi1)
-
-            XCTAssertEqual(active.title, "HDMI 1")
-            XCTAssertEqual(active.systemImageName, "checkmark")
-            XCTAssertEqual(inactive.title, "DisplayPort 1")
-            XCTAssertNil(inactive.systemImageName)
-        }
-    #endif
-
     @MainActor
     func testCloseMenuBarPanelEnvironmentRoundTripsItsAction() {
         let spy = ClosePanelSpy()
@@ -976,6 +964,125 @@ extension MenuBarPanelTests {
             )
         }
     #endif
+}
+
+// MARK: - Panel and Preset Row Interactions
+
+extension MenuBarPanelTests {
+    func testPanelPresetDeleteUsesTheSettingsConfirmationWording() {
+        let confirmation = ConfirmationAlert.deletePreset(named: "Evening")
+
+        XCTAssertEqual(confirmation.title, "Delete Preset?")
+        XCTAssertEqual(confirmation.message, "\"Evening\" will be permanently deleted.")
+        XCTAssertEqual(confirmation.confirmButtonTitle, "Delete")
+        XCTAssertTrue(confirmation.isDestructive)
+    }
+
+    func testPanelPresetOverwriteAsksBeforeReplacingSavedSettings() {
+        let confirmation = ConfirmationAlert.updatePreset(named: "Evening")
+
+        XCTAssertEqual(confirmation.title, "Update \"Evening\"?")
+        XCTAssertEqual(confirmation.confirmButtonTitle, "Update")
+        XCTAssertFalse(confirmation.isDestructive)
+    }
+
+    func testPanelPresetContextMenuConfirmsBeforeChangingAPreset() throws {
+        let source = try Self.repositorySource("Dimmerly/Views/MenuBarPresetControls.swift")
+
+        XCTAssertTrue(source.contains("confirm(.updatePreset(named: preset.name))"))
+        XCTAssertTrue(source.contains("confirm(.deletePreset(named: preset.name))"))
+        XCTAssertTrue(source.contains("AlertPresenter.confirm(confirmation)"))
+    }
+
+    /// The preset recorder in Settings offers a visible clear button, not only a context menu.
+    func testPresetShortcutRecorderHasVisibleClearButton() throws {
+        let source = try Self.repositorySource("Dimmerly/Views/PresetManagementRow.swift")
+
+        XCTAssertTrue(source.contains("Image(systemName: \"xmark.circle.fill\")"))
+        XCTAssertTrue(source.contains(".accessibilityLabel(Text(\"Clear Shortcut for \\(presetName)\"))"))
+        XCTAssertTrue(source.contains(".accessibilityHidden(shortcut == nil)"))
+    }
+
+    #if !APPSTORE
+        func testInputSourceSwitchConfirmationNamesDisplayAndInput() {
+            let confirmation = ConfirmationAlert.switchInputSource(displayName: "Studio", sourceName: "HDMI 2")
+
+            XCTAssertEqual(confirmation.title, "Switch Studio to HDMI 2?")
+            XCTAssertTrue(confirmation.message.contains("\"No Signal\""))
+            XCTAssertEqual(confirmation.confirmButtonTitle, "Switch")
+        }
+
+        /// The menu is a Picker so VoiceOver hears which input is selected, and it shows the
+        /// active input until a switch is confirmed. Reselecting it asks nothing.
+        @MainActor
+        func testInputSourceMenuSelectsTheActiveInput() throws {
+            var switched: [InputSource] = []
+            var row = DisplayBrightnessRow(
+                display: ExternalDisplay(id: 42, name: "External", brightness: 0.6),
+                isBlanked: false,
+                onChange: { _ in },
+                onWarmthChange: { _ in },
+                onContrastChange: { _ in },
+                onToggleBlank: {}
+            )
+            row.activeInputSource = .hdmi1
+            row.availableInputSources = [.hdmi1, .displayPort1]
+            row.onInputSourceChange = { switched.append($0) }
+
+            let selection = row.inputSourceSelection
+            XCTAssertEqual(selection.wrappedValue, .hdmi1)
+            selection.wrappedValue = .hdmi1
+            selection.wrappedValue = nil
+            XCTAssertEqual(switched, [])
+
+            let source = try Self.repositorySource("Dimmerly/Views/MenuBarDisplayControls.swift")
+            XCTAssertTrue(source.contains("Picker(selection: inputSourceSelection)"))
+            XCTAssertTrue(source.contains(".tag(Optional(source))"))
+            XCTAssertTrue(source.contains("AlertPresenter.confirm(confirmation)"))
+        }
+    #endif
+
+    /// Disabled controls draw their own dimmed state; only the decoration beside them fades.
+    func testBlankedDisplayControlsAreDimmedOnce() throws {
+        let source = try Self.repositorySource("Dimmerly/Views/MenuBarDisplayControls.swift")
+
+        XCTAssertFalse(source.contains(".opacity(isBlanked ?"))
+        XCTAssertTrue(source.contains(".disabled(isBlanked)"))
+        XCTAssertTrue(source.contains(".dimmedWhenDisabled()"))
+    }
+
+    func testHintsAndRowButtonsKeepReadableContrast() throws {
+        let presetControls = try Self.repositorySource("Dimmerly/Views/MenuBarPresetControls.swift")
+        XCTAssertFalse(presetControls.contains(".foregroundStyle(.quaternary)"))
+
+        for path in ["Dimmerly/Views/PresetManagementRow.swift", "Dimmerly/Views/ScheduleViews.swift"] {
+            let source = try Self.repositorySource(path)
+            XCTAssertFalse(source.contains("? 1 : 0.3)"), "\(path) fades a row button until hover")
+        }
+    }
+
+    func testPresetRenameSavesOnlyANewNonBlankName() {
+        XCTAssertEqual(PresetManagementRow.renamedName(from: "  Night  ", current: "Evening"), "Night")
+        XCTAssertNil(PresetManagementRow.renamedName(from: "   ", current: "Evening"))
+        XCTAssertNil(PresetManagementRow.renamedName(from: "Evening ", current: "Evening"))
+    }
+
+    func testPresetRenameFieldFocusesSubmitsAndCancels() throws {
+        let source = try Self.repositorySource("Dimmerly/Views/PresetManagementRow.swift")
+
+        XCTAssertFalse(source.contains("onCommit:"))
+        XCTAssertTrue(source.contains(".focused($isNameFieldFocused)"))
+        XCTAssertTrue(source.contains(".onSubmit(commitRename)"))
+        XCTAssertTrue(source.contains(".onExitCommand(perform: cancelRename)"))
+    }
+
+    static func repositorySource(_ relativePath: String) throws -> String {
+        let url = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent(relativePath)
+        return try String(contentsOf: url, encoding: .utf8)
+    }
 }
 
 // MARK: - Wording and order

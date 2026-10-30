@@ -28,41 +28,36 @@ struct PresetManagementRow: View {
     @State private var editedName: String = ""
     @State private var conflictMessage: String?
     @State private var showDeleteConfirmation = false
-    @State private var isHovered = false
-    @FocusState private var renameButtonFocused: Bool
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @FocusState private var isNameFieldFocused: Bool
 
     var body: some View {
         HStack {
             if isEditing {
-                TextField("Name", text: $editedName, onCommit: {
-                    let trimmed = editedName.trimmingCharacters(in: .whitespaces)
-                    if !trimmed.isEmpty {
-                        onRename(trimmed)
+                TextField("Name", text: $editedName)
+                    .textFieldStyle(.roundedBorder)
+                    .focused($isNameFieldFocused)
+                    .onAppear { isNameFieldFocused = true }
+                    .onSubmit(commitRename)
+                    .onExitCommand(perform: cancelRename)
+                    // Clicking or tabbing away keeps the typed name, as renaming in Finder
+                    // does, rather than silently dropping it and leaving the row in edit mode.
+                    .onChange(of: isNameFieldFocused) { _, isFocused in
+                        if !isFocused {
+                            commitRename()
+                        }
                     }
-                    isEditing = false
-                })
-                .textFieldStyle(.roundedBorder)
             } else {
                 Text(preset.name)
                     .contextMenu {
-                        Button("Rename") {
-                            editedName = preset.name
-                            isEditing = true
-                        }
+                        Button("Rename", action: startRename)
                     }
 
-                Button {
-                    editedName = preset.name
-                    isEditing = true
-                } label: {
+                Button(action: startRename) {
                     Image(systemName: "pencil")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.borderless)
-                .opacity(isHovered || renameButtonFocused ? 1 : 0.3)
-                .focused($renameButtonFocused)
                 .accessibilityLabel(Text("Rename \(preset.name)"))
                 .help(Text("Rename Preset"))
             }
@@ -119,8 +114,6 @@ struct PresetManagementRow: View {
                 Text("\"\(preset.name)\" will be permanently deleted.")
             }
         }
-        .onHover { isHovered = $0 }
-        .animation(reduceMotion ? nil : .spring(response: 0.2, dampingFraction: 0.8), value: isHovered)
 
         if let conflictMessage {
             Label(conflictMessage, systemImage: "exclamationmark.triangle.fill")
@@ -131,6 +124,32 @@ struct PresetManagementRow: View {
     }
 
     /// Name of the main shortcut or another preset already bound to `shortcut`.
+    private func startRename() {
+        editedName = preset.name
+        isEditing = true
+    }
+
+    /// Ends editing and saves the name. Runs once: Return, then the field losing focus as
+    /// it goes away, both land here.
+    private func commitRename() {
+        guard isEditing else { return }
+        isEditing = false
+        if let newName = Self.renamedName(from: editedName, current: preset.name) {
+            onRename(newName)
+        }
+    }
+
+    private func cancelRename() {
+        isEditing = false
+    }
+
+    /// The trimmed name to save, or nil when it is blank or unchanged.
+    nonisolated static func renamedName(from editedName: String, current: String) -> String? {
+        let trimmed = editedName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed != current else { return nil }
+        return trimmed
+    }
+
     private func conflictingName(for shortcut: GlobalShortcut) -> String? {
         if shortcut == mainShortcut {
             return mainShortcutName
@@ -152,6 +171,27 @@ struct PresetShortcutRecorderButton: View {
     @State private var recorderID = UUID()
 
     var body: some View {
+        HStack(spacing: 4) {
+            recorderButton
+
+            // Mirrors the main recorder's trailing reset button. Hidden rather than removed
+            // when there is nothing to clear, so the recorder doesn't shift sideways.
+            Button {
+                onRecord(nil)
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.borderless)
+            .help(Text("Clear Shortcut"))
+            .accessibilityLabel(Text("Clear Shortcut for \(presetName)"))
+            .opacity(shortcut == nil ? 0 : 1)
+            .disabled(shortcut == nil || isRecording)
+            .accessibilityHidden(shortcut == nil)
+        }
+    }
+
+    private var recorderButton: some View {
         Button {
             isRecording.toggle()
         } label: {
