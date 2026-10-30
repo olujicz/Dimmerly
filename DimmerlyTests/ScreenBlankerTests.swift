@@ -18,6 +18,7 @@ final class ScreenBlankerTests: XCTestCase {
         let clock = FakeBlankingClock(now: 100)
         let displays = FakeActiveDisplayProvider(activeDisplayIDs: [7, 9])
         let failures = FailureRecorder()
+        let notificationCenter = NotificationCenter()
         let sut = ScreenBlanker(
             inputMonitor: input,
             windows: windows,
@@ -25,6 +26,7 @@ final class ScreenBlankerTests: XCTestCase {
             cursor: cursor,
             clock: clock,
             displays: displays,
+            notificationCenter: notificationCenter,
             failurePresenter: { error in failures.errors.append(error) }
         )
         return ScreenBlankerHarness(
@@ -35,7 +37,8 @@ final class ScreenBlankerTests: XCTestCase {
             cursor: cursor,
             clock: clock,
             displays: displays,
-            failures: failures
+            failures: failures,
+            notificationCenter: notificationCenter
         )
     }
 
@@ -211,6 +214,81 @@ final class ScreenBlankerTests: XCTestCase {
         harness.sut.blankDisplay(7)
         DisplayAction.setDimmed(true, settings: AppSettings(), blanker: harness.sut) { _ in sleepCount += 1 }
         XCTAssertEqual(sleepCount, 1, "A toggle that already reads as on must not start a second session")
+    }
+
+    // MARK: - Displays arriving during a global blank
+
+    func testDisplayWithoutScreenYetDoesNotEndGlobalBlank() {
+        let harness = makeHarness()
+        harness.sut.blank()
+
+        // CoreGraphics reports the new display before AppKit lists an NSScreen for it.
+        harness.displays.activeDisplayIDs = [7, 9, 11]
+        harness.displays.displayIDsWithoutScreen = [11]
+        harness.windows.failingDisplayIDs = [11]
+        harness.sut.displayTopologyDidChange()
+
+        XCTAssertTrue(harness.sut.isBlanking)
+        XCTAssertTrue(harness.failures.errors.isEmpty)
+        XCTAssertEqual(harness.input.stopCount, 0)
+        XCTAssertTrue(harness.gamma.restoredDisplayIDs.isEmpty)
+        XCTAssertEqual(harness.windows.shownDisplayIDs, [7, 9])
+        XCTAssertEqual(harness.gamma.blankedDisplayIDs, [7, 9])
+    }
+
+    func testDisplayIsBlankedOnceItsScreenAppears() async throws {
+        let harness = makeHarness()
+        harness.sut.requireEscapeToDismiss = true
+        harness.sut.blank()
+        harness.displays.activeDisplayIDs = [7, 9, 11]
+        harness.displays.displayIDsWithoutScreen = [11]
+        harness.windows.failingDisplayIDs = [11]
+        harness.sut.displayTopologyDidChange()
+
+        // AppKit catches up and announces the new screen without another CoreGraphics callback.
+        harness.displays.displayIDsWithoutScreen = []
+        harness.windows.failingDisplayIDs = []
+        await harness.postScreenParametersChange()
+
+        XCTAssertTrue(harness.sut.isBlanking)
+        XCTAssertEqual(harness.windows.shownDisplayIDs, [7, 9, 11])
+        XCTAssertEqual(harness.gamma.blankedDisplayIDs, [7, 9, 11])
+        XCTAssertEqual(harness.windows.beginSessionCount, 1)
+        XCTAssertEqual(harness.input.startPolicies, [.escapeOnly])
+
+        // The existing wake path still covers the display added mid-session.
+        harness.clock.now = 100.5
+        try harness.input.sendWake()
+
+        XCTAssertFalse(harness.sut.isBlanking)
+        XCTAssertEqual(harness.gamma.restoredDisplayIDs, [7, 9, 11])
+        XCTAssertEqual(harness.windows.removeAllCount, 1)
+        XCTAssertTrue(harness.failures.errors.isEmpty)
+    }
+
+    func testOverlayFailureForArrivingDisplayEndsBlankWithoutInputFilteringError() {
+        let harness = makeHarness()
+        harness.sut.blank()
+
+        harness.displays.activeDisplayIDs = [7, 9, 11]
+        harness.windows.failingDisplayIDs = [11]
+        harness.sut.displayTopologyDidChange()
+
+        XCTAssertFalse(harness.sut.isBlanking)
+        XCTAssertTrue(harness.failures.errors.isEmpty, "A window failure is not an input-filtering failure")
+        XCTAssertEqual(harness.input.stopCount, 1)
+        XCTAssertEqual(harness.gamma.restoredDisplayIDs, [7, 9, 11])
+        XCTAssertEqual(harness.cursor.unhideCount, 1)
+    }
+
+    func testScreenParametersChangeWithoutBlankingDoesNothing() async {
+        let harness = makeHarness()
+
+        await harness.postScreenParametersChange()
+
+        XCTAssertTrue(harness.windows.shownDisplayIDs.isEmpty)
+        XCTAssertTrue(harness.gamma.blankedDisplayIDs.isEmpty)
+        XCTAssertTrue(harness.input.startPolicies.isEmpty)
     }
 
     func testTopologyChangeArmsRecoveryWhenTheLastVisibleDisplayDisconnects() {
@@ -552,6 +630,16 @@ private struct ScreenBlankerHarness {
     let clock: FakeBlankingClock
     let displays: FakeActiveDisplayProvider
     let failures: FailureRecorder
+    let notificationCenter: NotificationCenter
+
+    /// Delivers AppKit's screen-parameters notification the way it arrives in the app, then lets
+    /// any main-queue delivery run.
+    func postScreenParametersChange() async {
+        notificationCenter.post(name: NSApplication.didChangeScreenParametersNotification, object: nil)
+        for _ in 0 ..< 10 {
+            await Task.yield()
+        }
+    }
 }
 
 @MainActor
@@ -719,12 +807,14 @@ private final class FakeBlankingClock: BlankingClock {
 @MainActor
 private final class FakeActiveDisplayProvider: ActiveDisplayProviding {
     var activeDisplayIDs: [CGDirectDisplayID]
+    /// Active displays AppKit has not published an NSScreen for yet.
+    var displayIDsWithoutScreen: Set<CGDirectDisplayID> = []
 
     init(activeDisplayIDs: [CGDirectDisplayID]) {
         self.activeDisplayIDs = activeDisplayIDs
     }
 
     func hasScreen(for displayID: CGDirectDisplayID) -> Bool {
-        activeDisplayIDs.contains(displayID)
+        activeDisplayIDs.contains(displayID) && !displayIDsWithoutScreen.contains(displayID)
     }
 }
