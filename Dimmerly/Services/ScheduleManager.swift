@@ -70,7 +70,10 @@ class ScheduleManager {
     }
 
     /// UserDefaults key for persisting schedules as JSON.
-    private static let schedulesKey = "dimmerlyDimmingSchedules"
+    static let schedulesKey = "dimmerlyDimmingSchedules"
+
+    /// UserDefaults key holding the original schedule data when some schedules could not be decoded.
+    static let schedulesBackupKey = "dimmerlyDimmingSchedulesBackup"
 
     /// The `UserDefaults` suite to read from and persist to. Defaults to `.standard` for
     /// production use; tests should inject an isolated suite so they don't read or overwrite
@@ -350,15 +353,13 @@ class ScheduleManager {
     // MARK: - Persistence
 
     private func loadSchedules() {
-        guard let data = defaults.data(forKey: Self.schedulesKey) else { return }
-
-        do {
-            schedules = try JSONDecoder().decode([DimmingSchedule].self, from: data)
-        } catch {
-            scheduleManagerLogger.error(
-                "Failed to decode dimming schedules: \(error.localizedDescription, privacy: .public)"
-            )
-        }
+        schedules = LossyDefaultsArray.load(
+            DimmingSchedule.self,
+            key: Self.schedulesKey,
+            backupKey: Self.schedulesBackupKey,
+            defaults: defaults,
+            logger: scheduleManagerLogger
+        )
     }
 
     private func saveSchedules() {
