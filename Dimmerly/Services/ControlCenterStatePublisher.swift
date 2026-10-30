@@ -19,13 +19,24 @@ struct ControlCenterStatePublisher {
 
     let defaults: UserDefaults?
     let reloadControls: (String) -> Void
+    let reloadTimelines: () -> Void
 
     init(
         defaults: UserDefaults? = SharedConstants.sharedDefaults,
-        reloadControls: @escaping (String) -> Void = { ControlCenterStatePublisher.reloadSystemControls(ofKind: $0) }
+        reloadControls: @escaping (String) -> Void = { ControlCenterStatePublisher.reloadSystemControls(ofKind: $0) },
+        reloadTimelines: @escaping () -> Void = { WidgetCenter.shared.reloadAllTimelines() }
     ) {
         self.defaults = defaults
         self.reloadControls = reloadControls
+        self.reloadTimelines = reloadTimelines
+    }
+
+    /// Publishes what the dim button does, so the widgets and the Control Center button can say
+    /// "Dim Displays" or "Turn Displays Off" to match. Redraws them only when the mode changed.
+    func publishDisplayOffMode(_ mode: DisplayOffMode) {
+        guard SharedConstants.publishDisplayOffMode(mode, in: defaults) else { return }
+        reloadControls(SharedConstants.dimControlKind)
+        reloadTimelines()
     }
 
     /// Publishes whether any display is blanked. Commands can also reload an unchanged value

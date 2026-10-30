@@ -16,14 +16,21 @@ import WidgetKit
 #if compiler(>=6.2)
     @available(macOS 26.0, *)
     struct DimmerlyControlWidget: ControlWidget {
+        /// Named for what the button does with the current settings: dim, or real display sleep
+        /// that locks the Mac. The app reloads this kind when that setting changes.
         var body: some ControlWidgetConfiguration {
-            StaticControlConfiguration(kind: SharedConstants.dimControlKind) {
+            let mode = SharedConstants.publishedDisplayOffMode()
+            return StaticControlConfiguration(kind: SharedConstants.dimControlKind) {
                 ControlWidgetButton(action: DimDisplaysWidgetIntent()) {
-                    Label("Dim Displays", systemImage: "moon.fill")
+                    Label {
+                        Text(mode.title)
+                    } icon: {
+                        Image(systemName: mode.symbolName)
+                    }
                 }
             }
-            .displayName("Dim Displays")
-            .description("Quickly dim all connected displays.")
+            .displayName(mode.title)
+            .description(mode.controlDescription)
         }
     }
 
@@ -41,8 +48,9 @@ import WidgetKit
         }
     }
 
-    /// On while Dimmerly is blanking a display. Turning it on dims the displays the same way the
-    /// Dim Displays button does, and turning it off wakes every display Dimmerly blanked.
+    /// On while Dimmerly is blanking a display. Turning it on always dims, even when the dim
+    /// button is set to turn displays off: real display sleep leaves no state for the toggle to
+    /// show, so it would snap back off. Turning it off wakes every display Dimmerly blanked.
     @available(macOS 26.0, *)
     struct DimmerlyDimToggleControl: ControlWidget {
         var body: some ControlWidgetConfiguration {

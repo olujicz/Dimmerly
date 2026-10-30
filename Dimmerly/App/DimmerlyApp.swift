@@ -143,6 +143,9 @@ struct DimmerlyApp: App {
                 colorTempManager.apply(enabled: settings.autoColorTempEnabled)
                 ControlCenterStatePublisher.live.publishAutoWarmthState(settings.autoColorTempEnabled)
             }
+            .onChange(of: settings.preventScreenLock) { _, _ in
+                ControlCenterStatePublisher.live.publishDisplayOffMode(DisplayAction.offMode(settings: settings))
+            }
             .onChange(of: screenBlanker.isBlankingAnyDisplay, initial: true) { _, isBlanking in
                 ControlCenterStatePublisher.live.publishDimState(isBlanking)
             }
@@ -336,6 +339,7 @@ struct DimmerlyApp: App {
         scheduleManager.apply(enabled: settings.scheduleEnabled)
         colorTempManager.apply(enabled: settings.autoColorTempEnabled)
         ControlCenterStatePublisher.live.publishAutoWarmthState(settings.autoColorTempEnabled)
+        ControlCenterStatePublisher.live.publishDisplayOffMode(DisplayAction.offMode(settings: settings))
         presetShortcutManager.updateShortcuts(from: presetManager.presets)
     }
 
@@ -558,14 +562,12 @@ final class StatusItemQuickActions: NSObject {
     /// Title matches the primary panel button's wording (`turnOffButtonContent` in
     /// `MenuBarPanel`), so the quick-actions menu never disagrees with the panel.
     static func turnOffTitle(settings: AppSettings) -> String {
-        let dimTitle = String(localized: "Dim Displays", comment: "Quick actions menu: dim all displays")
-        #if APPSTORE
-            return dimTitle
-        #else
-            return settings.preventScreenLock
-                ? dimTitle
-                : String(localized: "Turn Displays Off", comment: "Quick actions menu: put all displays to sleep")
-        #endif
+        switch DisplayAction.offMode(settings: settings) {
+        case .dim:
+            String(localized: "Dim Displays", comment: "Quick actions menu: dim all displays")
+        case .turnOff:
+            String(localized: "Turn Displays Off", comment: "Quick actions menu: put all displays to sleep")
+        }
     }
 
     /// Builds the right-click menu contents. Separated from `showQuickActionsMenu()`

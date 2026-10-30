@@ -1716,6 +1716,77 @@
         }
       }
     },
+    "Quickly turn off all connected displays." : {
+      "comment" : "Description of the control widget when it puts displays to sleep.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle angeschlossenen Bildschirme schnell ausschalten."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quickly turn off all connected displays."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apaga rápidamente todas las pantallas conectadas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Éteindre rapidement tous les écrans connectés."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spegni rapidamente tutti gli schermi collegati."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "接続されているすべての画面をすばやくオフにします。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "연결된 모든 화면을 빠르게 끕니다."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zet snel alle aangesloten schermen uit."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desligue rapidamente todas as telas conectadas."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brzo isključi sve povezane ekrane."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "快速关闭所有已连接的显示器。"
+          }
+        }
+      }
+    },
     "Shows whether Dimmerly is dimming a display, and dims or wakes your displays." : {
       "comment" : "Description of the Display Dimming control.",
       "localizations" : {
@@ -1783,6 +1854,77 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "显示 Dimmerly 是否正在调暗显示器，并可调暗或唤醒显示器。"
+          }
+        }
+      }
+    },
+    "Turn Displays Off" : {
+      "comment" : "Widget and control button that puts all displays to sleep.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Displays ausschalten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn Displays Off"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apagar pantallas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Éteindre les écrans"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spegni i display"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ディスプレイをオフにする"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "디스플레이 끄기"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beeldschermen uitzetten"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desligar monitores"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Isključi ekrane"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭显示器"
           }
         }
       }
