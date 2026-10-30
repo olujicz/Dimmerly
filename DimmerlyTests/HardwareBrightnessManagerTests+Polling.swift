@@ -285,6 +285,48 @@ import XCTest
 
             XCTAssertEqual(probe.callCount, 1)
         }
+
+        func testDisplayUnpluggedDuringFirstProbeIsCleanedUpAndReprobedOnReconnect() async throws {
+            let probeStarted = expectation(description: "First probe started")
+            let refreshed = expectation(description: "Probe finished")
+            refreshed.assertForOverFulfill = false
+            let probe = CountingBlockingDDCProbe(firstCallStarted: probeStarted)
+            var connectedIDs: [CGDirectDisplayID] = [1, 2]
+            var mock = MockDDCInterface()
+            mock.probeHandler = { probe.probe($0) }
+            let manager = HardwareBrightnessManager(
+                forTesting: true,
+                ddcInterface: mock,
+                connectedExternalDisplayIDsProvider: { connectedIDs },
+                displayRefreshHandler: { refreshed.fulfill() }
+            )
+            manager.enable()
+            let otherCapability = HardwareDisplayCapability(
+                displayID: 2, supportsDDC: true, supportedCodes: [.brightness],
+                maxBrightness: 100, maxContrast: 0, maxVolume: 0
+            )
+            manager.capabilities[2] = otherCapability
+
+            manager.probeAllDisplays(force: false)
+            await fulfillment(of: [probeStarted], timeout: 1)
+            // Display 1 is unplugged before its first probe returns, so it has no capabilities
+            // yet. A refresh must still clean it up, as it does for display 2's departure.
+            connectedIDs = [2]
+            manager.removeDisplays(notIn: Set(connectedIDs))
+            XCTAssertNil(manager.capability(for: 1))
+            XCTAssertEqual(manager.capability(for: 2), otherCapability, "A connected display keeps its state")
+
+            // It comes back under the same ID while the old probe is still stuck on the bus.
+            connectedIDs = [1, 2]
+            manager.probeAllDisplays(force: false)
+            probe.releaseFirstCall()
+            await fulfillment(of: [refreshed], timeout: 1)
+            try await Task.sleep(for: .milliseconds(150))
+            await manager.disable()
+
+            XCTAssertEqual(probe.callCount, 2, "The reconnected display needs a probe of its own")
+            XCTAssertEqual(manager.capability(for: 1)?.supportedCodes, [.volume])
+        }
     }
 
 #endif // !APPSTORE

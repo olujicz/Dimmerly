@@ -1118,6 +1118,25 @@
         }
     }
 
+    // MARK: - Disconnected Displays
+
+    extension HardwareBrightnessManager {
+        /// Removes the state of every display that is no longer connected. Capabilities alone
+        /// don't cover it: a monitor unplugged before its first probe finished has none yet, but
+        /// still holds an in-flight probe that would stop a reconnect from being probed, and
+        /// possibly a pending retry.
+        func removeDisplays(notIn connectedDisplayIDs: Set<CGDirectDisplayID>) {
+            var trackedDisplayIDs = Set(capabilities.keys)
+            trackedDisplayIDs.formUnion(probesInFlight.keys)
+            trackedDisplayIDs.formUnion(automaticProbeRetryTasks.keys)
+            trackedDisplayIDs.formUnion(recoveryProbeTasks.keys.map(\.displayID))
+            trackedDisplayIDs.formUnion(pendingWrites.keys.map(\.displayID))
+            for displayID in trackedDisplayIDs.subtracting(connectedDisplayIDs) {
+                removeDisplay(displayID)
+            }
+        }
+    }
+
     // MARK: - Local Writes
 
     fileprivate extension HardwareBrightnessManager {

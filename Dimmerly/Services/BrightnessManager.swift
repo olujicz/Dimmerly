@@ -642,12 +642,9 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
                 }
             }
 
-            // Clean up HardwareBrightnessManager state for displays that disappeared
-            for cachedID in HardwareBrightnessManager.shared.capabilities.keys
-                where !externalDisplayIDs.contains(cachedID)
-            {
-                HardwareBrightnessManager.shared.removeDisplay(cachedID)
-            }
+            // Clean up HardwareBrightnessManager state for displays that disappeared, including
+            // one unplugged before its first probe finished.
+            HardwareBrightnessManager.shared.removeDisplays(notIn: externalDisplayIDs)
 
             // Probe newly appeared external displays (hot-plug, or a display re-enumerated
             // under a new CGDirectDisplayID after sleep/wake) so DDC hardware control
