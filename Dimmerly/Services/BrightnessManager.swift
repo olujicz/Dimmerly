@@ -331,32 +331,39 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
             startBacklightPolling()
         #endif
 
-        // Coordinate with ScreenBlanker — re-apply brightness after blanking ends
-        ScreenBlanker.shared.onDismiss = { [weak self] in
-            self?.reapplyAll()
+        coordinateBlanking(with: ScreenBlanker.shared)
+    }
+
+    /// Gives the blanker what it needs to fade from, and restore to, each display's output.
+    func coordinateBlanking(with blanker: ScreenBlanker) {
+        // Once blanking ends, bring back every display the blanker did not already restore.
+        // `restoreDisplay` below has written full output for the ones it restored, so a second
+        // pass over them would only repeat the same backlight and DDC writes.
+        blanker.onDismiss = { [weak self] restoredDisplayIDs in
+            self?.reapplyAll(except: restoredDisplayIDs)
         }
 
         // Provide per-display brightness to ScreenBlanker for fade animation.
         // Uses the resolved *gamma* brightness (matching `applyDisplayGamma`), not the raw
         // model brightness — for hardware-controlled displays gamma sits at 1.0 regardless
         // of the model value, so the fade must start from there to avoid a jump/flash.
-        ScreenBlanker.shared.brightnessForDisplay = { [weak self] displayID in
+        blanker.brightnessForDisplay = { [weak self] displayID in
             guard let self, let display = displays.first(where: { $0.id == displayID }) else { return 1.0 }
             return resolvedGammaBrightness(for: display)
         }
 
         // Provide per-display warmth to ScreenBlanker for fade animation
-        ScreenBlanker.shared.warmthForDisplay = { [weak self] displayID in
+        blanker.warmthForDisplay = { [weak self] displayID in
             self?.warmth(for: displayID) ?? 0.0
         }
 
         // Provide per-display contrast to ScreenBlanker for fade animation
-        ScreenBlanker.shared.contrastForDisplay = { [weak self] displayID in
+        blanker.contrastForDisplay = { [weak self] displayID in
             self?.contrast(for: displayID) ?? ExternalDisplay.neutralContrast
         }
 
-        // Provide restore callback so ScreenBlanker can restore the full gamma table
-        ScreenBlanker.shared.restoreDisplay = { [weak self] displayID in
+        // Restores a display's full output: hardware brightness as well as its gamma table.
+        blanker.restoreDisplay = { [weak self] displayID in
             guard let self, let display = displays.first(where: { $0.id == displayID }) else { return }
             applyDisplayOutput(display, allowDuringBlanking: true)
         }
@@ -949,8 +956,8 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
     /// - Displays are refreshed (new displays connected)
     /// - System wakes from sleep (macOS resets gamma tables)
     /// - Screen blanking ends (restores pre-blanking state)
-    func reapplyAll() {
-        for display in displays {
+    func reapplyAll(except skippedDisplayIDs: Set<CGDirectDisplayID> = []) {
+        for display in displays where !skippedDisplayIDs.contains(display.id) {
             applyDisplayOutput(display)
         }
     }

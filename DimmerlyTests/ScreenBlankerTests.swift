@@ -377,6 +377,92 @@ final class ScreenBlankerTests: XCTestCase {
         XCTAssertTrue(harness.windows.shownDisplayIDs.isEmpty)
     }
 
+    // MARK: - Restoring display output after a blank
+
+    #if !APPSTORE
+        /// Connects a real `BrightnessManager` to the harness: display 7 is a built-in panel driven
+        /// by its backlight, display 9 an external display dimmed by gamma.
+        private func makeOutputRecorder(for harness: ScreenBlankerHarness) -> DisplayOutputRecorder {
+            let manager = BrightnessManager(forTesting: true)
+            var builtIn = ExternalDisplay(id: 7, name: "Built-in", brightness: 0.4, warmth: 0.1, contrast: 0.5)
+            builtIn.isBuiltIn = true
+            let external = ExternalDisplay(id: 9, name: "External", brightness: 0.6, warmth: 0.2, contrast: 0.5)
+            manager.displays = [builtIn, external]
+            manager.displayIdentityHook = { "display-\($0)" }
+            manager.isBlankingHook = { [weak blanker = harness.sut] in blanker?.isBlanking ?? false }
+            let recorder = DisplayOutputRecorder(manager: manager)
+            manager.setBuiltInBacklightHook = { [weak recorder] displayID, value in
+                recorder?.backlightWrites.append((displayID, value))
+                return true
+            }
+            manager.applyGammaHook = { [weak recorder] displayID, brightness, _, _ in
+                recorder?.gammaBrightness[displayID, default: []].append(brightness)
+            }
+            manager.coordinateBlanking(with: harness.sut)
+            return recorder
+        }
+
+        private func assertEachDisplayRestoredOnce(
+            _ recorder: DisplayOutputRecorder,
+            file: StaticString = #filePath,
+            line: UInt = #line
+        ) {
+            XCTAssertEqual(recorder.backlightWrites.map(\.displayID), [7], file: file, line: line)
+            XCTAssertEqual(recorder.backlightWrites.first?.value ?? -1, 0.4, accuracy: 0.0001, file: file, line: line)
+            XCTAssertEqual(recorder.gammaBrightness[7], [1.0], "Backlight-driven panel keeps neutral gamma",
+                           file: file, line: line)
+            XCTAssertEqual(recorder.gammaBrightness[9], [0.6], file: file, line: line)
+        }
+
+        func testGlobalBlankEndRestoresEachDisplayOutputOnce() throws {
+            let harness = makeHarness()
+            let recorder = makeOutputRecorder(for: harness)
+            harness.sut.blank()
+
+            harness.clock.now = 100.5
+            try harness.input.sendWake()
+
+            XCTAssertFalse(harness.sut.isBlanking)
+            assertEachDisplayRestoredOnce(recorder)
+        }
+
+        func testGlobalBlankOverPerDisplayBlankRestoresEachDisplayOutputOnce() {
+            let harness = makeHarness()
+            let recorder = makeOutputRecorder(for: harness)
+            harness.sut.blankDisplay(7)
+            harness.sut.blank()
+
+            harness.sut.dismiss(force: true)
+
+            XCTAssertFalse(harness.sut.isBlankingAnyDisplay)
+            assertEachDisplayRestoredOnce(recorder)
+        }
+
+        func testPerDisplayRecoveryRestoresEachDisplayOutputOnce() throws {
+            let harness = makeHarness()
+            let recorder = makeOutputRecorder(for: harness)
+            harness.sut.blankDisplay(7)
+            harness.sut.blankDisplay(9)
+
+            harness.clock.now = 100.5
+            try harness.input.sendWake()
+
+            XCTAssertFalse(harness.sut.isBlankingAnyDisplay)
+            assertEachDisplayRestoredOnce(recorder)
+        }
+
+        func testForcedDismissOfPartialBlankStillReappliesTheUncoveredDisplayOnce() {
+            let harness = makeHarness()
+            let recorder = makeOutputRecorder(for: harness)
+            harness.sut.blankDisplay(7)
+
+            harness.sut.dismiss(force: true)
+
+            XCTAssertFalse(harness.sut.isBlankingAnyDisplay)
+            assertEachDisplayRestoredOnce(recorder)
+        }
+    #endif
+
     func testScreenParametersChangeWithoutBlankingDoesNothing() async {
         let harness = makeHarness()
 
@@ -738,6 +824,21 @@ private struct ScreenBlankerHarness {
         }
     }
 }
+
+#if !APPSTORE
+    /// Records the hardware and gamma output a `BrightnessManager` produces. Holds the manager so
+    /// the blanker's weak callbacks stay connected for the length of a test.
+    @MainActor
+    private final class DisplayOutputRecorder {
+        let manager: BrightnessManager
+        var backlightWrites: [(displayID: CGDirectDisplayID, value: Double)] = []
+        var gammaBrightness: [CGDirectDisplayID: [Double]] = [:]
+
+        init(manager: BrightnessManager) {
+            self.manager = manager
+        }
+    }
+#endif
 
 @MainActor
 private final class FailureRecorder {

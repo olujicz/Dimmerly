@@ -88,7 +88,9 @@ final class ScreenBlanker {
         state.recoveryArmed
     }
 
-    var onDismiss: (() -> Void)?
+    /// Called once blanking ends, with the displays already handed to `restoreDisplay`. Those
+    /// have their output back; the callback only needs to bring back the rest.
+    var onDismiss: ((_ restoredDisplayIDs: Set<CGDirectDisplayID>) -> Void)?
     var ignoreMouseMovement = false
     var useFadeTransition = false
     var requireEscapeToDismiss = false
@@ -198,8 +200,10 @@ final class ScreenBlanker {
         // Per-display blanking never sets `isBlanking`; a fully covered session only arms recovery.
         // A forced wake must still clear a partial or fully-covered per-display session.
         guard force, !state.perDisplayCovered.isEmpty else { return }
-        forceUnblankAllDisplays()
-        onDismiss?()
+        // Unblank before calling out: with optional chaining, a nil `onDismiss` would skip
+        // evaluating its argument and leave every display blanked.
+        let restoredDisplayIDs = forceUnblankAllDisplays()
+        onDismiss?(restoredDisplayIDs)
     }
 
     func blankDisplay(_ displayID: CGDirectDisplayID) {
@@ -429,22 +433,25 @@ final class ScreenBlanker {
         for displayID in idsToRestore.sorted() {
             restore(displayID)
         }
+        let restoredDisplayIDs = fullyRestoredDisplayIDs(idsToRestore)
 
         windows.removeAllWindows()
         windows.endBlankingSession()
         unhideCursorIfNeeded()
         state = BlankingState()
-        onDismiss?()
+        onDismiss?(restoredDisplayIDs)
     }
 
     private func unblankAllDisplays() {
         guard state.recoveryArmed, clock.now - activationTime >= gracePeriod else { return }
 
-        forceUnblankAllDisplays()
-        onDismiss?()
+        let restoredDisplayIDs = forceUnblankAllDisplays()
+        onDismiss?(restoredDisplayIDs)
     }
 
-    private func forceUnblankAllDisplays() {
+    /// Returns the displays handed to `restoreDisplay`.
+    @discardableResult
+    private func forceUnblankAllDisplays() -> Set<CGDirectDisplayID> {
         // Only a session that was actually armed has a window session and hidden cursor to undo;
         // a partial per-display session has neither. This cannot delegate to
         // `stopPerDisplayRecovery()`, which would end the window session before the windows come
@@ -453,6 +460,7 @@ final class ScreenBlanker {
         if hadArmedSession {
             inputMonitor.stop()
         }
+        let restoredDisplayIDs = fullyRestoredDisplayIDs(state.perDisplayCovered)
         for displayID in state.perDisplayCovered.sorted() {
             restore(displayID)
             windows.removeWindow(for: displayID)
@@ -462,6 +470,7 @@ final class ScreenBlanker {
             unhideCursorIfNeeded()
         }
         state = BlankingState()
+        return restoredDisplayIDs
     }
 
     /// Mirror of `stopPerDisplayRecovery()`. Arms the dismissal monitor once every active display
@@ -487,6 +496,12 @@ final class ScreenBlanker {
         windows.endBlankingSession()
         unhideCursorIfNeeded()
         state.recoveryArmed = false
+    }
+
+    /// The displays `restore` hands to `restoreDisplay`, which brings back their full output.
+    /// Without it, restoring only resets gamma, so `onDismiss` must still re-apply everything.
+    private func fullyRestoredDisplayIDs(_ displayIDs: Set<CGDirectDisplayID>) -> Set<CGDirectDisplayID> {
+        restoreDisplay == nil ? [] : displayIDs
     }
 
     private func restore(_ displayID: CGDirectDisplayID) {
