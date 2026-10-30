@@ -46,8 +46,8 @@ struct DisplaySettingsTab: View {
                     get: { settings.preventScreenLock ? 1 : 0 },
                     set: { settings.preventScreenLock = $0 == 1 }
                 )) {
-                    Text("Sleep & Lock").tag(0)
-                    Text("Dim Only").tag(1)
+                    Text("Sleep & lock").tag(0)
+                    Text("Dim only").tag(1)
                 }
                 .pickerStyle(.radioGroup)
                 .help("Choose between sleeping displays or dimming them")
@@ -128,7 +128,6 @@ struct DisplaySettingsTab: View {
         return Section {
             Toggle("Auto-dim after inactivity", isOn: $settings.idleTimerEnabled)
                 .help("Automatically dim displays after a period of inactivity")
-                .accessibilityValue(settings.idleTimerEnabled ? "\(settings.idleTimerMinutes) minutes" : "Off")
 
             if settings.idleTimerEnabled {
                 Stepper(value: $settings.idleTimerMinutes, in: 1 ... 60) {
@@ -177,11 +176,6 @@ struct DisplaySettingsTab: View {
         return Section {
             Toggle("Automatic color temperature", isOn: $settings.autoColorTempEnabled)
                 .help("Adjust warmth automatically based on sunrise and sunset")
-                .accessibilityValue(
-                    settings.autoColorTempEnabled
-                        ? "\(settings.dayTemperature)K day, \(settings.nightTemperature)K night"
-                        : "Off"
-                )
 
             if settings.autoColorTempEnabled {
                 LocationPickerRow()
@@ -428,7 +422,10 @@ struct DisplaySettingsTab: View {
             capability: HardwareDisplayCapability
         ) -> some View {
             let displayName = brightnessManager.displays.first(where: { $0.id == displayID })?.name
-                ?? "Display \(displayID)"
+                ?? String(
+                    localized: "Display \(Int(displayID))",
+                    comment: "Fallback name for a display without a known name; the number is its display ID"
+                )
             let statusText = ddcDisplayStatusText(for: capability)
             let supportsHardwareBrightness = capability.supportsDDC && capability.supportsBrightness
 

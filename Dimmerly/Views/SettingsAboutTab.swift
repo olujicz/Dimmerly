@@ -48,8 +48,6 @@ struct AboutSettingsTab: View {
                     urlString: "https://github.com/olujicz/Dimmerly",
                     helpText: String(localized: "Open the Dimmerly GitHub repository", comment: "About link help text")
                 )
-            } header: {
-                Label("About Dimmerly", systemImage: "info.circle")
             }
 
             Section {
