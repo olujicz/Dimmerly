@@ -127,19 +127,19 @@ final class DimmerlyAppTests: XCTestCase {
         let suiteName = "WidgetLaunchTests-\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
         defer { defaults.removePersistentDomain(forName: suiteName) }
-        SharedConstants.storeWidgetDimCommand(in: defaults)
-        SharedConstants.storeWidgetPresetCommand(UUID().uuidString, in: defaults)
-        SharedConstants.storeWidgetDimStateCommand(true, in: defaults)
-        SharedConstants.storeWidgetAutoWarmthCommand(false, in: defaults)
+        // The values older extensions wrote: a flag, a preset ID, and two requested toggle states.
+        defaults.set(true, forKey: "widgetDimCommand")
+        defaults.set(UUID().uuidString, forKey: "widgetPresetCommand")
+        defaults.set(true, forKey: "widgetDimStateCommand")
+        defaults.set(false, forKey: "widgetAutoWarmthCommand")
         SharedConstants.publishControlState(true, forKey: SharedConstants.controlAutoWarmthStateKey, in: defaults)
         defaults.set(Data([1, 2, 3]), forKey: SharedConstants.widgetPresetsKey)
 
         SharedConstants.discardLegacyWidgetCommands(in: defaults)
 
-        XCTAssertFalse(SharedConstants.consumeWidgetDimCommand(from: defaults))
-        XCTAssertNil(SharedConstants.consumeWidgetPresetCommand(from: defaults))
-        XCTAssertNil(SharedConstants.consumeWidgetDimStateCommand(from: defaults))
-        XCTAssertNil(SharedConstants.consumeWidgetAutoWarmthCommand(from: defaults))
+        for key in ["widgetDimCommand", "widgetPresetCommand", "widgetDimStateCommand", "widgetAutoWarmthCommand"] {
+            XCTAssertNil(defaults.object(forKey: key), key)
+        }
         XCTAssertTrue(SharedConstants.publishedAutoWarmthState(in: defaults))
         XCTAssertEqual(defaults.data(forKey: SharedConstants.widgetPresetsKey), Data([1, 2, 3]))
     }

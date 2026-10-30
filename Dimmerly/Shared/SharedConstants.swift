@@ -17,10 +17,6 @@ private let sharedConstantsLogger = Logger(
 enum SharedConstants {
     static let appGroupID = resolvedAppGroupID()
     static let widgetPresetsKey = "widgetPresets"
-    static let widgetDimCommandKey = "widgetDimCommand"
-    static let widgetPresetCommandKey = "widgetPresetCommand"
-    static let widgetDimStateCommandKey = "widgetDimStateCommand"
-    static let widgetAutoWarmthCommandKey = "widgetAutoWarmthCommand"
     static let widgetActionNotification = Notification.Name("rs.in.olujic.dimmerly.widgetAction")
     private static let widgetActionRequestPrefix = "widgetActionRequest."
     private static let widgetActionAcknowledgementPrefix = "widgetActionAcknowledgement."
@@ -46,15 +42,6 @@ enum SharedConstants {
     /// UserDefaults suite per process (the widget extension's bundle ID differs from the
     /// main app's), silently breaking preset sync and widget dim/preset commands.
     private static let unsignedBuildFallbackAppGroupID = "rs.in.olujic.dimmerly.unsigned-fallback"
-
-    /// Distributed notification posted by the widget to dim displays
-    static let dimNotification = Notification.Name("rs.in.olujic.dimmerly.dim")
-    /// Distributed notification posted by the widget to apply a preset
-    static let presetNotification = Notification.Name("rs.in.olujic.dimmerly.preset")
-    /// Distributed notification posted by the Control Center dim toggle (value in shared defaults)
-    static let dimStateNotification = Notification.Name("rs.in.olujic.dimmerly.dimState")
-    /// Distributed notification posted by the Control Center Auto Warmth toggle (value in shared defaults)
-    static let autoWarmthNotification = Notification.Name("rs.in.olujic.dimmerly.autoWarmth")
 
     static func resolvedAppGroupID(
         teamIdentifierPrefix: String? = nil,
@@ -153,83 +140,27 @@ enum SharedConstants {
         defaults.synchronize()
     }
 
-    /// Drop commands left by older extensions. Actions now execute directly or through acknowledged requests;
+    /// Keys of the single-purpose command channel that older widget extensions wrote before
+    /// signalling the app. Nothing writes them any more.
+    static let legacyWidgetCommandKeys = [
+        "widgetDimCommand",
+        "widgetPresetCommand",
+        "widgetDimStateCommand",
+        "widgetAutoWarmthCommand",
+    ]
+
+    /// Drop commands left by older extensions. Actions now execute through acknowledged requests;
     /// a normal launch must never apply a tap made during a previous session.
+    ///
+    /// Remove this one release after the legacy command channel was dropped, once no installed
+    /// copy can still hold these keys.
     static func discardLegacyWidgetCommands(in defaults: UserDefaults? = sharedDefaults) {
-        for key in [
-            widgetDimCommandKey,
-            widgetPresetCommandKey,
-            widgetDimStateCommandKey,
-            widgetAutoWarmthCommandKey,
-        ] {
+        for key in legacyWidgetCommandKeys {
             defaults?.removeObject(forKey: key)
         }
     }
 
-    /// Flushes a just-written widget command to `cfprefsd` before the caller signals the main app.
-    ///
-    /// `synchronize()` is documented as unnecessary for ordinary use, and it is — but this is the
-    /// one case where it still earns its keep: the widget writes a command here and *immediately*
-    /// posts a distributed notification, so the main app reads the suite from another process
-    /// microseconds later. Without an explicit flush, the read can lose the race against the
-    /// asynchronous transfer to `cfprefsd`; the tap then silently does nothing and the orphaned
-    /// key can otherwise sit in the suite until it is discarded at the next launch.
-    /// These helpers remain for notifications from older widget extensions.
-    ///
-    /// Keep this until the command channel stops depending on cross-process read-after-write.
-    private static func flushWidgetCommand(_ defaults: UserDefaults?) {
-        defaults?.synchronize()
-    }
-
-    static func storeWidgetDimCommand(in defaults: UserDefaults? = sharedDefaults) {
-        defaults?.set(true, forKey: widgetDimCommandKey)
-        flushWidgetCommand(defaults)
-    }
-
-    static func consumeWidgetDimCommand(from defaults: UserDefaults? = sharedDefaults) -> Bool {
-        guard defaults?.bool(forKey: widgetDimCommandKey) == true else { return false }
-        defaults?.removeObject(forKey: widgetDimCommandKey)
-        return true
-    }
-
-    static func storeWidgetPresetCommand(_ presetID: String, in defaults: UserDefaults? = sharedDefaults) {
-        defaults?.set(presetID, forKey: widgetPresetCommandKey)
-        flushWidgetCommand(defaults)
-    }
-
-    static func consumeWidgetPresetCommand(from defaults: UserDefaults? = sharedDefaults) -> UUID? {
-        guard let presetIDString = defaults?.string(forKey: widgetPresetCommandKey) else { return nil }
-        defaults?.removeObject(forKey: widgetPresetCommandKey)
-        return UUID(uuidString: presetIDString)
-    }
-
     // MARK: - Control Center toggles
-
-    static func storeWidgetDimStateCommand(_ isOn: Bool, in defaults: UserDefaults? = sharedDefaults) {
-        defaults?.set(isOn, forKey: widgetDimStateCommandKey)
-        flushWidgetCommand(defaults)
-    }
-
-    /// Returns the requested dim state once, or nil when no toggle command is pending.
-    static func consumeWidgetDimStateCommand(from defaults: UserDefaults? = sharedDefaults) -> Bool? {
-        consumeBoolCommand(forKey: widgetDimStateCommandKey, from: defaults)
-    }
-
-    static func storeWidgetAutoWarmthCommand(_ isOn: Bool, in defaults: UserDefaults? = sharedDefaults) {
-        defaults?.set(isOn, forKey: widgetAutoWarmthCommandKey)
-        flushWidgetCommand(defaults)
-    }
-
-    /// Returns the requested Auto Warmth state once, or nil when no toggle command is pending.
-    static func consumeWidgetAutoWarmthCommand(from defaults: UserDefaults? = sharedDefaults) -> Bool? {
-        consumeBoolCommand(forKey: widgetAutoWarmthCommandKey, from: defaults)
-    }
-
-    private static func consumeBoolCommand(forKey key: String, from defaults: UserDefaults?) -> Bool? {
-        guard let value = defaults?.object(forKey: key) else { return nil }
-        defaults?.removeObject(forKey: key)
-        return value as? Bool
-    }
 
     /// Whether Dimmerly last reported blanking any display. Missing state reads as off.
     static func publishedDimState(in defaults: UserDefaults? = sharedDefaults) -> Bool {
