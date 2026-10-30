@@ -281,6 +281,102 @@ final class ScreenBlankerTests: XCTestCase {
         XCTAssertEqual(harness.cursor.unhideCount, 1)
     }
 
+    // MARK: - Blanking while a display has no screen yet
+
+    func testBlankSkipsDisplayWithoutScreenAndCoversItOnceItAppears() async {
+        let harness = makeHarness()
+        // Turn Displays Off right after plugging in: CoreGraphics lists 9, AppKit has no screen.
+        harness.displays.displayIDsWithoutScreen = [9]
+        harness.windows.failingDisplayIDs = [9]
+
+        harness.sut.blank()
+
+        XCTAssertTrue(harness.sut.isBlanking)
+        XCTAssertTrue(harness.failures.errors.isEmpty)
+        XCTAssertEqual(harness.input.stopCount, 0)
+        XCTAssertEqual(harness.windows.events, ["show:7", "begin"])
+        XCTAssertEqual(harness.gamma.blankedDisplayIDs, [7])
+
+        harness.displays.displayIDsWithoutScreen = []
+        harness.windows.failingDisplayIDs = []
+        await harness.postScreenParametersChange()
+
+        XCTAssertTrue(harness.sut.isBlanking)
+        XCTAssertEqual(harness.windows.shownDisplayIDs, [7, 9])
+        XCTAssertEqual(harness.gamma.blankedDisplayIDs, [7, 9])
+        XCTAssertEqual(harness.windows.beginSessionCount, 1)
+    }
+
+    func testFadeSkipsDisplayWithoutScreenAndCoversItOnceItAppears() async {
+        let harness = makeHarness()
+        harness.sut.useFadeTransition = true
+        harness.clock.completesSleepsImmediately = true
+        harness.displays.displayIDsWithoutScreen = [9]
+        harness.windows.failingDisplayIDs = [9]
+
+        harness.sut.blank()
+        for _ in 0 ..< 1000 where harness.windows.beginSessionCount == 0 {
+            await Task.yield()
+        }
+
+        XCTAssertTrue(harness.sut.isBlanking)
+        XCTAssertTrue(harness.failures.errors.isEmpty)
+        XCTAssertEqual(harness.input.stopCount, 0)
+        XCTAssertEqual(harness.windows.events, ["show:7", "begin"])
+        XCTAssertEqual(harness.gamma.blankedDisplayIDs, [7])
+        XCTAssertEqual(Set(harness.gamma.applications.map(\.displayID)), [7], "Only a covered display fades")
+
+        harness.displays.displayIDsWithoutScreen = []
+        harness.windows.failingDisplayIDs = []
+        await harness.postScreenParametersChange()
+
+        XCTAssertEqual(harness.windows.shownDisplayIDs, [7, 9])
+        XCTAssertEqual(harness.gamma.blankedDisplayIDs, [7, 9])
+        XCTAssertEqual(harness.windows.beginSessionCount, 1)
+    }
+
+    func testOverlayFailureAtEndOfFadeEndsBlankWithoutInputFilteringError() async {
+        let harness = makeHarness()
+        harness.sut.useFadeTransition = true
+        harness.clock.completesSleepsImmediately = true
+        harness.windows.failingDisplayIDs = [9]
+
+        harness.sut.blank()
+        for _ in 0 ..< 1000 where harness.sut.isBlanking {
+            await Task.yield()
+        }
+
+        XCTAssertFalse(harness.sut.isBlanking)
+        XCTAssertTrue(harness.failures.errors.isEmpty, "A window failure is not an input-filtering failure")
+        XCTAssertEqual(harness.input.stopCount, 1)
+        XCTAssertEqual(harness.windows.removeAllCount, 1)
+        XCTAssertEqual(harness.gamma.restoredDisplayIDs, [7, 9])
+        XCTAssertEqual(harness.cursor.unhideCount, 1)
+    }
+
+    func testBlankWithNoScreenForAnyDisplayStartsNothing() async {
+        let harness = makeHarness()
+        harness.displays.displayIDsWithoutScreen = [7, 9]
+        harness.windows.failingDisplayIDs = [7, 9]
+
+        harness.sut.blank()
+
+        XCTAssertFalse(harness.sut.isBlanking)
+        XCTAssertTrue(harness.failures.errors.isEmpty)
+        XCTAssertTrue(harness.input.startPolicies.isEmpty, "No input may be swallowed while nothing is covered")
+        XCTAssertEqual(harness.cursor.hideCount, 0)
+        XCTAssertTrue(harness.gamma.blankedDisplayIDs.isEmpty)
+        XCTAssertEqual(harness.windows.beginSessionCount, 0)
+
+        // A screen appearing later does not start a blank the user can no longer see coming.
+        harness.displays.displayIDsWithoutScreen = []
+        harness.windows.failingDisplayIDs = []
+        await harness.postScreenParametersChange()
+
+        XCTAssertFalse(harness.sut.isBlanking)
+        XCTAssertTrue(harness.windows.shownDisplayIDs.isEmpty)
+    }
+
     func testScreenParametersChangeWithoutBlankingDoesNothing() async {
         let harness = makeHarness()
 
@@ -346,9 +442,10 @@ final class ScreenBlankerTests: XCTestCase {
         harness.sut.blank()
 
         XCTAssertFalse(harness.sut.isBlanking)
-        XCTAssertEqual(harness.failures.errors, [.unavailable])
+        XCTAssertTrue(harness.failures.errors.isEmpty, "A window failure is not an input-filtering failure")
         XCTAssertEqual(harness.input.stopCount, 1)
         XCTAssertEqual(harness.windows.removeAllCount, 1)
+        XCTAssertEqual(harness.gamma.restoredDisplayIDs, [7, 9])
         XCTAssertEqual(harness.cursor.unhideCount, 1)
     }
 

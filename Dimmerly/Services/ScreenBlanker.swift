@@ -152,7 +152,11 @@ final class ScreenBlanker {
 
     func blank() {
         guard !isBlanking, !isPerDisplayFullBlanked else { return }
-        let displayIDs = displays.activeDisplayIDs
+        // A display AppKit has no screen for yet cannot get a window. It is left for the screen
+        // parameters change that covers it later. If no display can be covered at all, there is
+        // nothing to blank, and swallowing input behind no visible overlay would only look like
+        // a frozen Mac, so no session starts.
+        let displayIDs = displays.activeDisplayIDs.filter { displays.hasScreen(for: $0) }
         guard !displayIDs.isEmpty else { return }
 
         do {
@@ -170,13 +174,18 @@ final class ScreenBlanker {
         if useFadeTransition {
             fadeToBlack(displayIDs)
         } else {
-            guard showWindowsAndBlank(displayIDs) else {
-                restoreAllAndFinish()
-                failurePresenter(.unavailable)
-                return
-            }
-            windows.beginBlankingSession()
+            coverAfterBlankStarts()
         }
+    }
+
+    /// Puts the windows up once a global session has started or its fade has finished, covering
+    /// whichever active displays have a screen by now.
+    private func coverAfterBlankStarts() {
+        guard let covered = coverDisplaysWithScreens(Set(displays.activeDisplayIDs), alreadyCovered: []) else {
+            return
+        }
+        windows.beginBlankingSession()
+        state.global = .blanked(covered)
     }
 
     func dismiss(force: Bool = false) {
@@ -264,9 +273,7 @@ final class ScreenBlanker {
             // synchronously so a newly-arrived display cannot remain visible during it.
             fadeTask?.cancel()
             fadeTask = nil
-            guard let covered = coverDisplaysWithScreens(activeDisplayIDs, alreadyCovered: []) else { return }
-            windows.beginBlankingSession()
-            state.global = .blanked(covered)
+            coverAfterBlankStarts()
         case let .blanked(currentlyBlanked):
             guard let covered = coverDisplaysWithScreens(
                 activeDisplayIDs,
@@ -404,14 +411,8 @@ final class ScreenBlanker {
             }
 
             guard !Task.isCancelled, state.isGlobal else { return }
-            guard showWindowsAndBlank(displayIDs) else {
-                restoreAllAndFinish()
-                failurePresenter(.unavailable)
-                return
-            }
-            windows.beginBlankingSession()
-            state.global = .blanked(Set(displayIDs))
             fadeTask = nil
+            coverAfterBlankStarts()
         }
     }
 
