@@ -79,6 +79,70 @@ struct AppGroupWidgetPresetSynchronizer: WidgetPresetSynchronizing {
     }
 }
 
+/// Loads a JSON array persisted in `UserDefaults` one element at a time, so a single element
+/// this build cannot decode (corruption, or a newer build's enum case after a downgrade) does not
+/// discard the rest. When anything is dropped, the original data is copied to `backupKey` before
+/// the next save can replace it. An existing backup is kept: it was taken before any lossy save,
+/// so it holds at least as much as the current data.
+enum LossyDefaultsArray {
+    private struct Element<Value: Decodable>: Decodable {
+        let value: Value?
+
+        init(from decoder: Decoder) throws {
+            value = try? Value(from: decoder)
+        }
+    }
+
+    static func load<Value: Decodable>(
+        _: Value.Type,
+        key: String,
+        backupKey: String,
+        defaults: UserDefaults,
+        logger: Logger
+    ) -> [Value] {
+        guard let data = defaults.data(forKey: key) else { return [] }
+
+        let elements: [Element<Value>]
+        do {
+            elements = try JSONDecoder().decode([Element<Value>].self, from: data)
+        } catch {
+            logger.error(
+                "Stored \(key, privacy: .public) is unreadable: \(error.localizedDescription, privacy: .public)"
+            )
+            backUp(data, key: key, backupKey: backupKey, defaults: defaults, logger: logger)
+            return []
+        }
+
+        let values = elements.compactMap(\.value)
+        let failedCount = elements.count - values.count
+        if failedCount > 0 {
+            logger.error(
+                """
+                Dropped \(failedCount, privacy: .public) of \(elements.count, privacy: .public) \
+                undecodable elements in \(key, privacy: .public)
+                """
+            )
+            backUp(data, key: key, backupKey: backupKey, defaults: defaults, logger: logger)
+        }
+        return values
+    }
+
+    private static func backUp(
+        _ data: Data,
+        key: String,
+        backupKey: String,
+        defaults: UserDefaults,
+        logger: Logger
+    ) {
+        guard defaults.data(forKey: backupKey) == nil else {
+            logger.notice("Keeping the existing backup of \(key, privacy: .public) in \(backupKey, privacy: .public)")
+            return
+        }
+        defaults.set(data, forKey: backupKey)
+        logger.notice("Backed up the original \(key, privacy: .public) to \(backupKey, privacy: .public)")
+    }
+}
+
 enum PresetShortcutError: LocalizedError, Equatable {
     case conflictsWithMainShortcut
     case conflictsWithPreset(name: String)
@@ -119,7 +183,10 @@ class PresetManager {
     var presets: [BrightnessPreset] = []
 
     /// UserDefaults key for preset persistence (JSON array)
-    private let persistenceKey = "dimmerlyBrightnessPresets"
+    static let persistenceKey = "dimmerlyBrightnessPresets"
+
+    /// UserDefaults key holding the original preset data when some presets could not be decoded
+    static let backupKey = "dimmerlyBrightnessPresetsBackup"
 
     /// UserDefaults flag to track whether default presets have been seeded
     private let defaultsSeededKey = "dimmerlyDefaultPresetsSeeded"
@@ -351,21 +418,19 @@ class PresetManager {
     // MARK: - Persistence
 
     private func loadPresets() {
-        guard let data = defaults.data(forKey: persistenceKey) else { return }
-
-        do {
-            presets = try JSONDecoder().decode([BrightnessPreset].self, from: data)
-        } catch {
-            presetManagerLogger.error(
-                "Failed to decode brightness presets: \(error.localizedDescription, privacy: .public)"
-            )
-        }
+        presets = LossyDefaultsArray.load(
+            BrightnessPreset.self,
+            key: Self.persistenceKey,
+            backupKey: Self.backupKey,
+            defaults: defaults,
+            logger: presetManagerLogger
+        )
     }
 
     private func persistPresets() {
         do {
             let data = try JSONEncoder().encode(presets)
-            defaults.set(data, forKey: persistenceKey)
+            defaults.set(data, forKey: Self.persistenceKey)
             syncPresetsToWidget()
         } catch {
             presetManagerLogger.error(
