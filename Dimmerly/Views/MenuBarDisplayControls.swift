@@ -30,20 +30,6 @@ private struct DisplayEntityContextModifier: ViewModifier {
     }
 }
 
-#if !APPSTORE
-    struct InputSourceMenuItemPresentation: Equatable {
-        let title: String
-        let systemImageName: String?
-
-        static func forSource(_ source: InputSource, active: InputSource?) -> Self {
-            Self(
-                title: source.displayName,
-                systemImageName: source == active ? "checkmark" : nil
-            )
-        }
-    }
-#endif
-
 // MARK: - Display Brightness Row
 
 struct SliderSyncGate {
@@ -213,6 +199,24 @@ private struct SliderSnapMarkerLayer: View {
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+        .dimmedWhenDisabled()
+    }
+}
+
+extension View {
+    /// Fades decoration that sits beside a control (icons, captions, snap ticks) when the
+    /// control is disabled. Controls draw their own disabled state, so only the decoration
+    /// is faded here; fading a whole row with `.opacity` dimmed the controls twice.
+    func dimmedWhenDisabled() -> some View {
+        modifier(DisabledDecorationOpacity())
+    }
+}
+
+private struct DisabledDecorationOpacity: ViewModifier {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func body(content: Content) -> some View {
+        content.opacity(isEnabled ? 1 : 0.4)
     }
 }
 
@@ -280,6 +284,56 @@ private struct DisplayControlSlider: View {
         settleTask.schedule(isDragging: isDragging) {
             value = snap(value)
         }
+    }
+}
+
+/// A decorative symbol beside a display slider. The slider carries the accessibility
+/// label and value, so the symbol is hidden from VoiceOver and fades when disabled.
+private struct DisplaySliderIcon: View {
+    let systemName: String
+    var style: AnyShapeStyle = .init(.secondary)
+
+    var body: some View {
+        Image(systemName: systemName)
+            .font(.caption2)
+            .frame(width: 12)
+            .foregroundStyle(style)
+            .accessibilityHidden(true)
+            .dimmedWhenDisabled()
+    }
+}
+
+/// One control row of a display: a leading symbol or control, the slider, and a
+/// trailing symbol.
+private struct DisplaySliderRow<Leading: View, Slider: View>: View {
+    let trailingSymbol: String
+    var trailingStyle = AnyShapeStyle(.secondary)
+    @ViewBuilder let leading: Leading
+    @ViewBuilder let slider: Slider
+
+    var body: some View {
+        HStack(spacing: 6) {
+            leading
+            slider
+            DisplaySliderIcon(systemName: trailingSymbol, style: trailingStyle)
+        }
+    }
+}
+
+extension DisplaySliderRow where Leading == DisplaySliderIcon {
+    init(
+        leadingSymbol: String,
+        trailingSymbol: String,
+        leadingStyle: some ShapeStyle = .secondary,
+        trailingStyle: some ShapeStyle = .secondary,
+        @ViewBuilder slider: () -> Slider
+    ) {
+        self.init(
+            trailingSymbol: trailingSymbol,
+            trailingStyle: AnyShapeStyle(trailingStyle),
+            leading: { DisplaySliderIcon(systemName: leadingSymbol, style: AnyShapeStyle(leadingStyle)) },
+            slider: slider
+        )
     }
 }
 
@@ -391,7 +445,7 @@ struct DisplayBrightnessRow: View {
                 #endif
 
                 Spacer()
-                Text("\(Int(sliderValue * 100))%")
+                Text(Int(sliderValue * 100), format: .percent)
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
@@ -416,13 +470,7 @@ struct DisplayBrightnessRow: View {
                 )
             }
 
-            HStack(spacing: 6) {
-                Image(systemName: "sun.min")
-                    .font(.caption2)
-                    .frame(width: 12)
-                    .foregroundStyle(.secondary)
-                    .accessibilityHidden(true)
-
+            DisplaySliderRow(leadingSymbol: "sun.min", trailingSymbol: "sun.max") {
                 DisplayControlSlider(
                     value: $sliderValue,
                     modelValue: display.brightness,
@@ -446,25 +494,17 @@ struct DisplayBrightnessRow: View {
                     ) },
                     onChange: onChange
                 )
-
-                Image(systemName: "sun.max")
-                    .font(.caption2)
-                    .frame(width: 12)
-                    .foregroundStyle(.secondary)
-                    .accessibilityHidden(true)
             }
-            .opacity(isBlanked ? 0.4 : 1.0)
             .disabled(isBlanked)
 
             if showAdjustments {
                 VStack(spacing: 2) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "thermometer.snowflake")
-                            .font(.caption2)
-                            .frame(width: 12)
-                            .foregroundStyle(.blue)
-                            .accessibilityHidden(true)
-
+                    DisplaySliderRow(
+                        leadingSymbol: "thermometer.snowflake",
+                        trailingSymbol: "thermometer.sun",
+                        leadingStyle: .blue,
+                        trailingStyle: .orange
+                    ) {
                         DisplayControlSlider(
                             value: $warmthValue,
                             modelValue: display.warmth,
@@ -489,12 +529,6 @@ struct DisplayBrightnessRow: View {
                             onChange: onWarmthChange
                         )
                         .tint(.orange)
-
-                        Image(systemName: "thermometer.sun")
-                            .font(.caption2)
-                            .frame(width: 12)
-                            .foregroundStyle(.orange)
-                            .accessibilityHidden(true)
                     }
 
                     HStack {
@@ -522,19 +556,13 @@ struct DisplayBrightnessRow: View {
                         Spacer()
                     }
                     .padding(.leading, 18)
+                    .dimmedWhenDisabled()
                 }
-                .opacity(isBlanked ? 0.4 : 1.0)
                 .disabled(isBlanked)
                 .transition(.opacity.combined(with: .move(edge: .top)))
                 .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8), value: showAdjustments)
 
-                HStack(spacing: 6) {
-                    Image(systemName: "circle.lefthalf.filled")
-                        .font(.caption2)
-                        .frame(width: 12)
-                        .foregroundStyle(.secondary)
-                        .accessibilityHidden(true)
-
+                DisplaySliderRow(leadingSymbol: "circle.lefthalf.filled", trailingSymbol: "circle.righthalf.filled") {
                     DisplayControlSlider(
                         value: $contrastValue,
                         modelValue: display.contrast,
@@ -558,14 +586,7 @@ struct DisplayBrightnessRow: View {
                         ) },
                         onChange: onContrastChange
                     )
-
-                    Image(systemName: "circle.righthalf.filled")
-                        .font(.caption2)
-                        .frame(width: 12)
-                        .foregroundStyle(.secondary)
-                        .accessibilityHidden(true)
                 }
-                .opacity(isBlanked ? 0.4 : 1.0)
                 .disabled(isBlanked)
                 .transition(.opacity.combined(with: .move(edge: .top)))
 
@@ -581,19 +602,25 @@ struct DisplayBrightnessRow: View {
                     // MARK: Volume Slider + Mute (DDC only)
 
                     if hasDDC, onVolumeChange != nil {
-                        HStack(spacing: 6) {
-                            Button {
-                                onMuteToggle?()
-                            } label: {
-                                Image(systemName: isMuted ? "speaker.slash.fill" : "speaker.wave.2")
-                                    .font(.caption2)
-                                    .frame(width: 12)
-                                    .foregroundStyle(isMuted ? .red : .secondary)
+                        DisplaySliderRow(trailingSymbol: "speaker.wave.3") {
+                            if let onMuteToggle {
+                                Button {
+                                    onMuteToggle()
+                                } label: {
+                                    Image(systemName: isMuted ? "speaker.slash.fill" : "speaker.wave.2")
+                                        .font(.caption2)
+                                        .frame(width: 12)
+                                        .foregroundStyle(isMuted ? .red : .secondary)
+                                }
+                                .buttonStyle(.borderless)
+                                .help(isMuted ? "Unmute" : "Mute")
+                                .accessibilityLabel(isMuted ? Text("Unmute") : Text("Mute"))
+                            } else {
+                                // The monitor reports volume but not mute: keep the icon
+                                // for alignment, but don't offer a control that does nothing.
+                                DisplaySliderIcon(systemName: "speaker.wave.2")
                             }
-                            .buttonStyle(.borderless)
-                            .help(isMuted ? "Unmute" : "Mute")
-                            .accessibilityLabel(isMuted ? Text("Unmute") : Text("Mute"))
-
+                        } slider: {
                             DisplayControlSlider(
                                 value: $volumeValue,
                                 modelValue: hardwareVolume,
@@ -617,14 +644,7 @@ struct DisplayBrightnessRow: View {
                                 ) },
                                 onChange: { onVolumeChange?($0) }
                             )
-
-                            Image(systemName: "speaker.wave.3")
-                                .font(.caption2)
-                                .frame(width: 12)
-                                .foregroundStyle(.secondary)
-                                .accessibilityHidden(true)
                         }
-                        .opacity(isBlanked ? 0.4 : 1.0)
                         .disabled(isBlanked)
                         .transition(.opacity.combined(with: .move(edge: .top)))
                     }
@@ -638,25 +658,22 @@ struct DisplayBrightnessRow: View {
                                 .frame(width: 12)
                                 .foregroundStyle(.secondary)
                                 .accessibilityHidden(true)
+                                .dimmedWhenDisabled()
 
                             // A Menu keeps the input list compact without adding vertical space.
+                            // The inline Picker inside it gives the items native checkmarks and
+                            // tells VoiceOver which input is selected.
                             Menu {
-                                ForEach(availableInputSources, id: \.self) { source in
-                                    Button {
-                                        onInputSourceChange?(source)
-                                    } label: {
-                                        let presentation = InputSourceMenuItemPresentation.forSource(
-                                            source,
-                                            active: activeInputSource
-                                        )
-                                        if let systemImageName = presentation.systemImageName {
-                                            Label(presentation.title, systemImage: systemImageName)
-                                                .labelStyle(.titleAndIcon)
-                                        } else {
-                                            Text(presentation.title)
-                                        }
+                                Picker(selection: inputSourceSelection) {
+                                    ForEach(availableInputSources, id: \.self) { source in
+                                        Text(source.displayName)
+                                            .tag(Optional(source))
                                     }
+                                } label: {
+                                    Text("Input Source")
                                 }
+                                .pickerStyle(.inline)
+                                .labelsHidden()
                             } label: {
                                 HStack(spacing: 4) {
                                     Text(activeInputSource?.displayName ?? String(localized: "Unknown"))
@@ -682,7 +699,6 @@ struct DisplayBrightnessRow: View {
                                 activeInputSource?.displayName ?? String(localized: "No input source detected")
                             )
                         }
-                        .opacity(isBlanked ? 0.4 : 1.0)
                         .disabled(isBlanked)
                         .transition(.opacity.combined(with: .move(edge: .top)))
                         // Warn that switching away from the current input may lose the display.
@@ -709,11 +725,12 @@ struct DisplayBrightnessRow: View {
                 onToggleBlank()
             }
             Divider()
-            Button("Set to Minimum") { onChange(BrightnessManager.minimumBrightness) }
+            // Brightest to dimmest, so Minimum follows 25% instead of sitting above 100%.
             Button("Set to 100%") { onChange(1.0) }
             Button("Set to 75%") { onChange(0.75) }
             Button("Set to 50%") { onChange(0.5) }
             Button("Set to 25%") { onChange(0.25) }
+            Button("Set to Minimum") { onChange(BrightnessManager.minimumBrightness) }
             Divider()
             Button("Reset Warmth") { onWarmthChange(0.0) }
             Button("Reset Contrast") { onContrastChange(ExternalDisplay.neutralContrast) }
@@ -729,3 +746,37 @@ struct DisplayBrightnessRow: View {
         )
     }
 }
+
+// MARK: - Input Source Switching
+
+#if !APPSTORE
+    extension DisplayBrightnessRow {
+        /// Reads the monitor's active input. Choosing another one asks first, because the
+        /// display goes dark if the Mac isn't connected to that input. Until then the menu
+        /// keeps showing the current input.
+        var inputSourceSelection: Binding<InputSource?> {
+            Binding(
+                get: { activeInputSource },
+                set: { source in
+                    guard let source, source != activeInputSource else { return }
+                    confirmInputSourceChange(to: source)
+                }
+            )
+        }
+
+        private func confirmInputSourceChange(to source: InputSource) {
+            guard let onInputSourceChange else { return }
+            let confirmation = ConfirmationAlert.switchInputSource(
+                displayName: display.name,
+                sourceName: source.displayName
+            )
+            // Run once the menu has finished tracking, so the alert isn't nested inside it.
+            Task { @MainActor in
+                await Task.yield()
+                if AlertPresenter.confirm(confirmation) {
+                    onInputSourceChange(source)
+                }
+            }
+        }
+    }
+#endif

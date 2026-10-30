@@ -109,44 +109,105 @@ final class ControlCenterControlTests: XCTestCase {
         XCTAssertTrue(reloadedKinds.isEmpty)
     }
 
+    // MARK: - Display off mode
+
+    #if !APPSTORE
+        func testDisplayOffModeFollowsPreventScreenLock() {
+            let settings = AppSettings(defaults: settingsDefaults)
+
+            settings.preventScreenLock = false
+            XCTAssertEqual(DisplayAction.offMode(settings: settings), .turnOff)
+
+            settings.preventScreenLock = true
+            XCTAssertEqual(DisplayAction.offMode(settings: settings), .dim)
+        }
+
+        /// Before the app publishes anything, widgets must not promise a harmless dim: the
+        /// setting defaults to real display sleep, which locks the Mac.
+        func testDisplayOffModeReadsAsTurnOffWhenMissingOrUnreadable() {
+            XCTAssertEqual(SharedConstants.publishedDisplayOffMode(in: sharedDefaults), .turnOff)
+            XCTAssertEqual(SharedConstants.publishedDisplayOffMode(in: nil), .turnOff)
+
+            sharedDefaults.set("sideways", forKey: SharedConstants.displayOffModeKey)
+            XCTAssertEqual(SharedConstants.publishedDisplayOffMode(in: sharedDefaults), .turnOff)
+        }
+
+        func testPublishingDisplayOffModeReloadsButtonControlAndWidgetsOnlyOnChange() {
+            var timelineReloads = 0
+            let publisher = ControlCenterStatePublisher(
+                defaults: sharedDefaults,
+                reloadControls: { [weak self] kind in self?.reloadedKinds.append(kind) },
+                reloadTimelines: { timelineReloads += 1 }
+            )
+
+            publisher.publishDisplayOffMode(.dim)
+            XCTAssertEqual(SharedConstants.publishedDisplayOffMode(in: sharedDefaults), .dim)
+            XCTAssertEqual(reloadedKinds, [SharedConstants.dimControlKind])
+            XCTAssertEqual(timelineReloads, 1)
+
+            publisher.publishDisplayOffMode(.dim)
+            XCTAssertEqual(reloadedKinds.count, 1, "An unchanged mode should not redraw anything")
+            XCTAssertEqual(timelineReloads, 1)
+
+            publisher.publishDisplayOffMode(.turnOff)
+            XCTAssertEqual(SharedConstants.publishedDisplayOffMode(in: sharedDefaults), .turnOff)
+            XCTAssertEqual(reloadedKinds, [SharedConstants.dimControlKind, SharedConstants.dimControlKind])
+            XCTAssertEqual(timelineReloads, 2)
+        }
+
+        /// The first publish must write even the default mode, so the extension stops guessing.
+        func testFirstPublishOfDefaultModeStillReloads() {
+            var timelineReloads = 0
+            let publisher = ControlCenterStatePublisher(
+                defaults: sharedDefaults,
+                reloadControls: { [weak self] kind in self?.reloadedKinds.append(kind) },
+                reloadTimelines: { timelineReloads += 1 }
+            )
+
+            publisher.publishDisplayOffMode(.turnOff)
+
+            XCTAssertEqual(sharedDefaults.string(forKey: SharedConstants.displayOffModeKey), "turnOff")
+            XCTAssertEqual(reloadedKinds, [SharedConstants.dimControlKind])
+            XCTAssertEqual(timelineReloads, 1)
+        }
+    #endif
+
+    func testPublishingDisplayOffModeWithoutSharedDefaultsIsANoOp() {
+        var timelineReloads = 0
+        let publisher = ControlCenterStatePublisher(
+            defaults: nil,
+            reloadControls: { [weak self] kind in self?.reloadedKinds.append(kind) },
+            reloadTimelines: { timelineReloads += 1 }
+        )
+
+        publisher.publishDisplayOffMode(.dim)
+
+        XCTAssertTrue(reloadedKinds.isEmpty)
+        XCTAssertEqual(timelineReloads, 0)
+    }
+
+    /// The Display Dimming toggle shows whether Dimmerly is blanking a display, so turning it on
+    /// must always blank, even when the dim button is set to turn displays off. Real display
+    /// sleep leaves nothing to report and would snap the toggle back off.
+    func testDimToggleBlanksEvenWhenTheButtonTurnsDisplaysOff() {
+        let settings = AppSettings(defaults: settingsDefaults)
+        settings.preventScreenLock = false
+        var blanked = 0
+
+        DisplayAction.setDimmed(true, settings: settings, blank: { _ in blanked += 1 })
+
+        XCTAssertEqual(blanked, 1)
+    }
+
     // MARK: - Toggle commands
-
-    func testDimStateCommandIsConsumedOnceWithItsValue() {
-        SharedConstants.storeWidgetDimStateCommand(false, in: sharedDefaults)
-
-        XCTAssertEqual(SharedConstants.consumeWidgetDimStateCommand(from: sharedDefaults), false)
-        XCTAssertNil(SharedConstants.consumeWidgetDimStateCommand(from: sharedDefaults))
-    }
-
-    func testAutoWarmthCommandIsConsumedOnceWithItsValue() {
-        SharedConstants.storeWidgetAutoWarmthCommand(true, in: sharedDefaults)
-
-        XCTAssertEqual(SharedConstants.consumeWidgetAutoWarmthCommand(from: sharedDefaults), true)
-        XCTAssertNil(SharedConstants.consumeWidgetAutoWarmthCommand(from: sharedDefaults))
-    }
-
-    func testMalformedToggleCommandIsClearedAndIgnored() {
-        sharedDefaults.set("yes", forKey: SharedConstants.widgetDimStateCommandKey)
-
-        XCTAssertNil(SharedConstants.consumeWidgetDimStateCommand(from: sharedDefaults))
-        XCTAssertNil(sharedDefaults.object(forKey: SharedConstants.widgetDimStateCommandKey))
-    }
-
-    func testToggleCommandHelpersDegradeToNoOpWithoutSharedDefaults() {
-        SharedConstants.storeWidgetDimStateCommand(true, in: nil)
-        SharedConstants.storeWidgetAutoWarmthCommand(true, in: nil)
-
-        XCTAssertNil(SharedConstants.consumeWidgetDimStateCommand(from: nil))
-        XCTAssertNil(SharedConstants.consumeWidgetAutoWarmthCommand(from: nil))
-    }
 
     func testDimStateCommandAppliesRequestedStateAndAlwaysRedrawsToggle() {
         let settings = AppSettings(defaults: settingsDefaults)
         var requested: [Bool] = []
 
         handleWidgetDimStateCommand(
+            true,
             settings: settings,
-            consumeCommand: { true },
             setDimmed: { isDimmed, _ in requested.append(isDimmed) },
             isBlankingAnyDisplay: { false },
             publisher: makePublisher()
@@ -158,24 +219,6 @@ final class ControlCenterControlTests: XCTestCase {
         XCTAssertEqual(reloadedKinds, [SharedConstants.dimToggleControlKind])
     }
 
-    func testDimStateCommandIgnoresMissingCommand() {
-        var requested: [Bool] = []
-
-        handleWidgetDimStateCommand(
-            settings: AppSettings(defaults: settingsDefaults),
-            consumeCommand: { nil },
-            setDimmed: { isDimmed, _ in requested.append(isDimmed) },
-            isBlankingAnyDisplay: {
-                XCTFail("Missing commands must not query or publish display state")
-                return false
-            },
-            publisher: makePublisher()
-        )
-
-        XCTAssertTrue(requested.isEmpty)
-        XCTAssertTrue(reloadedKinds.isEmpty)
-    }
-
     func testDimStateCommandPublishesOffBeforeReloadAndReturning() {
         sharedDefaults.set(true, forKey: SharedConstants.controlDimStateKey)
         var publishedValuesAtReload: [Bool] = []
@@ -185,8 +228,8 @@ final class ControlCenterControlTests: XCTestCase {
         }
 
         handleWidgetDimStateCommand(
+            false,
             settings: AppSettings(defaults: settingsDefaults),
-            consumeCommand: { false },
             setDimmed: { _, _ in },
             isBlankingAnyDisplay: { false },
             publisher: publisher
@@ -237,8 +280,8 @@ final class ControlCenterControlTests: XCTestCase {
         }
 
         handleWidgetDimStateCommand(
+            requested,
             settings: AppSettings(defaults: settingsDefaults),
-            consumeCommand: { requested },
             setDimmed: { value, _ in
                 XCTAssertEqual(value, requested, file: file, line: line)
                 events.append("action")
@@ -265,22 +308,12 @@ final class ControlCenterControlTests: XCTestCase {
         let settings = AppSettings(defaults: settingsDefaults)
         settings.autoColorTempEnabled = false
 
-        handleWidgetAutoWarmthCommand(settings: settings, consumeCommand: { true }, publisher: makePublisher())
+        handleWidgetAutoWarmthCommand(true, settings: settings, publisher: makePublisher())
 
         XCTAssertTrue(settings.autoColorTempEnabled)
         XCTAssertTrue(settingsDefaults.bool(forKey: AppSettings.autoColorTempEnabledKey))
         XCTAssertTrue(SharedConstants.publishedAutoWarmthState(in: sharedDefaults))
         XCTAssertEqual(reloadedKinds.last, SharedConstants.autoWarmthControlKind)
-    }
-
-    func testAutoWarmthCommandIgnoresMissingCommand() {
-        let settings = AppSettings(defaults: settingsDefaults)
-        settings.autoColorTempEnabled = true
-
-        handleWidgetAutoWarmthCommand(settings: settings, consumeCommand: { nil }, publisher: makePublisher())
-
-        XCTAssertTrue(settings.autoColorTempEnabled)
-        XCTAssertTrue(reloadedKinds.isEmpty)
     }
 
     // MARK: - Toggle intents

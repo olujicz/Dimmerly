@@ -9,6 +9,25 @@ Semantic Versioning.
 
 ### Changed
 - Settings now tells apart a monitor that blocks hardware control from one that was reached but never answered. The second case shows a hint to unplug the monitor from power for a minute, which is what revives a locked-up DDC/CI controller.
+- The widgets and the Control Center button say "Dim Displays" or "Turn Displays Off" to match what the button is set to do in Settings. The Display Dimming toggle in Control Center always dims, so it shows the real state instead of switching back off after the displays sleep.
+- The menu bar panel asks before it deletes a preset, replaces a preset's saved settings, or switches a monitor to another input. The input menu marks the active input with a checkmark that VoiceOver reads.
+- Preset shortcuts in Settings have a visible clear button and a VoiceOver label that names the preset. Renaming a preset focuses the name field, Escape cancels, and clicking away saves.
+- Action names are the same everywhere: the Shortcuts tab, panel and menus all say "Turn Displays Off" or "Dim Displays", and the panel footer reads "Settings…" and "Quit Dimmerly". Settings checkboxes and options use sentence-style capitalization.
+- Settings panes have a fixed width and fit their content. Percentages, coordinates and schedule summaries follow your language's formatting.
+- Keyboard shortcut hints and the rename and delete buttons in Settings are easier to see, and controls for a turned-off display are dimmed once instead of twice.
+
+### Fixed
+- A DDC/CI monitor keeps the brightness it has when Dimmerly starts, hardware control is turned on, or the monitor is plugged in, including a level set with the monitor's own buttons while Dimmerly wasn't running. Dimmerly no longer pushes its saved level or 100% over it. Brightness set below 10% on the monitor itself is no longer raised to 10%.
+- One preset or schedule that can't be read no longer erases the rest. The original data is kept in a backup.
+- Turning off automatic color temperature after a relaunch restores your earlier warmth instead of the night tint.
+- Keyboard shortcuts start working as soon as Accessibility access is granted, without opening Settings or relaunching, and stop if access is removed.
+- Recording a shortcut ends when you click elsewhere, so global shortcuts no longer stay paused.
+- Pressing Return while naming a new preset saves it instead of turning the displays off.
+- Monitors that support volume but not mute show a plain speaker icon instead of a mute button that does nothing.
+- A schedule no longer applies again when Dimmerly relaunches shortly after it ran.
+- Each monitor is probed once when Dimmerly starts or a monitor is plugged in, so slider changes to other monitors aren't held up.
+- Plugging in a display while the displays are turned off covers it too, instead of waking everything with an unrelated error.
+- A widget or Control Center button for a deleted preset reports that the preset is missing instead of silently doing nothing.
 
 ## [1.4.0] - 2026-10-29
 

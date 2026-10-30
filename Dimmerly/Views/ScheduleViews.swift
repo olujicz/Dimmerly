@@ -19,9 +19,6 @@ struct ScheduleRow: View {
     let onDelete: () -> Void
 
     @State private var showDeleteConfirmation = false
-    @State private var isHovered = false
-    @FocusState private var deleteButtonFocused: Bool
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         HStack {
@@ -44,8 +41,6 @@ struct ScheduleRow: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
-            .opacity(isHovered || deleteButtonFocused ? 1 : 0.3)
-            .focused($deleteButtonFocused)
             .accessibilityLabel(Text("Delete \(schedule.name)"))
             .help(Text("Delete Schedule"))
             .alert("Delete Schedule?", isPresented: $showDeleteConfirmation) {
@@ -55,8 +50,6 @@ struct ScheduleRow: View {
                 Text("\"\(schedule.name)\" will be permanently deleted.")
             }
         }
-        .onHover { isHovered = $0 }
-        .animation(reduceMotion ? nil : .spring(response: 0.2, dampingFraction: 0.8), value: isHovered)
 
         if presetName == nil {
             Label(
@@ -69,23 +62,23 @@ struct ScheduleRow: View {
         }
     }
 
+    /// One format string per shape, so translators can reorder the trigger, time and preset.
     private var triggerSummary: String {
-        var parts: [String] = []
-        parts.append(schedule.trigger.displayDescription)
-        if let timeDesc = triggerTimeDescription {
-            parts.append("(\(timeDesc))")
-        }
-        if let name = presetName {
-            parts.append("\u{2192} \(name)")
-        } else {
-            parts.append(
-                "\u{2192} " + NSLocalizedString(
-                    "Deleted Preset",
-                    comment: "Schedule row: referenced preset was deleted"
-                )
+        let trigger = schedule.trigger.displayDescription
+        let preset = presetName ?? String(
+            localized: "Deleted Preset",
+            comment: "Schedule row: referenced preset was deleted"
+        )
+        guard let triggerTimeDescription else {
+            return String(
+                localized: "\(trigger) → \(preset)",
+                comment: "Schedule summary: when it fires, then the preset it applies (22:00 → Night)"
             )
         }
-        return parts.joined(separator: " ")
+        return String(
+            localized: "\(trigger) (\(triggerTimeDescription)) → \(preset)",
+            comment: "Schedule summary: sun trigger, today's time for it, then the preset (Sunset (19:42) → Night)"
+        )
     }
 }
 
@@ -124,6 +117,13 @@ struct AddScheduleSheet: View {
     @State private var offsetMinutes = 0
     @State private var selectedPresetID: UUID?
 
+    /// Starts on the first preset, so the picker never shows an empty choice that would only
+    /// disable Add.
+    init(presets: [BrightnessPreset]) {
+        self.presets = presets
+        _selectedPresetID = State(initialValue: presets.first?.id)
+    }
+
     var body: some View {
         Form {
             Section {
@@ -161,7 +161,6 @@ struct AddScheduleSheet: View {
                         .foregroundStyle(.secondary)
                 } else {
                     Picker("Apply", selection: $selectedPresetID) {
-                        Text("None").tag(nil as UUID?)
                         ForEach(presets) { preset in
                             Text(preset.name).tag(preset.id as UUID?)
                         }
@@ -180,11 +179,6 @@ struct AddScheduleSheet: View {
                 Button("Add") { addSchedule() }
                     .disabled(!isValid)
                     .help("Create this schedule")
-            }
-        }
-        .onAppear {
-            if let first = presets.first {
-                selectedPresetID = first.id
             }
         }
     }

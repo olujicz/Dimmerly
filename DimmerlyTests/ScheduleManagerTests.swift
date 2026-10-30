@@ -307,6 +307,72 @@ final class ScheduleManagerTests: XCTestCase {
         XCTAssertEqual(triggerCount, 2, "Should fire again on a new day")
     }
 
+    // MARK: - Relaunch
+
+    /// A new manager on the same defaults stands in for the app relaunching.
+    private func relaunchedManager() -> ScheduleManager {
+        ScheduleManager(defaults: testDefaults, locationCoordinates: { (latitude: 0.0, longitude: -40.0) })
+    }
+
+    func testRelaunchShortlyAfterTriggerDoesNotRefire() {
+        var triggerCount = 0
+        manager.onScheduleTriggered = { _ in triggerCount += 1 }
+        manager.addSchedule(makeSchedule(hour: 22, minute: 0))
+
+        manager.checkSchedules(now: makeDate(hour: 21, minute: 59, second: 30))
+        manager.checkSchedules(now: makeDate(hour: 22, minute: 0, second: 30))
+        XCTAssertEqual(triggerCount, 1)
+
+        let relaunched = relaunchedManager()
+        relaunched.onScheduleTriggered = { _ in triggerCount += 1 }
+        relaunched.checkSchedules(now: makeDate(hour: 22, minute: 1))
+
+        XCTAssertEqual(triggerCount, 1, "A relaunch must not re-apply a schedule that already fired")
+    }
+
+    func testRelaunchJustAfterMidnightDoesNotRefireLateTrigger() {
+        var triggerCount = 0
+        manager.onScheduleTriggered = { _ in triggerCount += 1 }
+        manager.addSchedule(makeSchedule(hour: 23, minute: 59))
+
+        manager.checkSchedules(now: makeDate(day: 1, hour: 23, minute: 58, second: 50))
+        manager.checkSchedules(now: makeDate(day: 1, hour: 23, minute: 59, second: 20))
+        manager.checkSchedules(now: makeDate(day: 2, hour: 0, minute: 0, second: 10))
+        XCTAssertEqual(triggerCount, 1)
+
+        let relaunched = relaunchedManager()
+        relaunched.onScheduleTriggered = { _ in triggerCount += 1 }
+        relaunched.checkSchedules(now: makeDate(day: 2, hour: 0, minute: 0, second: 40))
+
+        XCTAssertEqual(triggerCount, 1, "Yesterday's late trigger must not re-fire after a relaunch past midnight")
+    }
+
+    func testFirstLaunchShortlyAfterTriggerStillFires() {
+        var triggerCount = 0
+        manager.onScheduleTriggered = { _ in triggerCount += 1 }
+        manager.addSchedule(makeSchedule(hour: 22, minute: 0))
+
+        manager.checkSchedules(now: makeDate(hour: 22, minute: 1))
+
+        XCTAssertEqual(triggerCount, 1, "Launching just after an unfired trigger should still apply it")
+    }
+
+    func testRelaunchNextDayFiresAgain() {
+        var triggerCount = 0
+        manager.onScheduleTriggered = { _ in triggerCount += 1 }
+        manager.addSchedule(makeSchedule(hour: 22, minute: 0))
+
+        manager.checkSchedules(now: makeDate(day: 1, hour: 21, minute: 59, second: 30))
+        manager.checkSchedules(now: makeDate(day: 1, hour: 22, minute: 0, second: 30))
+        XCTAssertEqual(triggerCount, 1)
+
+        let relaunched = relaunchedManager()
+        relaunched.onScheduleTriggered = { _ in triggerCount += 1 }
+        relaunched.checkSchedules(now: makeDate(day: 2, hour: 22, minute: 1))
+
+        XCTAssertEqual(triggerCount, 2, "Fire state from an earlier day must not block today's trigger")
+    }
+
     func testUpdateScheduleClearsSameDayFiredState() {
         var triggerCount = 0
         manager.onScheduleTriggered = { _ in triggerCount += 1 }
@@ -429,5 +495,71 @@ final class ScheduleManagerTests: XCTestCase {
         XCTAssertEqual(newManager.schedules.count, 1)
         XCTAssertEqual(newManager.schedules.first?.name, "Persistent")
         XCTAssertEqual(newManager.schedules.first?.id, schedule.id)
+    }
+
+    /// A schedule written by a newer build with a trigger this build does not know, which is
+    /// what a downgrade leaves behind.
+    private func schedulesData(
+        withUnknownTriggerBetween first: DimmingSchedule,
+        and last: DimmingSchedule
+    ) throws -> Data {
+        var unknown = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(makeSchedule(name: "From a newer build")))
+                as? [String: Any]
+        )
+        unknown["trigger"] = ["moonrise": ["offsetMinutes": 0]]
+
+        let elements: [Any] = try [
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(first)),
+            unknown,
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(last)),
+        ]
+        return try JSONSerialization.data(withJSONObject: elements)
+    }
+
+    func testLoadKeepsDecodableSchedulesWhenOneElementIsUndecodable() throws {
+        let first = makeSchedule(name: "First", hour: 7)
+        let last = makeSchedule(name: "Last", hour: 22)
+        let raw = try schedulesData(withUnknownTriggerBetween: first, and: last)
+        testDefaults.set(raw, forKey: ScheduleManager.schedulesKey)
+
+        let reloaded = ScheduleManager(defaults: testDefaults)
+
+        XCTAssertEqual(reloaded.schedules.map(\.id), [first.id, last.id])
+        XCTAssertEqual(testDefaults.data(forKey: ScheduleManager.schedulesBackupKey), raw)
+        XCTAssertEqual(testDefaults.data(forKey: ScheduleManager.schedulesKey), raw)
+    }
+
+    func testScheduleBackupSurvivesTheNextSaveAfterALossyLoad() throws {
+        let first = makeSchedule(name: "First", hour: 7)
+        let last = makeSchedule(name: "Last", hour: 22)
+        let raw = try schedulesData(withUnknownTriggerBetween: first, and: last)
+        testDefaults.set(raw, forKey: ScheduleManager.schedulesKey)
+        let reloaded = ScheduleManager(defaults: testDefaults)
+
+        reloaded.toggleSchedule(id: first.id)
+
+        XCTAssertEqual(reloaded.schedules.map(\.id), [first.id, last.id])
+        XCTAssertEqual(testDefaults.data(forKey: ScheduleManager.schedulesBackupKey), raw)
+    }
+
+    func testLossyScheduleLoadKeepsAnExistingBackup() throws {
+        let earlierBackup = Data("earlier backup".utf8)
+        testDefaults.set(earlierBackup, forKey: ScheduleManager.schedulesBackupKey)
+        let raw = try schedulesData(withUnknownTriggerBetween: makeSchedule(), and: makeSchedule())
+        testDefaults.set(raw, forKey: ScheduleManager.schedulesKey)
+
+        _ = ScheduleManager(defaults: testDefaults)
+
+        XCTAssertEqual(testDefaults.data(forKey: ScheduleManager.schedulesBackupKey), earlierBackup)
+    }
+
+    func testCleanScheduleLoadDoesNotWriteBackup() {
+        manager.addSchedule(makeSchedule(name: "Clean"))
+
+        let reloaded = ScheduleManager(defaults: testDefaults)
+
+        XCTAssertEqual(reloaded.schedules.map(\.name), ["Clean"])
+        XCTAssertNil(testDefaults.data(forKey: ScheduleManager.schedulesBackupKey))
     }
 }

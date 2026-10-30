@@ -111,6 +111,9 @@ private final class SearchableIndexAcknowledgement: @unchecked Sendable {
 
 @MainActor
 final class CSSearchablePresetEntityIndexingClient: NSObject, PresetEntityIndexingClient, CSSearchableIndexDelegate {
+    /// Keeps the index delegate registered. Writes use a fresh `CSSearchableIndex` for the
+    /// same name instead: the index isn't Sendable, and its async methods run off the main
+    /// actor, so passing this stored instance to them is rejected as a data race.
     let searchableIndex: CSSearchableIndex
 
     override init() {
@@ -191,17 +194,20 @@ final class CSSearchablePresetEntityIndexingClient: NSObject, PresetEntityIndexi
             for identifiers: [PresetEntity.ID],
             indexDescription _: CSSearchableIndexDescription
         ) async throws {
-            let entities = await MainActor.run {
-                makePresetEntities(for: identifiers)
+            // Queued behind preset edits and Spotlight recovery so a stale snapshot can't
+            // land after a newer delete and index. Presets are read inside the queue so the
+            // snapshot is current when it is written.
+            try await PresetEntityIndexWriteQueue.shared.run {
+                let entities = makePresetEntities(for: identifiers)
+                try await CSSearchableIndex(name: presetEntityIndexName).indexAppEntities(entities)
             }
-            try await CSSearchableIndex(name: presetEntityIndexName).indexAppEntities(entities)
         }
 
         func reindexAllEntities(indexDescription _: CSSearchableIndexDescription) async throws {
-            let entities = await MainActor.run {
-                makePresetEntities()
+            try await PresetEntityIndexWriteQueue.shared.run {
+                let entities = makePresetEntities()
+                try await CSSearchableIndex(name: presetEntityIndexName).indexAppEntities(entities)
             }
-            try await CSSearchableIndex(name: presetEntityIndexName).indexAppEntities(entities)
         }
     }
 #endif

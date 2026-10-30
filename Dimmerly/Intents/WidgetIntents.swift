@@ -16,6 +16,8 @@ enum WidgetActionExecution {
     enum Failure: LocalizedError {
         case unavailable
         case didNotComplete
+        /// The app no longer has the preset the widget or control asked for.
+        case presetUnavailable
 
         var errorDescription: String? {
             switch self {
@@ -23,7 +25,23 @@ enum WidgetActionExecution {
                 String(localized: "Dimmerly could not open to control your displays.")
             case .didNotComplete:
                 String(localized: "Dimmerly did not complete the display action. Try again.")
+            case .presetUnavailable:
+                String(
+                    localized: "Dimmerly could not find this preset. It may have been deleted.",
+                    comment: "Error shown when a widget or control applies a preset that no longer exists"
+                )
             }
+        }
+    }
+
+    /// The error to report when the app answered that it could not perform `command`.
+    /// Applying a preset is the one command that can find nothing to act on.
+    static func failure(for command: WidgetActionCommand) -> Failure {
+        switch command {
+        case .applyPreset:
+            .presetUnavailable
+        case .dimDisplays, .setDimming, .setAutoWarmth:
+            .didNotComplete
         }
     }
 
@@ -53,17 +71,29 @@ enum WidgetActionExecution {
         while now() < request.expiresAt {
             try Task.checkCancellation()
             signalApp(request.id)
-            if SharedConstants.widgetActionWasAcknowledged(request.id, in: defaults) {
+            if try appAnswered(request, in: defaults) {
                 return
             }
             try await wait()
         }
         // The action may have completed during the final wait as its deadline passed.
         try Task.checkCancellation()
-        if SharedConstants.widgetActionWasAcknowledged(request.id, in: defaults) {
+        if try appAnswered(request, in: defaults) {
             return
         }
         throw Failure.didNotComplete
+    }
+
+    /// True once the app reported success; throws when it reported that it could not do it.
+    private static func appAnswered(_ request: WidgetActionRequest, in defaults: UserDefaults) throws -> Bool {
+        switch SharedConstants.widgetActionOutcome(request.id, in: defaults) {
+        case .succeeded:
+            true
+        case .failed:
+            throw failure(for: request.command)
+        case nil:
+            false
+        }
     }
 
     private static func launchContainingApp() async throws {
@@ -101,7 +131,7 @@ struct DimDisplaysWidgetIntent: AppIntent {
         #if WIDGET_EXTENSION
             try await WidgetActionExecution.perform(.dimDisplays)
         #else
-            WidgetActionCommand.dimDisplays.performInApp()
+            try WidgetActionCommand.dimDisplays.performForIntent()
         #endif
         return .result()
     }
@@ -139,7 +169,7 @@ struct ApplyPresetWidgetIntent: AppIntent {
         #if WIDGET_EXTENSION
             try await WidgetActionExecution.perform(.applyPreset(presetID))
         #else
-            WidgetActionCommand.applyPreset(presetID).performInApp()
+            try WidgetActionCommand.applyPreset(presetID).performForIntent()
         #endif
         return .result()
     }
@@ -181,7 +211,7 @@ struct SetDimmingWidgetIntent: SetValueIntent {
         #if WIDGET_EXTENSION
             try await WidgetActionExecution.perform(.setDimming(value))
         #else
-            WidgetActionCommand.setDimming(value).performInApp()
+            try WidgetActionCommand.setDimming(value).performForIntent()
         #endif
         return .result()
     }
@@ -220,7 +250,7 @@ struct SetAutoWarmthWidgetIntent: SetValueIntent {
         #if WIDGET_EXTENSION
             try await WidgetActionExecution.perform(.setAutoWarmth(value))
         #else
-            WidgetActionCommand.setAutoWarmth(value).performInApp()
+            try WidgetActionCommand.setAutoWarmth(value).performForIntent()
         #endif
         return .result()
     }

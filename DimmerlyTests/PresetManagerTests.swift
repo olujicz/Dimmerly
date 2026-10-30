@@ -442,6 +442,105 @@ final class PresetManagerTests: XCTestCase {
         XCTAssertEqual(manager.presets[2].name, "Night")
     }
 
+    // MARK: - Loading stored presets
+
+    /// A preset written by a newer build that knows a modifier this build does not, which is
+    /// what a downgrade leaves behind.
+    private func presetsData(
+        withUnsupportedModifierBetween first: BrightnessPreset,
+        and last: BrightnessPreset
+    ) throws -> Data {
+        var unsupported = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(BrightnessPreset(
+                name: "From a newer build",
+                shortcut: GlobalShortcut(key: "N", modifiers: [.command, .option])
+            ))) as? [String: Any]
+        )
+        var shortcut = try XCTUnwrap(unsupported["shortcut"] as? [String: Any])
+        shortcut["modifiers"] = ["command", "hyper"]
+        unsupported["shortcut"] = shortcut
+
+        let elements: [Any] = try [
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(first)),
+            unsupported,
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(last)),
+        ]
+        return try JSONSerialization.data(withJSONObject: elements)
+    }
+
+    private func reloadedManager() -> PresetManager {
+        PresetManager(
+            defaults: testDefaults,
+            mainShortcutProvider: { GlobalShortcut.default },
+            widgetSynchronizer: NoOpWidgetPresetSynchronizer(),
+            notifyWarmthPresetApplied: {}
+        )
+    }
+
+    func testLoadKeepsDecodablePresetsWhenOneElementIsUndecodable() throws {
+        let first = BrightnessPreset(name: "First", universalBrightness: 0.6)
+        let last = BrightnessPreset(name: "Last", universalBrightness: 0.4)
+        let raw = try presetsData(withUnsupportedModifierBetween: first, and: last)
+        testDefaults.set(raw, forKey: PresetManager.persistenceKey)
+
+        let reloaded = reloadedManager()
+
+        XCTAssertEqual(reloaded.presets.map(\.id), [first.id, last.id])
+        XCTAssertEqual(testDefaults.data(forKey: PresetManager.backupKey), raw)
+        XCTAssertEqual(
+            testDefaults.data(forKey: PresetManager.persistenceKey),
+            raw,
+            "Loading must not rewrite the stored presets, so a newer build can still read all of them"
+        )
+    }
+
+    func testBackupSurvivesTheNextSaveAfterALossyLoad() throws {
+        let first = BrightnessPreset(name: "First", universalBrightness: 0.6)
+        let last = BrightnessPreset(name: "Last", universalBrightness: 0.4)
+        let raw = try presetsData(withUnsupportedModifierBetween: first, and: last)
+        testDefaults.set(raw, forKey: PresetManager.persistenceKey)
+        let reloaded = reloadedManager()
+
+        reloaded.deletePreset(id: first.id)
+
+        XCTAssertEqual(reloaded.presets.map(\.id), [last.id])
+        XCTAssertEqual(testDefaults.data(forKey: PresetManager.backupKey), raw)
+    }
+
+    func testLossyLoadKeepsAnExistingBackup() throws {
+        let earlierBackup = Data("earlier backup".utf8)
+        testDefaults.set(earlierBackup, forKey: PresetManager.backupKey)
+        let raw = try presetsData(
+            withUnsupportedModifierBetween: BrightnessPreset(name: "First"),
+            and: BrightnessPreset(name: "Last")
+        )
+        testDefaults.set(raw, forKey: PresetManager.persistenceKey)
+
+        _ = reloadedManager()
+
+        XCTAssertEqual(testDefaults.data(forKey: PresetManager.backupKey), earlierBackup)
+    }
+
+    func testCleanLoadDoesNotWriteBackup() {
+        bm.displays = []
+        manager.saveCurrentAsPreset(name: "Clean", brightnessManager: bm)
+
+        let reloaded = reloadedManager()
+
+        XCTAssertEqual(reloaded.presets.map(\.name), ["Clean"])
+        XCTAssertNil(testDefaults.data(forKey: PresetManager.backupKey))
+    }
+
+    func testUnreadablePresetDataIsBackedUp() {
+        let raw = Data("not json".utf8)
+        testDefaults.set(raw, forKey: PresetManager.persistenceKey)
+
+        let reloaded = reloadedManager()
+
+        XCTAssertTrue(reloaded.presets.isEmpty)
+        XCTAssertEqual(testDefaults.data(forKey: PresetManager.backupKey), raw)
+    }
+
     // MARK: - defaultPresets static values
 
     func testDefaultPresetsValues() {

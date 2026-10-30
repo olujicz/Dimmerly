@@ -70,11 +70,27 @@
     }
 
     private struct HardwareReadValues {
+        /// The VCP codes a full read covers, in bus order.
+        static let codes: [VCPCode] = [.brightness, .contrast, .volume, .audioMute, .inputSource]
+
         let brightness: Double?
         let contrast: Double?
         let volume: Double?
         let muted: Bool?
         let inputSource: InputSource?
+
+        init(results: [VCPCode: DDCReadResult]) {
+            func level(_ vcp: VCPCode) -> Double? {
+                guard let result = results[vcp], result.maxValue > 0 else { return nil }
+                return Double(result.currentValue) / Double(result.maxValue)
+            }
+            brightness = level(.brightness)
+            contrast = level(.contrast)
+            volume = level(.volume)
+            // Non-continuous VCP codes return the value in the low byte only.
+            muted = results[.audioMute].map { ($0.currentValue & 0xFF) == 1 }
+            inputSource = results[.inputSource].flatMap { InputSource(rawValue: $0.currentValue & 0xFF) }
+        }
     }
 
     /// Manages hardware (DDC/CI) display control for external monitors.
@@ -267,6 +283,15 @@
         /// reads that user-initiated writes would then wait behind.
         private var pollReadsInFlight: Set<CGDirectDisplayID> = []
 
+        /// Capability probes still queued or running. A probe for a display that already has
+        /// a live one is skipped: a silent monitor holds `ddcQueue` for about a second per VCP
+        /// code, and launch, the Settings toggle, and each reconfiguration callback all ask.
+        private var probesInFlight: [CGDirectDisplayID: DDCInFlightProbe] = [:]
+        private var nextProbeID: UInt64 = 0
+
+        /// Pending automatic retries for displays whose first probe found no DDC support.
+        private var automaticProbeRetryTasks: [CGDirectDisplayID: Task<Void, Never>] = [:]
+
         var pendingWorkCountForTesting: Int {
             pendingWrites.count + pendingHardwareWrites.values.reduce(0, +)
         }
@@ -301,6 +326,10 @@
         /// Supplies native backlight eligibility without making tests depend on live displays.
         private let nativeBrightnessSupportProvider: (CGDirectDisplayID) -> Bool
 
+        /// Reapplies a display's output after repeated write failures dropped a VCP code, so
+        /// brightness falls back to software. Injectable so tests need not use the singleton.
+        private let writeFallbackHandler: @MainActor (CGDirectDisplayID) -> Void
+
         /// Short retry window for a newly connected display whose DDC service is still starting.
         private let automaticProbeRetryDelays: [Duration] = [.milliseconds(250), .seconds(1)]
 
@@ -319,6 +348,9 @@
             },
             nativeBrightnessSupportProvider: @escaping (CGDirectDisplayID) -> Bool = {
                 BrightnessManager.shared.supportsNativeBacklight(for: $0)
+            },
+            writeFallbackHandler: @escaping @MainActor (CGDirectDisplayID) -> Void = {
+                BrightnessManager.shared.applyCurrentBrightness(for: $0)
             }
         ) {
             self.ddcInterface = ddcInterface
@@ -326,11 +358,13 @@
             self.displayRefreshHandler = displayRefreshHandler
             self.hardwareBrightnessReadHandler = hardwareBrightnessReadHandler
             self.nativeBrightnessSupportProvider = nativeBrightnessSupportProvider
+            self.writeFallbackHandler = writeFallbackHandler
             nativeBrightnessWorkGate.beginEnabledSession()
         }
 
-        /// Test-only initializer that accepts a mock DDC interface.
-        init(
+        /// Test-only initializer: the same seams as `init`, but native backlight support
+        /// defaults to off so tests never consult the live display model for it.
+        convenience init(
             forTesting _: Bool,
             ddcInterface: DDCInterface = DefaultDDCInterface(),
             connectedExternalDisplayIDsProvider: @escaping () -> [CGDirectDisplayID] = {
@@ -342,14 +376,19 @@
             hardwareBrightnessReadHandler: @escaping @MainActor (CGDirectDisplayID, Double) -> Void = {
                 BrightnessManager.shared.synchronizeExternalHardwareBrightness(for: $0, to: $1)
             },
-            nativeBrightnessSupportProvider: @escaping (CGDirectDisplayID) -> Bool = { _ in false }
+            nativeBrightnessSupportProvider: @escaping (CGDirectDisplayID) -> Bool = { _ in false },
+            writeFallbackHandler: @escaping @MainActor (CGDirectDisplayID) -> Void = {
+                BrightnessManager.shared.applyCurrentBrightness(for: $0)
+            }
         ) {
-            self.ddcInterface = ddcInterface
-            self.connectedExternalDisplayIDsProvider = connectedExternalDisplayIDsProvider
-            self.displayRefreshHandler = displayRefreshHandler
-            self.hardwareBrightnessReadHandler = hardwareBrightnessReadHandler
-            self.nativeBrightnessSupportProvider = nativeBrightnessSupportProvider
-            nativeBrightnessWorkGate.beginEnabledSession()
+            self.init(
+                ddcInterface: ddcInterface,
+                connectedExternalDisplayIDsProvider: connectedExternalDisplayIDsProvider,
+                displayRefreshHandler: displayRefreshHandler,
+                hardwareBrightnessReadHandler: hardwareBrightnessReadHandler,
+                nativeBrightnessSupportProvider: nativeBrightnessSupportProvider,
+                writeFallbackHandler: writeFallbackHandler
+            )
         }
 
         // MARK: - Public API
@@ -375,6 +414,8 @@
             isDisabling = true
             stopPolling()
             cancelPendingWrites()
+            probesInFlight.removeAll()
+            cancelAutomaticProbeRetries()
 
             await withCheckedContinuation { continuation in
                 ddcQueue.async {
@@ -413,10 +454,15 @@
         /// Results are merged into `capabilities` rather than replacing it wholesale, and
         /// any display that disconnected while the (multi-display) probe was in flight is
         /// dropped instead of being resurrected.
+        ///
+        /// A display that already has a probe running for this session and connection is
+        /// skipped either way: that probe will publish fresh capabilities.
         func probeAllDisplays(force: Bool = true) {
             guard let session = sessionGate.capture() else { return }
             let connectedDisplayIDs = connectedExternalDisplayIDsProvider()
-            let idsToProbe = force ? connectedDisplayIDs : connectedDisplayIDs.filter { capabilities[$0] == nil }
+            let idsToProbe = connectedDisplayIDs.filter {
+                (force || capabilities[$0] == nil) && !isProbeInFlight(for: $0)
+            }
             guard !idsToProbe.isEmpty else { return }
 
             probe(
@@ -440,15 +486,27 @@
             let connectionTokens = Dictionary(uniqueKeysWithValues: displayIDs.map {
                 ($0, displayConnectionGate.current(for: $0))
             })
+            nextProbeID &+= 1
+            let probeID = nextProbeID
+            for (displayID, connection) in connectionTokens {
+                probesInFlight[displayID] = DDCInFlightProbe(
+                    id: probeID,
+                    session: session,
+                    nativeWorkSession: nativeWorkSession,
+                    connection: connection
+                )
+            }
 
             ddcQueue.async { [weak self] in
                 guard let self else { return }
                 var results: [CGDirectDisplayID: HardwareDisplayCapability] = [:]
 
                 for displayID in displayIDs {
+                    // Stop early but still hop to the main actor below to release the
+                    // in-flight entries; the publication guards there reject the results.
                     guard sessionGate.isCurrent(session),
                           isNativeConfigurationCurrent(nativeWorkSession)
-                    else { return }
+                    else { break }
                     // A disconnected monitor invalidates only its own work. Keep probing and
                     // publishing the rest of the batch while the global session is still live.
                     guard let connectionToken = connectionTokens[displayID],
@@ -462,8 +520,9 @@
                 }
 
                 Task { @MainActor [weak self] in
-                    guard let self,
-                          sessionGate.isCurrent(session),
+                    guard let self else { return }
+                    finishProbe(probeID, for: displayIDs)
+                    guard sessionGate.isCurrent(session),
                           isNativeConfigurationCurrent(nativeWorkSession)
                     else { return }
                     let stillConnected = Set(connectedExternalDisplayIDsProvider())
@@ -518,32 +577,6 @@
             }
         }
 
-        private func scheduleAutomaticProbeRetry(
-            for displayID: CGDirectDisplayID,
-            session: DDCSession,
-            retryDelays: [Duration]
-        ) {
-            guard let delay = retryDelays.first else { return }
-
-            Task { [weak self] in
-                do {
-                    try await Task.sleep(for: delay)
-                } catch {
-                    return
-                }
-
-                guard let self, sessionGate.isCurrent(session) else { return }
-                guard connectedExternalDisplayIDsProvider().contains(displayID) else { return }
-                guard capabilities[displayID]?.supportsDDC != true else { return }
-
-                probe(
-                    displayIDs: [displayID],
-                    session: session,
-                    retryDelays: Array(retryDelays.dropFirst())
-                )
-            }
-        }
-
         /// Sets the hardware brightness for a display via DDC/CI.
         ///
         /// The value is normalized from 0.0–1.0 to the display's VCP max value.
@@ -554,21 +587,12 @@
         ///   - value: Brightness value (0.0–1.0)
         func setHardwareBrightness(for displayID: CGDirectDisplayID, to value: Double) {
             guard !isExternalNativeBrightnessActive(for: displayID) else { return }
-            guard sessionGate.capture() != nil else { return }
-            guard let cap = capabilities[displayID], cap.supportsBrightness else { return }
-
             let clamped = min(max(value, 0.0), 1.0)
-            let connection = displayConnectionGate.current(for: displayID)
-            markLocalWrite(vcp: .brightness, connection: connection)
-            hardwareBrightness[displayID] = clamped
-
-            let rawValue = UInt16((clamped * Double(cap.maxBrightness)).rounded())
-            debouncedWrite(
-                vcp: .brightness,
-                value: rawValue,
+            writeLocalValue(
+                .brightness,
                 for: displayID,
-                connection: connection,
-                nativeWorkSession: nativeBrightnessWorkGate.capture()
+                rawValue: { UInt16((clamped * Double($0.maxBrightness)).rounded()) },
+                publish: { hardwareBrightness[displayID] = clamped }
             )
         }
 
@@ -578,16 +602,13 @@
         ///   - displayID: CoreGraphics display identifier
         ///   - value: Contrast value (0.0–1.0)
         func setHardwareContrast(for displayID: CGDirectDisplayID, to value: Double) {
-            guard sessionGate.capture() != nil else { return }
-            guard let cap = capabilities[displayID], cap.supportsContrast else { return }
-
             let clamped = min(max(value, 0.0), 1.0)
-            let connection = displayConnectionGate.current(for: displayID)
-            markLocalWrite(vcp: .contrast, connection: connection)
-            hardwareContrast[displayID] = clamped
-
-            let rawValue = UInt16((clamped * Double(cap.maxContrast)).rounded())
-            debouncedWrite(vcp: .contrast, value: rawValue, for: displayID, connection: connection)
+            writeLocalValue(
+                .contrast,
+                for: displayID,
+                rawValue: { UInt16((clamped * Double($0.maxContrast)).rounded()) },
+                publish: { hardwareContrast[displayID] = clamped }
+            )
         }
 
         /// Sets the hardware volume for a display via DDC/CI.
@@ -596,16 +617,13 @@
         ///   - displayID: CoreGraphics display identifier
         ///   - value: Volume value (0.0–1.0)
         func setHardwareVolume(for displayID: CGDirectDisplayID, to value: Double) {
-            guard sessionGate.capture() != nil else { return }
-            guard let cap = capabilities[displayID], cap.supportsVolume else { return }
-
             let clamped = min(max(value, 0.0), 1.0)
-            let connection = displayConnectionGate.current(for: displayID)
-            markLocalWrite(vcp: .volume, connection: connection)
-            hardwareVolume[displayID] = clamped
-
-            let rawValue = UInt16((clamped * Double(cap.maxVolume)).rounded())
-            debouncedWrite(vcp: .volume, value: rawValue, for: displayID, connection: connection)
+            writeLocalValue(
+                .volume,
+                for: displayID,
+                rawValue: { UInt16((clamped * Double($0.maxVolume)).rounded()) },
+                publish: { hardwareVolume[displayID] = clamped }
+            )
         }
 
         /// Toggles audio mute for a display via DDC/CI.
@@ -614,17 +632,13 @@
         ///
         /// - Parameter displayID: CoreGraphics display identifier
         func toggleMute(for displayID: CGDirectDisplayID) {
-            guard sessionGate.capture() != nil else { return }
-            guard let cap = capabilities[displayID], cap.supportsAudioMute else { return }
-
-            let currentlyMuted = hardwareMute[displayID] ?? false
-            let newMuted = !currentlyMuted
-            let connection = displayConnectionGate.current(for: displayID)
-            markLocalWrite(vcp: .audioMute, connection: connection)
-            hardwareMute[displayID] = newMuted
-
-            let rawValue: UInt16 = newMuted ? 1 : 2
-            debouncedWrite(vcp: .audioMute, value: rawValue, for: displayID, connection: connection)
+            let newMuted = !(hardwareMute[displayID] ?? false)
+            writeLocalValue(
+                .audioMute,
+                for: displayID,
+                rawValue: { _ in newMuted ? 1 : 2 },
+                publish: { hardwareMute[displayID] = newMuted }
+            )
         }
 
         /// Sets the input source for a display via DDC/CI.
@@ -633,13 +647,12 @@
         ///   - displayID: CoreGraphics display identifier
         ///   - source: The input source to switch to
         func setInputSource(for displayID: CGDirectDisplayID, to source: InputSource) {
-            guard sessionGate.capture() != nil else { return }
-            guard let cap = capabilities[displayID], cap.supportsInputSource else { return }
-
-            let connection = displayConnectionGate.current(for: displayID)
-            markLocalWrite(vcp: .inputSource, connection: connection)
-            activeInputSource[displayID] = source
-            debouncedWrite(vcp: .inputSource, value: source.rawValue, for: displayID, connection: connection)
+            writeLocalValue(
+                .inputSource,
+                for: displayID,
+                rawValue: { _ in source.rawValue },
+                publish: { activeInputSource[displayID] = source }
+            )
         }
 
         /// Returns the available input sources for a display.
@@ -718,6 +731,14 @@
             vcp != .brightness || session.map(nativeBrightnessWorkGate.isCurrent) == true
         }
 
+        /// Whether a queued write may still touch the bus or publish its outcome: DDC is still
+        /// on, the display has not reconnected, and brightness ownership has not changed.
+        private nonisolated func isLive(_ context: DDCWriteContext, for vcp: VCPCode) -> Bool {
+            sessionGate.isCurrent(context.session)
+                && displayConnectionGate.isCurrent(context.connection)
+                && isNativeConfigurationCurrent(context.nativeWorkSession, for: vcp)
+        }
+
         /// Cleans up state for disconnected displays.
         func removeDisplay(_ displayID: CGDirectDisplayID) {
             advanceDisplayConnection(for: displayID)
@@ -729,6 +750,8 @@
             activeInputSource.removeValue(forKey: displayID)
             writeTiming.removeDisplay(displayID)
             cancelRecoveryProbes(for: displayID)
+            probesInFlight.removeValue(forKey: displayID)
+            automaticProbeRetryTasks.removeValue(forKey: displayID)?.cancel()
         }
 
         private func cancelPendingWrites() {
@@ -774,56 +797,15 @@
             // The display can be unplugged or DDC disabled mid-read; re-check before each
             // transaction so an abandoned poll never publishes values from a dead connection.
             let isLive = { sessionGate.isCurrent(session) && displayConnectionGate.isCurrent(connection) }
-            var brightness: Double?
-            var contrast: Double?
-            var volume: Double?
-            var muted: Bool?
-            var inputSource: InputSource?
-
-            if capability.supportsBrightness, !skippingBrightness {
-                guard isLive() else { return nil }
-                if let result = ddcInterface.read(vcp: .brightness, for: displayID), result.maxValue > 0 {
-                    brightness = Double(result.currentValue) / Double(result.maxValue)
+            var results: [VCPCode: DDCReadResult] = [:]
+            for vcp in HardwareReadValues.codes where capability.supportedCodes.contains(vcp) {
+                if vcp == .brightness, skippingBrightness {
+                    continue
                 }
-            }
-
-            if capability.supportsContrast {
                 guard isLive() else { return nil }
-                if let result = ddcInterface.read(vcp: .contrast, for: displayID), result.maxValue > 0 {
-                    contrast = Double(result.currentValue) / Double(result.maxValue)
-                }
+                results[vcp] = ddcInterface.read(vcp: vcp, for: displayID)
             }
-
-            if capability.supportsVolume {
-                guard isLive() else { return nil }
-                if let result = ddcInterface.read(vcp: .volume, for: displayID), result.maxValue > 0 {
-                    volume = Double(result.currentValue) / Double(result.maxValue)
-                }
-            }
-
-            if capability.supportsAudioMute {
-                guard isLive() else { return nil }
-                if let result = ddcInterface.read(vcp: .audioMute, for: displayID) {
-                    // Non-continuous VCP: value in low byte only
-                    muted = (result.currentValue & 0xFF) == 1
-                }
-            }
-
-            if capability.supportsInputSource {
-                guard isLive() else { return nil }
-                if let result = ddcInterface.read(vcp: .inputSource, for: displayID) {
-                    // Non-continuous VCP codes return the value in the low byte only
-                    inputSource = InputSource(rawValue: result.currentValue & 0xFF)
-                }
-            }
-
-            return HardwareReadValues(
-                brightness: brightness,
-                contrast: contrast,
-                volume: volume,
-                muted: muted,
-                inputSource: inputSource
-            )
+            return HardwareReadValues(results: results)
         }
 
         /// Reads all supported VCP values for a display.
@@ -1020,33 +1002,20 @@
             context: DDCWriteContext
         ) {
             let session = context.session
-            let connection = context.connection
-            let nativeWorkSession = context.nativeWorkSession
             let ddcIO = ddcInterface
             let minInterval = minimumWriteInterval
             let threshold = maxWriteFailuresBeforeFallback
             let ddcQueue = ddcQueue
             let writeTiming = writeTiming
-            let writeKey = WriteKey(vcp: vcp, connection: connection)
+            let writeKey = WriteKey(vcp: vcp, connection: context.connection)
             ddcQueue.async { [weak self] in
-                guard let self else { return }
-                guard sessionGate.isCurrent(session),
-                      displayConnectionGate.isCurrent(connection),
-                      isNativeConfigurationCurrent(nativeWorkSession, for: vcp)
-                else { return }
+                guard let self, isLive(context, for: vcp) else { return }
                 writeTiming.waitUntilReady(for: displayID, minimumInterval: minInterval)
-                guard sessionGate.isCurrent(session),
-                      displayConnectionGate.isCurrent(connection),
-                      isNativeConfigurationCurrent(nativeWorkSession, for: vcp)
-                else { return }
+                guard isLive(context, for: vcp) else { return }
                 let success = ddcIO.write(vcp: vcp, value: value, for: displayID)
 
                 Task { @MainActor [weak self] in
-                    guard let self,
-                          sessionGate.isCurrent(session),
-                          displayConnectionGate.isCurrent(connection),
-                          isNativeConfigurationCurrent(nativeWorkSession, for: vcp)
-                    else { return }
+                    guard let self, isLive(context, for: vcp) else { return }
                     decrementPendingHardwareWrite(writeKey)
 
                     if success {
@@ -1072,7 +1041,7 @@
                                 session: session,
                                 retryDelays: writeFailureRecoveryDelays
                             )
-                            BrightnessManager.shared.applyCurrentBrightness(for: displayID)
+                            writeFallbackHandler(displayID)
                         }
                     }
                 }
@@ -1147,6 +1116,103 @@
             guard (pendingHardwareWrites[writeKey] ?? 0) == 0 else { return false }
             guard let localWriteTime = lastLocalWriteTime[writeKey] else { return true }
             return localWriteTime <= readStartedAt
+        }
+    }
+
+    // MARK: - Local Writes
+
+    fileprivate extension HardwareBrightnessManager {
+        /// Shared body of the user-facing setters: requires a live session and a display
+        /// that supports `vcp`, marks the write as local so in-flight reads cannot undo it,
+        /// publishes the new value, then queues the debounced hardware write. Brightness
+        /// writes also carry the current native/DDC ownership so a later change cancels them.
+        func writeLocalValue(
+            _ vcp: VCPCode,
+            for displayID: CGDirectDisplayID,
+            rawValue: (HardwareDisplayCapability) -> UInt16,
+            publish: () -> Void
+        ) {
+            guard sessionGate.capture() != nil else { return }
+            guard let cap = capabilities[displayID], cap.supportedCodes.contains(vcp) else { return }
+
+            let connection = displayConnectionGate.current(for: displayID)
+            markLocalWrite(vcp: vcp, connection: connection)
+            publish()
+            debouncedWrite(
+                vcp: vcp,
+                value: rawValue(cap),
+                for: displayID,
+                connection: connection,
+                nativeWorkSession: vcp == .brightness ? nativeBrightnessWorkGate.capture() : nil
+            )
+        }
+    }
+
+    // MARK: - Probe Bookkeeping
+
+    /// A capability probe queued or running on `ddcQueue` for one display.
+    private struct DDCInFlightProbe {
+        let id: UInt64
+        let session: DDCSession
+        let nativeWorkSession: DDCSession?
+        let connection: DDCDisplayConnectionToken
+    }
+
+    fileprivate extension HardwareBrightnessManager {
+        func scheduleAutomaticProbeRetry(
+            for displayID: CGDirectDisplayID,
+            session: DDCSession,
+            retryDelays: [Duration]
+        ) {
+            guard let delay = retryDelays.first else { return }
+
+            automaticProbeRetryTasks[displayID]?.cancel()
+            automaticProbeRetryTasks[displayID] = Task { [weak self] in
+                do {
+                    try await Task.sleep(for: delay)
+                } catch {
+                    return
+                }
+
+                guard let self, !Task.isCancelled else { return }
+                automaticProbeRetryTasks.removeValue(forKey: displayID)
+                guard sessionGate.isCurrent(session) else { return }
+                guard connectedExternalDisplayIDsProvider().contains(displayID) else { return }
+                guard capabilities[displayID]?.supportsDDC != true else { return }
+                // Another probe already running will publish (and retry) for this display.
+                guard !isProbeInFlight(for: displayID) else { return }
+
+                probe(
+                    displayIDs: [displayID],
+                    session: session,
+                    retryDelays: Array(retryDelays.dropFirst())
+                )
+            }
+        }
+
+        /// Whether a probe for `displayID` is still queued or running and its results can
+        /// still be published. Entries from a disabled session, an older brightness
+        /// ownership, or a previous connection of the same ID do not count.
+        func isProbeInFlight(for displayID: CGDirectDisplayID) -> Bool {
+            guard let probe = probesInFlight[displayID] else { return false }
+            return sessionGate.isCurrent(probe.session)
+                && isNativeConfigurationCurrent(probe.nativeWorkSession)
+                && displayConnectionGate.isCurrent(probe.connection)
+        }
+
+        /// Releases the in-flight entries a finished probe still owns. A newer probe for the
+        /// same display may have replaced an entry and keeps it.
+        func finishProbe(_ probeID: UInt64, for displayIDs: [CGDirectDisplayID]) {
+            for displayID in displayIDs where probesInFlight[displayID]?.id == probeID {
+                probesInFlight.removeValue(forKey: displayID)
+            }
+        }
+
+        func cancelAutomaticProbeRetries() {
+            for task in automaticProbeRetryTasks.values {
+                task.cancel()
+            }
+            automaticProbeRetryTasks.removeAll()
         }
     }
 

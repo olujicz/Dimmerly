@@ -39,11 +39,8 @@ struct ShortcutsSettingsTab: View {
     private var keyboardShortcutSection: some View {
         Section {
             HStack {
-                #if APPSTORE
-                    Text("Dim Displays")
-                #else
-                    Text(settings.preventScreenLock ? "Dim Displays" : "Sleep Displays")
-                #endif
+                // Same name as the panel button and the quick-actions menu item.
+                Text(StatusItemQuickActions.turnOffTitle(settings: settings))
                 KeyboardShortcutRecorder(
                     shortcut: Binding(
                         get: { settings.keyboardShortcut },
@@ -97,17 +94,12 @@ struct ShortcutsSettingsTab: View {
                         .foregroundStyle(.secondary)
                         .symbolRenderingMode(.multicolor)
 
-                        Button {
-                            KeyboardShortcutManager.requestAccessibilityPermission()
-                        } label: {
-                            HStack(spacing: 2) {
-                                Text("Open Accessibility Settings")
-                                Image(systemName: "arrow.up.forward")
-                                    .imageScale(.small)
-                            }
-                        }
+                        ExternalLinkButton(
+                            title: Text("Open Accessibility Settings"),
+                            help: Text("Open macOS Accessibility settings"),
+                            action: KeyboardShortcutManager.requestAccessibilityPermission
+                        )
                         .font(.caption)
-                        .help("Open macOS Accessibility settings")
                     }
                     .accessibilityElement(children: .combine)
                     .padding(.top, 4)
@@ -119,11 +111,8 @@ struct ShortcutsSettingsTab: View {
     }
 
     private func updateMainShortcut(_ shortcut: GlobalShortcut) {
-        if let conflictingPreset = presetManager.presets.first(where: { $0.shortcut == shortcut }) {
-            mainShortcutConflictMessage = String(
-                format: NSLocalizedString("This shortcut conflicts with %@", comment: "Shortcut conflict message"),
-                conflictingPreset.name
-            )
+        if let conflict = presetManager.shortcutConflict(for: shortcut, assigningTo: nil) {
+            mainShortcutConflictMessage = conflict.localizedDescription
             return
         }
 

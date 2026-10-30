@@ -119,7 +119,10 @@ class PresetManager {
     var presets: [BrightnessPreset] = []
 
     /// UserDefaults key for preset persistence (JSON array)
-    private let persistenceKey = "dimmerlyBrightnessPresets"
+    static let persistenceKey = "dimmerlyBrightnessPresets"
+
+    /// UserDefaults key holding the original preset data when some presets could not be decoded
+    static let backupKey = "dimmerlyBrightnessPresetsBackup"
 
     /// UserDefaults flag to track whether default presets have been seeded
     private let defaultsSeededKey = "dimmerlyDefaultPresetsSeeded"
@@ -128,6 +131,9 @@ class PresetManager {
     /// production use; tests should inject an isolated suite so they don't read or overwrite
     /// the developer's real saved presets.
     private let defaults: UserDefaults
+
+    /// JSON persistence for `presets` under `persistenceKey`.
+    private let store: JSONDefaultsArrayStore<BrightnessPreset>
 
     /// Resolves the current main display shortcut at assignment time.
     private let mainShortcutProvider: () -> GlobalShortcut
@@ -144,6 +150,13 @@ class PresetManager {
         notifyWarmthPresetApplied: @escaping () -> Void = { ColorTemperatureManager.shared.notifyPresetApplied() }
     ) {
         self.defaults = defaults
+        store = JSONDefaultsArrayStore(
+            key: Self.persistenceKey,
+            backupKey: Self.backupKey,
+            defaults: defaults,
+            logger: presetManagerLogger,
+            elementsDescription: "brightness presets"
+        )
         self.mainShortcutProvider = mainShortcutProvider
         self.widgetSynchronizer = widgetSynchronizer
         self.notifyWarmthPresetApplied = notifyWarmthPresetApplied
@@ -169,6 +182,17 @@ class PresetManager {
         persistPresets()
     }
 
+    /// Returns the saved preset with `id`, or nil if it has been deleted.
+    func preset(withID id: UUID) -> BrightnessPreset? {
+        presets.first { $0.id == id }
+    }
+
+    /// Applies the preset with `id`; does nothing if it has since been deleted.
+    func applyPreset(id: UUID, to brightnessManager: BrightnessManager, animated: Bool = false) {
+        guard let preset = preset(withID: id) else { return }
+        applyPreset(preset, to: brightnessManager, animated: animated)
+    }
+
     /// Applies a preset's brightness, warmth, and contrast values to currently connected displays.
     ///
     /// This method handles backward compatibility:
@@ -186,16 +210,6 @@ class PresetManager {
     ///   - preset: The preset to apply
     ///   - brightnessManager: The brightness manager to apply values to
     ///   - animated: Whether to animate the transition (default: false)
-    func preset(withID id: UUID) -> BrightnessPreset? {
-        presets.first { $0.id == id }
-    }
-
-    /// Applies the preset with `id`; does nothing if it has since been deleted.
-    func applyPreset(id: UUID, to brightnessManager: BrightnessManager, animated: Bool = false) {
-        guard let preset = preset(withID: id) else { return }
-        applyPreset(preset, to: brightnessManager, animated: animated)
-    }
-
     func applyPreset(_ preset: BrightnessPreset, to brightnessManager: BrightnessManager, animated: Bool = false) {
         // An explicit warmth target overrides auto warmth even if its value already matches.
         // Reuse the snapshot identities and legacy numeric IDs accepted by BrightnessManager.
@@ -287,18 +301,24 @@ class PresetManager {
         persistPresets()
     }
 
+    /// The conflict that assigning `shortcut` would cause, shared by the preset and main shortcut
+    /// editors. For a preset (`presetID` set) that includes the main display shortcut; any other
+    /// preset already using `shortcut` conflicts either way.
+    func shortcutConflict(for shortcut: GlobalShortcut, assigningTo presetID: UUID?) -> PresetShortcutError? {
+        if presetID != nil, shortcut == mainShortcutProvider() {
+            return .conflictsWithMainShortcut
+        }
+        if let conflictingPreset = presets.first(where: { $0.id != presetID && $0.shortcut == shortcut }) {
+            return .conflictsWithPreset(name: conflictingPreset.name)
+        }
+        return nil
+    }
+
     /// Updates the shortcut for a preset after enforcing global uniqueness.
     func updateShortcut(for presetID: UUID, shortcut: GlobalShortcut?) throws {
         guard let index = presets.firstIndex(where: { $0.id == presetID }) else { return }
-        if let shortcut {
-            guard shortcut != mainShortcutProvider() else {
-                throw PresetShortcutError.conflictsWithMainShortcut
-            }
-            if let conflictingPreset = presets.first(where: {
-                $0.id != presetID && $0.shortcut == shortcut
-            }) {
-                throw PresetShortcutError.conflictsWithPreset(name: conflictingPreset.name)
-            }
+        if let shortcut, let conflict = shortcutConflict(for: shortcut, assigningTo: presetID) {
+            throw conflict
         }
         presets[index].shortcut = shortcut
         persistPresets()
@@ -351,27 +371,12 @@ class PresetManager {
     // MARK: - Persistence
 
     private func loadPresets() {
-        guard let data = defaults.data(forKey: persistenceKey) else { return }
-
-        do {
-            presets = try JSONDecoder().decode([BrightnessPreset].self, from: data)
-        } catch {
-            presetManagerLogger.error(
-                "Failed to decode brightness presets: \(error.localizedDescription, privacy: .public)"
-            )
-        }
+        presets = store.load()
     }
 
     private func persistPresets() {
-        do {
-            let data = try JSONEncoder().encode(presets)
-            defaults.set(data, forKey: persistenceKey)
-            syncPresetsToWidget()
-        } catch {
-            presetManagerLogger.error(
-                "Failed to encode brightness presets: \(error.localizedDescription, privacy: .public)"
-            )
-        }
+        guard store.save(presets) else { return }
+        syncPresetsToWidget()
     }
 
     // MARK: - Widget Sync

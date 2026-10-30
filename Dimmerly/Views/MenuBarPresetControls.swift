@@ -13,7 +13,10 @@ struct PresetsSectionView: View {
     @Environment(PresetManager.self) var presetManager
     @Environment(BrightnessManager.self) var brightnessManager
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var isAddingPreset = false
+    /// Owned by the panel so it can drop its bare-Return "Turn Displays Off" shortcut while
+    /// the preset name field is showing; otherwise Return would be offered to that key
+    /// equivalent before the field's `onSubmit`.
+    @Binding var isAddingPreset: Bool
     @State private var newPresetName = ""
     @State private var hoveredPresetID: UUID?
     /// The preset just applied from this panel, briefly marked with a checkmark in place
@@ -24,8 +27,9 @@ struct PresetsSectionView: View {
     @State private var confirmationReset: Task<Void, Never>?
     @FocusState private var isPresetNameFieldFocused: Bool
 
-    init(selectedPresetID: UUID? = nil) {
+    init(selectedPresetID: UUID? = nil, isAddingPreset: Binding<Bool>) {
         self.selectedPresetID = selectedPresetID
+        _isAddingPreset = isAddingPreset
     }
 
     var body: some View {
@@ -130,11 +134,26 @@ struct PresetsSectionView: View {
         .help(preset.name)
         .contextMenu {
             Button("Save Current Settings") {
-                presetManager.updatePreset(id: preset.id, brightnessManager: brightnessManager)
+                confirm(.updatePreset(named: preset.name)) { [presetManager, brightnessManager] in
+                    presetManager.updatePreset(id: preset.id, brightnessManager: brightnessManager)
+                }
             }
             Divider()
             Button("Delete", role: .destructive) {
-                presetManager.deletePreset(id: preset.id)
+                confirm(.deletePreset(named: preset.name)) { [presetManager] in
+                    presetManager.deletePreset(id: preset.id)
+                }
+            }
+        }
+    }
+
+    /// Asks before changing a saved preset, once the context menu has finished closing.
+    /// The decision comes back synchronously, so the action no longer depends on this view.
+    private func confirm(_ confirmation: ConfirmationAlert, then action: @escaping @MainActor () -> Void) {
+        Task { @MainActor in
+            await Task.yield()
+            if AlertPresenter.confirm(confirmation) {
+                action()
             }
         }
     }
@@ -148,7 +167,7 @@ struct PresetsSectionView: View {
         } else {
             Text("\u{2318}\((index + 1) % 10)")
                 .font(.caption)
-                .foregroundStyle(.quaternary)
+                .foregroundStyle(.secondary)
         }
     }
 

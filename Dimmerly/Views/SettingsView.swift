@@ -34,6 +34,15 @@ private extension View {
     func settingsWindowPresentation() -> some View {
         background(SettingsWindowPresentationConfigurator())
     }
+
+    /// Gives every pane the same width and a height that follows its content, up to a cap
+    /// past which the form scrolls. The window then changes height as you switch tabs, like
+    /// other Mac settings windows, and can't be resized by dragging.
+    func settingsPaneFrame() -> some View {
+        frame(width: SettingsView.paneWidth)
+            .frame(maxHeight: SettingsView.maxPaneHeight)
+            .fixedSize(horizontal: false, vertical: true)
+    }
 }
 
 struct LaunchAtLoginAlertContent: Equatable {
@@ -236,25 +245,60 @@ func applyLaunchAtLoginChange(
 /// Main settings view for the application.
 /// Uses a TabView to organize settings into logical groups following macOS HIG.
 struct SettingsView: View {
+    static let paneWidth: CGFloat = 520
+    static let maxPaneHeight: CGFloat = 600
+
     var body: some View {
         TabView {
             GeneralSettingsTab()
+                .settingsPaneFrame()
                 .tabItem { Label("General", systemImage: "gearshape") }
 
             DisplaySettingsTab()
+                .settingsPaneFrame()
                 .tabItem { Label("Displays", systemImage: "display") }
 
             ScheduleSettingsTab()
+                .settingsPaneFrame()
                 .tabItem { Label("Schedule", systemImage: "calendar.badge.clock") }
 
             ShortcutsSettingsTab()
+                .settingsPaneFrame()
                 .tabItem { Label("Shortcuts", systemImage: "keyboard") }
 
             AboutSettingsTab()
+                .settingsPaneFrame()
                 .tabItem { Label("About", systemImage: "info.circle") }
         }
-        .frame(minWidth: 480, maxWidth: 580, minHeight: 480, idealHeight: 520)
         .settingsWindowPresentation()
+    }
+}
+
+/// A button that leaves Dimmerly for a web page or System Settings, marked with an
+/// arrow so it reads as a link out of the app.
+struct ExternalLinkButton: View {
+    let title: Text
+    let help: Text
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 2) {
+                title
+                Image(systemName: "arrow.up.forward")
+                    .imageScale(.small)
+            }
+        }
+        .help(help)
+    }
+}
+
+extension ExternalLinkButton {
+    init(_ title: Text, url: URL?, help: Text) {
+        self.init(title: title, help: help) {
+            guard let url else { return }
+            NSWorkspace.shared.open(url)
+        }
     }
 }
 

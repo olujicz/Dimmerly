@@ -46,8 +46,8 @@ struct DisplaySettingsTab: View {
                     get: { settings.preventScreenLock ? 1 : 0 },
                     set: { settings.preventScreenLock = $0 == 1 }
                 )) {
-                    Text("Sleep & Lock").tag(0)
-                    Text("Dim Only").tag(1)
+                    Text("Sleep & lock").tag(0)
+                    Text("Dim only").tag(1)
                 }
                 .pickerStyle(.radioGroup)
                 .help("Choose between sleeping displays or dimming them")
@@ -63,19 +63,12 @@ struct DisplaySettingsTab: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                    Button {
-                        if let url = URL(string: "x-apple.systempreferences:com.apple.Lock-Screen-Settings.extension") {
-                            NSWorkspace.shared.open(url)
-                        }
-                    } label: {
-                        HStack(spacing: 2) {
-                            Text("Open Lock Screen Settings")
-                            Image(systemName: "arrow.up.forward")
-                                .imageScale(.small)
-                        }
-                    }
+                    ExternalLinkButton(
+                        Text("Open Lock Screen Settings"),
+                        url: URL(string: "x-apple.systempreferences:com.apple.Lock-Screen-Settings.extension"),
+                        help: Text("Open macOS Lock Screen settings")
+                    )
                     .font(.caption)
-                    .help("Open macOS Lock Screen settings")
                 } else {
                     Text("Dims screens without putting displays to sleep. Your session stays unlocked.")
                         .font(.caption)
@@ -128,7 +121,6 @@ struct DisplaySettingsTab: View {
         return Section {
             Toggle("Auto-dim after inactivity", isOn: $settings.idleTimerEnabled)
                 .help("Automatically dim displays after a period of inactivity")
-                .accessibilityValue(settings.idleTimerEnabled ? "\(settings.idleTimerMinutes) minutes" : "Off")
 
             if settings.idleTimerEnabled {
                 Stepper(value: $settings.idleTimerMinutes, in: 1 ... 60) {
@@ -177,11 +169,6 @@ struct DisplaySettingsTab: View {
         return Section {
             Toggle("Automatic color temperature", isOn: $settings.autoColorTempEnabled)
                 .help("Adjust warmth automatically based on sunrise and sunset")
-                .accessibilityValue(
-                    settings.autoColorTempEnabled
-                        ? "\(settings.dayTemperature)K day, \(settings.nightTemperature)K night"
-                        : "Off"
-                )
 
             if settings.autoColorTempEnabled {
                 LocationPickerRow()
@@ -227,24 +214,27 @@ struct DisplaySettingsTab: View {
         private var hardwareControlSection: some View {
             @Bindable var settings = settings
             return Section {
-                Toggle("Use hardware controls when available", isOn: Binding(
-                    get: { settings.ddcEnabled },
-                    set: { newValue in
+                Toggle("Use hardware controls when available", isOn: $settings.ddcEnabled)
+                    // The toggle flips the setting at once; enabling or disabling the
+                    // hardware manager follows asynchronously. A change the user has
+                    // already reverted is skipped, so the setting is never written back
+                    // to a stale value (which would fire this handler again).
+                    .onChange(of: settings.ddcEnabled) { _, isEnabled in
                         Task {
+                            guard settings.ddcEnabled == isEnabled else { return }
                             await applyDDCEnabledChange(
-                                newValue,
+                                isEnabled,
                                 settings: settings,
                                 hardwareManager: hardwareManager
                             )
                         }
                     }
-                ))
-                .help(
-                    """
-                    Uses native brightness or DDC/CI to control compatible external displays directly. \
-                    Unsupported displays continue using software brightness.
-                    """
-                )
+                    .help(
+                        """
+                        Uses native brightness or DDC/CI to control compatible external displays directly. \
+                        Unsupported displays continue using software brightness.
+                        """
+                    )
 
                 if settings.ddcEnabled {
                     Toggle("Experimental native brightness", isOn: Binding(
@@ -428,7 +418,10 @@ struct DisplaySettingsTab: View {
             capability: HardwareDisplayCapability
         ) -> some View {
             let displayName = brightnessManager.displays.first(where: { $0.id == displayID })?.name
-                ?? "Display \(displayID)"
+                ?? String(
+                    localized: "Display \(Int(displayID))",
+                    comment: "Fallback name for a display without a known name; the number is its display ID"
+                )
             let statusText = ddcDisplayStatusText(for: capability)
             let supportsHardwareBrightness = capability.supportsDDC && capability.supportsBrightness
 

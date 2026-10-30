@@ -88,10 +88,6 @@ class ColorTemperatureManager {
     /// start uses the current duration, even if that setting changes while paused.
     private var overrideSolarBoundary: Date?
 
-    /// Warmth values saved before auto mode took over, keyed by stable display identity.
-    /// Restored when the user disables auto mode so their manual warmth isn't lost.
-    private var savedWarmthSnapshot: [String: Double]?
-
     /// Last warmth value written to the log, so routine 60-second ticks don't flood it.
     private var lastLoggedWarmth: Double?
 
@@ -121,12 +117,25 @@ class ColorTemperatureManager {
     /// Turning the feature ON snapshots the user's current warmth so it can be restored
     /// if they later turn it OFF, clears any prior manual override, and enables an
     /// animated first update. Turning it OFF stops polling and restores the snapshot.
+    ///
+    /// The snapshot is persisted in `AppSettings`. When auto was already on at the last quit,
+    /// the displays' persisted warmth is whatever auto last applied, so the stored snapshot is
+    /// kept instead of taking a new one.
     func apply(enabled: Bool) {
-        guard enabled != isEnabled else { return }
+        guard enabled != isEnabled else {
+            // Auto is off at launch: a snapshot left from a session that ended outside the app
+            // (setting changed while it wasn't running) is stale and must not be restored later.
+            if !enabled {
+                settings.preAutoWarmthSnapshot = nil
+            }
+            return
+        }
         isEnabled = enabled
         colorTemperatureLogger.info("Auto color temperature \(enabled ? "enabled" : "disabled", privacy: .public)")
         if enabled {
-            savedWarmthSnapshot = brightnessManager.currentWarmthSnapshot()
+            if settings.preAutoWarmthSnapshot == nil {
+                settings.preAutoWarmthSnapshot = brightnessManager.currentWarmthSnapshot()
+            }
             manualOverrideActive = false
             overrideState = nil
             overrideSolarBoundary = nil
@@ -142,7 +151,7 @@ class ColorTemperatureManager {
     /// Restores warmth values that were saved before auto mode took over,
     /// using a smooth animation matching the preset transition timing.
     private func restoreSavedWarmth() {
-        guard let snapshot = savedWarmthSnapshot else { return }
+        guard let snapshot = settings.preAutoWarmthSnapshot else { return }
         let summary = "\(snapshot.count) displays, max warmth \(snapshot.values.max() ?? 0)"
         colorTemperatureLogger.info("Restoring pre-auto warmth snapshot: \(summary, privacy: .public)")
         let bm = brightnessManager
@@ -151,7 +160,7 @@ class ColorTemperatureManager {
             bm.applyWarmthValues(snapshot)
         }
         bm.isAutoColorTempUpdate = false
-        savedWarmthSnapshot = nil
+        settings.preAutoWarmthSnapshot = nil
     }
 
     // MARK: - Polling

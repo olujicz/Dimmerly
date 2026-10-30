@@ -44,7 +44,7 @@ final class WorkspaceWakeMonitor {
                 object: nil,
                 queue: .main
             ) { [weak self] _ in
-                Task { @MainActor in
+                MainActor.assumeIsolated {
                     self?.scheduleWakeUpdate()
                 }
             }
@@ -62,7 +62,8 @@ final class WorkspaceWakeMonitor {
     }
 
     private func scheduleWakeUpdate() {
-        // Drops notification tasks that were already queued when `stop()` ran.
+        // Drops a notification from another thread that was already queued on the main
+        // queue when `stop()` ran.
         guard !observers.isEmpty else { return }
         onWakeDetected()
         wakeTask?.cancel()

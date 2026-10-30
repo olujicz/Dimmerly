@@ -41,7 +41,7 @@ struct LocationPickerRow: View {
             } else {
                 LabeledContent {
                     HStack(spacing: 8) {
-                        Button("Use Current") {
+                        Button("Use Current Location") {
                             locationProvider.requestLocation()
                         }
                         Button("Enter Manually\u{2026}") {
@@ -63,16 +63,22 @@ struct LocationPickerRow: View {
         }
     }
 
+    private static let coordinateFormat = FloatingPointFormatStyle<Double>.number.precision(.fractionLength(2))
+
+    /// Uses the person's decimal separator. The degree signs keep "48,85°, 2,35°" readable in
+    /// comma-decimal languages, where a bare "48,85, 2,35" would not be.
     private var locationSummary: String {
-        let lat = locationProvider.latitude ?? 0
-        let lon = locationProvider.longitude ?? 0
-        return String(format: "%.2f, %.2f", lat, lon)
+        let lat = (locationProvider.latitude ?? 0).formatted(Self.coordinateFormat)
+        let lon = (locationProvider.longitude ?? 0).formatted(Self.coordinateFormat)
+        return String(
+            localized: "\(lat)°, \(lon)°",
+            comment: "Saved location shown in Settings: latitude, then longitude, in degrees"
+        )
     }
 
     private var locationAccessibilityLabel: String {
-        let format = FloatingPointFormatStyle<Double>.number.precision(.fractionLength(2))
-        let lat = (locationProvider.latitude ?? 0).formatted(format)
-        let lon = (locationProvider.longitude ?? 0).formatted(format)
+        let lat = (locationProvider.latitude ?? 0).formatted(Self.coordinateFormat)
+        let lon = (locationProvider.longitude ?? 0).formatted(Self.coordinateFormat)
         return String(
             localized: "Location: Latitude \(lat), Longitude \(lon)",
             comment: "Accessibility label for the saved location; values are coordinates"

@@ -991,29 +991,45 @@
 
             // MARK: Apple Silicon I2C Transactions
 
-            /// VCP GET with retries over an IOAVService or IOAVDevice transport.
+            /// Blocks the DDC queue between bus operations. Tests inject a recorder.
+            typealias BusSleep = (_ milliseconds: UInt32) -> Void
+
+            static func busSleep(_ milliseconds: UInt32) {
+                usleep(milliseconds * 1000)
+            }
+
+            /// VCP GET with retries over any Apple Silicon I2C transport.
             ///
-            /// Each attempt sends the request `writeCyclesPerAttempt` times, then waits
-            /// `transactionDelayMs` before reading the reply.
-            private static func readVCP(
+            /// Each attempt sends the request `writeCycles` times, then waits
+            /// `transactionDelayMs` before reading the reply. IOAVService and IOAVDevice
+            /// send each request twice; the direct IOConnect path sends it once.
+            static func readVCP(
                 using transport: DDCAppleSiliconI2CTransport,
                 chipAddress: UInt32,
-                vcp: VCPCode
+                vcp: VCPCode,
+                writeCycles: Int = writeCyclesPerAttempt,
+                sleep: BusSleep = busSleep
             ) -> DDCReadResult? {
                 let vcpHex = String(format: "%02X", vcp.rawValue)
                 for attempt in 0 ..< maxRetryAttempts {
                     if attempt > 0 {
-                        usleep(retryDelayMs * 1000)
+                        sleep(retryDelayMs)
                     }
 
                     var writeData = DDCPacketCodec.getRequest(for: vcp, includeHostAddress: false)
-                    let lastWriteResult = writeCycles(&writeData, using: transport, chipAddress: chipAddress)
+                    let lastWriteResult = sendWriteCycles(
+                        &writeData,
+                        using: transport,
+                        chipAddress: chipAddress,
+                        cycles: writeCycles,
+                        sleep: sleep
+                    )
                     guard lastWriteResult.succeeded else {
                         logger.debug("DDC write 0x\(vcpHex, privacy: .public) failed: \(lastWriteResult.last)")
                         continue
                     }
 
-                    usleep(transactionDelayMs * 1000)
+                    sleep(transactionDelayMs)
 
                     var readData = [UInt8](
                         repeating: 0,
@@ -1039,37 +1055,47 @@
                 return nil
             }
 
-            /// VCP SET with retries over an IOAVService or IOAVDevice transport.
-            private static func writeVCP(
+            /// VCP SET with retries over any Apple Silicon I2C transport.
+            static func writeVCP(
                 using transport: DDCAppleSiliconI2CTransport,
                 chipAddress: UInt32,
                 vcp: VCPCode,
-                value: UInt16
+                value: UInt16,
+                writeCycles: Int = writeCyclesPerAttempt,
+                sleep: BusSleep = busSleep
             ) -> Bool {
                 for attempt in 0 ..< maxRetryAttempts {
                     if attempt > 0 {
-                        usleep(retryDelayMs * 1000)
+                        sleep(retryDelayMs)
                     }
 
                     var writeData = DDCPacketCodec.setRequest(for: vcp, value: value, includeHostAddress: false)
-                    if writeCycles(&writeData, using: transport, chipAddress: chipAddress).succeeded {
+                    if sendWriteCycles(
+                        &writeData,
+                        using: transport,
+                        chipAddress: chipAddress,
+                        cycles: writeCycles,
+                        sleep: sleep
+                    ).succeeded {
                         return true
                     }
                 }
                 return false
             }
 
-            /// Sends one packet `writeCyclesPerAttempt` times. Succeeds if any cycle succeeded.
-            private static func writeCycles(
+            /// Sends one packet `cycles` times. Succeeds if any cycle succeeded.
+            private static func sendWriteCycles(
                 _ data: inout [UInt8],
                 using transport: DDCAppleSiliconI2CTransport,
-                chipAddress: UInt32
+                chipAddress: UInt32,
+                cycles: Int,
+                sleep: BusSleep
             ) -> (succeeded: Bool, last: IOReturn) {
                 var succeeded = false
                 var last = IOReturn(kIOReturnError)
-                for cycle in 0 ..< writeCyclesPerAttempt {
+                for cycle in 0 ..< cycles {
                     if cycle > 0 {
-                        usleep(writeCycleDelayMs * 1000)
+                        sleep(writeCycleDelayMs)
                     }
                     last = transport.write(&data, chipAddress: chipAddress, register: UInt32(hostAddress))
                     if last == KERN_SUCCESS {
@@ -1081,91 +1107,91 @@
 
             // MARK: Direct IOConnect Transport (Last Resort)
 
-            /// Reads a VCP code via direct IOConnectCallMethod (last-resort fallback).
-            ///
-            /// Opens a user client connection to the raw IOKit service and calls
-            /// IOConnectCallMethod with known I2C selectors. This bypasses the
-            /// IOAVService/IOAVDevice wrapper functions and may work when the
-            /// higher-level paths fail.
-            ///
-            /// Tries selector pairs: 24/25 (IOAVService I2C) and 6/7 (IOAVDevice I2C).
-            private static func readViaDirect(
+            /// IOConnectCallMethod I2C selectors, tried in order: 24/25 (IOAVService I2C),
+            /// then 6/7 (IOAVDevice I2C).
+            private static let directSelectorPairs: [(write: UInt32, read: UInt32)] = [(24, 25), (6, 7)]
+
+            /// The direct path sends each request once per attempt, not
+            /// `writeCyclesPerAttempt` times. It only runs after both double-write paths
+            /// have failed, and its bus traffic is kept exactly as it was.
+            static let directWriteCyclesPerAttempt = 1
+
+            /// Wraps one selector pair of an open user client as an I2C transport.
+            private static func directTransport(
+                connect: io_connect_t,
+                selectors: (write: UInt32, read: UInt32)
+            ) -> DDCAppleSiliconI2CTransport {
+                DDCAppleSiliconI2CTransport(
+                    writeI2C: { address, register, data in
+                        var scalarIn: [UInt64] = [UInt64(address), UInt64(register)]
+                        return data.withUnsafeMutableBufferPointer { buffer in
+                            scalarIn.withUnsafeMutableBufferPointer { scalars in
+                                IOConnectCallMethod(
+                                    connect, selectors.write,
+                                    scalars.baseAddress, UInt32(scalars.count),
+                                    buffer.baseAddress, buffer.count,
+                                    nil, nil, nil, nil
+                                )
+                            }
+                        }
+                    },
+                    readI2C: { address, register, data in
+                        var outSize = data.count
+                        var scalarIn: [UInt64] = [UInt64(address), UInt64(register)]
+                        return data.withUnsafeMutableBufferPointer { buffer in
+                            scalarIn.withUnsafeMutableBufferPointer { scalars in
+                                IOConnectCallMethod(
+                                    connect, selectors.read,
+                                    scalars.baseAddress, UInt32(scalars.count),
+                                    nil, 0,
+                                    nil, nil,
+                                    buffer.baseAddress, &outSize
+                                )
+                            }
+                        }
+                    }
+                )
+            }
+
+            /// Opens a user client on the raw service and passes one transport per
+            /// selector pair, in order. Returns `nil` when the service cannot be opened.
+            private static func withDirectTransports<Result>(
                 service: io_service_t,
-                chipAddress: UInt32,
-                vcp: VCPCode
-            ) -> DDCReadResult? {
+                _ body: ([DDCAppleSiliconI2CTransport]) -> Result
+            ) -> Result? {
                 var connect: io_connect_t = 0
                 guard IOServiceOpen(service, mach_task_self_, 0, &connect) == KERN_SUCCESS else {
                     return nil
                 }
                 defer { IOServiceClose(connect) }
+                return body(directSelectorPairs.map { directTransport(connect: connect, selectors: $0) })
+            }
 
-                let selectorPairs: [(write: UInt32, read: UInt32)] = [(24, 25), (6, 7)]
-
-                for (writeSel, readSel) in selectorPairs {
-                    let transport = DDCAppleSiliconI2CTransport(
-                        writeI2C: { address, register, data in
-                            var scalarIn: [UInt64] = [UInt64(address), UInt64(register)]
-                            return data.withUnsafeMutableBufferPointer { buffer in
-                                scalarIn.withUnsafeMutableBufferPointer { scalars in
-                                    IOConnectCallMethod(
-                                        connect, writeSel,
-                                        scalars.baseAddress, UInt32(scalars.count),
-                                        buffer.baseAddress, buffer.count,
-                                        nil, nil, nil, nil
-                                    )
-                                }
-                            }
-                        },
-                        readI2C: { address, register, data in
-                            var outSize = data.count
-                            var scalarIn: [UInt64] = [UInt64(address), UInt64(register)]
-                            return data.withUnsafeMutableBufferPointer { buffer in
-                                scalarIn.withUnsafeMutableBufferPointer { scalars in
-                                    IOConnectCallMethod(
-                                        connect, readSel,
-                                        scalars.baseAddress, UInt32(scalars.count),
-                                        nil, 0,
-                                        nil, nil,
-                                        buffer.baseAddress, &outSize
-                                    )
-                                }
-                            }
-                        }
-                    )
-
-                    for attempt in 0 ..< maxRetryAttempts {
-                        if attempt > 0 {
-                            usleep(retryDelayMs * 1000)
-                        }
-
-                        var writeData = DDCPacketCodec.getRequest(for: vcp, includeHostAddress: false)
-                        let wr = transport.write(
-                            &writeData,
+            /// Reads a VCP code via direct IOConnectCallMethod (last-resort fallback).
+            ///
+            /// Opens a user client connection to the raw IOKit service and calls
+            /// IOConnectCallMethod with known I2C selectors. This bypasses the
+            /// IOAVService/IOAVDevice wrapper functions and may work when the
+            /// higher-level paths fail. Each selector pair gets the full retry budget.
+            private static func readViaDirect(
+                service: io_service_t,
+                chipAddress: UInt32,
+                vcp: VCPCode
+            ) -> DDCReadResult? {
+                let result: DDCReadResult?? = withDirectTransports(service: service) { transports in
+                    for transport in transports {
+                        if let result = readVCP(
+                            using: transport,
                             chipAddress: chipAddress,
-                            register: UInt32(hostAddress)
-                        )
-                        guard wr == KERN_SUCCESS else { continue }
-
-                        usleep(transactionDelayMs * 1000)
-
-                        var readData = [UInt8](
-                            repeating: 0,
-                            count: DDCAppleSiliconReadContract.replyLength
-                        )
-                        let rr = transport.read(
-                            &readData,
-                            chipAddress: chipAddress,
-                            register: DDCAppleSiliconReadContract.dataAddress
-                        )
-                        guard rr == KERN_SUCCESS else { continue }
-
-                        if let result = DDCPacketCodec.parseGetReply(readData, expectedVCP: vcp) {
+                            vcp: vcp,
+                            writeCycles: directWriteCyclesPerAttempt
+                        ) {
                             return result
                         }
                     }
+                    return nil
                 }
-                return nil
+                return result ?? nil
             }
 
             /// Writes a VCP code via direct IOConnectCallMethod (last-resort fallback).
@@ -1175,52 +1201,17 @@
                 vcp: VCPCode,
                 value: UInt16
             ) -> Bool {
-                var connect: io_connect_t = 0
-                guard IOServiceOpen(service, mach_task_self_, 0, &connect) == KERN_SUCCESS else {
-                    return false
-                }
-                defer { IOServiceClose(connect) }
-
-                let selectorPairs: [(write: UInt32, read: UInt32)] = [(24, 25), (6, 7)]
-
-                for (writeSel, _) in selectorPairs {
-                    let transport = DDCAppleSiliconI2CTransport(
-                        writeI2C: { address, register, data in
-                            var scalarIn: [UInt64] = [UInt64(address), UInt64(register)]
-                            return data.withUnsafeMutableBufferPointer { buffer in
-                                scalarIn.withUnsafeMutableBufferPointer { scalars in
-                                    IOConnectCallMethod(
-                                        connect, writeSel,
-                                        scalars.baseAddress, UInt32(scalars.count),
-                                        buffer.baseAddress, buffer.count,
-                                        nil, nil, nil, nil
-                                    )
-                                }
-                            }
-                        }
-                    )
-
-                    for attempt in 0 ..< maxRetryAttempts {
-                        if attempt > 0 {
-                            usleep(retryDelayMs * 1000)
-                        }
-
-                        var writeData = DDCPacketCodec.setRequest(
-                            for: vcp,
-                            value: value,
-                            includeHostAddress: false
-                        )
-                        let r = transport.write(
-                            &writeData,
+                withDirectTransports(service: service) { transports in
+                    transports.contains { transport in
+                        writeVCP(
+                            using: transport,
                             chipAddress: chipAddress,
-                            register: UInt32(hostAddress)
+                            vcp: vcp,
+                            value: value,
+                            writeCycles: directWriteCyclesPerAttempt
                         )
-                        if r == KERN_SUCCESS {
-                            return true
-                        }
                     }
-                }
-                return false
+                } ?? false
             }
 
         #endif

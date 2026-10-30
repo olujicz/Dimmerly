@@ -6,8 +6,9 @@
 //  Tests VCPCode, InputSource, DDCReadResult, and related model logic.
 //
 //  Note: Actual DDC service discovery requires hardware and cannot be meaningfully
-//  unit tested. The address routing and I2C operation forwarding are covered here
-//  with injectable operations; higher-level paths are tested via HardwareBrightnessManagerTests.
+//  unit tested. The address routing, I2C operation forwarding and Apple Silicon
+//  retry loops are covered here with injectable operations; higher-level paths are
+//  tested via HardwareBrightnessManagerTests.
 //
 
 @testable import Dimmerly
@@ -585,6 +586,172 @@ import XCTest
             XCTAssertTrue(capability.transportReachable, "A reply proves the transport is reachable")
             XCTAssertFalse(queried)
         }
+
+        #if arch(arm64)
+
+            // MARK: - Apple Silicon retry loops
+
+            func testServiceReadSendsEachRequestTwiceBeforeReading() {
+                let bus = ScriptedI2CBus(reads: [makeReply(vcp: .brightness, maximum: 100, current: 42)])
+
+                let result = DDCController.readVCP(
+                    using: bus.transport, chipAddress: 0x37, vcp: .brightness, sleep: bus.sleep
+                )
+
+                XCTAssertEqual(result, DDCReadResult(currentValue: 42, maxValue: 100))
+                XCTAssertEqual(bus.events, [
+                    .write(chip: 0x37, register: 0x51), .sleep(10), .write(chip: 0x37, register: 0x51),
+                    .sleep(50), .read(chip: 0x37, register: 0),
+                ])
+            }
+
+            /// Monitors such as the Philips 276E8V drop the first write; the second cycle
+            /// of the same attempt must be enough.
+            func testServiceWriteSucceedsWhenOnlyTheSecondCycleIsAcknowledged() {
+                let bus = ScriptedI2CBus(writes: [kIOReturnError, KERN_SUCCESS])
+
+                XCTAssertTrue(DDCController.writeVCP(
+                    using: bus.transport, chipAddress: 0x37, vcp: .brightness, value: 30, sleep: bus.sleep
+                ))
+                XCTAssertEqual(bus.events, [
+                    .write(chip: 0x37, register: 0x51), .sleep(10), .write(chip: 0x37, register: 0x51),
+                ])
+            }
+
+            /// Mirrors the loop `readViaDirect` used before it shared `readVCP`: one write
+            /// per attempt, a 20 ms pause before each retry, 50 ms before each read.
+            func testDirectReadSendsOneWritePerAttemptAndRetriesFailedWritesAndReads() {
+                let bus = ScriptedI2CBus(
+                    writes: [kIOReturnError, KERN_SUCCESS, KERN_SUCCESS],
+                    reads: [nil, makeReply(vcp: .contrast, maximum: 100, current: 55)]
+                )
+
+                let result = DDCController.readVCP(
+                    using: bus.transport,
+                    chipAddress: 0xB7,
+                    vcp: .contrast,
+                    writeCycles: DDCController.directWriteCyclesPerAttempt,
+                    sleep: bus.sleep
+                )
+
+                XCTAssertEqual(result, DDCReadResult(currentValue: 55, maxValue: 100))
+                XCTAssertEqual(bus.events, [
+                    .write(chip: 0xB7, register: 0x51),
+                    .sleep(20), .write(chip: 0xB7, register: 0x51), .sleep(50), .read(chip: 0xB7, register: 0),
+                    .sleep(20), .write(chip: 0xB7, register: 0x51), .sleep(50), .read(chip: 0xB7, register: 0),
+                ])
+            }
+
+            func testDirectReadGivesUpAfterThreeInvalidReplies() {
+                let invalid = [UInt8](repeating: 0, count: DDCAppleSiliconReadContract.replyLength)
+                let bus = ScriptedI2CBus(reads: [invalid, invalid, invalid, invalid])
+
+                XCTAssertNil(DDCController.readVCP(
+                    using: bus.transport,
+                    chipAddress: 0x37,
+                    vcp: .brightness,
+                    writeCycles: DDCController.directWriteCyclesPerAttempt,
+                    sleep: bus.sleep
+                ))
+                let attempt: [ScriptedI2CBus.Event] = [
+                    .write(chip: 0x37, register: 0x51), .sleep(50), .read(chip: 0x37, register: 0),
+                ]
+                XCTAssertEqual(bus.events, attempt + [.sleep(20)] + attempt + [.sleep(20)] + attempt)
+            }
+
+            func testDirectWriteSendsOneWritePerAttemptForThreeAttempts() {
+                let failing = ScriptedI2CBus(writes: [kIOReturnError, kIOReturnError, kIOReturnError, KERN_SUCCESS])
+                XCTAssertFalse(DDCController.writeVCP(
+                    using: failing.transport,
+                    chipAddress: 0x37,
+                    vcp: .volume,
+                    value: 10,
+                    writeCycles: DDCController.directWriteCyclesPerAttempt,
+                    sleep: failing.sleep
+                ))
+                XCTAssertEqual(failing.events, [
+                    .write(chip: 0x37, register: 0x51), .sleep(20),
+                    .write(chip: 0x37, register: 0x51), .sleep(20),
+                    .write(chip: 0x37, register: 0x51),
+                ])
+
+                let recovering = ScriptedI2CBus(writes: [kIOReturnError, KERN_SUCCESS])
+                XCTAssertTrue(DDCController.writeVCP(
+                    using: recovering.transport,
+                    chipAddress: 0x37,
+                    vcp: .volume,
+                    value: 10,
+                    writeCycles: DDCController.directWriteCyclesPerAttempt,
+                    sleep: recovering.sleep
+                ))
+                XCTAssertEqual(recovering.events, [
+                    .write(chip: 0x37, register: 0x51), .sleep(20), .write(chip: 0x37, register: 0x51),
+                ])
+            }
+
+            func testDirectWriteSendsTheSameSetRequestAsTheServicePath() {
+                let bus = ScriptedI2CBus()
+
+                XCTAssertTrue(DDCController.writeVCP(
+                    using: bus.transport,
+                    chipAddress: 0x37,
+                    vcp: .brightness,
+                    value: 0x0123,
+                    writeCycles: DDCController.directWriteCyclesPerAttempt,
+                    sleep: bus.sleep
+                ))
+                XCTAssertEqual(
+                    bus.writtenPackets,
+                    [DDCPacketCodec.setRequest(for: .brightness, value: 0x0123, includeHostAddress: false)]
+                )
+            }
+
+        #endif
     }
+
+    #if arch(arm64)
+
+        /// Fake I2C bus that answers writes and reads from scripts and records the
+        /// order of bus operations and pauses. Unscripted writes succeed; unscripted
+        /// or `nil` reads fail.
+        private final class ScriptedI2CBus {
+            enum Event: Equatable {
+                case write(chip: UInt32, register: UInt32)
+                case read(chip: UInt32, register: UInt32)
+                case sleep(UInt32)
+            }
+
+            private(set) var events: [Event] = []
+            private(set) var writtenPackets: [[UInt8]] = []
+            private var writes: [IOReturn]
+            private var reads: [[UInt8]?]
+
+            init(writes: [IOReturn] = [], reads: [[UInt8]?] = []) {
+                self.writes = writes
+                self.reads = reads
+            }
+
+            var transport: DDCAppleSiliconI2CTransport {
+                DDCAppleSiliconI2CTransport(
+                    writeI2C: { [self] chip, register, data in
+                        events.append(.write(chip: chip, register: register))
+                        writtenPackets.append(data)
+                        return writes.isEmpty ? KERN_SUCCESS : writes.removeFirst()
+                    },
+                    readI2C: { [self] chip, register, data in
+                        events.append(.read(chip: chip, register: register))
+                        guard !reads.isEmpty, let reply = reads.removeFirst() else { return kIOReturnError }
+                        data = reply
+                        return KERN_SUCCESS
+                    }
+                )
+            }
+
+            func sleep(_ milliseconds: UInt32) {
+                events.append(.sleep(milliseconds))
+            }
+        }
+
+    #endif
 
 #endif // !APPSTORE

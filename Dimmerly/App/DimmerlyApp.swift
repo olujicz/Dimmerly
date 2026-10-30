@@ -10,27 +10,18 @@ import AppKit
 import MenuBarExtraAccess
 import SwiftUI
 
-@MainActor
-func handleWidgetDimNotification(
-    settings: AppSettings,
-    consumeCommand: () -> Bool = { SharedConstants.consumeWidgetDimCommand() },
-    performSleep: (AppSettings) -> Void = { DisplayAction.performSleep(settings: $0) }
-) {
-    guard consumeCommand() else { return }
-    performSleep(settings)
-}
-
 /// An acknowledgement follows the action and its state publication, never just receipt.
+/// `performCommand` returns whether it did the action; the acknowledgement carries that result.
 @MainActor
 func handleWidgetActionRequest(
     _ id: UUID,
     defaults: UserDefaults? = SharedConstants.sharedDefaults,
     now: Date = Date(),
-    performCommand: (WidgetActionCommand) -> Void
+    performCommand: (WidgetActionCommand) -> Bool
 ) {
     guard let request = SharedConstants.consumeWidgetActionRequest(id, from: defaults, now: now) else { return }
-    performCommand(request.command)
-    SharedConstants.acknowledgeWidgetAction(id, in: defaults)
+    let succeeded = performCommand(request.command)
+    SharedConstants.acknowledgeWidgetAction(id, succeeded: succeeded, in: defaults)
 }
 
 @main
@@ -108,8 +99,10 @@ struct DimmerlyApp: App {
                 configureIdleTimer()
                 configurePresetShortcuts()
                 configureScheduleManager()
-                observeWidgetNotifications()
+                observeWidgetActionRequests()
+                observeTermination()
                 SharedConstants.discardLegacyWidgetCommands()
+                SharedConstants.discardStaleWidgetActionKeys()
                 AppEntityIndexingService.shared.reindexPresets(presetManager.presets)
                 // Initial sync for settings-driven managers. `.onChange` below
                 // keeps them current for subsequent edits without needing each
@@ -142,6 +135,9 @@ struct DimmerlyApp: App {
             .onChange(of: settings.autoColorTempEnabled) { _, _ in
                 colorTempManager.apply(enabled: settings.autoColorTempEnabled)
                 ControlCenterStatePublisher.live.publishAutoWarmthState(settings.autoColorTempEnabled)
+            }
+            .onChange(of: settings.preventScreenLock) { _, _ in
+                ControlCenterStatePublisher.live.publishDisplayOffMode(DisplayAction.offMode(settings: settings))
             }
             .onChange(of: screenBlanker.isBlankingAnyDisplay, initial: true) { _, isBlanking in
                 ControlCenterStatePublisher.live.publishDimState(isBlanking)
@@ -235,69 +231,27 @@ struct DimmerlyApp: App {
         }
     }
 
-    /// Observes distributed notifications from widgets to handle cross-process actions.
+    /// Observes action requests from the widget and Control Center extension.
     ///
-    /// Widgets run in a separate process (extension) and communicate with the main app via
-    /// distributed notifications plus the shared UserDefaults container:
-    /// - **Widget action**: an extension enqueued a `WidgetActionRequest` (ID in the notification);
-    ///   the app performs it and writes an acknowledgement the extension waits for
-    /// - **Dim / Preset / Dim state / Auto Warmth**: single-purpose notifications whose payload
-    ///   sits in shared defaults
+    /// The extension runs in a separate process. It enqueues a `WidgetActionRequest` in the shared
+    /// UserDefaults container and posts a distributed notification carrying the request ID; the app
+    /// performs the request and writes an acknowledgement the extension waits for.
     ///
-    /// The notification center keeps these observers alive for the lifetime of the app.
-    private func observeWidgetNotifications() {
+    /// The notification center keeps this observer alive for the lifetime of the app.
+    private func observeWidgetActionRequests() {
         _ = DistributedNotificationCenter.default().addObserver(
             forName: SharedConstants.widgetActionNotification,
             object: nil, queue: .main
         ) { [settings] notification in
             guard let idString = notification.object as? String, let id = UUID(uuidString: idString) else { return }
-            Task { @MainActor in
+            MainActor.assumeIsolated {
                 handleWidgetActionRequest(id) { $0.performInApp(settings: settings) }
             }
         }
+    }
 
-        // Widget "Sleep Displays" button
-        _ = DistributedNotificationCenter.default().addObserver(
-            forName: SharedConstants.dimNotification,
-            object: nil, queue: .main
-        ) { [settings] _ in
-            Task { @MainActor in
-                handleWidgetDimNotification(settings: settings)
-            }
-        }
-
-        // Widget preset button (preset ID passed via shared defaults)
-        _ = DistributedNotificationCenter.default().addObserver(
-            forName: SharedConstants.presetNotification,
-            object: nil, queue: .main
-        ) { [presetManager, brightnessManager] _ in
-            Task { @MainActor in
-                guard let uuid = SharedConstants.consumeWidgetPresetCommand() else { return }
-                presetManager.applyPreset(id: uuid, to: brightnessManager, animated: true)
-            }
-        }
-
-        // Control Center dim toggle (requested state passed via shared defaults)
-        _ = DistributedNotificationCenter.default().addObserver(
-            forName: SharedConstants.dimStateNotification,
-            object: nil, queue: .main
-        ) { [settings] _ in
-            Task { @MainActor in
-                handleWidgetDimStateCommand(settings: settings)
-            }
-        }
-
-        // Control Center Auto Warmth toggle (requested state passed via shared defaults)
-        _ = DistributedNotificationCenter.default().addObserver(
-            forName: SharedConstants.autoWarmthNotification,
-            object: nil, queue: .main
-        ) { [settings] _ in
-            Task { @MainActor in
-                handleWidgetAutoWarmthCommand(settings: settings)
-            }
-        }
-
-        // Blanking cannot outlive the app, so the dim toggle must not keep showing it as on.
+    /// Blanking cannot outlive the app, so the dim toggle must not keep showing it as on.
+    private func observeTermination() {
         _ = NotificationCenter.default.addObserver(
             forName: NSApplication.willTerminateNotification,
             object: nil, queue: .main
@@ -336,6 +290,7 @@ struct DimmerlyApp: App {
         scheduleManager.apply(enabled: settings.scheduleEnabled)
         colorTempManager.apply(enabled: settings.autoColorTempEnabled)
         ControlCenterStatePublisher.live.publishAutoWarmthState(settings.autoColorTempEnabled)
+        ControlCenterStatePublisher.live.publishDisplayOffMode(DisplayAction.offMode(settings: settings))
         presetShortcutManager.updateShortcuts(from: presetManager.presets)
     }
 
@@ -360,8 +315,9 @@ struct DimmerlyApp: App {
                 writeDelayMilliseconds: settings.ddcWriteDelay,
                 experimentalNativeBrightnessEnabled: settings.experimentalNativeBrightnessEnabled
             )
+            // Nothing has been probed yet, so this refresh probes every external display
+            // (with the automatic retries a still-starting DDC service needs).
             BrightnessManager.shared.refreshDisplays()
-            hardwareManager.probeAllDisplays()
             hardwareManager.startPolling()
         }
     #endif
@@ -558,14 +514,12 @@ final class StatusItemQuickActions: NSObject {
     /// Title matches the primary panel button's wording (`turnOffButtonContent` in
     /// `MenuBarPanel`), so the quick-actions menu never disagrees with the panel.
     static func turnOffTitle(settings: AppSettings) -> String {
-        let dimTitle = String(localized: "Dim Displays", comment: "Quick actions menu: dim all displays")
-        #if APPSTORE
-            return dimTitle
-        #else
-            return settings.preventScreenLock
-                ? dimTitle
-                : String(localized: "Turn Displays Off", comment: "Quick actions menu: put all displays to sleep")
-        #endif
+        switch DisplayAction.offMode(settings: settings) {
+        case .dim:
+            String(localized: "Dim Displays", comment: "Quick actions menu: dim all displays")
+        case .turnOff:
+            String(localized: "Turn Displays Off", comment: "Quick actions menu: put all displays to sleep")
+        }
     }
 
     /// Builds the right-click menu contents. Separated from `showQuickActionsMenu()`

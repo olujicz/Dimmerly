@@ -38,18 +38,19 @@ struct AboutSettingsTab: View {
                 }
 
                 ExternalLinkButton(
-                    title: String(localized: "Privacy Policy", comment: "About link title"),
-                    urlString: "https://dimmerly.olujic.in.rs/privacy-policy.html",
-                    helpText: String(localized: "Open the Dimmerly privacy policy", comment: "About link help text")
+                    Text(String(localized: "Privacy Policy", comment: "About link title")),
+                    url: URL(string: "https://dimmerly.olujic.in.rs/privacy-policy.html"),
+                    help: Text(String(localized: "Open the Dimmerly privacy policy", comment: "About link help text"))
                 )
 
                 ExternalLinkButton(
-                    title: String(localized: "Source Code on GitHub", comment: "About link title"),
-                    urlString: "https://github.com/olujicz/Dimmerly",
-                    helpText: String(localized: "Open the Dimmerly GitHub repository", comment: "About link help text")
+                    Text(String(localized: "Source Code on GitHub", comment: "About link title")),
+                    url: URL(string: "https://github.com/olujicz/Dimmerly"),
+                    help: Text(String(
+                        localized: "Open the Dimmerly GitHub repository",
+                        comment: "About link help text"
+                    ))
                 )
-            } header: {
-                Label("About Dimmerly", systemImage: "info.circle")
             }
 
             Section {
@@ -137,25 +138,5 @@ private struct OpenSourceLicenseSheet: View {
         }
         .padding(20)
         .frame(width: 420, height: 320)
-    }
-}
-
-private struct ExternalLinkButton: View {
-    let title: String
-    let urlString: String
-    let helpText: String
-
-    var body: some View {
-        Button {
-            guard let url = URL(string: urlString) else { return }
-            NSWorkspace.shared.open(url)
-        } label: {
-            HStack(spacing: 2) {
-                Text(title)
-                Image(systemName: "arrow.up.forward")
-                    .imageScale(.small)
-            }
-        }
-        .help(helpText)
     }
 }

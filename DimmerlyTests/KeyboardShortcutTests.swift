@@ -465,13 +465,15 @@ extension GlobalShortcutTests {
             var capturedHandler: ((NSEvent) -> NSEvent?)?
             let manager = KeyboardShortcutManager(
                 shortcut: GlobalShortcut(key: "d", modifiers: [.command, .option, .shift]),
-                permissionChecker: { true },
-                globalMonitorInstaller: { _ in MonitorToken() },
-                localMonitorInstaller: { handler in
-                    capturedHandler = handler
-                    return MonitorToken()
-                },
-                monitorRemover: { _ in }
+                monitor: NSEventShortcutMonitor(
+                    permissionChecker: { true },
+                    globalMonitorInstaller: { _ in MonitorToken() },
+                    localMonitorInstaller: { handler in
+                        capturedHandler = handler
+                        return MonitorToken()
+                    },
+                    monitorRemover: { _ in }
+                )
             )
 
             var triggerCount = 0
@@ -489,13 +491,15 @@ extension GlobalShortcutTests {
             var capturedHandler: ((NSEvent) -> NSEvent?)?
             let manager = KeyboardShortcutManager(
                 shortcut: GlobalShortcut(key: "d", modifiers: [.command, .option, .shift]),
-                permissionChecker: { true },
-                globalMonitorInstaller: { _ in MonitorToken() },
-                localMonitorInstaller: { handler in
-                    capturedHandler = handler
-                    return MonitorToken()
-                },
-                monitorRemover: { _ in }
+                monitor: NSEventShortcutMonitor(
+                    permissionChecker: { true },
+                    globalMonitorInstaller: { _ in MonitorToken() },
+                    localMonitorInstaller: { handler in
+                        capturedHandler = handler
+                        return MonitorToken()
+                    },
+                    monitorRemover: { _ in }
+                )
             )
 
             var triggerCount = 0
@@ -515,16 +519,18 @@ extension GlobalShortcutTests {
             var localMonitorInstallCount = 0
 
             let manager = KeyboardShortcutManager(
-                permissionChecker: { @MainActor @Sendable in permissionProbe.isGranted },
-                globalMonitorInstaller: { _ in
-                    globalMonitorInstallCount += 1
-                    return MonitorToken()
-                },
-                localMonitorInstaller: { _ in
-                    localMonitorInstallCount += 1
-                    return MonitorToken()
-                },
-                monitorRemover: { _ in }
+                monitor: NSEventShortcutMonitor(
+                    permissionChecker: { @MainActor @Sendable in permissionProbe.isGranted },
+                    globalMonitorInstaller: { _ in
+                        globalMonitorInstallCount += 1
+                        return MonitorToken()
+                    },
+                    localMonitorInstaller: { _ in
+                        localMonitorInstallCount += 1
+                        return MonitorToken()
+                    },
+                    monitorRemover: { _ in }
+                )
             )
 
             manager.startMonitoring {}
@@ -546,16 +552,18 @@ extension GlobalShortcutTests {
             var localMonitorInstallCount = 0
 
             let manager = PresetShortcutManager(
-                permissionChecker: { @MainActor @Sendable in permissionProbe.isGranted },
-                globalMonitorInstaller: { _ in
-                    globalMonitorInstallCount += 1
-                    return MonitorToken()
-                },
-                localMonitorInstaller: { _ in
-                    localMonitorInstallCount += 1
-                    return MonitorToken()
-                },
-                monitorRemover: { _ in }
+                monitor: NSEventShortcutMonitor(
+                    permissionChecker: { @MainActor @Sendable in permissionProbe.isGranted },
+                    globalMonitorInstaller: { _ in
+                        globalMonitorInstallCount += 1
+                        return MonitorToken()
+                    },
+                    localMonitorInstaller: { _ in
+                        localMonitorInstallCount += 1
+                        return MonitorToken()
+                    },
+                    monitorRemover: { _ in }
+                )
             )
             let preset = BrightnessPreset(
                 name: "Night",
@@ -573,20 +581,103 @@ extension GlobalShortcutTests {
             XCTAssertEqual(localMonitorInstallCount, 1)
         }
 
+        func testMainShortcutMonitoringStartsWhenPermissionIsGrantedWithoutSettingsOpen() throws {
+            let permissionProbe = PermissionProbe()
+            var permissionChangeHandler: NSEventShortcutMonitor.PermissionChangeHandler?
+            var installCount = 0
+            var removalCount = 0
+
+            let manager = KeyboardShortcutManager(
+                monitor: NSEventShortcutMonitor(
+                    permissionChecker: { @MainActor @Sendable in permissionProbe.isGranted },
+                    globalMonitorInstaller: { _ in
+                        installCount += 1
+                        return MonitorToken()
+                    },
+                    localMonitorInstaller: { _ in
+                        installCount += 1
+                        return MonitorToken()
+                    },
+                    monitorRemover: { _ in removalCount += 1 },
+                    permissionChangeObserver: { permissionChangeHandler = $0 }
+                )
+            )
+
+            manager.startMonitoring {}
+            XCTAssertEqual(installCount, 0)
+
+            // Granting in System Settings is noticed by the manager itself.
+            permissionProbe.isGranted = true
+            try XCTUnwrap(permissionChangeHandler)()
+            XCTAssertTrue(manager.hasAccessibilityPermission)
+            XCTAssertEqual(installCount, 2)
+
+            // An unchanged permission state must not reinstall monitors.
+            try XCTUnwrap(permissionChangeHandler)()
+            XCTAssertEqual(installCount, 2)
+            XCTAssertEqual(removalCount, 0)
+
+            // Revocation tears the monitors down.
+            permissionProbe.isGranted = false
+            try XCTUnwrap(permissionChangeHandler)()
+            XCTAssertFalse(manager.hasAccessibilityPermission)
+            XCTAssertEqual(removalCount, 2)
+        }
+
+        func testPresetShortcutMonitoringFollowsPermissionChangesWithoutSettingsOpen() throws {
+            let permissionProbe = PermissionProbe()
+            var permissionChangeHandler: NSEventShortcutMonitor.PermissionChangeHandler?
+            var installCount = 0
+            var removalCount = 0
+
+            let manager = PresetShortcutManager(
+                monitor: NSEventShortcutMonitor(
+                    permissionChecker: { @MainActor @Sendable in permissionProbe.isGranted },
+                    globalMonitorInstaller: { _ in
+                        installCount += 1
+                        return MonitorToken()
+                    },
+                    localMonitorInstaller: { _ in
+                        installCount += 1
+                        return MonitorToken()
+                    },
+                    monitorRemover: { _ in removalCount += 1 },
+                    permissionChangeObserver: { permissionChangeHandler = $0 }
+                )
+            )
+            manager.updateShortcuts(from: [
+                BrightnessPreset(name: "Night", shortcut: GlobalShortcut(key: "1", modifiers: [.command, .option])),
+            ])
+            XCTAssertEqual(installCount, 0)
+
+            permissionProbe.isGranted = true
+            try XCTUnwrap(permissionChangeHandler)()
+            XCTAssertEqual(installCount, 2)
+
+            try XCTUnwrap(permissionChangeHandler)()
+            XCTAssertEqual(installCount, 2)
+
+            permissionProbe.isGranted = false
+            try XCTUnwrap(permissionChangeHandler)()
+            XCTAssertEqual(removalCount, 2)
+        }
+
         func testPresetShortcutUpdateDoesNotRestartMonitorForUnchangedBindings() {
             var installCount = 0
             var removalCount = 0
             let manager = PresetShortcutManager(
-                permissionChecker: { true },
-                globalMonitorInstaller: { _ in
-                    installCount += 1
-                    return MonitorToken()
-                },
-                localMonitorInstaller: { _ in
-                    installCount += 1
-                    return MonitorToken()
-                },
-                monitorRemover: { _ in removalCount += 1 }
+                monitor: NSEventShortcutMonitor(
+                    permissionChecker: { true },
+                    globalMonitorInstaller: { _ in
+                        installCount += 1
+                        return MonitorToken()
+                    },
+                    localMonitorInstaller: { _ in
+                        installCount += 1
+                        return MonitorToken()
+                    },
+                    monitorRemover: { _ in removalCount += 1 }
+                )
             )
             let preset = BrightnessPreset(
                 name: "Night",
@@ -606,16 +697,18 @@ extension GlobalShortcutTests {
             var installCount = 0
             var removalCount = 0
             let manager = PresetShortcutManager(
-                permissionChecker: { true },
-                globalMonitorInstaller: { _ in
-                    installCount += 1
-                    return MonitorToken()
-                },
-                localMonitorInstaller: { _ in
-                    installCount += 1
-                    return MonitorToken()
-                },
-                monitorRemover: { _ in removalCount += 1 }
+                monitor: NSEventShortcutMonitor(
+                    permissionChecker: { true },
+                    globalMonitorInstaller: { _ in
+                        installCount += 1
+                        return MonitorToken()
+                    },
+                    localMonitorInstaller: { _ in
+                        installCount += 1
+                        return MonitorToken()
+                    },
+                    monitorRemover: { _ in removalCount += 1 }
+                )
             )
             let night = BrightnessPreset(
                 name: "Night",
@@ -636,13 +729,15 @@ extension GlobalShortcutTests {
         func testPresetLocalMonitorSwallowsMatchingShortcutEvent() throws {
             var capturedHandler: ((NSEvent) -> NSEvent?)?
             let manager = PresetShortcutManager(
-                permissionChecker: { true },
-                globalMonitorInstaller: { _ in MonitorToken() },
-                localMonitorInstaller: { handler in
-                    capturedHandler = handler
-                    return MonitorToken()
-                },
-                monitorRemover: { _ in }
+                monitor: NSEventShortcutMonitor(
+                    permissionChecker: { true },
+                    globalMonitorInstaller: { _ in MonitorToken() },
+                    localMonitorInstaller: { handler in
+                        capturedHandler = handler
+                        return MonitorToken()
+                    },
+                    monitorRemover: { _ in }
+                )
             )
             let presetID = UUID()
             let preset = BrightnessPreset(
@@ -666,13 +761,15 @@ extension GlobalShortcutTests {
         func testPresetLocalMonitorPassesThroughNonMatchingEvent() throws {
             var capturedHandler: ((NSEvent) -> NSEvent?)?
             let manager = PresetShortcutManager(
-                permissionChecker: { true },
-                globalMonitorInstaller: { _ in MonitorToken() },
-                localMonitorInstaller: { handler in
-                    capturedHandler = handler
-                    return MonitorToken()
-                },
-                monitorRemover: { _ in }
+                monitor: NSEventShortcutMonitor(
+                    permissionChecker: { true },
+                    globalMonitorInstaller: { _ in MonitorToken() },
+                    localMonitorInstaller: { handler in
+                        capturedHandler = handler
+                        return MonitorToken()
+                    },
+                    monitorRemover: { _ in }
+                )
             )
             let preset = BrightnessPreset(
                 name: "Night",
@@ -700,26 +797,30 @@ extension GlobalShortcutTests {
             var mainHandler: ((NSEvent) -> NSEvent?)?
             let mainManager = KeyboardShortcutManager(
                 shortcut: GlobalShortcut(key: "d", modifiers: [.command]),
-                permissionChecker: { true },
-                globalMonitorInstaller: { _ in MonitorToken() },
-                localMonitorInstaller: { handler in
-                    mainHandler = handler
-                    return MonitorToken()
-                },
-                monitorRemover: { _ in }
+                monitor: NSEventShortcutMonitor(
+                    permissionChecker: { true },
+                    globalMonitorInstaller: { _ in MonitorToken() },
+                    localMonitorInstaller: { handler in
+                        mainHandler = handler
+                        return MonitorToken()
+                    },
+                    monitorRemover: { _ in }
+                )
             )
             var mainTriggerCount = 0
             mainManager.startMonitoring { mainTriggerCount += 1 }
 
             var presetHandler: ((NSEvent) -> NSEvent?)?
             let presetManager = PresetShortcutManager(
-                permissionChecker: { true },
-                globalMonitorInstaller: { _ in MonitorToken() },
-                localMonitorInstaller: { handler in
-                    presetHandler = handler
-                    return MonitorToken()
-                },
-                monitorRemover: { _ in }
+                monitor: NSEventShortcutMonitor(
+                    permissionChecker: { true },
+                    globalMonitorInstaller: { _ in MonitorToken() },
+                    localMonitorInstaller: { handler in
+                        presetHandler = handler
+                        return MonitorToken()
+                    },
+                    monitorRemover: { _ in }
+                )
             )
             let presetID = UUID()
             var triggeredPresetID: UUID?
@@ -894,7 +995,7 @@ final class CarbonShortcutMonitorTests: XCTestCase {
     func testCarbonModifiersAndLegacyPhysicalKeyMapping() throws {
         let data = Data(#"{"key":"d","modifiers":["command","option","control","shift"]}"#.utf8)
         let shortcut = try JSONDecoder().decode(GlobalShortcut.self, from: data)
-        XCTAssertEqual(shortcut.registrationKeyCode, UInt16(kVK_ANSI_D))
+        XCTAssertEqual(shortcut.physicalKeyCode, UInt16(kVK_ANSI_D))
         XCTAssertEqual(CarbonHotKeyRegistration.modifiers(for: shortcut),
                        UInt32(cmdKey | optionKey | controlKey | shiftKey))
     }
