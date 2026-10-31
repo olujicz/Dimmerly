@@ -7,6 +7,8 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-10-31
+
 ### Changed
 - Settings now tells apart a monitor that blocks hardware control from one that was reached but never answered. The second case shows a hint to unplug the monitor from power for a minute, which is what revives a locked-up DDC/CI controller.
 - The widgets and the Control Center button say "Dim Displays" or "Turn Displays Off" to match what the button is set to do in Settings. The Display Dimming toggle in Control Center always dims, so it shows the real state instead of switching back off after the displays sleep.
