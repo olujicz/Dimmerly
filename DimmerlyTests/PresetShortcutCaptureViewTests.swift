@@ -96,6 +96,37 @@ final class PresetShortcutCaptureViewTests: XCTestCase {
         XCTAssertEqual(events, ["capture"])
     }
 
+    /// ⌘ combinations reach the window as key equivalents before `keyDown`. When another view
+    /// claims one (⌥⇧⌘D in the Settings window), recording must still capture it.
+    func testRecordingCapturesKeyEquivalent() throws {
+        let (window, nsView) = makeHostedCaptureView()
+        var captured: [GlobalShortcut] = []
+        nsView.onCapture = { captured.append($0) }
+        nsView.isActive = true
+        XCTAssertTrue(window.makeFirstResponder(nsView))
+
+        XCTAssertTrue(try nsView.performKeyEquivalent(with: makeKeyEvent()))
+
+        XCTAssertEqual(captured.map(\.displayString), [shortcut.displayString])
+        XCTAssertFalse(nsView.isActive)
+    }
+
+    func testIdleOrUnfocusedCaptureViewLeavesKeyEquivalentsAlone() throws {
+        let (window, nsView) = makeHostedCaptureView()
+        var captureCount = 0
+        nsView.onCapture = { _ in captureCount += 1 }
+        let event = try makeKeyEvent()
+
+        XCTAssertFalse(nsView.performKeyEquivalent(with: event))
+
+        // A second recorder in the same window sees the event too; only the focused one records.
+        nsView.isActive = true
+        window.makeFirstResponder(nil)
+        XCTAssertFalse(nsView.performKeyEquivalent(with: event))
+
+        XCTAssertEqual(captureCount, 0)
+    }
+
     func testResigningFirstResponderWhileIdleDoesNotCancel() {
         let (window, nsView) = makeHostedCaptureView()
         var cancelCount = 0
@@ -107,6 +138,15 @@ final class PresetShortcutCaptureViewTests: XCTestCase {
         window.makeFirstResponder(nil)
 
         XCTAssertEqual(cancelCount, 0)
+    }
+
+    private func makeKeyEvent() throws -> NSEvent {
+        try XCTUnwrap(NSEvent.keyEvent(
+            with: .keyDown, location: .zero, modifierFlags: [.command, .option],
+            timestamp: 0, windowNumber: 0, context: nil,
+            characters: "x", charactersIgnoringModifiers: "x",
+            isARepeat: false, keyCode: 7 // kVK_ANSI_X
+        ))
     }
 
     private func makeHostedCaptureView() -> (NSWindow, ShortcutCaptureNSView) {

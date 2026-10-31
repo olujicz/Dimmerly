@@ -209,6 +209,17 @@ final class ShortcutCaptureNSView: NSView {
         }
     }
 
+    /// AppKit offers ⌘ combinations to the whole window as key equivalents before sending
+    /// `keyDown`. Another view in the window can claim one (⌥⇧⌘D in Settings), which left the
+    /// recorder stuck on "Press shortcut…", so the focused recorder takes them first.
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        guard isActive, window?.firstResponder === self else {
+            return super.performKeyEquivalent(with: event)
+        }
+        keyDown(with: event)
+        return true
+    }
+
     override func keyDown(with event: NSEvent) {
         guard isActive else {
             super.keyDown(with: event)

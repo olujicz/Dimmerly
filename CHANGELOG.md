@@ -22,6 +22,7 @@ Semantic Versioning.
 - Turning off automatic color temperature after a relaunch restores your earlier warmth instead of the night tint.
 - Keyboard shortcuts start working as soon as Accessibility access is granted, without opening Settings or relaunching, and stop if access is removed.
 - Recording a shortcut ends when you click elsewhere, so global shortcuts no longer stay paused.
+- The shortcut recorders in Settings catch every key combination, including the default ⌥⇧⌘D. Giving a preset the main shortcut now shows the conflict instead of leaving the recorder waiting for a key.
 - Pressing Return while naming a new preset saves it instead of turning the displays off.
 - Monitors that support volume but not mute show a plain speaker icon instead of a mute button that does nothing.
 - A schedule no longer applies again when Dimmerly relaunches shortly after it ran.
