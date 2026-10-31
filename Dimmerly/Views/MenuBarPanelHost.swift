@@ -20,6 +20,7 @@ final class MenuBarPanelPresenter: NSObject, NSPopoverDelegate {
 
     private let anchorProvider: AnchorProvider?
     private let popoverFactory: PopoverFactory
+    private let anchorWindow = StatusItemAnchorWindow()
     private weak var statusItem: NSStatusItem?
     private var contentBuilder: ContentBuilder?
     private var didDismiss: (@MainActor () -> Void)?
@@ -69,7 +70,8 @@ final class MenuBarPanelPresenter: NSObject, NSPopoverDelegate {
 
         // `show(relativeTo:of:preferredEdge:)` is public AppKit presentation and
         // does not depend on MenuBarExtra's private target/action implementation.
-        popover.show(relativeTo: anchor.rect, of: anchor.view, preferredEdge: .maxY)
+        // The panel opens below the anchor whichever way its view's y-axis runs.
+        popover.show(relativeTo: anchor.rect, of: anchor.view, preferredEdge: anchor.view.isFlipped ? .maxY : .minY)
     }
 
     func dismiss() {
@@ -107,12 +109,13 @@ final class MenuBarPanelPresenter: NSObject, NSPopoverDelegate {
         }
 
         guard let button = statusItem?.button else { return nil }
-        return (button.bounds, button)
+        return anchorWindow.anchor(over: button)
     }
 
     private func finishDismissal(for popover: NSPopover) {
         guard self.popover === popover else { return }
         self.popover = nil
+        anchorWindow.hide()
         notifyDismissalIfNeeded()
     }
 
@@ -120,6 +123,46 @@ final class MenuBarPanelPresenter: NSObject, NSPopoverDelegate {
         guard !dismissalWasNotified else { return }
         dismissalWasNotified = true
         didDismiss?()
+    }
+}
+
+/// A transparent, click-through window laid over the status item for the panel's popover
+/// to point at. On macOS 27, a popover anchored to the status item's own button also makes
+/// SwiftUI open the `MenuBarExtra` window, so the panel appeared twice.
+@MainActor
+final class StatusItemAnchorWindow {
+    private var window: NSPanel?
+
+    /// Moves the window over `button` and shows it. Nil when the button isn't in a window.
+    func anchor(over button: NSView) -> (rect: NSRect, view: NSView)? {
+        guard let buttonWindow = button.window else { return nil }
+        let window = window ?? makeWindow()
+        self.window = window
+        window.setFrame(buttonWindow.convertToScreen(button.convert(button.bounds, to: nil)), display: false)
+        window.orderFrontRegardless()
+        guard let view = window.contentView else { return nil }
+        return (view.bounds, view)
+    }
+
+    func hide() {
+        window?.orderOut(nil)
+    }
+
+    private func makeWindow() -> NSPanel {
+        let window = NSPanel(
+            contentRect: .zero,
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: true
+        )
+        window.isReleasedWhenClosed = false
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        window.hasShadow = false
+        window.ignoresMouseEvents = true
+        window.level = .statusBar
+        window.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
+        return window
     }
 }
 

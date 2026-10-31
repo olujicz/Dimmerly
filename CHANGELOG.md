@@ -29,6 +29,7 @@ Semantic Versioning.
 - Each monitor is probed once when Dimmerly starts or a monitor is plugged in, so slider changes to other monitors aren't held up.
 - Plugging in a display while the displays are turned off covers it too, instead of waking everything with an unrelated error.
 - A widget or Control Center button for a deleted preset reports that the preset is missing instead of silently doing nothing.
+- On macOS 27, tapping the widget or running Open Brightness Preset opens one Dimmerly panel instead of two.
 
 ## [1.4.0] - 2026-10-29
 
