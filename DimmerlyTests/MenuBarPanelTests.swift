@@ -263,6 +263,38 @@ final class MenuBarPanelTests: XCTestCase {
         XCTAssertTrue(popover.isPresented(relativeTo: button.bounds, of: button))
     }
 
+    /// On macOS 27 a popover anchored to the status item's own button also opens the
+    /// `MenuBarExtra` window, so the panel points at a window laid over the button instead.
+    @MainActor
+    func testStatusItemAnchorWindowCoversButtonWithoutUsingIt() throws {
+        let buttonWindow = NSWindow(
+            contentRect: NSRect(x: 200, y: 300, width: 120, height: 40),
+            styleMask: [.borderless], backing: .buffered, defer: true
+        )
+        buttonWindow.isReleasedWhenClosed = false
+        let button = NSButton(frame: NSRect(x: 10, y: 5, width: 35, height: 24))
+        buttonWindow.contentView?.addSubview(button)
+        let anchorWindow = StatusItemAnchorWindow()
+        defer { anchorWindow.hide() }
+
+        let anchor = try XCTUnwrap(anchorWindow.anchor(over: button))
+
+        let overlay = try XCTUnwrap(anchor.view.window)
+        XCTAssertFalse(overlay === buttonWindow)
+        XCTAssertEqual(overlay.frame, buttonWindow.convertToScreen(button.convert(button.bounds, to: nil)))
+        XCTAssertEqual(anchor.rect, anchor.view.bounds)
+        XCTAssertTrue(overlay.ignoresMouseEvents)
+        XCTAssertTrue(overlay.isVisible)
+
+        anchorWindow.hide()
+        XCTAssertFalse(overlay.isVisible)
+    }
+
+    @MainActor
+    func testStatusItemAnchorWindowNeedsAButtonOnScreen() {
+        XCTAssertNil(StatusItemAnchorWindow().anchor(over: NSButton()))
+    }
+
     @MainActor
     func testGlassBackgroundPolicyPreservesSwiftUISliderBackingViews() {
         let glassIdentifier = NSUserInterfaceItemIdentifier("DimmerlyMenuBarPanelGlass")

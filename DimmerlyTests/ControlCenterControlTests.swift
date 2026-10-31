@@ -170,6 +170,18 @@ final class ControlCenterControlTests: XCTestCase {
             XCTAssertEqual(reloadedKinds, [SharedConstants.dimControlKind])
             XCTAssertEqual(timelineReloads, 1)
         }
+    #else
+        /// The sandbox rules out display sleep, so every App Store label says "Dim Displays",
+        /// even with a stored "turn off" mode or setting left behind by a direct build.
+        func testAppStoreBuildAlwaysDims() {
+            let settings = AppSettings(defaults: settingsDefaults)
+            settings.preventScreenLock = false
+            XCTAssertEqual(DisplayAction.offMode(settings: settings), .dim)
+
+            sharedDefaults.set(DisplayOffMode.turnOff.rawValue, forKey: SharedConstants.displayOffModeKey)
+            XCTAssertEqual(SharedConstants.publishedDisplayOffMode(in: sharedDefaults), .dim)
+            XCTAssertEqual(SharedConstants.publishedDisplayOffMode(in: nil), .dim)
+        }
     #endif
 
     func testPublishingDisplayOffModeWithoutSharedDefaultsIsANoOp() {
