@@ -179,7 +179,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "保存されている明るさ、色温度、コントラストが現在のディスプレイ設定に置き換えられます。"
+            "value" : "保存されている輝度、色温度、コントラストが現在のディスプレイ設定に置き換えられます。"
           }
         },
         "ko" : {
@@ -197,7 +197,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O brilho, a temperatura e o contraste salvos serão substituídos pelos ajustes atuais da tela."
+            "value" : "Os valores salvos de brilho, tonalidade quente e contraste serão substituídos pelos ajustes atuais da tela."
           }
         },
         "sr" : {
@@ -392,7 +392,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "アップデート"
+            "value" : "更新"
           }
         },
         "ko" : {
@@ -463,7 +463,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "「%@」をアップデートしますか？"
+            "value" : "「%@」を更新しますか？"
           }
         },
         "ko" : {
@@ -8876,7 +8876,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "減光のみ"
+            "value" : "画面を暗くするだけ"
           }
         },
         "ko" : {
@@ -18114,7 +18114,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Standby & sperren"
+            "value" : "Ruhezustand und sperren"
           }
         },
         "en" : {
@@ -18162,7 +18162,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Suspender e bloquear"
+            "value" : "Repouso e bloqueio"
           }
         },
         "sr" : {
