@@ -1,5 +1,8 @@
 blank_issues_enabled: true
 contact_links:
+  - name: Questions and monitor reports
+    url: https://github.com/olujicz/Dimmerly/discussions
+    about: Ask a question or share which DDC/CI controls work with your monitor and connection.
   - name: Troubleshooting and known limitations
     url: https://github.com/olujicz/Dimmerly#troubleshooting
     about: Check common DDC/CI, keyboard shortcut, and display wake behavior issues before opening a report.

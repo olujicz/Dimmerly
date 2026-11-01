@@ -283,6 +283,7 @@ dismissal for stricter control.
 
 ### Get help
 
+- [Ask a question or share how your monitor works](https://github.com/olujicz/Dimmerly/discussions)
 - [Report a bug](https://github.com/olujicz/Dimmerly/issues/new?template=bug_report.yml)
 - [Report a monitor compatibility issue](https://github.com/olujicz/Dimmerly/issues/new?template=monitor_compatibility.yml)
 - [Review recent changes](CHANGELOG.md)
