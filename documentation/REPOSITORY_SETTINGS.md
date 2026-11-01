@@ -101,12 +101,20 @@ https://dimmerly.olujic.in.rs/
 Enable GitHub Discussions. The README, the support page, and the issue
 template chooser link to them for questions and monitor reports.
 
-Keep a **Monitor Compatibility** category with a pinned post that asks for:
+Keep a **Monitor Compatibility** category in the open-ended discussion format.
+Its slug must stay `monitor-compatibility`, because
+`.github/DISCUSSION_TEMPLATE/monitor-compatibility.yml` only applies to the
+category with that slug. The form asks for:
 
 - the monitor model
 - the Mac model and macOS version
 - the connection, including any dock, hub, KVM, or adapter in the path
-- which DDC/CI controls worked: brightness, contrast, volume, input switching
+- the hardware control status Settings shows for the monitor
+- which DDC/CI controls worked: brightness, contrast, volume, mute, input switching
+
+Pin a short welcome post in the category that explains what to report.
+GitHub has no API for creating categories or pinning posts, so both are done in
+the web interface.
 
 ## Security
 
