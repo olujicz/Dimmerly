@@ -2,19 +2,27 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
         <loc>https://dimmerly.olujic.in.rs/</loc>
-        <lastmod>2026-10-31</lastmod>
+        <lastmod>2026-11-01</lastmod>
     </url>
     <url>
         <loc>https://dimmerly.olujic.in.rs/external-monitor-brightness.html</loc>
-        <lastmod>2026-08-07</lastmod>
+        <lastmod>2026-11-01</lastmod>
     </url>
     <url>
         <loc>https://dimmerly.olujic.in.rs/multi-monitor-control.html</loc>
         <lastmod>2026-10-04</lastmod>
     </url>
     <url>
+        <loc>https://dimmerly.olujic.in.rs/ddc-ci-not-working.html</loc>
+        <lastmod>2026-11-01</lastmod>
+    </url>
+    <url>
+        <loc>https://dimmerly.olujic.in.rs/compare-mac-display-apps.html</loc>
+        <lastmod>2026-11-01</lastmod>
+    </url>
+    <url>
         <loc>https://dimmerly.olujic.in.rs/support.html</loc>
-        <lastmod>2026-10-04</lastmod>
+        <lastmod>2026-11-01</lastmod>
     </url>
     <url>
         <loc>https://dimmerly.olujic.in.rs/privacy-policy.html</loc>

@@ -542,6 +542,8 @@ p { text-wrap: pretty; }
     border-bottom: 1px solid var(--line);
 }
 
+.trust + .trust { border-top: 0; }
+
 .page-home .trust h2 { font-size: clamp(1.5rem, 2.8vw, 2.2rem); }
 
 .trust p {
@@ -680,6 +682,12 @@ p { text-wrap: pretty; }
 
 .comparison th:first-child,
 .comparison td:first-child { width: 42%; }
+
+/* Five columns need room for the app names, so the label column shrinks. */
+.comparison-apps { min-width: 760px; font-size: 0.88rem; }
+
+.comparison-apps th:first-child,
+.comparison-apps td:first-child { width: 22%; }
 
 .guide-actions {
     display: flex;

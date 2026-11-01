@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="External monitor brightness not changing on your Mac? Find where DDC/CI stops: the monitor setting, a dock or adapter, the HDMI port, a locked-up controller, or another app.">
+    <meta name="theme-color" content="#f3f1ec" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#151613" media="(prefers-color-scheme: dark)">
+    <title>External Monitor Brightness Not Working on Mac? Fix DDC/CI — Dimmerly</title>
+    <link rel="canonical" href="https://dimmerly.olujic.in.rs/ddc-ci-not-working.html">
+    <link rel="icon" href="assets/dimmerly-icon.png" type="image/png">
+    <link rel="apple-touch-icon" href="assets/dimmerly-icon.png">
+    <link rel="stylesheet" href="site.css">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="Dimmerly">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:title" content="External Monitor Brightness Not Working on Mac? Fix DDC/CI">
+    <meta property="og:description" content="Find where DDC/CI stops between your Mac and your monitor: the monitor setting, a dock or adapter, the HDMI port, a locked-up controller, or another app.">
+    <meta property="og:url" content="https://dimmerly.olujic.in.rs/ddc-ci-not-working.html">
+    <meta property="og:image" content="https://dimmerly.olujic.in.rs/assets/dimmerly-social-preview.jpg">
+    <meta property="og:image:width" content="1280">
+    <meta property="og:image:height" content="640">
+    <meta property="og:image:type" content="image/jpeg">
+    <meta property="og:image:alt" content="Dimmerly app icon and menu bar display controls">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="External Monitor Brightness Not Working on Mac? Fix DDC/CI — Dimmerly">
+    <meta name="twitter:description" content="Find where DDC/CI stops between your Mac and your monitor: the monitor setting, a dock or adapter, the HDMI port, a locked-up controller, or another app.">
+    <meta name="twitter:image" content="https://dimmerly.olujic.in.rs/assets/dimmerly-social-preview.jpg">
+    <meta name="twitter:image:alt" content="Dimmerly app icon and menu bar display controls">
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "TechArticle",
+            "headline": "External monitor brightness not working on Mac? Fix DDC/CI",
+            "description": "Find where DDC/CI stops between your Mac and your monitor: the monitor setting, a dock or adapter, the HDMI port, a locked-up controller, or another app.",
+            "url": "https://dimmerly.olujic.in.rs/ddc-ci-not-working.html",
+            "inLanguage": "en",
+            "author": {
+                "@type": "Person",
+                "name": "Zoran Olujic"
+            },
+            "about": {
+                "@type": "SoftwareApplication",
+                "name": "Dimmerly",
+                "url": "https://dimmerly.olujic.in.rs/",
+                "applicationCategory": "DesktopEnhancementApplication",
+                "operatingSystem": "macOS 15 Sequoia or later"
+            }
+        }
+    </script>
+</head>
+<body class="page-guide">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header container">
+        <a class="brand" href="./" aria-label="Dimmerly home">Dimmerly</a>
+        <nav class="nav" aria-label="Primary navigation">
+            <a href="external-monitor-brightness.html" aria-current="page">Guides</a>
+            <a href="support.html">Support</a>
+            <a href="https://github.com/olujicz/Dimmerly/releases" data-analytics-event="view_releases">Releases</a>
+            <a href="https://github.com/olujicz/Dimmerly">Source</a>
+        </nav>
+    </header>
+
+    <main id="main" class="guide-main container">
+        <p class="eyebrow">Troubleshooting guide</p>
+        <h1>External monitor brightness not working on your Mac?</h1>
+        <p class="lead">Mac apps change an external monitor&rsquo;s backlight over DDC/CI, a control channel that runs inside the video cable. When the brightness slider does nothing, or only darkens the picture, something between the Mac and the monitor is dropping those commands. Work through the checks below in order.</p>
+
+        <div class="guide-summary" aria-label="DDC/CI troubleshooting overview">
+            <div class="summary-item">
+                <span>Most common cause</span>
+                <strong>A dock, hub, KVM, or adapter in the path</strong>
+            </div>
+            <div class="summary-item">
+                <span>Worked before, stopped now</span>
+                <strong>Unplug the monitor from power for a minute</strong>
+            </div>
+            <div class="summary-item">
+                <span>Nothing helps</span>
+                <strong>Software dimming still works</strong>
+            </div>
+        </div>
+
+        <section class="guide-section" aria-labelledby="status-title">
+            <h2 id="status-title">1. See what Dimmerly found</h2>
+            <p>Open Dimmerly from the menu bar. A display under hardware control shows a small cable icon next to its name. No icon means Dimmerly is dimming that display in software, which darkens the picture but leaves the backlight as it was.</p>
+            <p>For the reason, open <strong>Settings &rsaquo; Displays</strong> and look at the <strong>Hardware Control</strong> section. Each monitor gets a status line:</p>
+            <div class="comparison-wrap">
+                <table class="comparison">
+                    <thead>
+                        <tr>
+                            <th scope="col">Status</th>
+                            <th scope="col">What it means</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Hardware controls: Brightness, Contrast&hellip;</td>
+                            <td>DDC/CI works. The list shows what this monitor accepts.</td>
+                        </tr>
+                        <tr>
+                            <td>Hardware brightness unavailable</td>
+                            <td>The monitor answers but won&rsquo;t take brightness commands. Other listed controls still work.</td>
+                        </tr>
+                        <tr>
+                            <td>No DDC/CI reply. Unplug the monitor from power for a minute.</td>
+                            <td>The commands reach the monitor, but its DDC/CI controller doesn&rsquo;t answer. Go to step 4.</td>
+                        </tr>
+                        <tr>
+                            <td>Uses software brightness</td>
+                            <td>The commands never reach the monitor. Start with steps 2 and 3.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p>If the section is missing, you have the App Store build. It runs in Apple&rsquo;s sandbox, which doesn&rsquo;t allow DDC/CI. Install the <a href="https://github.com/olujicz/Dimmerly/releases/latest" data-analytics-event="download_direct">direct download</a> or the Homebrew cask instead. If <strong>Use hardware controls when available</strong> is off, turn it on.</p>
+        </section>
+
+        <section class="guide-section" aria-labelledby="monitor-title">
+            <h2 id="monitor-title">2. Check the monitor</h2>
+            <ol>
+                <li>Open the monitor&rsquo;s on-screen menu with its own buttons and look for a DDC/CI setting, usually in a system or setup menu. Turn it on.</li>
+                <li>Some monitors don&rsquo;t support DDC/CI at all, and many TVs don&rsquo;t either. Others accept brightness but not contrast, volume, or input switching.</li>
+                <li>Quit any other app that talks to the monitor, such as MonitorControl, Lunar, BetterDisplay, or a command-line tool like <code>m1ddc</code>. Two apps on the same monitor interleave each other&rsquo;s replies, and a working monitor can look broken.</li>
+            </ol>
+        </section>
+
+        <section class="guide-section" aria-labelledby="connection-title">
+            <h2 id="connection-title">3. Check everything between the Mac and the monitor</h2>
+            <p>Most failures happen here. The picture can come through fine while the DDC/CI commands get lost on the way.</p>
+            <ul>
+                <li><strong>Docks, hubs, and KVM switches</strong> often pass video but not DDC/CI. Connect the monitor straight to the Mac to test.</li>
+                <li><strong>USB-C to HDMI cables and adapters</strong> usually contain a converter chip. Many of those chips pass the picture and drop DDC/CI. A USB-C to DisplayPort cable avoids the conversion.</li>
+                <li><strong>DisplayLink adapters</strong> send video over USB through their own driver and can block DDC/CI completely.</li>
+                <li><strong>The built-in HDMI port</strong> on some Macs, including M1 models and the entry-level M2 Mac mini, routes DDC/CI through a converter chip and is less reliable than USB-C. If HDMI doesn&rsquo;t work, try USB-C or Thunderbolt to DisplayPort.</li>
+            </ul>
+            <p>The most reliable path is a single cable from a USB-C or Thunderbolt port on the Mac to the monitor&rsquo;s DisplayPort or USB-C input. Dimmerly checks each monitor again when it&rsquo;s plugged in, so you can swap cables without restarting the app.</p>
+        </section>
+
+        <section class="guide-section" aria-labelledby="lockup-title">
+            <h2 id="lockup-title">4. Worked yesterday, silent today</h2>
+            <p>A monitor&rsquo;s DDC/CI controller can lock up while the picture keeps working. Swapping cables, changing inputs, and resetting the on-screen menu won&rsquo;t revive it, and neither will the power button, because standby keeps the controller running.</p>
+            <ol>
+                <li>Unplug the monitor&rsquo;s power cable from the wall or the monitor.</li>
+                <li>Wait one to two minutes.</li>
+                <li>Plug it back in and turn it on.</li>
+            </ol>
+            <p>Dimmerly checks the monitor again on its own and shows the cable icon once it answers.</p>
+        </section>
+
+        <section class="guide-section" aria-labelledby="fallback-title">
+            <h2 id="fallback-title">If hardware control still won&rsquo;t work</h2>
+            <p>Dimmerly keeps working without DDC/CI. It dims the display in software through macOS gamma tables, and warmth, contrast, presets, schedules, and shortcuts behave the same. The picture gets darker, but the backlight stays at the level set on the monitor, so lowering the monitor&rsquo;s own brightness once and dimming the rest in software is a reasonable setup.</p>
+            <p>Every report helps the next person with the same monitor. Open a <a href="https://github.com/olujicz/Dimmerly/issues/new?template=monitor_compatibility.yml">monitor compatibility issue</a> with the monitor model, the Mac, and every cable, adapter, or dock in between.</p>
+            <div class="guide-actions">
+                <a class="button" href="https://github.com/olujicz/Dimmerly/releases/latest" data-analytics-event="download_direct">Download Dimmerly</a>
+                <a class="text-link" href="external-monitor-brightness.html">How hardware and software brightness differ <span aria-hidden="true">→</span></a>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer container">
+        <span>Dimmerly · Open source under the MIT License</span>
+        <div class="footer-links">
+            <a href="./">Home</a>
+            <a href="external-monitor-brightness.html">External monitor guide</a>
+            <a href="multi-monitor-control.html">Multi-monitor guide</a>
+            <a href="ddc-ci-not-working.html">DDC/CI troubleshooting</a>
+            <a href="compare-mac-display-apps.html">Compare apps</a>
+            <a href="support.html">Support</a>
+            <a href="privacy-policy.html">Privacy</a>
+            <a href="https://github.com/olujicz/Dimmerly/releases" data-analytics-event="view_releases">Releases</a>
+            <a href="https://github.com/olujicz/Dimmerly">Source</a>
+        </div>
+    </footer>
+    <script src="site.js" defer></script>
+    <!-- Cloudflare Web Analytics --><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "__CLOUDFLARE_WEB_ANALYTICS_TOKEN__"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>
