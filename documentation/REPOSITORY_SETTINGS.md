@@ -83,6 +83,8 @@ These public URLs must resolve:
 - `https://dimmerly.olujic.in.rs/`
 - `https://dimmerly.olujic.in.rs/external-monitor-brightness.html`
 - `https://dimmerly.olujic.in.rs/multi-monitor-control.html`
+- `https://dimmerly.olujic.in.rs/ddc-ci-not-working.html`
+- `https://dimmerly.olujic.in.rs/compare-mac-display-apps.html`
 - `https://dimmerly.olujic.in.rs/privacy-policy.html`
 - `https://dimmerly.olujic.in.rs/support.html`
 - `https://dimmerly.olujic.in.rs/robots.txt`
@@ -93,6 +95,18 @@ Set the repository **Website** field to:
 ```text
 https://dimmerly.olujic.in.rs/
 ```
+
+## Discussions
+
+Enable GitHub Discussions. The README, the support page, and the issue
+template chooser link to them for questions and monitor reports.
+
+Keep a **Monitor Compatibility** category with a pinned post that asks for:
+
+- the monitor model
+- the Mac model and macOS version
+- the connection, including any dock, hub, KVM, or adapter in the path
+- which DDC/CI controls worked: brightness, contrast, volume, input switching
 
 ## Security
 
