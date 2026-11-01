@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Dimmerly, MonitorControl, Lunar, and BetterDisplay side by side: price, source code, DDC/CI controls, warmth, presets, schedules, automation, and network use.">
+    <meta name="theme-color" content="#f3f1ec" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#151613" media="(prefers-color-scheme: dark)">
+    <title>Dimmerly vs MonitorControl, Lunar, and BetterDisplay — Dimmerly</title>
+    <link rel="canonical" href="https://dimmerly.olujic.in.rs/compare-mac-display-apps.html">
+    <link rel="icon" href="assets/dimmerly-icon.png" type="image/png">
+    <link rel="apple-touch-icon" href="assets/dimmerly-icon.png">
+    <link rel="stylesheet" href="site.css">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="Dimmerly">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:title" content="Dimmerly vs MonitorControl, Lunar, and BetterDisplay">
+    <meta property="og:description" content="Four Mac apps for external monitor brightness, compared on price, source code, DDC/CI controls, warmth, presets, schedules, and automation.">
+    <meta property="og:url" content="https://dimmerly.olujic.in.rs/compare-mac-display-apps.html">
+    <meta property="og:image" content="https://dimmerly.olujic.in.rs/assets/dimmerly-social-preview.jpg">
+    <meta property="og:image:width" content="1280">
+    <meta property="og:image:height" content="640">
+    <meta property="og:image:type" content="image/jpeg">
+    <meta property="og:image:alt" content="Dimmerly app icon and menu bar display controls">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Dimmerly vs MonitorControl, Lunar, and BetterDisplay — Dimmerly">
+    <meta name="twitter:description" content="Four Mac apps for external monitor brightness, compared on price, source code, DDC/CI controls, warmth, presets, schedules, and automation.">
+    <meta name="twitter:image" content="https://dimmerly.olujic.in.rs/assets/dimmerly-social-preview.jpg">
+    <meta name="twitter:image:alt" content="Dimmerly app icon and menu bar display controls">
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "TechArticle",
+            "headline": "Dimmerly vs MonitorControl, Lunar, and BetterDisplay",
+            "description": "Four Mac apps for external monitor brightness, compared on price, source code, DDC/CI controls, warmth, presets, schedules, and automation.",
+            "url": "https://dimmerly.olujic.in.rs/compare-mac-display-apps.html",
+            "inLanguage": "en",
+            "dateModified": "2026-11-01",
+            "author": {
+                "@type": "Person",
+                "name": "Zoran Olujic"
+            },
+            "about": {
+                "@type": "SoftwareApplication",
+                "name": "Dimmerly",
+                "url": "https://dimmerly.olujic.in.rs/",
+                "applicationCategory": "DesktopEnhancementApplication",
+                "operatingSystem": "macOS 15 Sequoia or later"
+            }
+        }
+    </script>
+</head>
+<body class="page-guide">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header container">
+        <a class="brand" href="./" aria-label="Dimmerly home">Dimmerly</a>
+        <nav class="nav" aria-label="Primary navigation">
+            <a href="external-monitor-brightness.html" aria-current="page">Guides</a>
+            <a href="support.html">Support</a>
+            <a href="https://github.com/olujicz/Dimmerly/releases" data-analytics-event="view_releases">Releases</a>
+            <a href="https://github.com/olujicz/Dimmerly">Source</a>
+        </nav>
+    </header>
+
+    <main id="main" class="guide-main container">
+        <p class="eyebrow">Comparison</p>
+        <h1>Dimmerly, MonitorControl, Lunar, or BetterDisplay?</h1>
+        <p class="lead">All four apps control an external monitor&rsquo;s brightness from the Mac menu bar over DDC/CI, and all four fall back to software dimming when DDC/CI isn&rsquo;t available. They differ in price, in whether you can read the source, and in what they add on top.</p>
+
+        <div class="guide-summary" aria-label="Comparison overview">
+            <div class="summary-item">
+                <span>Free and open source</span>
+                <strong>Dimmerly, MonitorControl</strong>
+            </div>
+            <div class="summary-item">
+                <span>Free with a paid Pro tier</span>
+                <strong>Lunar, BetterDisplay</strong>
+            </div>
+            <div class="summary-item">
+                <span>Checked against each app&rsquo;s own site</span>
+                <strong>1 November 2026</strong>
+            </div>
+        </div>
+
+        <section class="guide-section" aria-labelledby="table-title">
+            <h2 id="table-title">Side by side</h2>
+            <p>&ldquo;Pro&rdquo; means the feature needs the paid license. Prices and features change, so check the linked sources before you buy.</p>
+            <div class="comparison-wrap">
+                <table class="comparison comparison-apps">
+                    <thead>
+                        <tr>
+                            <th scope="col">Feature</th>
+                            <th scope="col">Dimmerly 1.4.1</th>
+                            <th scope="col">MonitorControl 4.4.0</th>
+                            <th scope="col">Lunar 6.11.3</th>
+                            <th scope="col">BetterDisplay 5.2.1</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <th scope="row">Price</th>
+                            <td>Free</td>
+                            <td>Free</td>
+                            <td>Free; Pro $23 once, up to 5 Macs</td>
+                            <td>Free; Pro $21.99 once, 2 Macs</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Source code</th>
+                            <td>MIT, complete</td>
+                            <td>MIT, complete</td>
+                            <td>MIT repository; Pro code is encrypted</td>
+                            <td>Closed source</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Minimum macOS</th>
+                            <td>15 Sequoia</td>
+                            <td>10.15; 11 for every feature</td>
+                            <td>12 Monterey</td>
+                            <td>26.3 Tahoe; 4.3.7 runs on 13.2</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">DDC/CI brightness, contrast, volume</th>
+                            <td>Yes</td>
+                            <td>Yes</td>
+                            <td>Yes</td>
+                            <td>Yes</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Input switching</th>
+                            <td>Yes</td>
+                            <td>No</td>
+                            <td>Yes</td>
+                            <td>Yes</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Warmth (color temperature)</th>
+                            <td>Yes, manual and automatic</td>
+                            <td>No</td>
+                            <td>No</td>
+                            <td>Pro</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Saved presets</th>
+                            <td>Yes, up to 10, each with a shortcut</td>
+                            <td>No</td>
+                            <td>Per-app brightness (Pro)</td>
+                            <td>Built with the Shortcuts app</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Schedules</th>
+                            <td>Fixed time, sunrise, sunset</td>
+                            <td>No</td>
+                            <td>Time, sunrise, noon, sunset (Pro)</td>
+                            <td>Built with Shortcuts automations</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Shortcuts app actions</th>
+                            <td>Yes</td>
+                            <td>No</td>
+                            <td>Yes; free tier 100 calls a day</td>
+                            <td>Yes</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Command-line tool</th>
+                            <td>No</td>
+                            <td>No</td>
+                            <td>Yes</td>
+                            <td>Yes</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Apple brightness and volume keys</th>
+                            <td>No; custom global shortcuts</td>
+                            <td>Yes</td>
+                            <td>Yes</td>
+                            <td>Yes</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Follow the built-in display&rsquo;s auto-brightness</th>
+                            <td>No</td>
+                            <td>Yes</td>
+                            <td>Pro</td>
+                            <td>Yes; advanced sync is Pro</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">XDR and HDR brightness boost</th>
+                            <td>No</td>
+                            <td>No</td>
+                            <td>Pro</td>
+                            <td>Pro</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Resolutions and virtual screens</th>
+                            <td>No</td>
+                            <td>No</td>
+                            <td>Hidden resolutions</td>
+                            <td>Yes; HiDPI scaling is Pro</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Network connections</th>
+                            <td>None</td>
+                            <td>Update checks</td>
+                            <td>Crash reports, license checks, update checks, anonymous monitor data</td>
+                            <td>Crash reports, license checks, update checks; each can be turned off</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p>Sources: the <a href="https://github.com/MonitorControl/MonitorControl#readme">MonitorControl README</a> and source code; Lunar&rsquo;s <a href="https://lunar.fyi/">feature table</a>, <a href="https://lunar.fyi/changelog">changelog</a>, and <a href="https://lunar.fyi/privacy">privacy policy</a>; BetterDisplay&rsquo;s <a href="https://betterdisplay.pro/guide/licensing/free-and-pro-features/">free and Pro feature list</a>, <a href="https://github.com/waydabber/BetterDisplay#readme">README</a>, and <a href="https://betterdisplay.pro/guide/licensing/terms">terms</a>. Something out of date? <a href="https://github.com/olujicz/Dimmerly/issues/new?template=bug_report.yml">Open an issue</a> and it will be corrected.</p>
+        </section>
+
+        <section class="guide-section" aria-labelledby="fit-title">
+            <h2 id="fit-title">Which one fits your desk</h2>
+            <h3>Dimmerly</h3>
+            <p>Dimmerly is built around saved display setups. Each monitor gets its own brightness, warmth, and contrast, and a preset or a sunrise and sunset schedule changes all of them at once. It&rsquo;s free and MIT-licensed, and the app makes no network requests of its own: there&rsquo;s no license check, update check, or crash reporter. It doesn&rsquo;t take over the Apple brightness keys or follow the built-in display&rsquo;s auto-brightness, and it doesn&rsquo;t manage resolutions or HDR.</p>
+
+            <h3>MonitorControl</h3>
+            <p>MonitorControl is also free and MIT-licensed. Pick it if you mainly want the keyboard&rsquo;s brightness and volume keys to work on an external monitor, or want the monitor to follow your MacBook&rsquo;s automatic brightness. It doesn&rsquo;t adjust warmth or save presets and schedules. It also runs on older versions of macOS, back to 10.15.</p>
+
+            <h3>Lunar</h3>
+            <p>Lunar&rsquo;s free tier covers DDC/CI controls, input switching, the brightness keys, and a command-line tool, with a limit of 100 manual adjustments a day. Lunar Pro adds automatic modes that follow the built-in display, the time of day, or an external light sensor, plus XDR brightness. Pick it if automatic brightness matters more to you than warmth or saved setups.</p>
+
+            <h3>BetterDisplay</h3>
+            <p>BetterDisplay has the widest feature set of the four. Beyond brightness it manages resolutions, HiDPI scaling, virtual screens, EDID overrides, and HDR. Its free tier already includes DDC/CI, input switching, and brightness keys. Pro adds warmth and the advanced features. Version 5 needs macOS 26.3 or later. Its terms ask businesses to buy Pro even when they only use free features.</p>
+        </section>
+
+        <section class="guide-section" aria-labelledby="together-title">
+            <h2 id="together-title">Can I run two of them?</h2>
+            <p>Not on the same monitor. Two apps sending DDC/CI commands to one display interleave each other&rsquo;s replies, and a working monitor can look broken. If you want to try Dimmerly, quit the other app first. If hardware control doesn&rsquo;t appear, <a href="ddc-ci-not-working.html">the DDC/CI troubleshooting guide</a> covers the usual causes.</p>
+            <div class="guide-actions">
+                <a class="button" href="https://github.com/olujicz/Dimmerly/releases/latest" data-analytics-event="download_direct">Download Dimmerly</a>
+                <a class="text-link" href="multi-monitor-control.html">Set up multiple monitors <span aria-hidden="true">→</span></a>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer container">
+        <span>Dimmerly · Open source under the MIT License</span>
+        <div class="footer-links">
+            <a href="./">Home</a>
+            <a href="external-monitor-brightness.html">External monitor guide</a>
+            <a href="multi-monitor-control.html">Multi-monitor guide</a>
+            <a href="ddc-ci-not-working.html">DDC/CI troubleshooting</a>
+            <a href="compare-mac-display-apps.html">Compare apps</a>
+            <a href="support.html">Support</a>
+            <a href="privacy-policy.html">Privacy</a>
+            <a href="https://github.com/olujicz/Dimmerly/releases" data-analytics-event="view_releases">Releases</a>
+            <a href="https://github.com/olujicz/Dimmerly">Source</a>
+        </div>
+    </footer>
+    <script src="site.js" defer></script>
+    <!-- Cloudflare Web Analytics --><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "__CLOUDFLARE_WEB_ANALYTICS_TOKEN__"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>

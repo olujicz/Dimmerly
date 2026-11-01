@@ -59,6 +59,8 @@ GitHub Pages must use **GitHub Actions** as its publishing source. The
 - `documentation/index.html`
 - `documentation/external-monitor-brightness.html`
 - `documentation/multi-monitor-control.html`
+- `documentation/ddc-ci-not-working.html`
+- `documentation/compare-mac-display-apps.html`
 - `documentation/support.html`
 - `documentation/privacy-policy.html`
 - `documentation/404.html`

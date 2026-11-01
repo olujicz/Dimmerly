@@ -5,7 +5,8 @@ volume, input source, presets, and schedules—with DDC/CI hardware control and
 software fallback.
 
 Dimmerly brings controls that are usually buried in the monitor OSD or split
-across System Settings into one native menu bar app.
+across System Settings into one native menu bar app. It is free and open source
+under the MIT License.
 
 [![macOS 15.0+](https://img.shields.io/badge/macOS-15.0%2B-blue)](#requirements)
 [![Latest release](https://img.shields.io/github/v/release/olujicz/Dimmerly?display_name=tag&sort=semver)](https://github.com/olujicz/Dimmerly/releases/latest)
@@ -238,7 +239,9 @@ Common reasons DDC/CI is unavailable:
 - the display is connected through built-in HDMI on some Apple Silicon Macs
 
 Try connecting the monitor directly over USB-C or DisplayPort and check the
-monitor's settings for DDC/CI support.
+monitor's settings for DDC/CI support. The
+[DDC/CI troubleshooting guide](https://dimmerly.olujic.in.rs/ddc-ci-not-working.html)
+walks through each check and explains the status Settings shows for each monitor.
 
 ### A monitor that supports DDC/CI stops responding
 
@@ -268,8 +271,9 @@ In the direct-download build, global shortcuts require Accessibility permission:
 System Settings -> Privacy & Security -> Accessibility
 ```
 
-After granting permission, restart Dimmerly. If the shortcut still does not
-work, choose a shortcut that is not already reserved by macOS or another app.
+Shortcuts start working as soon as access is granted, without a restart. If
+the shortcut still does not work, choose a shortcut that is not already
+reserved by macOS or another app.
 
 ### Displays wake too easily
 
