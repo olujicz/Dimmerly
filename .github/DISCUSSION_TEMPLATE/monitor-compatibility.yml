@@ -1,0 +1,80 @@
+title: "[Monitor] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Share how a monitor behaves with Dimmerly, whether hardware control works or not.
+        Reports are optional; Dimmerly does not collect compatibility details automatically.
+        To report a bug in Dimmerly itself, open an issue instead.
+  - type: input
+    id: monitor-model
+    attributes:
+      label: Monitor manufacturer and model
+      placeholder: "LG 27UL850-W"
+    validations:
+      required: true
+  - type: input
+    id: mac-model
+    attributes:
+      label: Mac model and macOS version
+      placeholder: "MacBook Pro 14-inch M3 Pro, macOS 15.5"
+    validations:
+      required: true
+  - type: input
+    id: dimmerly-version
+    attributes:
+      label: Dimmerly version
+      placeholder: "1.4.1"
+    validations:
+      required: true
+  - type: dropdown
+    id: connection-type
+    attributes:
+      label: Connection type
+      options:
+        - USB-C direct
+        - Thunderbolt direct
+        - DisplayPort direct
+        - HDMI direct
+        - USB-C to HDMI cable or adapter
+        - USB-C hub or dock
+        - Thunderbolt dock
+        - KVM
+        - DisplayLink adapter or dock
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: connection-details
+    attributes:
+      label: Connection details
+      description: Name any cable, adapter, hub, dock, or KVM between the Mac and the monitor.
+      placeholder: "Example: MacBook -> CalDigit TS4 -> DisplayPort -> monitor."
+  - type: dropdown
+    id: settings-status
+    attributes:
+      label: What does Settings › Displays › Hardware Control show for this monitor?
+      options:
+        - "Hardware controls: (lists the controls)"
+        - Hardware brightness unavailable
+        - No DDC/CI reply. Unplug the monitor from power for a minute.
+        - Uses software brightness
+        - Not sure
+    validations:
+      required: true
+  - type: checkboxes
+    id: working-controls
+    attributes:
+      label: Which hardware controls work?
+      options:
+        - label: Brightness
+        - label: Contrast
+        - label: Volume
+        - label: Mute
+        - label: Input switching
+        - label: None
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: What didn't work, what fixed it, monitor firmware version, or anything else that may help the next person with this monitor.
