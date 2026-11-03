@@ -49,6 +49,7 @@ jobs:
           cp documentation/ddc-ci-not-working.html build/pages/ddc-ci-not-working.html
           cp documentation/compare-mac-display-apps.html build/pages/compare-mac-display-apps.html
           cp documentation/support.html build/pages/support.html
+          cp documentation/app-store-support.html build/pages/app-store-support.html
           cp documentation/privacy-policy.html build/pages/privacy-policy.html
           cp documentation/404.html build/pages/404.html
           cp documentation/site.css build/pages/site.css
@@ -81,6 +82,7 @@ jobs:
           test -s build/pages/ddc-ci-not-working.html
           test -s build/pages/compare-mac-display-apps.html
           test -s build/pages/support.html
+          test -s build/pages/app-store-support.html
           test -s build/pages/privacy-policy.html
           test -s build/pages/404.html
           test -s build/pages/site.css
