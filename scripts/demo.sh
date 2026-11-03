@@ -6,7 +6,22 @@ script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source-path=SCRIPTDIR source=screenshots.sh
 source "$script_dir/screenshots.sh"
 
-demo_dir="$repo_dir/.build/demo"
+# DEMO_VARIANT=app-store records the App Store build's panel, which differs from the
+# direct-download one (for example "Dim Displays" instead of "Turn Displays Off"). Use it for
+# App Store screenshots; the website and README use the default direct-download variant.
+# The demo reads its storyboard from the repo and writes the frame log there, which the sandbox
+# forbids, so this build keeps the APPSTORE code but signs with the non-sandbox entitlements.
+# Nothing in the app checks for the sandbox at runtime, so the panel is the same.
+demo_build_settings=()
+case "${DEMO_VARIANT:-direct}" in
+    direct) demo_dir="$repo_dir/.build/demo" demo_scheme=Dimmerly demo_configuration=Debug ;;
+    app-store)
+        demo_dir="$repo_dir/.build/demo-app-store" demo_scheme='Dimmerly App Store'
+        demo_configuration=Debug-AppStore
+        demo_build_settings=(CODE_SIGN_ENTITLEMENTS=Dimmerly/Resources/Dimmerly.entitlements)
+        ;;
+    *) echo "Unknown DEMO_VARIANT: $DEMO_VARIANT (use direct or app-store)" >&2; exit 64 ;;
+esac
 derived="$demo_dir/DerivedData"
 storyboard="$script_dir/demo/storyboard.json"
 exports="$repo_dir/images/demo"
@@ -75,13 +90,14 @@ backdrop_color() {
 }
 
 demo_app() {
-    echo "$derived/Build/Products/Debug/Dimmerly.app"
+    echo "$derived/Build/Products/$demo_configuration/Dimmerly.app"
 }
 
 demo_build() {
-    echo 'Building Dimmerly (Debug)...'
-    xcodebuild -quiet -project "$repo_dir/Dimmerly.xcodeproj" -scheme Dimmerly -configuration Debug \
-        -destination "platform=macOS,arch=$(uname -m)" -derivedDataPath "$derived" build
+    echo "Building $demo_scheme ($demo_configuration)..."
+    xcodebuild -quiet -project "$repo_dir/Dimmerly.xcodeproj" -scheme "$demo_scheme" \
+        -configuration "$demo_configuration" -destination "platform=macOS,arch=$(uname -m)" \
+        -derivedDataPath "$derived" ${demo_build_settings[@]+"${demo_build_settings[@]}"} build
 }
 
 demo_capture() {
