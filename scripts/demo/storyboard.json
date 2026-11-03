@@ -18,5 +18,22 @@
     { "action": "applyPreset", "preset": "Evening", "duration": 3.0, "caption": "One click for your whole desk" },
     { "action": "applyPreset", "preset": "Full", "duration": 2.8, "caption": "Free and open source" },
     { "action": "closePanel", "duration": 1.2, "caption": "" }
+  ],
+  "cursorSliders": {
+    "external-brightness": { "display": "External Display", "value": "brightness", "y": 104.75, "minX": 59.75, "maxX": 265.25, "min": 0.1, "max": 1 },
+    "external-warmth": { "display": "External Display", "value": "warmth", "y": 123.25, "minX": 59.75, "maxX": 265.25, "min": 0, "max": 1 }
+  },
+  "cursor": [
+    { "time": 0.0, "x": 210, "y": 470 },
+    { "time": 0.15, "x": 210, "y": 470 },
+    { "time": 0.5, "x": 165, "y": -11, "click": true },
+    { "time": 1.0, "until": 4.5, "slider": "external-brightness" },
+    { "time": 4.85, "until": 7.65, "slider": "external-warmth" },
+    { "time": 8.0, "x": 62, "y": 266, "click": true },
+    { "time": 10.5, "x": 62, "y": 266 },
+    { "time": 11.0, "x": 50, "y": 244, "click": true },
+    { "time": 13.35, "x": 50, "y": 244 },
+    { "time": 13.8, "x": 165, "y": -11, "click": true },
+    { "time": 14.7, "x": 210, "y": 470 }
   ]
 }

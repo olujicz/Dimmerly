@@ -1,0 +1,265 @@
+#!/bin/bash
+set -euo pipefail
+
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# Shares the signed capture helper and its checks with the screenshot script.
+# shellcheck source-path=SCRIPTDIR source=screenshots.sh
+source "$script_dir/screenshots.sh"
+
+demo_dir="$repo_dir/.build/demo"
+derived="$demo_dir/DerivedData"
+storyboard="$script_dir/demo/storyboard.json"
+exports="$repo_dir/images/demo"
+# The website follows the system colour scheme, so every capture and export is made in both.
+appearances=(light dark)
+# Seconds into the loop for the poster frame: the Evening preset, with its caption.
+poster_time=9.3
+
+demo_usage() {
+    cat <<'HELP'
+Usage:
+  scripts/demo.sh render                      build, then capture, compose and export both
+  scripts/demo.sh build                       build the Debug app into .build/demo
+  scripts/demo.sh capture [light|dark]        play the storyboard and record the panel
+  scripts/demo.sh compose [light|dark] [--check]
+                                              render .build/demo/<appearance>/master.mov
+  scripts/demo.sh export [light|dark]         encode the website, README and social files
+  scripts/demo.sh check-release               build Release and confirm it has no demo code
+
+Without an appearance, capture, compose and export run for light and then dark. The
+demo app is forced into that appearance, whatever this Mac uses.
+
+capture launches the Debug app in its staged demo mode (isolated settings, made-up
+displays, no gamma or DDC writes). It needs an unlocked Mac and Screen Recording
+for DimmerlyScreenshotHelper. The storyboard is scripts/demo/storyboard.json.
+Raw frames and masters stay in .build/demo/<appearance>; export writes
+images/demo/dimmerly-demo-<appearance>.mp4, .webp and -poster.jpg.
+HELP
+}
+
+# Points run_dir, values and master at one appearance's files.
+use_appearance() {
+    case "$1" in
+        light|dark) ;;
+        *) echo "Unknown appearance: $1 (use light or dark)" >&2; return 64 ;;
+    esac
+    appearance="$1"
+    run_dir="$demo_dir/$appearance"
+    values="$run_dir/values.jsonl"
+    master="$run_dir/master.mov"
+}
+
+# Runs a command for the appearance given first, or for each one when none is given.
+for_appearances() {
+    local command="$1" each
+    shift
+    if [[ "${1:-}" == light || "${1:-}" == dark ]]; then
+        use_appearance "$1"
+        shift
+        "$command" "$@"
+        return
+    fi
+    for each in "${appearances[@]}"; do
+        use_appearance "$each"
+        "$command" "$@"
+    done
+}
+
+# The colour behind the panel while recording: what the compositor draws around it, so the
+# panel's frosted material looks as it will in the video.
+backdrop_color() {
+    case "$appearance" in
+        light) echo '#F3F1EC' ;;
+        dark) echo '#1E252E' ;;
+    esac
+}
+
+demo_app() {
+    echo "$derived/Build/Products/Debug/Dimmerly.app"
+}
+
+demo_build() {
+    echo 'Building Dimmerly (Debug)...'
+    xcodebuild -quiet -project "$repo_dir/Dimmerly.xcodeproj" -scheme Dimmerly -configuration Debug \
+        -destination "platform=macOS,arch=$(uname -m)" -derivedDataPath "$derived" build
+}
+
+demo_capture() {
+    [[ $# -eq 0 ]] || { demo_usage >&2; return 64; }
+    local app
+    app="$(demo_app)"
+    [[ -x "$app/Contents/MacOS/Dimmerly" ]] || { echo "Missing $app; run scripts/demo.sh build." >&2; return 1; }
+    ensure_helper
+    check_screen_recording || return 1
+
+    mkdir -p "$run_dir"
+    rm -f -- "$values"
+    local record_status="$run_dir/record-status" app_pid recorder_pid
+    rm -f -- "$record_status"
+
+    echo "Playing the storyboard and recording the $appearance panel (about 20 seconds)..."
+    DIMMERLY_SCREENSHOT=demo DIMMERLY_SCREENSHOT_APPEARANCE="$appearance" \
+        DIMMERLY_SCREENSHOT_BACKDROP="$(backdrop_color)" \
+        DIMMERLY_DEMO_STORYBOARD="$storyboard" DIMMERLY_DEMO_OUTPUT="$values" \
+        LLVM_PROFILE_FILE="$run_dir/default.profraw" \
+        "$app/Contents/MacOS/Dimmerly" >"$run_dir/app.log" 2>&1 &
+    app_pid=$!
+    staged_pid=$app_pid
+    trap stop_staged EXIT
+    trap 'stop_staged; exit 130' INT
+    trap 'stop_staged; exit 143' TERM
+
+    run_helper --pid "$app_pid" --mode record --values "$values" --output "$run_dir" --status \
+        >"$record_status" &
+    recorder_pid=$!
+
+    local app_result=0 recorder_result=0
+    wait "$app_pid" || app_result=$?
+    staged_pid=''
+    wait "$recorder_pid" || recorder_result=$?
+    trap - EXIT INT TERM
+
+    if [[ $app_result -ne 0 ]]; then
+        echo "The demo app exited with status $app_result:" >&2
+        tail -5 "$run_dir/app.log" >&2
+        return 1
+    fi
+    local status
+    status="$(cat -- "$record_status" 2>/dev/null || true)"
+    if [[ $recorder_result -ne 0 || "$status" != 'ok' ]]; then
+        echo "Recording failed: ${status:-the helper exited without reporting a result.}" >&2
+        return 1
+    fi
+    echo "Recorded $appearance: $(tr -d '\n ' <"$run_dir/record.json")"
+}
+
+# A capture occasionally misses the panel (seen once, on the first launch after a build), so
+# a failed capture is retried once before giving up.
+capture_with_retry() {
+    demo_capture "$@" && return
+    echo "Retrying the $appearance capture once..." >&2
+    demo_capture "$@"
+}
+
+compose_tool() {
+    local tool="$demo_dir/tools/ComposeDemo" source="$script_dir/demo/ComposeDemo.swift"
+    local gamma="$repo_dir/Dimmerly/Services/GammaMath.swift"
+    if [[ ! -x "$tool" || "$source" -nt "$tool" || "$gamma" -nt "$tool" ]]; then
+        mkdir -p "$(dirname -- "$tool")"
+        xcrun swiftc -O -parse-as-library "$source" "$gamma" -o "$tool" \
+            -framework AppKit -framework CoreGraphics -framework AVFoundation -framework CoreText
+    fi
+    echo "$tool"
+}
+
+demo_compose() {
+    [[ -s "$values" && -d "$run_dir/panel" ]] || {
+        echo "Run scripts/demo.sh capture $appearance first." >&2
+        return 1
+    }
+    local tool
+    tool="$(compose_tool)"
+    local common=(--values "$values" --panel-dir "$run_dir/panel" --storyboard "$storyboard"
+        --appearance "$appearance")
+    case "${1:-}" in
+        ''|--check) ;;
+        *) demo_usage >&2; return 64 ;;
+    esac
+    if [[ "${1:-}" == '--check' ]]; then
+        "$tool" "${common[@]}" --check
+        return
+    fi
+    echo "Composing the $appearance master..."
+    "$tool" "${common[@]}" --output "$master"
+    "$tool" "${common[@]}" --check
+}
+
+# Fails when a file is larger than its budget in bytes.
+check_budget() {
+    local file="$1" budget="$2" size
+    size="$(stat -f %z "$file")"
+    if ((size > budget)); then
+        echo "$(basename -- "$file") is $size bytes, over its $budget-byte budget." >&2
+        echo 'Lower the quality or frame rate rather than shortening the story.' >&2
+        return 1
+    fi
+    echo "$(basename -- "$file"): $size bytes (budget $budget)"
+}
+
+demo_export() {
+    [[ $# -eq 0 ]] || { demo_usage >&2; return 64; }
+    [[ -s "$master" ]] || { echo "Run scripts/demo.sh compose $appearance first." >&2; return 1; }
+    command -v ffmpeg >/dev/null || { echo 'ffmpeg is required: brew install ffmpeg' >&2; return 1; }
+    command -v img2webp >/dev/null || { echo 'img2webp is required: brew install webp' >&2; return 1; }
+    mkdir -p "$exports"
+
+    local website="$exports/dimmerly-demo-$appearance.mp4" poster="$exports/dimmerly-demo-$appearance-poster.jpg"
+    local readme="$exports/dimmerly-demo-$appearance.webp" social="$run_dir/dimmerly-demo-social.mp4"
+    local quiet=(-hide_banner -loglevel error -y)
+
+    echo "Encoding the $appearance website MP4..."
+    ffmpeg "${quiet[@]}" -i "$master" -vf scale=1280:800:flags=lanczos -c:v libx264 -preset slow -crf 24 \
+        -pix_fmt yuv420p -movflags +faststart -an "$website"
+    # The poster shows before the video plays (and instead of it under Reduce Motion), so it
+    # uses a frame that explains the app: panel open, presets applied, caption showing.
+    echo 'Encoding the poster...'
+    ffmpeg "${quiet[@]}" -ss "$poster_time" -i "$master" -frames:v 1 -vf scale=1280:800:flags=lanczos -q:v 3 "$poster"
+    echo 'Encoding the social MP4...'
+    ffmpeg "${quiet[@]}" -i "$master" -vf scale=1920:1200:flags=lanczos -c:v libx264 -preset slow -crf 20 \
+        -pix_fmt yuv420p -movflags +faststart -an "$social"
+
+    echo 'Encoding the README WebP...'
+    local webp_frames="$run_dir/webp-frames"
+    rm -rf -- "$webp_frames"
+    mkdir -p "$webp_frames"
+    ffmpeg "${quiet[@]}" -i "$master" -vf fps=20,scale=960:600:flags=lanczos "$webp_frames/%04d.png"
+    img2webp -loop 0 -lossy -q 70 -d 50 "$webp_frames"/*.png -o "$readme" >/dev/null
+
+    check_budget "$website" $((1500 * 1024))
+    check_budget "$poster" $((150 * 1024))
+    check_budget "$readme" $((3 * 1024 * 1024))
+    check_budget "$social" $((8 * 1024 * 1024))
+    echo "Exports: $exports (social MP4: $social)"
+}
+
+# The demo and screenshot stage are DEBUG-only; a Release binary must not contain them.
+demo_check_release() {
+    local release_derived="$demo_dir/ReleaseDerivedData"
+    echo 'Building Dimmerly (Release)...'
+    xcodebuild -quiet -project "$repo_dir/Dimmerly.xcodeproj" -scheme Dimmerly -configuration Release \
+        -destination "platform=macOS,arch=$(uname -m)" -derivedDataPath "$release_derived" \
+        CODE_SIGNING_ALLOWED=NO build
+    # Debug builds keep app code in Dimmerly.debug.dylib, so scan every binary, not just the main one.
+    local binary found
+    for binary in "$release_derived/Build/Products/Release/Dimmerly.app/Contents/MacOS"/*; do
+        found="$(nm "$binary" 2>/dev/null | grep -E 'DemoPlayer|DemoRunner|DemoStoryboard|ScreenshotStage' || true)"
+        if [[ -n "$found" ]]; then
+            echo "$(basename -- "$binary") in the Release build contains demo or screenshot code:" >&2
+            head -5 <<<"$found" >&2
+            return 1
+        fi
+        if strings "$binary" | grep -qE 'DIMMERLY_SCREENSHOT|DIMMERLY_DEMO'; then
+            echo "$(basename -- "$binary") in the Release build mentions the demo environment variables." >&2
+            return 1
+        fi
+    done
+    echo 'Release build has no demo or screenshot code.'
+}
+
+command="${1:-help}"
+[[ $# -eq 0 ]] || shift
+case "$command" in
+    build) demo_build ;;
+    capture) for_appearances capture_with_retry "$@" ;;
+    compose) for_appearances demo_compose "$@" ;;
+    export) for_appearances demo_export "$@" ;;
+    render)
+        demo_build
+        for_appearances capture_with_retry
+        for_appearances demo_compose
+        for_appearances demo_export
+        ;;
+    check-release) demo_check_release ;;
+    help|--help|-h) demo_usage ;;
+    *) demo_usage >&2; exit 64 ;;
+esac

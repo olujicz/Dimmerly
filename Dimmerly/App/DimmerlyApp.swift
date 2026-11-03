@@ -687,6 +687,8 @@ final class StatusItemQuickActions: NSObject {
             scene != nil
         }
 
+        nonisolated static let appearanceEnvironmentKey = "DIMMERLY_SCREENSHOT_APPEARANCE"
+        nonisolated static let backdropEnvironmentKey = "DIMMERLY_SCREENSHOT_BACKDROP"
         nonisolated static let storyboardEnvironmentKey = "DIMMERLY_DEMO_STORYBOARD"
         nonisolated static let demoOutputEnvironmentKey = "DIMMERLY_DEMO_OUTPUT"
 
@@ -704,6 +706,21 @@ final class StatusItemQuickActions: NSObject {
                 fail(error.localizedDescription)
             }
         }()
+
+        /// `light` or `dark` forces the staged windows' appearance, whatever the Mac uses, so
+        /// the website can show a capture that matches each colour scheme. Unset follows the Mac.
+        static func stagedAppearance() -> NSAppearance? {
+            switch ProcessInfo.processInfo.environment[appearanceEnvironmentKey] {
+            case nil, "":
+                nil
+            case "light":
+                NSAppearance(named: .aqua)
+            case "dark":
+                NSAppearance(named: .darkAqua)
+            case let value?:
+                fail("\(appearanceEnvironmentKey) must be light or dark, not \(value).")
+            }
+        }
 
         private nonisolated static func fail(_ message: String) -> Never {
             FileHandle.standardError.write(Data("Dimmerly demo: \(message)\n".utf8))
@@ -860,6 +877,9 @@ final class StatusItemQuickActions: NSObject {
         static func statusItemDidAttach(openSettings: @escaping () -> Void) {
             guard let scene, !didPresent else { return }
             didPresent = true
+            if let appearance = stagedAppearance() {
+                NSApp.appearance = appearance
+            }
             // A regular app can come to the front, which the Settings region capture requires.
             NSApp.setActivationPolicy(.regular)
             Task { @MainActor in
@@ -867,9 +887,15 @@ final class StatusItemQuickActions: NSObject {
                 // The capture needs Dimmerly in front even though another app was active
                 // when the script launched it, so take focus rather than request it.
                 NSApp.activate(ignoringOtherApps: true)
+                // Activation completes a moment later. A panel shown before it never becomes
+                // key, and macOS draws it unfocused, with grey accent colours.
+                for _ in 0 ..< 100 where !NSApp.isActive {
+                    try? await Task.sleep(for: .milliseconds(20))
+                }
                 switch scene {
                 case .menu:
                     MenuBarPanelPresenter.shared.present(selectedPresetID: nil)
+                    await showBackdropBehindPanel()
                 case .settings:
                     // `settingsWindowDidAttach` centers the window once SwiftUI creates it.
                     openSettings()
@@ -885,12 +911,17 @@ final class StatusItemQuickActions: NSObject {
             guard let storyboard,
                   let output = ProcessInfo.processInfo.environment[demoOutputEnvironmentKey]
             else { return }
+            // The real panel opens before frame 0 and stays open, so the recorder has its full-size
+            // window from the start. The compositor shows and hides it from `panelOpen`; a
+            // popover's own appear animation would arrive too late to record anyway.
+            MenuBarPanelPresenter.shared.present(selectedPresetID: nil)
+            await showBackdropBehindPanel()
             let player = DemoPlayer(
                 storyboard: storyboard,
                 brightnessManager: .shared,
                 presetManager: .shared,
-                openPanel: { MenuBarPanelPresenter.shared.present(selectedPresetID: nil) },
-                closePanel: { MenuBarPanelPresenter.shared.dismiss() }
+                openPanel: {},
+                closePanel: {}
             )
             do {
                 demoRunner = try DemoRunner(player: player, outputURL: URL(fileURLWithPath: output))
@@ -899,6 +930,55 @@ final class StatusItemQuickActions: NSObject {
             }
             try? await Task.sleep(for: .seconds(storyboard.leadIn ?? 0))
             demoRunner?.start()
+        }
+
+        private static var backdropWindow: NSWindow?
+
+        /// The panel's material blurs whatever is behind it, and a window-only capture has
+        /// nothing there, so light mode records as flat grey. `DIMMERLY_SCREENSHOT_BACKDROP=#RRGGBB`
+        /// puts a plain window of that colour behind the panel, as a desktop of the colour the
+        /// image puts around it would be. The capture keeps only the panel's own shape.
+        private static func showBackdropBehindPanel() async {
+            guard let hex = ProcessInfo.processInfo.environment[backdropEnvironmentKey], !hex.isEmpty else { return }
+            guard let color = color(hex: hex) else {
+                fail("\(backdropEnvironmentKey) must be a #RRGGBB colour, not \(hex).")
+            }
+            // The popover window appears a moment after `present`.
+            var panelWindow: NSWindow?
+            for _ in 0 ..< 50 where panelWindow == nil {
+                try? await Task.sleep(for: .milliseconds(20))
+                panelWindow = NSApp.windows.first {
+                    $0.isVisible && (280 ... 340).contains($0.frame.width) && $0.frame.height >= 150
+                }
+            }
+            guard let panelWindow else { fail("The panel did not appear, so the backdrop has nowhere to go.") }
+            let panelFrame = panelWindow.frame
+            let window = NSWindow(
+                contentRect: panelFrame.insetBy(dx: -80, dy: -80),
+                styleMask: .borderless,
+                backing: .buffered,
+                defer: false
+            )
+            window.backgroundColor = color
+            window.isOpaque = true
+            window.hasShadow = false
+            window.ignoresMouseEvents = true
+            // Above ordinary windows, below the status-bar-level popover.
+            window.level = .floating
+            window.orderFrontRegardless()
+            backdropWindow = window
+            // Keep the panel key, so it is drawn focused, with its accent colours.
+            panelWindow.makeKey()
+        }
+
+        private static func color(hex: String) -> NSColor? {
+            guard hex.count == 7, hex.hasPrefix("#"), let value = UInt32(hex.dropFirst(), radix: 16) else { return nil }
+            return NSColor(
+                srgbRed: CGFloat((value >> 16) & 0xFF) / 255,
+                green: CGFloat((value >> 8) & 0xFF) / 255,
+                blue: CGFloat(value & 0xFF) / 255,
+                alpha: 1
+            )
         }
 
         /// Called by the Settings window itself, so only that window is moved, and only once

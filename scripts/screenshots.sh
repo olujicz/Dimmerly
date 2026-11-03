@@ -5,13 +5,16 @@ script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 repo_dir="$(cd -- "$script_dir/.." && pwd)"
 helper_app="$repo_dir/.build/DimmerlyScreenshotHelper.app"
 helper_id="rs.in.olujic.dimmerly.screenshot-helper"
+helper_sources=("$script_dir/screenshots/CaptureWindows.swift" "$script_dir/screenshots/RecordPanel.swift")
 
 usage() {
     cat <<'HELP'
 Usage:
-  scripts/screenshots.sh refresh [--variant app-store|github] [--output PATH] [--skip-build]
+  scripts/screenshots.sh refresh [--variant app-store|github] [--appearance light|dark]
+                                 [--output PATH] [--skip-build]
   scripts/screenshots.sh build-helper
   scripts/screenshots.sh capture --pid PID --mode menu|settings-region|settings --output PATH
+                                 [--backdrop required]
   scripts/screenshots.sh compose [composition options]
 
 refresh does everything: builds the debug app for the variant, launches it in its
@@ -20,6 +23,9 @@ menu panel and Displays settings, quits it, and composes the final image.
   app-store (default): Dimmerly App Store / Debug-AppStore
                        -> images/app-store/01-menu-and-displays.png
   github:              Dimmerly / Debug -> images/image1.png and images/image2.png
+--appearance forces the app into light or dark; without it the app follows the system.
+The panel is captured over a plain window whose colour its frosted glass picks up: the
+App Store background's colour, or a dark slate for the GitHub images.
 Raw captures are kept in .build/screenshots/<variant>/. Inspect the result before
 committing it.
 
@@ -29,7 +35,8 @@ when several people's or teams' identities are installed. Screen Recording appro
 DimmerlyScreenshotHelper is requested on the first capture.
 capture launches the helper only; Dimmerly must already be running with the target
 window visible. settings-region avoids the sharing badge, but captures any visible
-occlusions. Inspect every result.
+occlusions. --backdrop required makes a menu capture fail until the staged app's backdrop
+window is showing. Inspect every result.
 compose runs the image compositor; use compose --help for its options.
 HELP
 }
@@ -73,7 +80,7 @@ build_helper() {
 <key>LSUIElement</key><true/>
 </dict></plist>
 PLIST
-    xcrun swiftc -parse-as-library "$script_dir/screenshots/CaptureWindows.swift" \
+    xcrun swiftc -O -parse-as-library "${helper_sources[@]}" \
         -o "$helper_app/Contents/MacOS/DimmerlyScreenshotHelper" \
         -framework AppKit -framework CoreGraphics -framework ScreenCaptureKit
     codesign --force --sign "$identity" --identifier "$helper_id" "$helper_app"
@@ -81,20 +88,34 @@ PLIST
     echo "Built $helper_app (not launched)."
 }
 
+# Rebuilds the helper when it is missing or older than any of its sources.
+ensure_helper() {
+    local helper_binary="$helper_app/Contents/MacOS/DimmerlyScreenshotHelper" source
+    if [[ -x "$helper_binary" ]]; then
+        for source in "${helper_sources[@]}"; do
+            [[ "$source" -nt "$helper_binary" ]] && { build_helper; return; }
+        done
+        return 0
+    fi
+    build_helper
+}
+
 capture() {
-    local pid='' mode='' output=''
+    local pid='' mode='' output='' backdrop=''
     while [[ $# -gt 0 ]]; do
         [[ $# -ge 2 ]] || { usage >&2; return 64; }
         case "$1" in
             --pid) [[ -z "$pid" ]] || return 64; pid="$2" ;;
             --mode) [[ -z "$mode" ]] || return 64; mode="$2" ;;
             --output) [[ -z "$output" ]] || return 64; output="$2" ;;
+            --backdrop) [[ -z "$backdrop" && "$2" == 'required' ]] || { usage >&2; return 64; }; backdrop="$2" ;;
             *) usage >&2; return 64 ;;
         esac
         shift 2
     done
     [[ "$pid" =~ ^[1-9][0-9]*$ && -n "$output" ]] || { usage >&2; return 64; }
     case "$mode" in menu|settings-region|settings) ;; *) usage >&2; return 64 ;; esac
+    [[ -z "$backdrop" || "$mode" == 'menu' ]] || { usage >&2; return 64; }
     # Setup failures return 2 so capture_when_ready stops instead of retrying them. Each step
     # is checked explicitly because set -e does not apply when capture runs in a condition.
     [[ -x "$helper_app/Contents/MacOS/DimmerlyScreenshotHelper" ]] || {
@@ -108,7 +129,9 @@ capture() {
     mkdir -p -- "$(dirname -- "$output")" || return 2
     output="$(cd -- "$(dirname -- "$output")" && pwd)/$(basename -- "$output")" || return 2
     local status
-    status="$(run_helper --pid "$pid" --mode "$mode" --output "$output" --status)" || return 2
+    local helper_args=(--pid "$pid" --mode "$mode" --output "$output")
+    [[ -z "$backdrop" ]] || helper_args+=(--backdrop "$backdrop")
+    status="$(run_helper "${helper_args[@]}" --status)" || return 2
     [[ -n "$status" ]] || status='The capture helper exited without reporting a result.'
     if [[ "$status" != 'ok' ]]; then
         [[ -n "${QUIET_CAPTURE_FAILURE:-}" ]] || {
@@ -126,7 +149,9 @@ capture() {
 run_helper() {
     local status_file status=''
     status_file="$(mktemp "${TMPDIR:-/tmp}/dimmerly-capture.XXXXXX")" || return 1
-    if open -W -n "$helper_app" --args "$@" "$status_file"; then
+    # -g keeps the helper in the background: taking focus would turn the panel's accent
+    # colours grey, as macOS draws an unfocused panel.
+    if open -g -W -n "$helper_app" --args "$@" "$status_file"; then
         status="$(cat -- "$status_file" 2>/dev/null || true)"
     fi
     rm -f -- "$status_file"
@@ -160,10 +185,14 @@ MESSAGE
     return 1
 }
 
-# Launches the staged debug app for one scene and records its PID in staged_pid.
+# Launches the staged debug app for one scene and records its PID in staged_pid. An optional
+# appearance (light or dark, empty to follow the system) and #RRGGBB backdrop colour follow.
 launch_staged() {
-    local app="$1" scene="$2"
-    DIMMERLY_SCREENSHOT="$scene" "$app/Contents/MacOS/Dimmerly" >/dev/null 2>&1 &
+    local app="$1" scene="$2" appearance="${3:-}" backdrop="${4:-}"
+    # Debug builds write coverage data to the working directory unless told otherwise.
+    DIMMERLY_SCREENSHOT="$scene" DIMMERLY_SCREENSHOT_APPEARANCE="$appearance" \
+        DIMMERLY_SCREENSHOT_BACKDROP="$backdrop" LLVM_PROFILE_FILE="$repo_dir/.build/default.profraw" \
+        "$app/Contents/MacOS/Dimmerly" >/dev/null 2>&1 &
     staged_pid=$!
 }
 
@@ -175,14 +204,16 @@ stop_staged() {
     staged_pid=''
 }
 
-# Retries until the staged window is on screen, for up to about 20 seconds.
+# Retries until the staged window is on screen, for up to about 20 seconds. Extra arguments
+# go to capture.
 capture_when_ready() {
     local mode="$1" output="$2"
+    shift 2
     last_capture_error=''
     for _ in $(seq 1 20); do
         kill -0 "$staged_pid" 2>/dev/null || { echo 'The staged Dimmerly app exited early.' >&2; return 1; }
         local result=0
-        QUIET_CAPTURE_FAILURE=1 capture --pid "$staged_pid" --mode "$mode" --output "$output" || result=$?
+        QUIET_CAPTURE_FAILURE=1 capture --pid "$staged_pid" --mode "$mode" --output "$output" "$@" || result=$?
         [[ $result -eq 0 ]] && return 0
         # Setup failures (a missing or broken helper) won't fix themselves.
         [[ $result -eq 1 ]] || return "$result"
@@ -194,23 +225,30 @@ capture_when_ready() {
 }
 
 refresh() {
-    local variant='app-store' output='' skip_build=''
+    local variant='app-store' output='' skip_build='' appearance=''
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --variant) [[ $# -ge 2 ]] || { usage >&2; return 64; }; variant="$2"; shift 2 ;;
+            --appearance)
+                [[ $# -ge 2 && ( "$2" == 'light' || "$2" == 'dark' ) ]] || { usage >&2; return 64; }
+                appearance="$2"; shift 2 ;;
             --output) [[ $# -ge 2 ]] || { usage >&2; return 64; }; output="$2"; shift 2 ;;
             --skip-build) skip_build=1; shift ;;
             *) usage >&2; return 64 ;;
         esac
     done
 
-    local scheme configuration
+    # The colour behind the panel while it is captured, which its frosted glass picks up.
+    # app-store: the average of background.png behind the panel, as on a real desktop.
+    # github: the panel stands alone on the page, so a dark slate (the dark demo's backdrop)
+    # keeps the text clear on both GitHub themes.
+    local scheme configuration backdrop
     case "$variant" in
         app-store)
-            scheme='Dimmerly App Store'; configuration='Debug-AppStore'
+            scheme='Dimmerly App Store'; configuration='Debug-AppStore'; backdrop='#708FA7'
             output="${output:-$repo_dir/images/app-store/01-menu-and-displays.png}" ;;
         github)
-            scheme='Dimmerly'; configuration='Debug'
+            scheme='Dimmerly'; configuration='Debug'; backdrop='#1E252E'
             output="${output:-$repo_dir/images}" ;;
         *) usage >&2; return 64 ;;
     esac
@@ -227,10 +265,7 @@ refresh() {
     fi
     [[ -x "$app/Contents/MacOS/Dimmerly" ]] || { echo "Missing $app; run without --skip-build." >&2; return 1; }
 
-    local helper_binary="$helper_app/Contents/MacOS/DimmerlyScreenshotHelper"
-    if [[ ! -x "$helper_binary" || "$script_dir/screenshots/CaptureWindows.swift" -nt "$helper_binary" ]]; then
-        build_helper
-    fi
+    ensure_helper
 
     check_screen_recording || return 1
 
@@ -242,12 +277,12 @@ refresh() {
     trap 'stop_staged; exit 143' TERM
 
     echo 'Capturing the menu panel...'
-    launch_staged "$app" menu
-    capture_when_ready menu "$inputs/menu.png"
+    launch_staged "$app" menu "$appearance" "$backdrop"
+    capture_when_ready menu "$inputs/menu.png" --backdrop required
     stop_staged
 
     echo 'Capturing Displays settings...'
-    launch_staged "$app" settings
+    launch_staged "$app" settings "$appearance"
     capture_when_ready settings-region "$inputs/settings.png"
     # The mask capture must match the region capture, so take it right away.
     capture --pid "$staged_pid" --mode settings --output "$inputs/settings-mask.png"
@@ -278,6 +313,9 @@ run_compose() {
         -o "$repo_dir/.build/ComposeScreenshots" -framework AppKit -framework CoreGraphics
     "$repo_dir/.build/ComposeScreenshots" "$@"
 }
+
+# scripts/demo.sh sources this file for the helper functions; only run a command when executed.
+[[ "${BASH_SOURCE[0]}" == "$0" ]] || return 0
 
 command="${1:-help}"
 [[ $# -eq 0 ]] || shift
