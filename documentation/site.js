@@ -65,3 +65,95 @@
         container.appendChild(button);
     });
 })();
+
+// Sets up the demo loop. The markup alone shows a poster with native controls
+// and never plays by itself; here the light or dark version is chosen to match
+// the page, the native controls give way to one Pause/Play button (moving
+// content longer than five seconds needs a visible way to stop it), and the
+// loop plays unless the visitor asks for reduced motion.
+(function () {
+    "use strict";
+
+    var video = document.querySelector(".demo-video");
+    if (!video || !window.matchMedia) {
+        return;
+    }
+
+    var dark = window.matchMedia("(prefers-color-scheme: dark)");
+    var reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    function useVariant() {
+        var name = dark.matches ? "dark" : "light";
+        var source = video.getAttribute("data-" + name + "-src");
+        if (video.getAttribute("src") === source) {
+            return;
+        }
+        var resumeAt = video.currentTime;
+        var wasPlaying = !video.paused;
+        video.poster = video.getAttribute("data-" + name + "-poster");
+        video.src = source;
+        if (resumeAt > 0) {
+            video.addEventListener("loadedmetadata", function seek() {
+                video.removeEventListener("loadedmetadata", seek);
+                video.currentTime = resumeAt;
+            });
+        }
+        if (wasPlaying) {
+            play();
+        }
+    }
+
+    var button = document.createElement("button");
+    button.type = "button";
+    button.className = "demo-toggle";
+
+    function showState() {
+        var playing = !video.paused;
+        button.textContent = playing ? "Pause" : "Play";
+        button.setAttribute("aria-label", playing ? "Pause the demo video" : "Play the demo video");
+    }
+
+    // Autoplay can be refused (Low Power Mode, browser policy); the poster and
+    // the Play button then stay as they are.
+    function play() {
+        var started = video.play();
+        if (started && started.catch) {
+            started.catch(showState);
+        }
+    }
+
+    button.addEventListener("click", function () {
+        if (video.paused) {
+            play();
+        } else {
+            video.pause();
+        }
+    });
+    video.addEventListener("play", showState);
+    video.addEventListener("pause", showState);
+
+    video.controls = false;
+    video.preload = "metadata";
+    useVariant();
+    video.parentNode.appendChild(button);
+    showState();
+
+    if (!reducedMotion.matches) {
+        play();
+    }
+
+    function onChange(query, handler) {
+        if (query.addEventListener) {
+            query.addEventListener("change", handler);
+        } else if (query.addListener) {
+            query.addListener(handler);
+        }
+    }
+
+    onChange(dark, useVariant);
+    onChange(reducedMotion, function () {
+        if (reducedMotion.matches) {
+            video.pause();
+        }
+    });
+})();

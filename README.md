@@ -24,6 +24,11 @@ brew tap olujicz/dimmerly
 brew install --cask dimmerly
 ```
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/demo/dimmerly-demo-dark.webp">
+  <img src="images/demo/dimmerly-demo-light.webp" width="480" alt="Dimmerly's menu bar panel dimming the external display, warming both screens and applying a preset, on illustrated displays">
+</picture>
+
 ![Dimmerly menu bar panel on macOS](images/image1.png)
 
 ## New in 1.4.1

@@ -8,6 +8,10 @@ on:
       - "images/image1.png"
       - "images/image2.png"
       - "images/github-social-preview.jpg"
+      - "images/demo/dimmerly-demo-light.mp4"
+      - "images/demo/dimmerly-demo-dark.mp4"
+      - "images/demo/dimmerly-demo-light-poster.jpg"
+      - "images/demo/dimmerly-demo-dark-poster.jpg"
       - "IconComposerLayers/AppIcon-IconComposer/rendered/icon_128x128@2x.png"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
@@ -54,6 +58,10 @@ jobs:
           cp images/image1.png build/pages/assets/dimmerly-menu.png
           cp images/image2.png build/pages/assets/dimmerly-settings.png
           cp images/github-social-preview.jpg build/pages/assets/dimmerly-social-preview.jpg
+          cp images/demo/dimmerly-demo-light.mp4 build/pages/assets/dimmerly-demo-light.mp4
+          cp images/demo/dimmerly-demo-dark.mp4 build/pages/assets/dimmerly-demo-dark.mp4
+          cp images/demo/dimmerly-demo-light-poster.jpg build/pages/assets/dimmerly-demo-light-poster.jpg
+          cp images/demo/dimmerly-demo-dark-poster.jpg build/pages/assets/dimmerly-demo-dark-poster.jpg
           cp IconComposerLayers/AppIcon-IconComposer/rendered/icon_128x128@2x.png build/pages/assets/dimmerly-icon.png
           touch build/pages/.nojekyll
 
@@ -82,6 +90,10 @@ jobs:
           test -s build/pages/assets/dimmerly-menu.png
           test -s build/pages/assets/dimmerly-settings.png
           test -s build/pages/assets/dimmerly-social-preview.jpg
+          test -s build/pages/assets/dimmerly-demo-light.mp4
+          test -s build/pages/assets/dimmerly-demo-dark.mp4
+          test -s build/pages/assets/dimmerly-demo-light-poster.jpg
+          test -s build/pages/assets/dimmerly-demo-dark-poster.jpg
           test -s build/pages/assets/dimmerly-icon.png
           for page in build/pages/*.html; do
             test "$(grep -c 'https://static.cloudflareinsights.com/beacon.min.js' "$page")" -eq 1
