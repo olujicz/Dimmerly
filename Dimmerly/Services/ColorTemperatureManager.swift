@@ -58,7 +58,14 @@ enum ColorTempState: Equatable {
 @MainActor
 @Observable
 class ColorTemperatureManager {
-    static let shared = ColorTemperatureManager()
+    #if DEBUG
+        /// Screenshot runs (`DIMMERLY_SCREENSHOT`) get an isolated instance; see `ScreenshotStage`.
+        static let shared = ScreenshotStage.isActive
+            ? ScreenshotStage.makeColorTemperatureManager()
+            : ColorTemperatureManager()
+    #else
+        static let shared = ColorTemperatureManager()
+    #endif
 
     /// Whether auto color temperature is currently actively controlling warmth.
     /// False when disabled in settings or during manual override.

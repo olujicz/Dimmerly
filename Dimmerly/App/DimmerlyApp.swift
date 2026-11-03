@@ -167,6 +167,9 @@ struct DimmerlyApp: App {
                 openSettings: openSettingsWindow
             )
             statusItemAccessibility.attach(to: statusItem)
+            #if DEBUG
+                ScreenshotStage.statusItemDidAttach(openSettings: openSettingsWindow)
+            #endif
         }
         .menuBarExtraStyle(.window)
 
@@ -457,6 +460,11 @@ final class DimmerlyAppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_: Notification) {
         guard !isHostingUnitTests else { return }
+        #if DEBUG
+            // A screenshot run shows staged windows only; it must not register shortcuts,
+            // run schedules, answer widget requests, or publish Control Center state.
+            guard !ScreenshotStage.isActive else { return }
+        #endif
         services.configure()
     }
 
@@ -650,3 +658,126 @@ final class StatusItemQuickActions: NSObject {
         openSettings?()
     }
 }
+
+#if DEBUG
+    /// Debug-only staged state for marketing screenshots, driven by `scripts/screenshots.sh refresh`.
+    ///
+    /// Setting `DIMMERLY_SCREENSHOT` to `menu` or `settings` launches a debug build that never
+    /// touches the user's displays or saved data: the app-wide managers are replaced with
+    /// isolated instances backed by a throwaway defaults suite, gamma tables are left alone,
+    /// widgets are not synchronized, and launch setup (shortcuts, schedules, hardware control,
+    /// widget requests) does not run. The stage then shows the requested window for capture.
+    /// Release builds don't contain any of this.
+    @MainActor
+    enum ScreenshotStage {
+        enum Scene: String {
+            case menu
+            case settings
+        }
+
+        nonisolated static let environmentKey = "DIMMERLY_SCREENSHOT"
+        nonisolated static let defaultsSuiteName = "rs.in.olujic.dimmerly.screenshots"
+
+        nonisolated static let scene: Scene? = ProcessInfo.processInfo.environment[environmentKey]
+            .flatMap(Scene.init(rawValue:))
+
+        nonisolated static var isActive: Bool {
+            scene != nil
+        }
+
+        /// Starts empty on every launch so earlier runs can't leak into a new capture.
+        static let defaults: UserDefaults = {
+            UserDefaults().removePersistentDomain(forName: defaultsSuiteName)
+            return UserDefaults(suiteName: defaultsSuiteName) ?? .standard
+        }()
+
+        // MARK: Staged content
+
+        /// What the screenshots show. Edit these to change the staged content.
+        static let displayName = "External Display"
+        static let displayBrightness = 0.75
+        static let presets: [(name: String, brightness: Double)] = [
+            ("Full", 1.0),
+            ("Evening", 0.65),
+            ("Night", 0.35),
+        ]
+
+        /// Control–Option–number: valid in both builds, and not a Command-number app shortcut.
+        static func presetShortcut(_ index: Int) -> GlobalShortcut {
+            GlobalShortcut(key: String(index + 1), modifiers: [.control, .option])
+        }
+
+        static func makeSettings() -> AppSettings {
+            AppSettings(defaults: defaults)
+        }
+
+        static func makeBrightnessManager() -> BrightnessManager {
+            // The testing initializer skips display enumeration, observers and gamma writes.
+            let manager = BrightnessManager(forTesting: true, defaults: defaults)
+            manager.displays = [
+                ExternalDisplay(id: CGMainDisplayID(), name: displayName, brightness: displayBrightness),
+            ]
+            return manager
+        }
+
+        static func makePresetManager() -> PresetManager {
+            let manager = PresetManager(
+                defaults: defaults,
+                mainShortcutProvider: { .default },
+                widgetSynchronizer: NoWidgetSynchronizer(),
+                notifyWarmthPresetApplied: {}
+            )
+            manager.presets = presets.enumerated().map { index, preset in
+                BrightnessPreset(
+                    name: preset.name,
+                    shortcut: presetShortcut(index),
+                    universalBrightness: preset.brightness
+                )
+            }
+            return manager
+        }
+
+        static func makeLocationProvider() -> LocationProvider {
+            LocationProvider(forTesting: true, defaults: defaults)
+        }
+
+        static func makeColorTemperatureManager() -> ColorTemperatureManager {
+            ColorTemperatureManager(brightnessManager: .shared, settings: .shared)
+        }
+
+        private struct NoWidgetSynchronizer: WidgetPresetSynchronizing {
+            func synchronize(_: [BrightnessPreset]) {}
+        }
+
+        // MARK: Presentation
+
+        private static var didPresent = false
+
+        /// Shows the staged window once the status item exists. The capture script waits for
+        /// the window itself, so this only has to show it.
+        static func statusItemDidAttach(openSettings: @escaping () -> Void) {
+            guard let scene, !didPresent else { return }
+            didPresent = true
+            // A regular app can come to the front, which the Settings region capture requires.
+            NSApp.setActivationPolicy(.regular)
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(1))
+                // The capture needs Dimmerly in front even though another app was active
+                // when the script launched it, so take focus rather than request it.
+                NSApp.activate(ignoringOtherApps: true)
+                switch scene {
+                case .menu:
+                    MenuBarPanelPresenter.shared.present(selectedPresetID: nil)
+                case .settings:
+                    openSettings()
+                    try? await Task.sleep(for: .milliseconds(500))
+                    for window in NSApp.windows where window.isVisible && window.frame.width >= 400 {
+                        window.center()
+                        window.makeKeyAndOrderFront(nil)
+                    }
+                    NSApp.activate(ignoringOtherApps: true)
+                }
+            }
+        }
+    }
+#endif

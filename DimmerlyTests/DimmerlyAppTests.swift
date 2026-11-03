@@ -528,3 +528,33 @@ final class DimmerlyAppTests: XCTestCase {
         XCTAssertEqual(DimmerlyShortcuts.appShortcuts.count, 6)
     }
 }
+
+/// The debug-only screenshot stage behind `scripts/screenshots.sh refresh`.
+@MainActor
+final class ScreenshotStageTests: XCTestCase {
+    func testTestRunsUseTheRealManagers() {
+        XCTAssertFalse(ScreenshotStage.isActive)
+        XCTAssertEqual(SettingsView.Tab.initial, .general)
+    }
+
+    /// A screenshot must show bindings the App Store build accepts.
+    func testStagedPresetShortcutsSuitTheAppStoreBuild() {
+        let manager = ScreenshotStage.makePresetManager()
+        XCTAssertEqual(manager.presets.map(\.name), ScreenshotStage.presets.map(\.name))
+        for preset in manager.presets {
+            let shortcut = try? XCTUnwrap(preset.shortcut)
+            XCTAssertEqual(shortcut?.isValidCarbonShortcut, true, preset.name)
+        }
+    }
+
+    /// Staged values persist only in the screenshot suite, never in the user's settings.
+    func testStagedManagersUseTheScreenshotSuite() {
+        let manager = ScreenshotStage.makePresetManager()
+        XCTAssertNotNil(ScreenshotStage.defaults.data(forKey: PresetManager.persistenceKey))
+        XCTAssertEqual(manager.presets.count, ScreenshotStage.presets.count)
+
+        let brightness = ScreenshotStage.makeBrightnessManager()
+        XCTAssertEqual(brightness.displays.map(\.name), [ScreenshotStage.displayName])
+        XCTAssertEqual(brightness.displays.first?.brightness, ScreenshotStage.displayBrightness)
+    }
+}

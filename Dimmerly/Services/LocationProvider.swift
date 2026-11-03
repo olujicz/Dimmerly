@@ -67,7 +67,12 @@ private final class LocationRequestGate: Sendable {
 @MainActor
 @Observable
 class LocationProvider: NSObject {
-    static let shared = LocationProvider()
+    #if DEBUG
+        /// Screenshot runs (`DIMMERLY_SCREENSHOT`) get an isolated instance; see `ScreenshotStage`.
+        static let shared = ScreenshotStage.isActive ? ScreenshotStage.makeLocationProvider() : LocationProvider()
+    #else
+        static let shared = LocationProvider()
+    #endif
 
     var latitude: Double?
     var longitude: Double?

@@ -51,8 +51,14 @@ enum CaptureWindows {
     @MainActor
     static func main() async {
         var statusURL: URL?
+        let arguments = CommandLine.arguments
+        if arguments.count == 3, arguments[1] == "--preflight" {
+            let status = preflightStatus()
+            try? writeStatus(status, to: URL(fileURLWithPath: arguments[2]))
+            exit(status == "ok" ? 0 : 1)
+        }
         do {
-            let options = try Options(arguments: CommandLine.arguments)
+            let options = try Options(arguments: arguments)
             statusURL = options.statusURL
             _ = NSApplication.shared
             guard let application = NSRunningApplication(processIdentifier: options.processID),
@@ -62,8 +68,11 @@ enum CaptureWindows {
                 throw CaptureError("PID must identify an already running Dimmerly app.")
             }
             if options.mode == "settings-region" {
-                application.activate(options: [.activateAllWindows])
-                try await Task.sleep(for: .milliseconds(500))
+                // Activation can be refused while another app is finishing its own, so retry.
+                for _ in 0 ..< 5 where !application.isActive {
+                    application.activate(options: [.activateAllWindows])
+                    try await Task.sleep(for: .milliseconds(400))
+                }
                 guard application.isActive else {
                     throw CaptureError("Bring Dimmerly Settings to the front, then retry the capture.")
                 }
@@ -76,9 +85,11 @@ enum CaptureWindows {
                 guard $0.owningApplication?.processID == options.processID else { return false }
                 let size = $0.frame.size
                 if options.mode == "menu" {
-                    return size.width >= 299 && size.width <= 301 && size.height >= 150 && size.height <= 650
+                    // The 300-point panel is hosted in a popover, whose window is a few points
+                    // narrower or wider depending on the macOS release.
+                    return size.width >= 280 && size.width <= 320 && size.height >= 150 && size.height <= 700
                 }
-                return size.width >= 500 && size.height >= 350
+                return size.width >= 400 && size.height >= 300
             }
             guard candidates.count == 1, let window = candidates.first else {
                 let candidateDescriptions = candidates.map {
@@ -115,11 +126,26 @@ enum CaptureWindows {
             try data.write(to: options.outputURL, options: .atomic)
             try writeStatus("ok", to: statusURL)
         } catch {
-            let message = error.localizedDescription
+            let nsError = error as NSError
+            let message = "\(error.localizedDescription) [\(nsError.domain) \(nsError.code)]"
             try? writeStatus(message, to: statusURL)
             FileHandle.standardError.write(Data((message + "\n").utf8))
             exit(1)
         }
+    }
+
+    /// Reports whether a capture can run: `ok`, `unavailable` while the screen is locked or the
+    /// displays sleep (WindowServer can't take screenshots then), or `denied` without Screen
+    /// Recording. Requesting access adds the helper to the list in System Settings.
+    private static func preflightStatus() -> String {
+        let session = CGSessionCopyCurrentDictionary() as? [String: Any]
+        let isLocked = session?["CGSSessionScreenIsLocked"] as? Bool ?? false
+        var activeDisplayCount: UInt32 = 0
+        CGGetActiveDisplayList(0, nil, &activeDisplayCount)
+        if isLocked || activeDisplayCount == 0 {
+            return "unavailable"
+        }
+        return CGPreflightScreenCaptureAccess() || CGRequestScreenCaptureAccess() ? "ok" : "denied"
     }
 
     private static func writeStatus(_ value: String, to url: URL?) throws {

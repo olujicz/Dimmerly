@@ -93,7 +93,12 @@ struct ExternalDisplay: Identifiable {
 @MainActor
 @Observable
 class BrightnessManager { // swiftlint:disable:this type_body_length
-    static let shared = BrightnessManager()
+    #if DEBUG
+        /// Screenshot runs (`DIMMERLY_SCREENSHOT`) get an isolated instance; see `ScreenshotStage`.
+        static let shared = ScreenshotStage.isActive ? ScreenshotStage.makeBrightnessManager() : BrightnessManager()
+    #else
+        static let shared = BrightnessManager()
+    #endif
 
     /// Minimum allowed brightness to ensure displays remain visible.
     /// Prevents accidentally setting displays to pure black, which would require external controls to recover.
