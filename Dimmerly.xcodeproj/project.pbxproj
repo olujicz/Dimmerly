@@ -44,6 +44,7 @@
 		CR0000000000000000000011 /* ConnectedDisplayResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = CR0000000000000000000001 /* ConnectedDisplayResolver.swift */; };
 		BS0000000000000000000011 /* BlankingSystemControllers.swift in Sources */ = {isa = PBXBuildFile; fileRef = BS0000000000000000000001 /* BlankingSystemControllers.swift */; };
 		C1B2C3D4E5F6A7B8C9D0E1F1 /* DimmerlyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B2C3D4E5F6A7B8C9D0E1F1 /* DimmerlyApp.swift */; };
+		DM00000000000000000011 /* DemoTimeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = DM00000000000000000001 /* DemoTimeline.swift */; };
 		C1B2C3D4E5F6A7B8C9D0E1F2 /* DisplayController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B2C3D4E5F6A7B8C9D0E1F2 /* DisplayController.swift */; };
 		C1B2C3D4E5F6A7B8C9D0E1F3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B1B2C3D4E5F6A7B8C9D0E1F4 /* Assets.xcassets */; };
 		D020A5D272EBF573C8F22F90 /* KeyboardShortcutRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = C50F163FD03D0874576E9962 /* KeyboardShortcutRecorder.swift */; };
@@ -66,6 +67,7 @@
 		PRV00000000000000000002 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = PRV00000000000000000001 /* PrivacyInfo.xcprivacy */; };
 		T1B2C3D4E5F6A7B8C9D0E301 /* DisplayControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1B2C3D4E5F6A7B8C9D0E300 /* DisplayControllerTests.swift */; };
 		DA00000000000000000002 /* DimmerlyAppTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA00000000000000000001 /* DimmerlyAppTests.swift */; };
+		DM00000000000000000012 /* DemoTimelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DM00000000000000000002 /* DemoTimelineTests.swift */; };
 		T1B2C3D4E5F6A7B8C9D0E311 /* AppSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1B2C3D4E5F6A7B8C9D0E310 /* AppSettingsTests.swift */; };
 		T1B2C3D4E5F6A7B8C9D0E321 /* KeyboardShortcutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1B2C3D4E5F6A7B8C9D0E320 /* KeyboardShortcutTests.swift */; };
 		AS0000000000000000000011 /* AppStoreShortcutManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AS0000000000000000000001 /* AppStoreShortcutManagerTests.swift */; };
@@ -177,6 +179,7 @@
 		AA1234560000000000000002 /* Dimmerly.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = Dimmerly.icns; sourceTree = "<group>"; };
 		AA12345600000000000000A1 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		B1B2C3D4E5F6A7B8C9D0E1F1 /* DimmerlyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DimmerlyApp.swift; sourceTree = "<group>"; };
+		DM00000000000000000001 /* DemoTimeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoTimeline.swift; sourceTree = "<group>"; };
 		B1B2C3D4E5F6A7B8C9D0E1F2 /* DisplayController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayController.swift; sourceTree = "<group>"; };
 		B1B2C3D4E5F6A7B8C9D0E1F3 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B1B2C3D4E5F6A7B8C9D0E1F4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -206,6 +209,7 @@
 		T1B2C3D4E5F6A7B8C9D0E1FF /* DimmerlyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DimmerlyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		T1B2C3D4E5F6A7B8C9D0E300 /* DisplayControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayControllerTests.swift; sourceTree = "<group>"; };
 		DA00000000000000000001 /* DimmerlyAppTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DimmerlyAppTests.swift; sourceTree = "<group>"; };
+		DM00000000000000000002 /* DemoTimelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoTimelineTests.swift; sourceTree = "<group>"; };
 		T1B2C3D4E5F6A7B8C9D0E310 /* AppSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsTests.swift; sourceTree = "<group>"; };
 		T1B2C3D4E5F6A7B8C9D0E320 /* KeyboardShortcutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutTests.swift; sourceTree = "<group>"; };
 		AS0000000000000000000001 /* AppStoreShortcutManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStoreShortcutManagerTests.swift; sourceTree = "<group>"; };
@@ -375,6 +379,7 @@
 			isa = PBXGroup;
 			children = (
 				B1B2C3D4E5F6A7B8C9D0E1F1 /* DimmerlyApp.swift */,
+				DM00000000000000000001 /* DemoTimeline.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -466,6 +471,7 @@
 					T1B2C3D4E5F6A7B8C9D0E310 /* AppSettingsTests.swift */,
 					FI0000000000000000000001 /* DisplayIntentTests.swift */,
 					DA00000000000000000001 /* DimmerlyAppTests.swift */,
+					DM00000000000000000002 /* DemoTimelineTests.swift */,
 					UT00000000000000000010 /* BrightnessManagerTests.swift */,
 					BO0000000000000000000001 /* BrightnessManagerTests+DisplayOutput.swift */,
 					SF0000000000000000000001 /* HardwareBrightnessManagerTests+Polling.swift */,
@@ -668,6 +674,7 @@
 				DG0000000000000000000011 /* DDCSessionGate.swift in Sources */,
 				BS0000000000000000000011 /* BlankingSystemControllers.swift in Sources */,
 				C1B2C3D4E5F6A7B8C9D0E1F1 /* DimmerlyApp.swift in Sources */,
+				DM00000000000000000011 /* DemoTimeline.swift in Sources */,
 				C1B2C3D4E5F6A7B8C9D0E1F2 /* DisplayController.swift in Sources */,
 				4CFE3A432F3C931400E8C290 /* WidgetIntents.swift in Sources */,
 				46A91AE061E879288C03F4F2 /* DisplayError.swift in Sources */,
@@ -734,6 +741,7 @@
 				files = (
 					T1B2C3D4E5F6A7B8C9D0E301 /* DisplayControllerTests.swift in Sources */,
 					DA00000000000000000002 /* DimmerlyAppTests.swift in Sources */,
+					DM00000000000000000012 /* DemoTimelineTests.swift in Sources */,
 					T1B2C3D4E5F6A7B8C9D0E311 /* AppSettingsTests.swift in Sources */,
 					T1B2C3D4E5F6A7B8C9D0E321 /* KeyboardShortcutTests.swift in Sources */,
 					AS0000000000000000000011 /* AppStoreShortcutManagerTests.swift in Sources */,

@@ -662,17 +662,19 @@ final class StatusItemQuickActions: NSObject {
 #if DEBUG
     /// Debug-only staged state for marketing screenshots, driven by `scripts/screenshots.sh refresh`.
     ///
-    /// Setting `DIMMERLY_SCREENSHOT` to `menu` or `settings` launches a debug build that never
+    /// Setting `DIMMERLY_SCREENSHOT` to `menu`, `settings` or `demo` launches a debug build that never
     /// touches the user's displays or saved data: the app-wide managers are replaced with
     /// isolated instances backed by a throwaway defaults suite, gamma tables are left alone,
     /// hardware control finds no monitors, widgets are not synchronized, and launch setup
     /// (shortcuts, schedules, hardware control, widget requests) does not run. The stage then
-    /// shows the requested window for capture. Release builds don't contain any of this.
+    /// shows the requested window for capture, or plays the demo storyboard named by
+    /// `DIMMERLY_DEMO_STORYBOARD` (see `DemoPlayer`). Release builds don't contain any of this.
     @MainActor
     enum ScreenshotStage {
         enum Scene: String {
             case menu
             case settings
+            case demo
         }
 
         nonisolated static let environmentKey = "DIMMERLY_SCREENSHOT"
@@ -685,6 +687,29 @@ final class StatusItemQuickActions: NSObject {
             scene != nil
         }
 
+        nonisolated static let storyboardEnvironmentKey = "DIMMERLY_DEMO_STORYBOARD"
+        nonisolated static let demoOutputEnvironmentKey = "DIMMERLY_DEMO_OUTPUT"
+
+        /// The demo scene's storyboard. A demo run can't do anything useful without one, so a
+        /// missing or invalid storyboard ends the run with the reason.
+        nonisolated static let storyboard: DemoStoryboard? = {
+            guard scene == .demo else { return nil }
+            let environment = ProcessInfo.processInfo.environment
+            guard let path = environment[storyboardEnvironmentKey], environment[demoOutputEnvironmentKey] != nil else {
+                fail("Set \(storyboardEnvironmentKey) and \(demoOutputEnvironmentKey) for a demo run.")
+            }
+            do {
+                return try DemoStoryboard.load(from: URL(fileURLWithPath: path))
+            } catch {
+                fail(error.localizedDescription)
+            }
+        }()
+
+        private nonisolated static func fail(_ message: String) -> Never {
+            FileHandle.standardError.write(Data("Dimmerly demo: \(message)\n".utf8))
+            exit(65)
+        }
+
         /// Starts empty on every launch so earlier runs can't leak into a new capture.
         static let defaults: UserDefaults = {
             UserDefaults().removePersistentDomain(forName: defaultsSuiteName)
@@ -693,14 +718,29 @@ final class StatusItemQuickActions: NSObject {
 
         // MARK: Staged content
 
-        /// What the screenshots show. Edit these to change the staged content.
-        static let displayName = "External Display"
-        static let displayBrightness = 0.75
-        static let presets: [(name: String, brightness: Double)] = [
-            ("Full", 1.0),
-            ("Evening", 0.65),
-            ("Night", 0.35),
+        /// What the screenshots show. Edit these to change the staged content; a demo run
+        /// uses its storyboard's displays and presets instead.
+        nonisolated static let screenshotDisplays = [
+            DemoStoryboard.Display(name: "External Display", brightness: 0.75),
         ]
+        nonisolated static let screenshotPresets = [
+            DemoStoryboard.Preset(name: "Full", brightness: 1.0),
+            DemoStoryboard.Preset(name: "Evening", brightness: 0.65),
+            DemoStoryboard.Preset(name: "Night", brightness: 0.35),
+        ]
+
+        nonisolated static var displays: [DemoStoryboard.Display] {
+            storyboard?.displays ?? screenshotDisplays
+        }
+
+        nonisolated static var presets: [DemoStoryboard.Preset] {
+            storyboard?.presets ?? screenshotPresets
+        }
+
+        /// Display rows that open with their warmth and contrast sliders showing.
+        nonisolated static var expandedDisplayNames: Set<String> {
+            Set(displays.filter { $0.expanded == true }.map(\.name))
+        }
 
         /// Control–Option–number: valid in both builds, and not a Command-number app shortcut.
         static func presetShortcut(_ index: Int) -> GlobalShortcut {
@@ -711,21 +751,36 @@ final class StatusItemQuickActions: NSObject {
             AppSettings(defaults: defaults)
         }
 
-        /// A made-up ID that no connected display uses, so nothing can address a real screen.
+        /// Made-up IDs that no connected display uses, so nothing can address a real screen.
         static let displayID: CGDirectDisplayID = 0x0D1_44E7
 
-        static func makeBrightnessManager() -> BrightnessManager {
+        static func makeBrightnessManager(
+            displays staged: [DemoStoryboard.Display] = displays
+        ) -> BrightnessManager {
+            let stagedByID = Dictionary(uniqueKeysWithValues: staged.enumerated().map { index, display in
+                (displayID + CGDirectDisplayID(index), display)
+            })
+            let ids = stagedByID.keys.sorted()
             // The testing initializer skips display enumeration and observers. The hooks keep
-            // later refreshes on the staged display and turn gamma writes into no-ops.
+            // later refreshes on the staged displays and turn gamma writes into no-ops.
             let manager = BrightnessManager(forTesting: true, defaults: defaults)
             manager.applyGammaHook = { _, _, _, _ in }
-            manager.activeDisplayIDsHook = { [displayID] }
-            manager.isBuiltInDisplayHook = { _ in false }
-            manager.displayIdentityHook = { _ in "screenshot-display" }
-            manager.displayNameHook = { _ in displayName }
-            manager.displays = [
-                ExternalDisplay(id: displayID, name: displayName, brightness: displayBrightness),
-            ]
+            manager.activeDisplayIDsHook = { ids }
+            manager.isBuiltInDisplayHook = { stagedByID[$0]?.isBuiltIn ?? false }
+            manager.displayIdentityHook = { "screenshot-display-\($0)" }
+            manager.displayNameHook = { stagedByID[$0]?.name ?? "" }
+            manager.displays = ids.compactMap { id in
+                guard let display = stagedByID[id] else { return nil }
+                var staged = ExternalDisplay(
+                    id: id,
+                    name: display.name,
+                    brightness: display.brightness,
+                    warmth: display.warmth ?? 0,
+                    contrast: display.contrast ?? ExternalDisplay.neutralContrast
+                )
+                staged.isBuiltIn = display.isBuiltIn
+                return staged
+            }
             return manager
         }
 
@@ -759,20 +814,21 @@ final class StatusItemQuickActions: NSObject {
             }
         #endif
 
-        static var stagedPresets: [BrightnessPreset] {
-            presets.enumerated().map { index, preset in
+        static func stagedPresets(_ staged: [DemoStoryboard.Preset] = presets) -> [BrightnessPreset] {
+            staged.enumerated().map { index, preset in
                 BrightnessPreset(
                     name: preset.name,
                     shortcut: presetShortcut(index),
-                    universalBrightness: preset.brightness
+                    universalBrightness: preset.brightness,
+                    universalWarmth: preset.warmth
                 )
             }
         }
 
-        static func makePresetManager() -> PresetManager {
+        static func makePresetManager(presets staged: [DemoStoryboard.Preset] = presets) -> PresetManager {
             // Saved first, so the manager loads them like a user's presets instead of seeding
             // its defaults, and the suite holds exactly what the screenshot shows.
-            if let data = try? JSONEncoder().encode(stagedPresets) {
+            if let data = try? JSONEncoder().encode(stagedPresets(staged)) {
                 defaults.set(data, forKey: PresetManager.persistenceKey)
             }
             return PresetManager(
@@ -817,8 +873,32 @@ final class StatusItemQuickActions: NSObject {
                 case .settings:
                     // `settingsWindowDidAttach` centers the window once SwiftUI creates it.
                     openSettings()
+                case .demo:
+                    await startDemo()
                 }
             }
+        }
+
+        private static var demoRunner: DemoRunner?
+
+        private static func startDemo() async {
+            guard let storyboard,
+                  let output = ProcessInfo.processInfo.environment[demoOutputEnvironmentKey]
+            else { return }
+            let player = DemoPlayer(
+                storyboard: storyboard,
+                brightnessManager: .shared,
+                presetManager: .shared,
+                openPanel: { MenuBarPanelPresenter.shared.present(selectedPresetID: nil) },
+                closePanel: { MenuBarPanelPresenter.shared.dismiss() }
+            )
+            do {
+                demoRunner = try DemoRunner(player: player, outputURL: URL(fileURLWithPath: output))
+            } catch {
+                fail("Can't write \(output): \(error.localizedDescription)")
+            }
+            try? await Task.sleep(for: .seconds(storyboard.leadIn ?? 0))
+            demoRunner?.start()
         }
 
         /// Called by the Settings window itself, so only that window is moved, and only once

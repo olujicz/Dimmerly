@@ -85,9 +85,9 @@ enum CaptureWindows {
                 guard $0.owningApplication?.processID == options.processID else { return false }
                 let size = $0.frame.size
                 if options.mode == "menu" {
-                    // The 300-point panel is hosted in a popover, whose window is a few points
-                    // narrower or wider depending on the macOS release.
-                    return size.width >= 280 && size.width <= 320 && size.height >= 150 && size.height <= 700
+                    // The 300-point panel is hosted in a popover, whose window adds a margin
+                    // that depends on the macOS release (326 points on macOS 27).
+                    return size.width >= 280 && size.width <= 340 && size.height >= 150 && size.height <= 700
                 }
                 return size.width >= 400 && size.height >= 300
             }

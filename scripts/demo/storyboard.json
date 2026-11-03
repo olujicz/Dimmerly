@@ -1,0 +1,22 @@
+{
+  "fps": 30,
+  "leadIn": 2,
+  "displays": [
+    { "name": "Built-in Display", "builtIn": true, "brightness": 1 },
+    { "name": "External Display", "brightness": 1, "expanded": true }
+  ],
+  "presets": [
+    { "name": "Full", "brightness": 1, "warmth": 0 },
+    { "name": "Evening", "brightness": 0.6, "warmth": 0.45 },
+    { "name": "Night", "brightness": 0.35, "warmth": 0.8 }
+  ],
+  "steps": [
+    { "action": "wait", "duration": 0.6, "caption": "Every display, one menu" },
+    { "action": "openPanel", "duration": 0.4 },
+    { "action": "setBrightness", "display": "External Display", "value": 0.35, "duration": 3.5, "caption": "Each screen on its own" },
+    { "action": "setWarmth", "value": 0.6, "duration": 3.5, "caption": "Warmer at night" },
+    { "action": "applyPreset", "preset": "Evening", "duration": 3.0, "caption": "One click for your whole desk" },
+    { "action": "applyPreset", "preset": "Full", "duration": 2.8, "caption": "Free and open source" },
+    { "action": "closePanel", "duration": 1.2, "caption": "" }
+  ]
+}

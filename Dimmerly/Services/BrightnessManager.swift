@@ -102,7 +102,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
 
     /// Minimum allowed brightness to ensure displays remain visible.
     /// Prevents accidentally setting displays to pure black, which would require external controls to recover.
-    static let minimumBrightness: Double = 0.10
+    nonisolated static let minimumBrightness: Double = 0.10
 
     /// Product-level percentage range shared with App Intents and other input surfaces.
     static let brightnessPercentageRange = (minimumBrightness * 100) ... 100.0

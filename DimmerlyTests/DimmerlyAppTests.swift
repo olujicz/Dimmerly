@@ -572,8 +572,8 @@ final class ScreenshotStageTests: XCTestCase {
 
         brightness.refreshDisplays()
         XCTAssertEqual(brightness.displays.map(\.id), [ScreenshotStage.displayID])
-        XCTAssertEqual(brightness.displays.map(\.name), [ScreenshotStage.displayName])
-        XCTAssertEqual(brightness.displays.first?.brightness, ScreenshotStage.displayBrightness)
+        XCTAssertEqual(brightness.displays.map(\.name), ScreenshotStage.screenshotDisplays.map(\.name))
+        XCTAssertEqual(brightness.displays.first?.brightness, ScreenshotStage.screenshotDisplays.first?.brightness)
     }
 
     #if !APPSTORE

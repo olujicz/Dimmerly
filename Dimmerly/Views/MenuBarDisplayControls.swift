@@ -395,6 +395,9 @@ struct DisplayBrightnessRow: View {
         _sliderValue = State(initialValue: display.brightness)
         _warmthValue = State(initialValue: display.warmth)
         _contrastValue = State(initialValue: display.contrast)
+        #if DEBUG
+            _showAdjustments = State(initialValue: ScreenshotStage.expandedDisplayNames.contains(display.name))
+        #endif
         #if !APPSTORE
             // `hardwareVolume` is always nil at this point: `.ddcControls(...)` sets it by
             // mutating a *copy* of this view's properties after construction, not during this
