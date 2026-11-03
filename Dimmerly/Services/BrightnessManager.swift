@@ -246,6 +246,9 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
     /// metadata through CoreGraphics, which unit tests can't synthesize.
     var displayIdentityHook: ((CGDirectDisplayID) -> String)?
 
+    /// Test seam for display names, which CoreGraphics resolves from the connected hardware.
+    var displayNameHook: ((CGDirectDisplayID) -> String)?
+
     /// Standard initializer that sets up full hardware monitoring and system integration.
     /// Registers observers for display changes, wake events, and ScreenBlanker coordination.
     init() {
@@ -719,7 +722,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
         baseline: RefreshBaseline
     ) -> (display: ExternalDisplay, suppressHardwareBrightnessWrite: Bool) {
         let builtIn = isBuiltInDisplay(displayID)
-        let name = DisplayNameResolver.name(for: displayID)
+        let name = displayNameHook?(displayID) ?? DisplayNameResolver.name(for: displayID)
         let identity = displayIdentity(for: displayID)
         let previousDisplay = baseline.displaysByIdentity[identity]
             ?? baseline.displaysByID[displayID]

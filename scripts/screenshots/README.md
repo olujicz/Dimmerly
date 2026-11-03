@@ -60,8 +60,10 @@ Build the helper without launching it:
 scripts/screenshots.sh build-helper
 ```
 
-The first valid Apple Development identity is used. To choose another, set `SIGNING_IDENTITY` to a certificate fingerprint from
-`security find-identity -v -p codesigning`.
+The valid Apple Development identity is used. If identities for more than one person or
+team are installed, the script stops rather than guess, because the Screen Recording
+approval belongs to one of them. Set `SIGNING_IDENTITY` to a certificate fingerprint from
+`security find-identity -v -p codesigning` to choose.
 
 Open the correct Dimmerly build yourself, then find its process ID:
 

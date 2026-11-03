@@ -16,6 +16,9 @@ final class SettingsWindowPresentationView: NSView {
         super.viewDidMoveToWindow()
 
         guard let window else { return }
+        #if DEBUG
+            ScreenshotStage.settingsWindowDidAttach(window)
+        #endif
         NSApp.activate()
         window.makeKeyAndOrderFront(nil)
         window.orderFrontRegardless()

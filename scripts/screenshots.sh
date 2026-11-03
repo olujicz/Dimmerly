@@ -24,8 +24,8 @@ Raw captures are kept in .build/screenshots/<variant>/. Inspect the result befor
 committing it.
 
 build-helper compiles and signs the capture helper without launching it, using the
-first valid Apple Development identity; set SIGNING_IDENTITY to a certificate
-fingerprint to choose another. Screen Recording approval for
+valid Apple Development identity; set SIGNING_IDENTITY to a certificate fingerprint
+when several people's or teams' identities are installed. Screen Recording approval for
 DimmerlyScreenshotHelper is requested on the first capture.
 capture launches the helper only; Dimmerly must already be running with the target
 window visible. settings-region avoids the sharing badge, but captures any visible
@@ -36,15 +36,26 @@ HELP
 
 # Prints the fingerprint of a valid Apple Development identity. Expired certificates are
 # not listed as valid, and identities with the same name satisfy the same code requirement,
-# so Screen Recording approval carries over whichever one signs the helper.
-first_development_identity() {
-    security find-identity -v -p codesigning | awk '/"Apple Development:/ {print $2; exit}'
+# so Screen Recording approval carries over whichever of them signs the helper. Identities
+# with different names would not, so the choice is left to SIGNING_IDENTITY then.
+development_identity() {
+    local identities names
+    identities="$(security find-identity -v -p codesigning | grep '"Apple Development:' || true)"
+    [[ -n "$identities" ]] || return 0
+    names="$(sed -E 's/^[^"]*"([^"]*)".*$/\1/' <<<"$identities" | sort -u)"
+    if [[ "$(wc -l <<<"$names" | tr -d ' ')" -gt 1 ]]; then
+        echo 'Several Apple Development identities with different names are installed:' >&2
+        sed 's/^/  /' <<<"$names" >&2
+        echo 'Set SIGNING_IDENTITY to the fingerprint of the one that should sign the helper.' >&2
+        return 1
+    fi
+    awk 'NR == 1 {print $2}' <<<"$identities"
 }
 
 build_helper() {
     local identity="${SIGNING_IDENTITY:-}"
     if [[ -z "$identity" ]]; then
-        identity="$(first_development_identity)"
+        identity="$(development_identity)" || return 1
         if [[ -z "$identity" ]]; then
             echo 'No valid Apple Development identity found. Set SIGNING_IDENTITY to a certificate fingerprint.' >&2
             return 1
@@ -84,18 +95,21 @@ capture() {
     done
     [[ "$pid" =~ ^[1-9][0-9]*$ && -n "$output" ]] || { usage >&2; return 64; }
     case "$mode" in menu|settings-region|settings) ;; *) usage >&2; return 64 ;; esac
+    # Setup failures return 2 so capture_when_ready stops instead of retrying them. Each step
+    # is checked explicitly because set -e does not apply when capture runs in a condition.
     [[ -x "$helper_app/Contents/MacOS/DimmerlyScreenshotHelper" ]] || {
         echo 'Build the helper first: scripts/screenshots.sh build-helper' >&2
-        return 1
+        return 2
     }
-    codesign --verify --strict "$helper_app"
-    mkdir -p -- "$(dirname -- "$output")"
-    output="$(cd -- "$(dirname -- "$output")" && pwd)/$(basename -- "$output")"
-    local status_file status
-    status_file="$(mktemp "${TMPDIR:-/tmp}/dimmerly-capture.XXXXXX")"
-    open -W -n "$helper_app" --args --pid "$pid" --mode "$mode" --output "$output" --status "$status_file"
-    status="$(cat -- "$status_file")"
-    rm -f -- "$status_file"
+    codesign --verify --strict "$helper_app" || {
+        echo "The helper's signature is invalid; rebuild it with scripts/screenshots.sh build-helper." >&2
+        return 2
+    }
+    mkdir -p -- "$(dirname -- "$output")" || return 2
+    output="$(cd -- "$(dirname -- "$output")" && pwd)/$(basename -- "$output")" || return 2
+    local status
+    status="$(run_helper --pid "$pid" --mode "$mode" --output "$output" --status)" || return 2
+    [[ -n "$status" ]] || status='The capture helper exited without reporting a result.'
     if [[ "$status" != 'ok' ]]; then
         [[ -n "${QUIET_CAPTURE_FAILURE:-}" ]] || {
             echo 'Capture failed. Approve Screen Recording for DimmerlyScreenshotHelper if requested, then retry.' >&2
@@ -107,19 +121,35 @@ capture() {
     echo "Captured $output"
 }
 
+# Runs the helper with the given arguments plus a status file path, and prints the status
+# it wrote, or nothing if it crashed or never launched. The status file is always removed.
+run_helper() {
+    local status_file status=''
+    status_file="$(mktemp "${TMPDIR:-/tmp}/dimmerly-capture.XXXXXX")" || return 1
+    if open -W -n "$helper_app" --args "$@" "$status_file"; then
+        status="$(cat -- "$status_file" 2>/dev/null || true)"
+    fi
+    rm -f -- "$status_file"
+    printf '%s' "$status"
+}
+
 # Stops early, before anything is launched, when the helper can't record the screen.
 check_screen_recording() {
-    local status_file status
-    status_file="$(mktemp "${TMPDIR:-/tmp}/dimmerly-capture.XXXXXX")"
-    open -W -n "$helper_app" --args --preflight "$status_file"
-    status="$(cat -- "$status_file")"
-    rm -f -- "$status_file"
-    [[ "$status" == 'ok' ]] && return 0
-    if [[ "$status" == 'unavailable' ]]; then
-        echo 'The screen is locked or the displays are asleep, so macOS cannot take screenshots.' >&2
-        echo 'Unlock the Mac, keep a display awake, and run this command again.' >&2
-        return 1
-    fi
+    local status
+    status="$(run_helper --preflight)" || return 1
+    case "$status" in
+        ok) return 0 ;;
+        unavailable)
+            echo 'The screen is locked or the displays are asleep, so macOS cannot take screenshots.' >&2
+            echo 'Unlock the Mac, keep a display awake, and run this command again.' >&2
+            return 1 ;;
+        denied) ;;
+        *)
+            echo 'The capture helper failed before it could check Screen Recording permission.' >&2
+            echo "${status:-It exited without reporting a result.}" >&2
+            echo 'Rebuild it with scripts/screenshots.sh build-helper and run this command again.' >&2
+            return 1 ;;
+    esac
     cat >&2 <<'MESSAGE'
 DimmerlyScreenshotHelper does not have Screen Recording permission.
 Open System Settings > Privacy & Security > Screen & System Audio Recording, switch on
@@ -151,7 +181,11 @@ capture_when_ready() {
     last_capture_error=''
     for _ in $(seq 1 20); do
         kill -0 "$staged_pid" 2>/dev/null || { echo 'The staged Dimmerly app exited early.' >&2; return 1; }
-        QUIET_CAPTURE_FAILURE=1 capture --pid "$staged_pid" --mode "$mode" --output "$output" && return 0
+        local result=0
+        QUIET_CAPTURE_FAILURE=1 capture --pid "$staged_pid" --mode "$mode" --output "$output" || result=$?
+        [[ $result -eq 0 ]] && return 0
+        # Setup failures (a missing or broken helper) won't fix themselves.
+        [[ $result -eq 1 ]] || return "$result"
         sleep 1
     done
     echo "Capture of $mode failed: $last_capture_error" >&2
@@ -202,7 +236,10 @@ refresh() {
 
     mkdir -p "$inputs"
     rm -f -- "$inputs"/menu.png "$inputs"/settings.png "$inputs"/settings-mask.png
-    trap stop_staged EXIT INT TERM
+    # A signal handler must exit itself, or bash resumes the next command after it.
+    trap stop_staged EXIT
+    trap 'stop_staged; exit 130' INT
+    trap 'stop_staged; exit 143' TERM
 
     echo 'Capturing the menu panel...'
     launch_staged "$app" menu

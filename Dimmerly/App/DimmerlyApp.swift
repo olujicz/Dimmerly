@@ -665,9 +665,9 @@ final class StatusItemQuickActions: NSObject {
     /// Setting `DIMMERLY_SCREENSHOT` to `menu` or `settings` launches a debug build that never
     /// touches the user's displays or saved data: the app-wide managers are replaced with
     /// isolated instances backed by a throwaway defaults suite, gamma tables are left alone,
-    /// widgets are not synchronized, and launch setup (shortcuts, schedules, hardware control,
-    /// widget requests) does not run. The stage then shows the requested window for capture.
-    /// Release builds don't contain any of this.
+    /// hardware control finds no monitors, widgets are not synchronized, and launch setup
+    /// (shortcuts, schedules, hardware control, widget requests) does not run. The stage then
+    /// shows the requested window for capture. Release builds don't contain any of this.
     @MainActor
     enum ScreenshotStage {
         enum Scene: String {
@@ -711,30 +711,76 @@ final class StatusItemQuickActions: NSObject {
             AppSettings(defaults: defaults)
         }
 
+        /// A made-up ID that no connected display uses, so nothing can address a real screen.
+        static let displayID: CGDirectDisplayID = 0x0D1_44E7
+
         static func makeBrightnessManager() -> BrightnessManager {
-            // The testing initializer skips display enumeration, observers and gamma writes.
+            // The testing initializer skips display enumeration and observers. The hooks keep
+            // later refreshes on the staged display and turn gamma writes into no-ops.
             let manager = BrightnessManager(forTesting: true, defaults: defaults)
+            manager.applyGammaHook = { _, _, _, _ in }
+            manager.activeDisplayIDsHook = { [displayID] }
+            manager.isBuiltInDisplayHook = { _ in false }
+            manager.displayIdentityHook = { _ in "screenshot-display" }
+            manager.displayNameHook = { _ in displayName }
             manager.displays = [
-                ExternalDisplay(id: CGMainDisplayID(), name: displayName, brightness: displayBrightness),
+                ExternalDisplay(id: displayID, name: displayName, brightness: displayBrightness),
             ]
             return manager
         }
 
-        static func makePresetManager() -> PresetManager {
-            let manager = PresetManager(
-                defaults: defaults,
-                mainShortcutProvider: { .default },
-                widgetSynchronizer: NoWidgetSynchronizer(),
-                notifyWarmthPresetApplied: {}
-            )
-            manager.presets = presets.enumerated().map { index, preset in
+        #if !APPSTORE
+            /// Hardware control that finds no monitors and sends no DDC traffic.
+            static func makeHardwareBrightnessManager() -> HardwareBrightnessManager {
+                HardwareBrightnessManager(
+                    forTesting: true,
+                    ddcInterface: NoDDCInterface(),
+                    connectedExternalDisplayIDsProvider: { [] },
+                    displayRefreshHandler: {},
+                    hardwareBrightnessReadHandler: { _, _ in }
+                )
+            }
+
+            private struct NoDDCInterface: DDCInterface {
+                func read(vcp _: VCPCode, for _: CGDirectDisplayID) -> DDCReadResult? {
+                    nil
+                }
+
+                func write(vcp _: VCPCode, value _: UInt16, for _: CGDirectDisplayID) -> Bool {
+                    false
+                }
+
+                func probeCapabilities(
+                    for displayID: CGDirectDisplayID,
+                    skippingBrightness _: Bool
+                ) -> HardwareDisplayCapability {
+                    .notSupported(displayID: displayID)
+                }
+            }
+        #endif
+
+        static var stagedPresets: [BrightnessPreset] {
+            presets.enumerated().map { index, preset in
                 BrightnessPreset(
                     name: preset.name,
                     shortcut: presetShortcut(index),
                     universalBrightness: preset.brightness
                 )
             }
-            return manager
+        }
+
+        static func makePresetManager() -> PresetManager {
+            // Saved first, so the manager loads them like a user's presets instead of seeding
+            // its defaults, and the suite holds exactly what the screenshot shows.
+            if let data = try? JSONEncoder().encode(stagedPresets) {
+                defaults.set(data, forKey: PresetManager.persistenceKey)
+            }
+            return PresetManager(
+                defaults: defaults,
+                mainShortcutProvider: { .default },
+                widgetSynchronizer: NoWidgetSynchronizer(),
+                notifyWarmthPresetApplied: {}
+            )
         }
 
         static func makeLocationProvider() -> LocationProvider {
@@ -769,15 +815,19 @@ final class StatusItemQuickActions: NSObject {
                 case .menu:
                     MenuBarPanelPresenter.shared.present(selectedPresetID: nil)
                 case .settings:
+                    // `settingsWindowDidAttach` centers the window once SwiftUI creates it.
                     openSettings()
-                    try? await Task.sleep(for: .milliseconds(500))
-                    for window in NSApp.windows where window.isVisible && window.frame.width >= 400 {
-                        window.center()
-                        window.makeKeyAndOrderFront(nil)
-                    }
-                    NSApp.activate(ignoringOtherApps: true)
                 }
             }
+        }
+
+        /// Called by the Settings window itself, so only that window is moved, and only once
+        /// it exists, however long the first launch takes.
+        static func settingsWindowDidAttach(_ window: NSWindow) {
+            guard scene == .settings else { return }
+            window.center()
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
         }
     }
 #endif

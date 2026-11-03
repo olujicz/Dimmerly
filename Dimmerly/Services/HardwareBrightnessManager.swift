@@ -129,7 +129,14 @@
     @MainActor
     @Observable
     class HardwareBrightnessManager {
-        static let shared = HardwareBrightnessManager()
+        #if DEBUG
+            /// Screenshot runs (`DIMMERLY_SCREENSHOT`) get an isolated instance; see `ScreenshotStage`.
+            static let shared = ScreenshotStage.isActive
+                ? ScreenshotStage.makeHardwareBrightnessManager()
+                : HardwareBrightnessManager()
+        #else
+            static let shared = HardwareBrightnessManager()
+        #endif
 
         // MARK: - Observable State
 
