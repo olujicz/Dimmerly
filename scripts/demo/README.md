@@ -147,3 +147,35 @@ Inputs:
   - The screens are drawn over the grained layer, so the GammaMath check
     compares against the dithered wallpaper and still matches exactly.
 - The vignette darkens only the backdrop, never device, screen or panel pixels.
+
+## App Store screenshots
+
+`images/app-store/01-…` to `04-…` are stills from this demo, recorded from the
+App Store build so the panel matches what App Review sees ("Dim Displays", no
+hardware controls). They are 2560x1600 and opaque, an accepted Mac App Store size.
+
+```sh
+DEMO_VARIANT=app-store scripts/demo.sh build
+DEMO_VARIANT=app-store scripts/demo.sh capture     # light and dark
+```
+
+The variant records into `.build/demo-app-store`. Don't run `export` with it:
+that writes the website's `images/demo` files. The build keeps the `APPSTORE`
+code but signs with the non-sandbox entitlements, because the sandbox can't read
+the storyboard or write the frame log in the repo.
+
+Render each still with `--frame N --png`, using a copy of the storyboard
+without the `cursor` key and a copy of `values.jsonl` whose `caption` is the
+still's caption on every frame except frame 0 (so it is fully faded in):
+
+| Image | Appearance | Frame | Caption |
+| --- | --- | --- | --- |
+| 01 | light | 300 | Dim and warm every display |
+| 02 | light | 134 | Each screen on its own |
+| 03 | light | 232 | Warmer in the evening |
+| 04 | dark | 300 | Presets for your whole desk |
+
+The compositor writes PNGs with an alpha channel, which App Store Connect
+rejects. Flatten them, for example with
+`sips -s format jpeg -s formatOptions 95` and then back to PNG, and check
+`sips -g hasAlpha` reports `no`.
