@@ -108,7 +108,12 @@ enum PresetShortcutError: LocalizedError, Equatable {
 @MainActor
 @Observable
 class PresetManager {
-    static let shared = PresetManager()
+    #if DEBUG
+        /// Screenshot runs (`DIMMERLY_SCREENSHOT`) get an isolated instance; see `ScreenshotStage`.
+        static let shared = ScreenshotStage.isActive ? ScreenshotStage.makePresetManager() : PresetManager()
+    #else
+        static let shared = PresetManager()
+    #endif
 
     /// Maximum number of presets allowed. Enforced in UI and saveCurrentAsPreset().
     /// Prevents UI overflow and keeps the preset list manageable.

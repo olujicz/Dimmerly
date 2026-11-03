@@ -93,7 +93,12 @@ enum MenuBarIconStyle: String, CaseIterable, Identifiable {
 @MainActor
 @Observable
 class AppSettings {
-    static let shared = AppSettings()
+    #if DEBUG
+        /// Screenshot runs (`DIMMERLY_SCREENSHOT`) get an isolated instance; see `ScreenshotStage`.
+        static let shared = ScreenshotStage.isActive ? ScreenshotStage.makeSettings() : AppSettings()
+    #else
+        static let shared = AppSettings()
+    #endif
 
     // MARK: - UserDefaults Keys
 

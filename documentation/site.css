@@ -258,7 +258,8 @@ p { text-wrap: pretty; }
     gap: 24px;
     align-items: center;
     min-height: 650px;
-    padding: 78px 0 88px;
+    /* Short at the bottom, so the top of the demo below shows above the fold. */
+    padding: 78px 0 56px;
 }
 
 .hero-copy-block { grid-column: 1 / span 6; }
@@ -335,6 +336,68 @@ p { text-wrap: pretty; }
     max-width: 100%;
     height: auto;
     filter: drop-shadow(0 18px 26px var(--panel-shadow));
+}
+
+/* The demo loop. It is a 1280x800 scene with its own captions, so it takes the
+   full container width; narrower, the panel's text in it gets too small. The
+   frame's background matches each video's backdrop, so nothing flashes before
+   the poster loads, and its border holds the darker page edge in dark mode. */
+.demo { padding-bottom: 76px; }
+
+.demo-figure { margin: 0; }
+
+.demo-frame {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 16 / 10;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: #f3f1ec;
+}
+
+.demo-video {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* Added by site.js. Bottom right is the one corner the video leaves empty. */
+.demo-toggle {
+    position: absolute;
+    right: 14px;
+    bottom: 14px;
+    min-width: 76px;
+    padding: 7px 16px;
+    border: 1px solid rgb(23 23 23 / 14%);
+    border-radius: 999px;
+    color: #171717;
+    background: rgb(255 255 255 / 78%);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    font: 600 13px/1.2 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+    cursor: pointer;
+}
+
+.demo-toggle:hover { background: rgb(255 255 255 / 92%); }
+
+.demo-figure figcaption {
+    max-width: 720px;
+    margin: 18px auto 0;
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+}
+
+@media (prefers-color-scheme: dark) {
+    .demo-frame { background: #1e252e; }
+
+    .demo-toggle {
+        border-color: rgb(255 255 255 / 16%);
+        color: #f2f0ea;
+        background: rgb(23 26 31 / 72%);
+    }
+
+    .demo-toggle:hover { background: rgb(23 26 31 / 88%); }
 }
 
 /* Native 2x Settings capture, displayed at no more than its 580-point width. */
@@ -816,7 +879,7 @@ p { text-wrap: pretty; }
     .hero {
         display: block;
         min-height: auto;
-        padding: 60px 0 76px;
+        padding: 60px 0 48px;
     }
 
     .product-figure {
@@ -825,6 +888,17 @@ p { text-wrap: pretty; }
     }
 
     .product-stage { padding: 34px 20px; }
+
+    .demo { padding-bottom: 56px; }
+    .demo-frame { border-radius: 12px; }
+
+    .demo-toggle {
+        right: 10px;
+        bottom: 10px;
+        min-width: 64px;
+        padding: 5px 12px;
+        font-size: 12px;
+    }
 
     .install {
         grid-template-columns: 1fr;

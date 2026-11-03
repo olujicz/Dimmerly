@@ -81,6 +81,18 @@
             </figure>
         </section>
 
+        <!-- Without JavaScript the video shows its poster and native controls and never
+             plays by itself. site.js picks the light or dark version, swaps the native
+             controls for a Pause/Play button, and autoplays unless motion is reduced. -->
+        <section class="demo container" aria-label="Dimmerly demo">
+            <figure class="demo-figure">
+                <div class="demo-frame">
+                    <video class="demo-video" src="assets/dimmerly-demo-light.mp4" poster="assets/dimmerly-demo-light-poster.jpg" width="1280" height="800" controls muted loop playsinline preload="none" data-light-src="assets/dimmerly-demo-light.mp4" data-light-poster="assets/dimmerly-demo-light-poster.jpg" data-dark-src="assets/dimmerly-demo-dark.mp4" data-dark-poster="assets/dimmerly-demo-dark-poster.jpg" aria-describedby="demo-caption"></video>
+                </div>
+                <figcaption id="demo-caption">Dimmerly dims the external display, warms both screens, then sets the whole desk with one preset. The displays are illustrated; the panel is recorded from the app.</figcaption>
+            </figure>
+        </section>
+
         <section class="install container" aria-labelledby="install-title">
             <div>
                 <h2 id="install-title">Install with Homebrew.</h2>

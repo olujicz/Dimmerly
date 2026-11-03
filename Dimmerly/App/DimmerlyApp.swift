@@ -167,6 +167,9 @@ struct DimmerlyApp: App {
                 openSettings: openSettingsWindow
             )
             statusItemAccessibility.attach(to: statusItem)
+            #if DEBUG
+                ScreenshotStage.statusItemDidAttach(openSettings: openSettingsWindow)
+            #endif
         }
         .menuBarExtraStyle(.window)
 
@@ -457,6 +460,11 @@ final class DimmerlyAppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_: Notification) {
         guard !isHostingUnitTests else { return }
+        #if DEBUG
+            // A screenshot run shows staged windows only; it must not register shortcuts,
+            // run schedules, answer widget requests, or publish Control Center state.
+            guard !ScreenshotStage.isActive else { return }
+        #endif
         services.configure()
     }
 
@@ -650,3 +658,336 @@ final class StatusItemQuickActions: NSObject {
         openSettings?()
     }
 }
+
+#if DEBUG
+    /// Debug-only staged state for marketing screenshots, driven by `scripts/screenshots.sh refresh`.
+    ///
+    /// Setting `DIMMERLY_SCREENSHOT` to `menu`, `settings` or `demo` launches a debug build that never
+    /// touches the user's displays or saved data: the app-wide managers are replaced with
+    /// isolated instances backed by a throwaway defaults suite, gamma tables are left alone,
+    /// hardware control finds no monitors, widgets are not synchronized, and launch setup
+    /// (shortcuts, schedules, hardware control, widget requests) does not run. The stage then
+    /// shows the requested window for capture, or plays the demo storyboard named by
+    /// `DIMMERLY_DEMO_STORYBOARD` (see `DemoPlayer`). Release builds don't contain any of this.
+    @MainActor
+    enum ScreenshotStage {
+        enum Scene: String {
+            case menu
+            case settings
+            case demo
+        }
+
+        nonisolated static let environmentKey = "DIMMERLY_SCREENSHOT"
+        nonisolated static let defaultsSuiteName = "rs.in.olujic.dimmerly.screenshots"
+
+        nonisolated static let scene: Scene? = ProcessInfo.processInfo.environment[environmentKey]
+            .flatMap(Scene.init(rawValue:))
+
+        nonisolated static var isActive: Bool {
+            scene != nil
+        }
+
+        nonisolated static let appearanceEnvironmentKey = "DIMMERLY_SCREENSHOT_APPEARANCE"
+        nonisolated static let backdropEnvironmentKey = "DIMMERLY_SCREENSHOT_BACKDROP"
+        nonisolated static let storyboardEnvironmentKey = "DIMMERLY_DEMO_STORYBOARD"
+        nonisolated static let demoOutputEnvironmentKey = "DIMMERLY_DEMO_OUTPUT"
+
+        /// The demo scene's storyboard. A demo run can't do anything useful without one, so a
+        /// missing or invalid storyboard ends the run with the reason.
+        nonisolated static let storyboard: DemoStoryboard? = {
+            guard scene == .demo else { return nil }
+            let environment = ProcessInfo.processInfo.environment
+            guard let path = environment[storyboardEnvironmentKey], environment[demoOutputEnvironmentKey] != nil else {
+                fail("Set \(storyboardEnvironmentKey) and \(demoOutputEnvironmentKey) for a demo run.")
+            }
+            do {
+                return try DemoStoryboard.load(from: URL(fileURLWithPath: path))
+            } catch {
+                fail(error.localizedDescription)
+            }
+        }()
+
+        /// `light` or `dark` forces the staged windows' appearance, whatever the Mac uses, so
+        /// the website can show a capture that matches each colour scheme. Unset follows the Mac.
+        static func stagedAppearance() -> NSAppearance? {
+            switch ProcessInfo.processInfo.environment[appearanceEnvironmentKey] {
+            case nil, "":
+                nil
+            case "light":
+                NSAppearance(named: .aqua)
+            case "dark":
+                NSAppearance(named: .darkAqua)
+            case let value?:
+                fail("\(appearanceEnvironmentKey) must be light or dark, not \(value).")
+            }
+        }
+
+        private nonisolated static func fail(_ message: String) -> Never {
+            FileHandle.standardError.write(Data("Dimmerly demo: \(message)\n".utf8))
+            exit(65)
+        }
+
+        /// Starts empty on every launch so earlier runs can't leak into a new capture.
+        static let defaults: UserDefaults = {
+            UserDefaults().removePersistentDomain(forName: defaultsSuiteName)
+            return UserDefaults(suiteName: defaultsSuiteName) ?? .standard
+        }()
+
+        // MARK: Staged content
+
+        /// What the screenshots show. Edit these to change the staged content; a demo run
+        /// uses its storyboard's displays and presets instead.
+        nonisolated static let screenshotDisplays = [
+            DemoStoryboard.Display(name: "External Display", brightness: 0.75),
+        ]
+        nonisolated static let screenshotPresets = [
+            DemoStoryboard.Preset(name: "Full", brightness: 1.0),
+            DemoStoryboard.Preset(name: "Evening", brightness: 0.65),
+            DemoStoryboard.Preset(name: "Night", brightness: 0.35),
+        ]
+
+        nonisolated static var displays: [DemoStoryboard.Display] {
+            storyboard?.displays ?? screenshotDisplays
+        }
+
+        nonisolated static var presets: [DemoStoryboard.Preset] {
+            storyboard?.presets ?? screenshotPresets
+        }
+
+        /// Display rows that open with their warmth and contrast sliders showing.
+        nonisolated static var expandedDisplayNames: Set<String> {
+            Set(displays.filter { $0.expanded == true }.map(\.name))
+        }
+
+        /// Control–Option–number: valid in both builds, and not a Command-number app shortcut.
+        static func presetShortcut(_ index: Int) -> GlobalShortcut {
+            GlobalShortcut(key: String(index + 1), modifiers: [.control, .option])
+        }
+
+        static func makeSettings() -> AppSettings {
+            AppSettings(defaults: defaults)
+        }
+
+        /// Made-up IDs that no connected display uses, so nothing can address a real screen.
+        static let displayID: CGDirectDisplayID = 0x0D1_44E7
+
+        static func makeBrightnessManager(
+            displays staged: [DemoStoryboard.Display] = displays
+        ) -> BrightnessManager {
+            let stagedByID = Dictionary(uniqueKeysWithValues: staged.enumerated().map { index, display in
+                (displayID + CGDirectDisplayID(index), display)
+            })
+            let ids = stagedByID.keys.sorted()
+            // The testing initializer skips display enumeration and observers. The hooks keep
+            // later refreshes on the staged displays and turn gamma writes into no-ops.
+            let manager = BrightnessManager(forTesting: true, defaults: defaults)
+            manager.applyGammaHook = { _, _, _, _ in }
+            manager.activeDisplayIDsHook = { ids }
+            manager.isBuiltInDisplayHook = { stagedByID[$0]?.isBuiltIn ?? false }
+            manager.displayIdentityHook = { "screenshot-display-\($0)" }
+            manager.displayNameHook = { stagedByID[$0]?.name ?? "" }
+            manager.displays = ids.compactMap { id in
+                guard let display = stagedByID[id] else { return nil }
+                var staged = ExternalDisplay(
+                    id: id,
+                    name: display.name,
+                    brightness: display.brightness,
+                    warmth: display.warmth ?? 0,
+                    contrast: display.contrast ?? ExternalDisplay.neutralContrast
+                )
+                staged.isBuiltIn = display.isBuiltIn
+                return staged
+            }
+            return manager
+        }
+
+        #if !APPSTORE
+            /// Hardware control that finds no monitors and sends no DDC traffic.
+            static func makeHardwareBrightnessManager() -> HardwareBrightnessManager {
+                HardwareBrightnessManager(
+                    forTesting: true,
+                    ddcInterface: NoDDCInterface(),
+                    connectedExternalDisplayIDsProvider: { [] },
+                    displayRefreshHandler: {},
+                    hardwareBrightnessReadHandler: { _, _ in }
+                )
+            }
+
+            private struct NoDDCInterface: DDCInterface {
+                func read(vcp _: VCPCode, for _: CGDirectDisplayID) -> DDCReadResult? {
+                    nil
+                }
+
+                func write(vcp _: VCPCode, value _: UInt16, for _: CGDirectDisplayID) -> Bool {
+                    false
+                }
+
+                func probeCapabilities(
+                    for displayID: CGDirectDisplayID,
+                    skippingBrightness _: Bool
+                ) -> HardwareDisplayCapability {
+                    .notSupported(displayID: displayID)
+                }
+            }
+        #endif
+
+        static func stagedPresets(_ staged: [DemoStoryboard.Preset] = presets) -> [BrightnessPreset] {
+            staged.enumerated().map { index, preset in
+                BrightnessPreset(
+                    name: preset.name,
+                    shortcut: presetShortcut(index),
+                    universalBrightness: preset.brightness,
+                    universalWarmth: preset.warmth
+                )
+            }
+        }
+
+        static func makePresetManager(presets staged: [DemoStoryboard.Preset] = presets) -> PresetManager {
+            // Saved first, so the manager loads them like a user's presets instead of seeding
+            // its defaults, and the suite holds exactly what the screenshot shows.
+            if let data = try? JSONEncoder().encode(stagedPresets(staged)) {
+                defaults.set(data, forKey: PresetManager.persistenceKey)
+            }
+            return PresetManager(
+                defaults: defaults,
+                mainShortcutProvider: { .default },
+                widgetSynchronizer: NoWidgetSynchronizer(),
+                notifyWarmthPresetApplied: {}
+            )
+        }
+
+        static func makeLocationProvider() -> LocationProvider {
+            LocationProvider(forTesting: true, defaults: defaults)
+        }
+
+        static func makeColorTemperatureManager() -> ColorTemperatureManager {
+            ColorTemperatureManager(brightnessManager: .shared, settings: .shared)
+        }
+
+        private struct NoWidgetSynchronizer: WidgetPresetSynchronizing {
+            func synchronize(_: [BrightnessPreset]) {}
+        }
+
+        // MARK: Presentation
+
+        private static var didPresent = false
+
+        /// Shows the staged window once the status item exists. The capture script waits for
+        /// the window itself, so this only has to show it.
+        static func statusItemDidAttach(openSettings: @escaping () -> Void) {
+            guard let scene, !didPresent else { return }
+            didPresent = true
+            if let appearance = stagedAppearance() {
+                NSApp.appearance = appearance
+            }
+            // A regular app can come to the front, which the Settings region capture requires.
+            NSApp.setActivationPolicy(.regular)
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(1))
+                // The capture needs Dimmerly in front even though another app was active
+                // when the script launched it, so take focus rather than request it.
+                NSApp.activate(ignoringOtherApps: true)
+                // Activation completes a moment later. A panel shown before it never becomes
+                // key, and macOS draws it unfocused, with grey accent colours.
+                for _ in 0 ..< 100 where !NSApp.isActive {
+                    try? await Task.sleep(for: .milliseconds(20))
+                }
+                switch scene {
+                case .menu:
+                    MenuBarPanelPresenter.shared.present(selectedPresetID: nil)
+                    await showBackdropBehindPanel()
+                case .settings:
+                    // `settingsWindowDidAttach` centers the window once SwiftUI creates it.
+                    openSettings()
+                case .demo:
+                    await startDemo()
+                }
+            }
+        }
+
+        private static var demoRunner: DemoRunner?
+
+        private static func startDemo() async {
+            guard let storyboard,
+                  let output = ProcessInfo.processInfo.environment[demoOutputEnvironmentKey]
+            else { return }
+            // The real panel opens before frame 0 and stays open, so the recorder has its full-size
+            // window from the start. The compositor shows and hides it from `panelOpen`; a
+            // popover's own appear animation would arrive too late to record anyway.
+            MenuBarPanelPresenter.shared.present(selectedPresetID: nil)
+            await showBackdropBehindPanel()
+            let player = DemoPlayer(
+                storyboard: storyboard,
+                brightnessManager: .shared,
+                presetManager: .shared,
+                openPanel: {},
+                closePanel: {}
+            )
+            do {
+                demoRunner = try DemoRunner(player: player, outputURL: URL(fileURLWithPath: output))
+            } catch {
+                fail("Can't write \(output): \(error.localizedDescription)")
+            }
+            try? await Task.sleep(for: .seconds(storyboard.leadIn ?? 0))
+            demoRunner?.start()
+        }
+
+        private static var backdropWindow: NSWindow?
+
+        /// The panel's material blurs whatever is behind it, and a window-only capture has
+        /// nothing there, so light mode records as flat grey. `DIMMERLY_SCREENSHOT_BACKDROP=#RRGGBB`
+        /// puts a plain window of that colour behind the panel, as a desktop of the colour the
+        /// image puts around it would be. The capture keeps only the panel's own shape.
+        private static func showBackdropBehindPanel() async {
+            guard let hex = ProcessInfo.processInfo.environment[backdropEnvironmentKey], !hex.isEmpty else { return }
+            guard let color = color(hex: hex) else {
+                fail("\(backdropEnvironmentKey) must be a #RRGGBB colour, not \(hex).")
+            }
+            // The popover window appears a moment after `present`.
+            var panelWindow: NSWindow?
+            for _ in 0 ..< 50 where panelWindow == nil {
+                try? await Task.sleep(for: .milliseconds(20))
+                panelWindow = NSApp.windows.first {
+                    $0.isVisible && (280 ... 340).contains($0.frame.width) && $0.frame.height >= 150
+                }
+            }
+            guard let panelWindow else { fail("The panel did not appear, so the backdrop has nowhere to go.") }
+            let panelFrame = panelWindow.frame
+            let window = NSWindow(
+                contentRect: panelFrame.insetBy(dx: -80, dy: -80),
+                styleMask: .borderless,
+                backing: .buffered,
+                defer: false
+            )
+            window.backgroundColor = color
+            window.isOpaque = true
+            window.hasShadow = false
+            window.ignoresMouseEvents = true
+            // Above ordinary windows, below the status-bar-level popover.
+            window.level = .floating
+            window.orderFrontRegardless()
+            backdropWindow = window
+            // Keep the panel key, so it is drawn focused, with its accent colours.
+            panelWindow.makeKey()
+        }
+
+        private static func color(hex: String) -> NSColor? {
+            guard hex.count == 7, hex.hasPrefix("#"), let value = UInt32(hex.dropFirst(), radix: 16) else { return nil }
+            return NSColor(
+                srgbRed: CGFloat((value >> 16) & 0xFF) / 255,
+                green: CGFloat((value >> 8) & 0xFF) / 255,
+                blue: CGFloat(value & 0xFF) / 255,
+                alpha: 1
+            )
+        }
+
+        /// Called by the Settings window itself, so only that window is moved, and only once
+        /// it exists, however long the first launch takes.
+        static func settingsWindowDidAttach(_ window: NSWindow) {
+            guard scene == .settings else { return }
+            window.center()
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+        }
+    }
+#endif

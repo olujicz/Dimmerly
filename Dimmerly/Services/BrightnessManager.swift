@@ -93,11 +93,16 @@ struct ExternalDisplay: Identifiable {
 @MainActor
 @Observable
 class BrightnessManager { // swiftlint:disable:this type_body_length
-    static let shared = BrightnessManager()
+    #if DEBUG
+        /// Screenshot runs (`DIMMERLY_SCREENSHOT`) get an isolated instance; see `ScreenshotStage`.
+        static let shared = ScreenshotStage.isActive ? ScreenshotStage.makeBrightnessManager() : BrightnessManager()
+    #else
+        static let shared = BrightnessManager()
+    #endif
 
     /// Minimum allowed brightness to ensure displays remain visible.
     /// Prevents accidentally setting displays to pure black, which would require external controls to recover.
-    static let minimumBrightness: Double = 0.10
+    nonisolated static let minimumBrightness: Double = 0.10
 
     /// Product-level percentage range shared with App Intents and other input surfaces.
     static let brightnessPercentageRange = (minimumBrightness * 100) ... 100.0
@@ -240,6 +245,9 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
     /// Test seam for the stable per-display persistence key. The real implementation reads EDID
     /// metadata through CoreGraphics, which unit tests can't synthesize.
     var displayIdentityHook: ((CGDirectDisplayID) -> String)?
+
+    /// Test seam for display names, which CoreGraphics resolves from the connected hardware.
+    var displayNameHook: ((CGDirectDisplayID) -> String)?
 
     /// Standard initializer that sets up full hardware monitoring and system integration.
     /// Registers observers for display changes, wake events, and ScreenBlanker coordination.
@@ -714,7 +722,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
         baseline: RefreshBaseline
     ) -> (display: ExternalDisplay, suppressHardwareBrightnessWrite: Bool) {
         let builtIn = isBuiltInDisplay(displayID)
-        let name = DisplayNameResolver.name(for: displayID)
+        let name = displayNameHook?(displayID) ?? DisplayNameResolver.name(for: displayID)
         let identity = displayIdentity(for: displayID)
         let previousDisplay = baseline.displaysByIdentity[identity]
             ?? baseline.displaysByID[displayID]

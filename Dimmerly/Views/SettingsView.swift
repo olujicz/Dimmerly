@@ -16,6 +16,9 @@ final class SettingsWindowPresentationView: NSView {
         super.viewDidMoveToWindow()
 
         guard let window else { return }
+        #if DEBUG
+            ScreenshotStage.settingsWindowDidAttach(window)
+        #endif
         NSApp.activate()
         window.makeKeyAndOrderFront(nil)
         window.orderFrontRegardless()
@@ -248,27 +251,48 @@ struct SettingsView: View {
     static let paneWidth: CGFloat = 520
     static let maxPaneHeight: CGFloat = 600
 
+    enum Tab: Hashable {
+        case general, displays, schedule, shortcuts, about
+
+        /// The tab Settings opens on. Screenshot runs open on Displays.
+        static var initial: Tab {
+            #if DEBUG
+                if ScreenshotStage.scene == .settings {
+                    return .displays
+                }
+            #endif
+            return .general
+        }
+    }
+
+    @State private var selectedTab = Tab.initial
+
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             GeneralSettingsTab()
                 .settingsPaneFrame()
                 .tabItem { Label("General", systemImage: "gearshape") }
+                .tag(Tab.general)
 
             DisplaySettingsTab()
                 .settingsPaneFrame()
                 .tabItem { Label("Displays", systemImage: "display") }
+                .tag(Tab.displays)
 
             ScheduleSettingsTab()
                 .settingsPaneFrame()
                 .tabItem { Label("Schedule", systemImage: "calendar.badge.clock") }
+                .tag(Tab.schedule)
 
             ShortcutsSettingsTab()
                 .settingsPaneFrame()
                 .tabItem { Label("Shortcuts", systemImage: "keyboard") }
+                .tag(Tab.shortcuts)
 
             AboutSettingsTab()
                 .settingsPaneFrame()
                 .tabItem { Label("About", systemImage: "info.circle") }
+                .tag(Tab.about)
         }
         .settingsWindowPresentation()
     }

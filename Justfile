@@ -42,6 +42,18 @@ check: format-check lint test build-appstore
 run: build
     @open "{{build_dir}}/Build/Products/Debug/Dimmerly.app"
 
+# Recreate the App Store screenshot from the live app (unlocked Mac, Screen Recording for the helper)
+screenshots:
+    scripts/screenshots.sh refresh --variant app-store --appearance dark
+
+# Recreate the README and website screenshots from the direct-download build
+screenshots-github:
+    scripts/screenshots.sh refresh --variant github --appearance dark
+
+# Render the demo loop: staged app, panel recording, composite, exports (unlocked Mac, Screen Recording)
+demo:
+    scripts/demo.sh render
+
 # Lint Swift sources
 lint:
     swiftlint lint --config {{swiftlint_config}} --quiet --strict {{source_paths}}

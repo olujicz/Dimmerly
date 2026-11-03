@@ -8,17 +8,62 @@ Requires macOS 15.2 or later, Xcode command-line tools, and an Apple Development
 signing identity for the capture helper. Composition needs no signing or Screen
 Recording permission.
 
-## Capture new windows
+## One command
 
+```sh
+just screenshots          # images/app-store/01-menu-and-displays.png
+just screenshots-github   # images/image1.png and images/image2.png
+```
+
+Both run `scripts/screenshots.sh refresh`. It builds the debug app for the
+variant (`Dimmerly App Store` / `Debug-AppStore`, or `Dimmerly` / `Debug`) into
+`.build/screenshots/DerivedData`. It launches the app twice in its staged
+screenshot mode, captures the menu panel and then the Displays settings, quits
+the app, composes the image, and checks the App Store image's size and opacity.
+Raw captures stay in `.build/screenshots/<variant>/`.
+
+Options: `--output PATH` writes somewhere else (use it to try changes without
+replacing the committed image), and `--skip-build` reuses the last build.
+
+The Mac must be unlocked with a display awake: macOS can't take screenshots
+otherwise, and the command stops with that message. The first run asks for
+Screen Recording permission for `DimmerlyScreenshotHelper`. Approve it in System
+Settings > Privacy & Security > Screen & System Audio Recording, then run the
+command again. The approval survives helper rebuilds while the signing identity
+name stays the same.
+
+### Staged screenshot mode
+
+Debug builds launched with `DIMMERLY_SCREENSHOT=menu` or `settings` use
+`ScreenshotStage` (end of `Dimmerly/App/DimmerlyApp.swift`) instead of the
+user's state:
+
+- Settings, presets, location and display values live in a throwaway
+  `rs.in.olujic.dimmerly.screenshots` defaults suite, cleared on each launch.
+- The brightness manager is the testing instance, so gamma tables, display
+  enumeration and hardware control are never touched.
+- Launch setup doesn't run: no shortcuts, schedules, widget synchronization,
+  widget requests, Spotlight indexing or Control Center state.
+- The staged content is one generic "External Display" at 75% and the Full,
+  Evening and Night presets on Control–Option–1 to 3. Edit the values in
+  `ScreenshotStage` to change it.
+
+Release builds don't contain the stage. Your own running Dimmerly can stay open.
+The capture selects the staged process by its PID.
+
+## Capture windows by hand
+
+Use this only when you need a window state the staged mode doesn't produce.
 Build the helper without launching it:
 
 ```sh
 scripts/screenshots.sh build-helper
 ```
 
-If multiple signing identities exist, set `SIGNING_IDENTITY` to the certificate
-fingerprint returned by `security find-identity -v -p codesigning`. Keep the same
-identity so macOS can retain the helper's Screen Recording approval.
+The valid Apple Development identity is used. If identities for more than one person or
+team are installed, the script stops rather than guess, because the Screen Recording
+approval belongs to one of them. Set `SIGNING_IDENTITY` to a certificate fingerprint from
+`security find-identity -v -p codesigning` to choose.
 
 Open the correct Dimmerly build yourself, then find its process ID:
 
@@ -31,9 +76,9 @@ For **App Store** screenshots, use the `Dimmerly App Store` scheme with
 scheme with `Debug`. Verify the full process path when choosing the PID. Never
 use direct-download hardware controls in App Store screenshots.
 
-Launching Dimmerly can change live gamma/brightness and write the real preset
-store. These scripts do not build or launch Dimmerly. Ask the maintainer before
-launching either the app or capture helper during automated work.
+A normal launch of Dimmerly can change live gamma/brightness and write the real
+preset store. Prefer launching a debug build with `DIMMERLY_SCREENSHOT` set, which
+uses the staged mode described above.
 
 Show the menu, capture it, then open Displays settings and capture that window:
 
@@ -60,10 +105,9 @@ visible pixels are not used when `--settings-mask` is supplied.
 
 Keep the Settings size and position unchanged between those two captures.
 The compositor requires matching pixel dimensions and a mask with alpha.
-For the App Store Displays tab, use about 580 points wide and 480 points of
-content height. The direct-download tab includes additional hardware controls
-and may need a taller window. Size the actual window before capturing; do not
-crop away its empty area afterwards. Inspect the raw captures before composing;
+Settings panes have a fixed width and size their height to the content, so
+don't resize the window; the direct-download Displays tab is taller because of
+its hardware controls. Don't crop away empty areas afterwards. Inspect the raw captures before composing;
 never paint out or fabricate UI.
 
 Before capturing the menu, check that the entire **+ Save Current** row is

@@ -528,3 +528,92 @@ final class DimmerlyAppTests: XCTestCase {
         XCTAssertEqual(DimmerlyShortcuts.appShortcuts.count, 6)
     }
 }
+
+/// The debug-only screenshot stage behind `scripts/screenshots.sh refresh`.
+@MainActor
+final class ScreenshotStageTests: XCTestCase {
+    override func tearDown() {
+        // The suite is throwaway; don't leave a test run's copy on the developer's Mac.
+        UserDefaults().removePersistentDomain(forName: ScreenshotStage.defaultsSuiteName)
+        super.tearDown()
+    }
+
+    func testTestRunsUseTheRealManagers() {
+        XCTAssertFalse(ScreenshotStage.isActive)
+        XCTAssertEqual(SettingsView.Tab.initial, .general)
+    }
+
+    /// A screenshot must show bindings the App Store build accepts.
+    func testStagedPresetShortcutsSuitTheAppStoreBuild() throws {
+        let manager = ScreenshotStage.makePresetManager()
+        XCTAssertEqual(manager.presets.map(\.name), ScreenshotStage.presets.map(\.name))
+        for preset in manager.presets {
+            let shortcut = try XCTUnwrap(preset.shortcut, preset.name)
+            XCTAssertTrue(shortcut.isValidCarbonShortcut, preset.name)
+        }
+    }
+
+    /// Staged presets are saved in the screenshot suite and never in the user's settings.
+    func testStagedPresetsPersistOnlyInTheScreenshotSuite() throws {
+        let standardBefore = UserDefaults.standard.data(forKey: PresetManager.persistenceKey)
+        _ = ScreenshotStage.makePresetManager()
+
+        let data = try XCTUnwrap(ScreenshotStage.defaults.data(forKey: PresetManager.persistenceKey))
+        let saved = try JSONDecoder().decode([BrightnessPreset].self, from: data)
+        XCTAssertEqual(saved.map(\.name), ScreenshotStage.presets.map(\.name))
+        XCTAssertEqual(UserDefaults.standard.data(forKey: PresetManager.persistenceKey), standardBefore)
+    }
+
+    /// The staged display survives a refresh, and nothing reaches a real display's gamma.
+    func testStagedBrightnessManagerStaysOnTheStagedDisplay() {
+        let brightness = ScreenshotStage.makeBrightnessManager()
+        XCTAssertNotNil(brightness.applyGammaHook)
+        XCTAssertFalse(BrightnessManager.activeDisplayIDs().contains(ScreenshotStage.displayID))
+
+        brightness.refreshDisplays()
+        XCTAssertEqual(brightness.displays.map(\.id), [ScreenshotStage.displayID])
+        XCTAssertEqual(brightness.displays.map(\.name), ScreenshotStage.screenshotDisplays.map(\.name))
+        XCTAssertEqual(brightness.displays.first?.brightness, ScreenshotStage.screenshotDisplays.first?.brightness)
+    }
+
+    #if !APPSTORE
+        /// Hardware control in a screenshot run finds no monitors to talk to.
+        func testStagedHardwareManagerFindsNoMonitors() async {
+            let hardware = ScreenshotStage.makeHardwareBrightnessManager()
+            hardware.enable()
+            hardware.probeAllDisplays(force: true)
+            XCTAssertTrue(hardware.capabilities.isEmpty)
+            await hardware.disable()
+        }
+    #endif
+
+    /// Every app-wide manager that holds state or reaches hardware must be replaced in a
+    /// screenshot run. A new `static let shared` fails here until it is staged or listed
+    /// as stateless.
+    func testEveryStatefulSingletonIsStaged() throws {
+        let stateless: Set = [
+            "ConnectedDisplayResolver.swift", // Resolves intents against BrightnessManager.shared
+            "PresetEntity.swift", // App Intents indexing; launch setup that the stage skips
+            "MenuBarPanel.swift", // Panel coordinator; presentation only
+            "MenuBarPanelHost.swift", // Panel presenter; presentation only
+            "KeyboardShortcutManager.swift", // Shortcut recording UI state
+            "ScreenBlanker.swift", // Runs only on an explicit Turn Off
+        ]
+        let sources = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("Dimmerly")
+        let files = try XCTUnwrap(FileManager.default.enumerator(at: sources, includingPropertiesForKeys: nil))
+        var checked = 0
+        for case let file as URL in files where file.pathExtension == "swift" {
+            let text = try String(contentsOf: file, encoding: .utf8)
+            guard text.contains("static let shared =") else { continue }
+            checked += 1
+            guard !stateless.contains(file.lastPathComponent) else { continue }
+            XCTAssertTrue(
+                text.contains("ScreenshotStage.isActive"),
+                "\(file.lastPathComponent) has a singleton that screenshot runs don't replace"
+            )
+        }
+        XCTAssertGreaterThan(checked, stateless.count)
+    }
+}
