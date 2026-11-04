@@ -18,6 +18,16 @@ struct AboutSettingsTab: View {
 
     @State private var licenseSheet: OpenSourceLicense?
 
+    /// The App Store edition links to its own privacy page, which doesn't lead to the free
+    /// download; the direct-download build links to the general policy.
+    static var privacyPolicyURL: URL? {
+        #if APPSTORE
+            URL(string: "https://dimmerly.olujic.in.rs/app-store-privacy.html")
+        #else
+            URL(string: "https://dimmerly.olujic.in.rs/privacy-policy.html")
+        #endif
+    }
+
     var body: some View {
         Form {
             Section {
@@ -39,18 +49,22 @@ struct AboutSettingsTab: View {
 
                 ExternalLinkButton(
                     Text(String(localized: "Privacy Policy", comment: "About link title")),
-                    url: URL(string: "https://dimmerly.olujic.in.rs/privacy-policy.html"),
+                    url: Self.privacyPolicyURL,
                     help: Text(String(localized: "Open the Dimmerly privacy policy", comment: "About link help text"))
                 )
 
-                ExternalLinkButton(
-                    Text(String(localized: "Source Code on GitHub", comment: "About link title")),
-                    url: URL(string: "https://github.com/olujicz/Dimmerly"),
-                    help: Text(String(
-                        localized: "Open the Dimmerly GitHub repository",
-                        comment: "About link help text"
-                    ))
-                )
+                // The App Store edition is paid, so it doesn't link to the repository, where the
+                // free direct-download build is published (App Review guidelines 2.3.10, 3.1.1).
+                #if !APPSTORE
+                    ExternalLinkButton(
+                        Text(String(localized: "Source Code on GitHub", comment: "About link title")),
+                        url: URL(string: "https://github.com/olujicz/Dimmerly"),
+                        help: Text(String(
+                            localized: "Open the Dimmerly GitHub repository",
+                            comment: "About link help text"
+                        ))
+                    )
+                #endif
             }
 
             Section {

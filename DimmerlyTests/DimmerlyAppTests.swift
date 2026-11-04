@@ -617,3 +617,21 @@ final class ScreenshotStageTests: XCTestCase {
         XCTAssertGreaterThan(checked, stateless.count)
     }
 }
+
+/// Settings › About links: the paid App Store edition must not lead to the free download.
+@MainActor
+final class AboutSettingsLinkTests: XCTestCase {
+    func testPrivacyLinkMatchesTheDistribution() {
+        #if APPSTORE
+            XCTAssertEqual(
+                AboutSettingsTab.privacyPolicyURL?.absoluteString,
+                "https://dimmerly.olujic.in.rs/app-store-privacy.html"
+            )
+        #else
+            XCTAssertEqual(
+                AboutSettingsTab.privacyPolicyURL?.absoluteString,
+                "https://dimmerly.olujic.in.rs/privacy-policy.html"
+            )
+        #endif
+    }
+}
