@@ -7,7 +7,7 @@ Semantic Versioning.
 
 ## [Unreleased]
 
-## [1.4.2] - 2026-11-04
+## [1.4.2] - 2026-11-05
 
 ### Fixed
 - The menu bar panel grows with its content. Turning on Auto Warmth while the panel is open no longer pushes Settings… and Quit Dimmerly out of view.
