@@ -1153,3 +1153,32 @@ extension MenuBarPanelTests {
         XCTAssertTrue(try menuBarDisplayControlsSource().contains("Text(Int(sliderValue * 100), format: .percent)"))
     }
 }
+
+/// The hosting controller behind the menu-bar panel's popover.
+final class MenuBarPanelHostingTests: XCTestCase {
+    /// The popover is sized once, when it opens, so the panel's controller has to report later
+    /// height changes or growing content (Auto Warmth's status line) clips the footer.
+    @MainActor
+    func testPanelHostingControllerReportsItsHeightAsItChanges() throws {
+        final class Content: ObservableObject {
+            @Published var isTall = false
+        }
+        struct Panel: View {
+            @ObservedObject var content: Content
+            var body: some View {
+                Color.clear.frame(width: 300, height: content.isTall ? 260 : 200)
+            }
+        }
+        let content = Content()
+        let controller = MenuBarPanelPresenter.hostingController(for: Panel(content: content))
+        let hosting = try XCTUnwrap(controller as? NSHostingController<Panel>)
+        XCTAssertTrue(hosting.sizingOptions.contains(.preferredContentSize))
+
+        controller.view.layoutSubtreeIfNeeded()
+        XCTAssertEqual(controller.preferredContentSize.height, 200, accuracy: 0.5)
+        content.isTall = true
+        RunLoop.main.run(until: Date().addingTimeInterval(0.1))
+        controller.view.layoutSubtreeIfNeeded()
+        XCTAssertEqual(controller.preferredContentSize.height, 260, accuracy: 0.5)
+    }
+}

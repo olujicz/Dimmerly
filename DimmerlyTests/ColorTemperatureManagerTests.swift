@@ -675,4 +675,32 @@ final class ColorTemperatureManagerTests: XCTestCase {
 
         XCTAssertEqual(updateCount, 0)
     }
+
+    // MARK: - Injected clock
+
+    /// Staged screenshots pin the time of day; enabling and the status line both follow it.
+    func testEnablingAndStatusFollowTheInjectedClock() throws {
+        let (manager, brightnessManager) = isolatedManager(warmth: 0)
+        // A place whose sunset is in the host's evening, so the test works in any time zone.
+        let coordinates = localSolarCoordinates
+        manager.locationCoordinatesHook = { coordinates }
+        let sunset = try XCTUnwrap(SolarCalculator.sunriseSunset(
+            latitude: coordinates.latitude,
+            longitude: coordinates.longitude,
+            date: makeDate(hour: 12, minute: 0)
+        ).sunset)
+        // Ten minutes after sunset is three quarters through the default 40-minute transition.
+        let staged = sunset.addingTimeInterval(10 * 60)
+        manager.currentDate = { staged }
+        defer { manager.apply(enabled: false) }
+
+        manager.apply(enabled: true)
+
+        XCTAssertTrue(manager.isActive)
+        XCTAssertEqual(manager.currentKelvin, 3650, accuracy: 5, "Three quarters of the way from 6500K to 2700K")
+        let warmth = try XCTUnwrap(brightnessManager.displays.first?.warmth)
+        XCTAssertEqual(warmth, GammaMath.warmthForKelvin(manager.currentKelvin), accuracy: 1e-9)
+        let status = try XCTUnwrap(manager.nextTransitionDescription())
+        XCTAssertTrue(status.hasPrefix("Sunrise"), "After sunset the next transition is sunrise, not \(status)")
+    }
 }

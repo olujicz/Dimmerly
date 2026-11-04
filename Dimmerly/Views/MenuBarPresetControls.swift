@@ -84,6 +84,13 @@ struct PresetsSectionView: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text("Presets"))
+        #if DEBUG
+            // A demo run applies presets without a click, then asks for the click's checkmark.
+            .onReceive(NotificationCenter.default.publisher(for: ScreenshotStage.presetConfirmedNotification)) {
+                guard let id = $0.object as? UUID, let preset = presetManager.preset(withID: id) else { return }
+                confirmApplied(preset)
+            }
+        #endif
     }
 
     private func presetRow(_ preset: BrightnessPreset, index: Int) -> some View {

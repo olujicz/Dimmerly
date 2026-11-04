@@ -29,13 +29,22 @@ enum DemoError: Error, CustomStringConvertible {
 
 let usage = """
 Usage: ComposeDemo --appearance light|dark --values FILE --panel-dir DIR --storyboard FILE
-                   (--output FILE.mov | --frame N --png FILE | --check)
+                   (--output FILE.mov | --frame N --png FILE [--still] [--clock TEXT] | --check)
+       ComposeDemo --appearance light|dark --window FILE --window-mask FILE --caption TEXT
+                   --png FILE [--clock TEXT]
 
 --appearance  light or dark: the backdrop, menu bar, captions and shadows to match
            the website's colour scheme. Use panel captures from the same appearance.
 
 --output   writes the master movie: ProRes 422 HQ, 2560x1600, at the values' fps.
 --frame/--png  renders one frame to a PNG for review.
+--still    with --frame: the App Store still layout. The caption is at the top and larger,
+           the menu bar and panel are zoomed, the devices are smaller, there is no cursor,
+           and the frame's caption shows in full.
+--clock    the menu-bar clock text (default "Tue 9:41").
+--window   an App Store still of a window instead of the scene: a region capture of the
+           window, the same-sized window capture whose alpha outlines it (--window-mask),
+           and its caption.
 --check    renders frame 0, the last frame and three sample frames, and fails unless
            the loop is seamless (<1% mean difference) and the simulated screens match
            GammaMath applied to the wallpaper within 1 per channel.
@@ -536,11 +545,14 @@ func softShadow( // swiftlint:disable:this function_parameter_count
     context: CGContext
 ) {
     let away: CGFloat = 10000
+    // Shadow offsets and blur are in device pixels and ignore the transform, so scale them by
+    // it to match a scaled scene (the stills' smaller devices).
+    let scale = hypot(context.ctm.a, context.ctm.b)
     context.saveGState()
     // The shadow offset is in device space (y up); the shape itself is drawn off-canvas.
     context.setShadow(
-        offset: CGSize(width: dx, height: -(away + dy)),
-        blur: blur,
+        offset: CGSize(width: dx * scale, height: -(away + dy) * scale),
+        blur: blur * scale,
         color: color(theme.shadowColor, min(alpha * theme.shadowStrength, 1))
     )
     context.translateBy(x: 0, y: -away)
@@ -574,6 +586,41 @@ enum Appearance: String {
     case light, dark
 }
 
+/// The video's layout, or the App Store still layout: a larger caption at the top, the menu bar
+/// and panel zoomed about the canvas's top-right corner, and smaller devices.
+struct Style {
+    var isStill = false
+    var clock = "Tue 9:41"
+    var uiScale: CGFloat = 1
+    var deviceScale: CGFloat = 1
+    var deviceOffset = CGPoint.zero
+    var captionSize: CGFloat = 62
+    var captionTop: CGFloat = Layout.captionTop
+
+    static func video(clock: String?) -> Style {
+        Style(clock: clock ?? "Tue 9:41")
+    }
+
+    static func still(clock: String?) -> Style {
+        Style(isStill: true, clock: clock ?? "Tue 9:41", uiScale: 1.25, deviceScale: 0.9,
+              deviceOffset: CGPoint(x: -24, y: 171), captionSize: 104, captionTop: 128)
+    }
+
+    /// Scales the devices about the left margin at the top of the canvas, then moves them.
+    var deviceTransform: CGAffineTransform {
+        CGAffineTransform(translationX: Layout.margin + deviceOffset.x, y: deviceOffset.y)
+            .scaledBy(x: deviceScale, y: deviceScale)
+            .translatedBy(x: -Layout.margin, y: 0)
+    }
+
+    /// Zooms the menu bar, the icon and the panel about the canvas's top-right corner.
+    var uiTransform: CGAffineTransform {
+        CGAffineTransform(translationX: CGFloat(Layout.width), y: 0)
+            .scaledBy(x: uiScale, y: uiScale)
+            .translatedBy(x: -CGFloat(Layout.width), y: 0)
+    }
+}
+
 /// Everything that differs between the light and dark renders. The devices, screens and
 /// wallpaper are identical in both.
 struct Theme {
@@ -583,6 +630,7 @@ struct Theme {
     let shadowColor: UInt32
     let shadowStrength: CGFloat
     let deviceOutline: CGColor? // a hairline so aluminium edges read on a light page
+    let rimShade: CGColor? // tones the aluminium rims down so they don't read as a white stroke
     let menuBar: [(CGFloat, CGColor)]
     let menuBarHairline: CGColor
     let menuItem: NSColor
@@ -600,6 +648,7 @@ struct Theme {
             Theme(appearance: .dark,
                   backdrop: [(0, color(0x2C3643)), (0.5, color(0x212933)), (1, color(0x171C23))],
                   vignette: color(0x0C0E11, 0.34), shadowColor: 0x000000, shadowStrength: 1.35, deviceOutline: nil,
+                  rimShade: color(0x10141A, 0.32),
                   menuBar: [(0, color(0x10141A, 0.5)), (1, color(0x10141A, 0.38))],
                   menuBarHairline: color(0xFFFFFF, 0.08), menuItem: .white, iconPill: color(0xFFFFFF, 0.2),
                   caption: NSColor.white.withAlphaComponent(0.96), captionShadow: 0.22,
@@ -609,7 +658,7 @@ struct Theme {
             Theme(appearance: .light,
                   backdrop: [(0, color(0xFAF9F6)), (0.55, color(0xF3F1EC)), (1, color(0xEAE8E3))],
                   vignette: color(0x4A4436, 0.06), shadowColor: 0x3B3528, shadowStrength: 0.55,
-                  deviceOutline: color(0x000000, 0.16),
+                  deviceOutline: color(0x000000, 0.16), rimShade: nil,
                   menuBar: [(0, color(0xFFFFFF, 0.62)), (1, color(0xFFFFFF, 0.5))],
                   menuBarHairline: color(0x000000, 0.1), menuItem: NSColor.black.withAlphaComponent(0.85),
                   iconPill: color(0x000000, 0.1),
@@ -631,6 +680,14 @@ func drawBackground(theme: Theme, context: CGContext) {
     context.drawRadialGradient(gradient([(0, theme.vignette.copy(alpha: 0)!), (1, theme.vignette)]),
                                startCenter: center, startRadius: 620, endCenter: center,
                                endRadius: hypot(canvas.width, canvas.height) / 2, options: [.drawsAfterEndLocation])
+}
+
+/// Darkens an aluminium rim on a dark backdrop, where its full brightness reads as a white line.
+func shadeRim(_ path: CGPath, theme: Theme, context: CGContext) {
+    guard let shade = theme.rimShade else { return }
+    context.addPath(path)
+    context.setFillColor(shade)
+    context.fillPath()
 }
 
 /// A hairline around an aluminium body so its edge reads against a light backdrop.
@@ -710,6 +767,7 @@ func drawMonitor(theme: Theme, context: CGContext) {
     // The display: a soft drop shadow, a thin aluminium edge and uniform black glass.
     softShadow(roundedRect(body, 22), dx: 10, dy: 30, blur: 80, alpha: 0.24, theme: theme, context: context)
     fill(roundedRect(body, 22), vertical: aluminium, context: context)
+    shadeRim(roundedRect(body, 22), theme: theme, context: context)
     outline(roundedRect(body.insetBy(dx: -0.75, dy: -0.75), 22.75), theme: theme, context: context)
     topHighlight(body, inset: 22, context: context)
     context.addPath(roundedRect(glass, 19))
@@ -777,6 +835,7 @@ func drawLaptop(theme: Theme, context: CGContext) {
 
     // The lid: thin aluminium edge, uniform black glass.
     fill(roundedRect(lid, top: 20, bottom: 6), vertical: aluminium, context: context)
+    shadeRim(roundedRect(lid, top: 20, bottom: 6), theme: theme, context: context)
     outline(roundedRect(lid.insetBy(dx: -0.75, dy: -0.75), top: 20.75, bottom: 6.75), theme: theme, context: context)
     topHighlight(lid, inset: 20, context: context)
     context.addPath(roundedRect(glass, top: 17, bottom: 4))
@@ -788,7 +847,18 @@ func drawLaptop(theme: Theme, context: CGContext) {
     context.strokePath()
 }
 
-func drawMenuBar(theme: Theme, context: CGContext) {
+let menuBarClockFont = NSFont.systemFont(ofSize: 26, weight: .medium)
+
+/// How far a clock wider than "Tue 9:41" pushes the status items, the icon and the panel to the left.
+func menuBarShift(clock: String) -> CGFloat {
+    func width(_ text: String) -> CGFloat {
+        NSAttributedString(string: text, attributes: [.font: menuBarClockFont]).size().width
+    }
+    return max(0, width(clock) - width("Tue 9:41")).rounded()
+}
+
+func drawMenuBar(theme: Theme, clock text: String, context: CGContext) {
+    let shift = menuBarShift(clock: text)
     let bar = Layout.menuBar
     context.saveGState()
     context.clip(to: bar)
@@ -803,13 +873,14 @@ func drawMenuBar(theme: Theme, context: CGContext) {
     context.fill(CGRect(x: bar.minX, y: bar.maxY - 1, width: bar.width, height: 1))
 
     if let wifi = symbol("wifi", pointSize: 26, weight: .medium, tint: theme.menuItem) {
-        drawSymbol(wifi, centeredAt: CGPoint(x: Layout.wifiX, y: bar.midY), alpha: 1, context: context)
+        drawSymbol(wifi, centeredAt: CGPoint(x: Layout.wifiX - shift, y: bar.midY), alpha: 1, context: context)
     }
     if let controls = symbol("switch.2", pointSize: 26, weight: .medium, tint: theme.menuItem) {
-        drawSymbol(controls, centeredAt: CGPoint(x: Layout.controlCenterX, y: bar.midY), alpha: 1, context: context)
+        drawSymbol(controls, centeredAt: CGPoint(x: Layout.controlCenterX - shift, y: bar.midY), alpha: 1,
+                   context: context)
     }
-    let clock = NSAttributedString(string: "Tue 9:41", attributes: [
-        .font: NSFont.systemFont(ofSize: 26, weight: .medium),
+    let clock = NSAttributedString(string: text, attributes: [
+        .font: menuBarClockFont,
         .foregroundColor: theme.menuItem,
     ])
     let size = clock.size()
@@ -923,6 +994,23 @@ enum CursorAnchor {
     }
 }
 
+func drawCaptionLine( // swiftlint:disable:this function_parameter_count
+    _ text: String, font: NSFont, top: CGFloat, alpha: Double, theme: Theme, context: CGContext
+) {
+    guard alpha > 0.002 else { return }
+    let shadow = NSShadow()
+    shadow.shadowBlurRadius = 18
+    shadow.shadowOffset = NSSize(width: 0, height: -2)
+    shadow.shadowColor = NSColor.black.withAlphaComponent(theme.captionShadow * alpha)
+    // Tracking tightens with size, as SF Pro Display's does.
+    let string = NSAttributedString(string: text, attributes: [
+        .font: font,
+        .foregroundColor: theme.caption.withAlphaComponent(theme.caption.alphaComponent * alpha),
+        .kern: -0.9 * font.pointSize / 62,
+    ].merging(theme.captionShadow > 0 ? [.shadow: shadow] : [:]) { a, _ in a })
+    withAppKit(context) { string.draw(at: CGPoint(x: Layout.margin, y: top)) }
+}
+
 final class Compositor {
     let fps: Int
     let frames: [FrameValues]
@@ -938,8 +1026,9 @@ final class Compositor {
     /// Canvas position of the reference capture's top-left; cursor points are relative to it.
     let panelOrigin: CGPoint
     let dimmerlyIcon: NSImage?
-    let captionFont = NSFont.systemFont(ofSize: 62, weight: .semibold)
+    let captionFont: NSFont
     let theme: Theme
+    let style: Style
 
     private var cachedPanel: (frame: Int, panel: PanelImage)?
     private var cachedScreens: [String: (values: DisplayValues, image: CGImage)] = [:]
@@ -951,9 +1040,18 @@ final class Compositor {
 
     // Validates every input and prepares the static layers in one pass.
     // swiftlint:disable:next function_body_length
-    init(fps: Int, frames: [FrameValues], cursor track: CursorTrack, panelDir: String, theme: Theme) throws {
+    init(
+        fps: Int,
+        frames: [FrameValues],
+        cursor track: CursorTrack,
+        panelDir: String,
+        theme: Theme,
+        style: Style = .video(clock: nil)
+    ) throws {
         self.fps = fps
         self.theme = theme
+        self.style = style
+        captionFont = NSFont.systemFont(ofSize: style.captionSize, weight: .semibold)
         self.frames = frames
         self.panelDir = panelDir
 
@@ -966,13 +1064,20 @@ final class Compositor {
         let sceneContext = try makeContext(width: Layout.width, height: Layout.height,
                                            bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)
         drawBackground(theme: theme, context: sceneContext)
+        sceneContext.saveGState()
+        sceneContext.concatenate(style.deviceTransform)
         drawMonitor(theme: theme, context: sceneContext)
-        drawMenuBar(theme: theme, context: sceneContext)
+        sceneContext.restoreGState()
+        sceneContext.saveGState()
+        sceneContext.concatenate(style.uiTransform)
+        drawMenuBar(theme: theme, clock: style.clock, context: sceneContext)
+        sceneContext.restoreGState()
         // Static grain over the backdrop, stand and menu bar. The screens are drawn over
         // this layer afterwards, so their pixels never carry it.
         addGrain(sceneContext.data!.assumingMemoryBound(to: UInt8.self), width: Layout.width, height: Layout.height,
                  amplitude: 1.6, seed: 0x6EA1_0F0D)
         let laptopContext = try makeContext(width: Layout.width, height: Layout.height)
+        laptopContext.concatenate(style.deviceTransform)
         drawLaptop(theme: theme, context: laptopContext)
         guard let scene = sceneContext.makeImage(), let laptop = laptopContext.makeImage() else {
             throw DemoError.invalid("Cannot render the static scene")
@@ -1176,7 +1281,8 @@ final class Compositor {
         // Simulated screens: pixel-exact, so the check can compare against GammaMath.
         func drawScreen(_ key: String, _ rect: CGRect, _ display: DisplayValues, _ wallpaper: Bitmap, _ path: CGPath) {
             context.saveGState()
-            context.interpolationQuality = .none
+            context.concatenate(style.deviceTransform)
+            context.interpolationQuality = style.deviceScale == 1 ? .none : .high
             context.addPath(path)
             context.clip()
             drawImage(screenImage(key, values: display, wallpaper: wallpaper), in: rect, context: context)
@@ -1189,9 +1295,17 @@ final class Compositor {
                    roundedRect(Layout.laptopScreen, top: 8, bottom: 2))
         // MacBook notch, over the screen's top edge (outside the sampled interior).
         let notch = CGRect(x: Layout.laptopScreen.midX - 38, y: Layout.laptopScreen.minY - 2, width: 76, height: 15)
+        context.saveGState()
+        context.concatenate(style.deviceTransform)
         context.addPath(roundedRect(notch, top: 0.5, bottom: 6))
         context.setFillColor(color(0x0A0A0C))
         context.fillPath()
+        context.restoreGState()
+
+        // The menu-bar icon and the panel share the menu bar's zoom, and move left for a wider clock.
+        context.saveGState()
+        context.concatenate(style.uiTransform)
+        context.translateBy(x: -menuBarShift(clock: style.clock), y: 0)
 
         // Menu-bar icon, with the system's highlight while the panel is open.
         let panelState = panelStates[f]
@@ -1221,14 +1335,22 @@ final class Compositor {
             )
             context.beginTransparencyLayer(auxiliaryInfo: nil)
             context.setShadow(offset: CGSize(width: 0, height: -1), blur: 3, color: color(0x07121F, theme.panelEdge))
-            context.interpolationQuality = scale == 1 ? .none : .high
+            context.interpolationQuality = scale == 1 && style.uiScale == 1 ? .none : .high
             drawImage(panel.image, in: CGRect(x: -panel.tip.x, y: -panel.tip.y,
                                               width: CGFloat(panel.image.width), height: CGFloat(panel.image.height)),
                       context: context)
             context.endTransparencyLayer()
             context.restoreGState()
         }
+        context.restoreGState()
 
+        if style.isStill {
+            // A still shows its caption in full, whatever the fade would be on this frame.
+            if !values.caption.isEmpty {
+                drawCaptionText(values.caption, alpha: 1, rise: 0, context: context)
+            }
+            return
+        }
         drawCaption(captionStates[f], context: context)
 
         if let hotspot = cursorPosition(at: time) {
@@ -1243,25 +1365,18 @@ final class Compositor {
     }
 
     func drawCaption(_ state: CaptionState, context: CGContext) {
-        func draw(_ text: String, alpha: Double, rise: CGFloat) {
-            guard alpha > 0.002 else { return }
-            let shadow = NSShadow()
-            shadow.shadowBlurRadius = 18
-            shadow.shadowOffset = NSSize(width: 0, height: -2)
-            shadow.shadowColor = NSColor.black.withAlphaComponent(theme.captionShadow * alpha)
-            let string = NSAttributedString(string: text, attributes: [
-                .font: captionFont,
-                .foregroundColor: theme.caption.withAlphaComponent(theme.caption.alphaComponent * alpha),
-                .kern: -0.9,
-            ].merging(theme.captionShadow > 0 ? [.shadow: shadow] : [:]) { a, _ in a })
-            withAppKit(context) { string.draw(at: CGPoint(x: Layout.margin, y: Layout.captionTop + rise)) }
-        }
         if let leaving = state.leaving {
-            draw(leaving, alpha: state.leavingAlpha, rise: 0)
+            drawCaptionText(leaving, alpha: state.leavingAlpha, rise: 0, context: context)
         }
         if let entering = state.entering {
-            draw(entering, alpha: state.enteringProgress, rise: 10 * CGFloat(1 - state.enteringProgress))
+            drawCaptionText(entering, alpha: state.enteringProgress, rise: 10 * CGFloat(1 - state.enteringProgress),
+                            context: context)
         }
+    }
+
+    func drawCaptionText(_ text: String, alpha: Double, rise: CGFloat, context: CGContext) {
+        drawCaptionLine(text, font: captionFont, top: style.captionTop + rise, alpha: alpha, theme: theme,
+                        context: context)
     }
 
     func renderImage(frame: Int) throws -> (CGImage, CGContext) {
@@ -1270,6 +1385,80 @@ final class Compositor {
         guard let image = context.makeImage() else { throw DemoError.invalid("Cannot render frame \(frame)") }
         return (image, context)
     }
+}
+
+/// The same picture without an alpha channel. The canvas is fully covered, so nothing changes.
+func opaque(_ image: CGImage) throws -> CGImage {
+    let context = try makeContext(width: image.width, height: image.height,
+                                  bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)
+    drawImage(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height), context: context)
+    guard let flat = context.makeImage() else { throw DemoError.invalid("Cannot flatten the image") }
+    return flat
+}
+
+// MARK: - Window still
+
+/// An App Store still of a window, such as Settings, in the still layout: the backdrop and the
+/// zoomed menu bar, the window centred under the caption with a window shadow, and the caption.
+/// `window` is an opaque region capture; `mask` is a same-sized capture whose alpha outlines it.
+func renderWindowStill(
+    window capture: CGImage,
+    mask: CGImage,
+    caption: String,
+    theme: Theme,
+    style: Style
+) throws -> CGImage {
+    // A region capture of a window at a fractional screen position can round a few pixels
+    // larger than the window; keep its centre at the mask's size.
+    let extraWidth = capture.width - mask.width, extraHeight = capture.height - mask.height
+    guard (0 ... 4).contains(extraWidth), (0 ... 4).contains(extraHeight),
+          [.premultipliedFirst, .premultipliedLast, .first, .last].contains(mask.alphaInfo),
+          let window = capture.cropping(to: CGRect(x: extraWidth / 2, y: extraHeight / 2,
+                                                   width: mask.width, height: mask.height))
+    else { throw DemoError.invalid("The window mask must have alpha and match the window capture's size") }
+    let context = try makeContext(width: Layout.width, height: Layout.height,
+                                  bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)
+    drawBackground(theme: theme, context: context)
+    context.saveGState()
+    context.concatenate(style.uiTransform)
+    drawMenuBar(theme: theme, clock: style.clock, context: context)
+    if let icon = symbol("sun.max.fill", pointSize: 27, weight: .medium, tint: theme.menuItem) {
+        let center = CGPoint(x: Layout.iconCenter.x - menuBarShift(clock: style.clock), y: Layout.iconCenter.y)
+        drawSymbol(icon, centeredAt: center, alpha: 1, context: context)
+    }
+    context.restoreGState()
+    addGrain(context.data!.assumingMemoryBound(to: UInt8.self), width: Layout.width, height: Layout.height,
+             amplitude: 1.6, seed: 0x6EA1_0F0D)
+
+    // Fit under the caption with a margin all round, at most at the panel's zoom.
+    let font = NSFont.systemFont(ofSize: style.captionSize, weight: .semibold)
+    let area = CGRect(x: Layout.margin, y: style.captionTop + font.pointSize * 1.2 + 90,
+                      width: CGFloat(Layout.width) - 2 * Layout.margin, height: 0)
+    let available = CGSize(width: area.width, height: CGFloat(Layout.height) - area.minY - 110)
+    let scale = min(style.uiScale, available.width / CGFloat(window.width), available.height / CGFloat(window.height))
+    let size = CGSize(width: (CGFloat(window.width) * scale).rounded(),
+                      height: (CGFloat(window.height) * scale).rounded())
+    let rect = CGRect(x: ((CGFloat(Layout.width) - size.width) / 2).rounded(),
+                      y: (area.minY + (available.height - size.height) / 2).rounded(),
+                      width: size.width, height: size.height)
+
+    context.saveGState()
+    context.setShadow(offset: CGSize(width: 0, height: -28), blur: 80, color: color(0x07121F, theme.panelShadow))
+    context.beginTransparencyLayer(auxiliaryInfo: nil)
+    context.setShadow(offset: CGSize(width: 0, height: -1), blur: 3, color: color(0x07121F, theme.panelEdge))
+    context.beginTransparencyLayer(auxiliaryInfo: nil)
+    context.translateBy(x: rect.minX, y: rect.maxY)
+    context.scaleBy(x: 1, y: -1)
+    context.clip(to: CGRect(origin: .zero, size: rect.size), mask: mask)
+    context.interpolationQuality = .high
+    context.draw(window, in: CGRect(origin: .zero, size: rect.size))
+    context.endTransparencyLayer()
+    context.endTransparencyLayer()
+    context.restoreGState()
+
+    drawCaptionLine(caption, font: font, top: style.captionTop, alpha: 1, theme: theme, context: context)
+    guard let image = context.makeImage() else { throw DemoError.invalid("Cannot render the window still") }
+    return image
 }
 
 // MARK: - Modes
@@ -1430,6 +1619,7 @@ struct ComposeDemo {
         }
     }
 
+    // swiftlint:disable:next function_body_length
     static func run(_ args: [String]) async throws {
         if args == ["--help"] || args == ["-h"] {
             print(usage)
@@ -1444,14 +1634,24 @@ struct ComposeDemo {
             "--output",
             "--frame",
             "--png",
+            "--clock",
+            "--window",
+            "--window-mask",
+            "--caption",
         ]
         var options: [String: String] = [:]
         var check = false
+        var still = false
         var index = 0
         while index < args.count {
             let name = args[index]
             if name == "--check", !check {
                 check = true
+                index += 1
+                continue
+            }
+            if name == "--still", !still {
+                still = true
                 index += 1
                 continue
             }
@@ -1465,13 +1665,30 @@ struct ComposeDemo {
                   !value.isEmpty else { throw DemoError.invalid("Missing \(name)\n\(usage)") }
             return value
         }
+        guard let appearance = try Appearance(rawValue: required("--appearance")) else {
+            throw DemoError.invalid("--appearance must be light or dark\n\(usage)")
+        }
+        if let window = options["--window"] {
+            let image = try renderWindowStill(
+                window: loadImage(window), mask: loadImage(required("--window-mask")),
+                caption: required("--caption"), theme: Theme.make(appearance),
+                style: .still(clock: options["--clock"])
+            )
+            let png = try required("--png")
+            try writePNG(image, to: png)
+            print("Wrote \(png) (window still, \(Layout.width)x\(Layout.height))")
+            return
+        }
+        guard options["--window-mask"] == nil, options["--caption"] == nil else {
+            throw DemoError.invalid("--window-mask and --caption go with --window\n\(usage)")
+        }
+
         let modes = [options["--output"] != nil, options["--frame"] != nil || options["--png"] != nil, check]
         guard modes.filter(\.self).count == 1 else {
             throw DemoError.invalid("Choose exactly one of --output, --frame with --png, or --check\n\(usage)")
         }
-
-        guard let appearance = try Appearance(rawValue: required("--appearance")) else {
-            throw DemoError.invalid("--appearance must be light or dark\n\(usage)")
+        guard !still || options["--frame"] != nil else {
+            throw DemoError.invalid("--still goes with --frame and --png\n\(usage)")
         }
         if options["--background"] != nil {
             FileHandle.standardError
@@ -1480,8 +1697,9 @@ struct ComposeDemo {
         let started = Date()
         let (fps, frames) = try loadValues(required("--values"))
         let cursor = try loadCursor(required("--storyboard"))
+        let style = still ? Style.still(clock: options["--clock"]) : Style.video(clock: options["--clock"])
         let compositor = try Compositor(fps: fps, frames: frames, cursor: cursor, panelDir: required("--panel-dir"),
-                                        theme: Theme.make(appearance))
+                                        theme: Theme.make(appearance), style: style)
 
         if check {
             let passed = try runCheck(compositor)
@@ -1505,7 +1723,9 @@ struct ComposeDemo {
                 throw DemoError.invalid("--frame must be between 0 and \(frames.count - 1)")
             }
             let png = try required("--png")
-            try writePNG(compositor.renderImage(frame: frame).0, to: png)
+            let image = try compositor.renderImage(frame: frame).0
+            // App Store Connect rejects screenshots with an alpha channel.
+            try writePNG(still ? opaque(image) : image, to: png)
             print("Wrote \(png) (frame \(frame), \(Layout.width)x\(Layout.height))")
         }
     }

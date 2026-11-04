@@ -15,6 +15,16 @@ final class MenuBarPanelPresenter: NSObject, NSPopoverDelegate {
     static let shared = MenuBarPanelPresenter()
 
     typealias ContentBuilder = @MainActor (UUID?) -> NSViewController
+
+    /// Hosts the panel so the popover follows its height. The popover is sized when it opens;
+    /// without this, content that grows while it's open, such as Auto Warmth's status line, pushes
+    /// the footer out of the window.
+    static func hostingController(for panel: some View) -> NSViewController {
+        let controller = NSHostingController(rootView: panel)
+        controller.sizingOptions = .preferredContentSize
+        return controller
+    }
+
     typealias AnchorProvider = @MainActor () -> (rect: NSRect, view: NSView)?
     typealias PopoverFactory = @MainActor () -> NSPopover
 

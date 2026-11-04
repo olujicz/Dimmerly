@@ -24,6 +24,10 @@ case "${DEMO_VARIANT:-direct}" in
 esac
 derived="$demo_dir/DerivedData"
 storyboard="$script_dir/demo/storyboard.json"
+# The App Store stills play their own storyboard into .build/demo-app-store/stills-<appearance>.
+stills_storyboard="$script_dir/demo/app-store-stills.json"
+stills_output="$repo_dir/images/app-store"
+run_prefix=''
 exports="$repo_dir/images/demo"
 # The website follows the system colour scheme, so every capture and export is made in both.
 appearances=(light dark)
@@ -40,6 +44,10 @@ Usage:
                                               render .build/demo/<appearance>/master.mov
   scripts/demo.sh export [light|dark]         encode the website, README and social files
   scripts/demo.sh check-release               build Release and confirm it has no demo code
+  DEMO_VARIANT=app-store scripts/demo.sh stills-capture
+                                              record the App Store stills storyboard and Settings
+  DEMO_VARIANT=app-store scripts/demo.sh stills
+                                              render images/app-store from those recordings
 
 Without an appearance, capture, compose and export run for light and then dark. The
 demo app is forced into that appearance, whatever this Mac uses.
@@ -49,6 +57,10 @@ displays, no gamma or DDC writes). It needs an unlocked Mac and Screen Recording
 for DimmerlyScreenshotHelper. The storyboard is scripts/demo/storyboard.json.
 Raw frames and masters stay in .build/demo/<appearance>; export writes
 images/demo/dimmerly-demo-<appearance>.mp4, .webp and -poster.jpg.
+
+stills-capture plays scripts/demo/app-store-stills.json in light and dark, then captures
+each window still's Settings tab. stills renders every image that file lists into
+images/app-store and checks each is 2560x1600 and opaque. Run build first.
 HELP
 }
 
@@ -59,7 +71,7 @@ use_appearance() {
         *) echo "Unknown appearance: $1 (use light or dark)" >&2; return 64 ;;
     esac
     appearance="$1"
-    run_dir="$demo_dir/$appearance"
+    run_dir="$demo_dir/$run_prefix$appearance"
     values="$run_dir/values.jsonl"
     master="$run_dir/master.mov"
 }
@@ -114,11 +126,13 @@ demo_capture() {
     rm -f -- "$record_status"
 
     echo "Playing the storyboard and recording the $appearance panel (about 20 seconds)..."
-    DIMMERLY_SCREENSHOT=demo DIMMERLY_SCREENSHOT_APPEARANCE="$appearance" \
+    local time_zone
+    time_zone="$(plutil -extract timeZone raw -o - "$storyboard" 2>/dev/null || echo "$staged_time_zone")"
+    TZ="$time_zone" DIMMERLY_SCREENSHOT=demo DIMMERLY_SCREENSHOT_APPEARANCE="$appearance" \
         DIMMERLY_SCREENSHOT_BACKDROP="$(backdrop_color)" \
         DIMMERLY_DEMO_STORYBOARD="$storyboard" DIMMERLY_DEMO_OUTPUT="$values" \
         LLVM_PROFILE_FILE="$run_dir/default.profraw" \
-        "$app/Contents/MacOS/Dimmerly" >"$run_dir/app.log" 2>&1 &
+        "$app/Contents/MacOS/Dimmerly" "${staged_locale_args[@]}" >"$run_dir/app.log" 2>&1 &
     app_pid=$!
     staged_pid=$app_pid
     trap stop_staged EXIT
@@ -238,6 +252,98 @@ demo_export() {
     echo "Exports: $exports (social MP4: $social)"
 }
 
+# Reads one value from a JSON file, such as stills.0.file; empty when it isn't there.
+json_value() {
+    plutil -extract "$2" raw -o - "$1" 2>/dev/null || true
+}
+
+require_app_store_variant() {
+    [[ "${DEMO_VARIANT:-}" == app-store ]] || {
+        echo 'The App Store stills come from the App Store build: run with DEMO_VARIANT=app-store.' >&2
+        return 64
+    }
+}
+
+stills_capture() {
+    [[ $# -eq 0 ]] || { demo_usage >&2; return 64; }
+    require_app_store_variant || return
+    storyboard="$stills_storyboard" run_prefix='stills-'
+    for_appearances capture_with_retry
+
+    local app index=0 file tab
+    app="$(demo_app)"
+    while file="$(json_value "$stills_storyboard" "windowStills.$index.file")"; [[ -n "$file" ]]; do
+        tab="$(json_value "$stills_storyboard" "windowStills.$index.settingsTab")"
+        use_appearance "$(json_value "$stills_storyboard" "windowStills.$index.appearance")"
+        local inputs="$demo_dir/stills-settings-$tab-$appearance"
+        mkdir -p "$inputs"
+        rm -f -- "$inputs/settings.png" "$inputs/settings-mask.png"
+        echo "Capturing the $tab settings ($appearance)..."
+        trap stop_staged EXIT
+        trap 'stop_staged; exit 130' INT
+        trap 'stop_staged; exit 143' TERM
+        DIMMERLY_SCREENSHOT_SETTINGS_TAB="$tab" launch_staged "$app" settings "$appearance" "$(backdrop_color)"
+        capture_when_ready settings-region "$inputs/settings.png"
+        # The mask capture must match the region capture, so take it right away.
+        capture --pid "$staged_pid" --mode settings --output "$inputs/settings-mask.png"
+        stop_staged
+        trap - EXIT INT TERM
+        index=$((index + 1))
+    done
+    echo "Captured. Render with: DEMO_VARIANT=app-store scripts/demo.sh stills"
+}
+
+# Fails unless an App Store screenshot is 2560x1600 with no alpha channel.
+check_still() {
+    local info
+    info="$(sips -g pixelWidth -g pixelHeight -g hasAlpha "$1")"
+    if ! grep -q 'pixelWidth: 2560' <<<"$info" || ! grep -q 'pixelHeight: 1600' <<<"$info" ||
+        ! grep -q 'hasAlpha: no' <<<"$info"; then
+        echo "$(basename -- "$1") is not a 2560x1600 opaque PNG:" >&2
+        echo "$info" >&2
+        return 1
+    fi
+}
+
+stills_render() {
+    [[ $# -eq 0 ]] || { demo_usage >&2; return 64; }
+    require_app_store_variant || return
+    local tool index file
+    tool="$(compose_tool)"
+    run_prefix='stills-'
+    mkdir -p "$stills_output"
+    index=0
+    while file="$(json_value "$stills_storyboard" "stills.$index.file")"; [[ -n "$file" ]]; do
+        use_appearance "$(json_value "$stills_storyboard" "stills.$index.appearance")"
+        [[ -s "$values" && -d "$run_dir/panel" ]] || {
+            echo "Missing the $appearance stills recording; run DEMO_VARIANT=app-store scripts/demo.sh stills-capture." >&2
+            return 1
+        }
+        "$tool" --appearance "$appearance" --values "$values" --panel-dir "$run_dir/panel" \
+            --storyboard "$stills_storyboard" --still --frame "$(json_value "$stills_storyboard" "stills.$index.frame")" \
+            --clock "$(json_value "$stills_storyboard" "stills.$index.clock")" --png "$stills_output/$file"
+        check_still "$stills_output/$file"
+        index=$((index + 1))
+    done
+    index=0
+    while file="$(json_value "$stills_storyboard" "windowStills.$index.file")"; [[ -n "$file" ]]; do
+        local tab inputs
+        tab="$(json_value "$stills_storyboard" "windowStills.$index.settingsTab")"
+        use_appearance "$(json_value "$stills_storyboard" "windowStills.$index.appearance")"
+        inputs="$demo_dir/stills-settings-$tab-$appearance"
+        [[ -s "$inputs/settings.png" && -s "$inputs/settings-mask.png" ]] || {
+            echo "Missing the $tab settings capture; run DEMO_VARIANT=app-store scripts/demo.sh stills-capture." >&2
+            return 1
+        }
+        "$tool" --appearance "$appearance" --window "$inputs/settings.png" --window-mask "$inputs/settings-mask.png" \
+            --caption "$(json_value "$stills_storyboard" "windowStills.$index.caption")" \
+            --clock "$(json_value "$stills_storyboard" "windowStills.$index.clock")" --png "$stills_output/$file"
+        check_still "$stills_output/$file"
+        index=$((index + 1))
+    done
+    echo "Stills: $stills_output. Inspect every image before uploading."
+}
+
 # The demo and screenshot stage are DEBUG-only; a Release binary must not contain them.
 demo_check_release() {
     local release_derived="$demo_dir/ReleaseDerivedData"
@@ -276,6 +382,8 @@ case "$command" in
         for_appearances demo_export
         ;;
     check-release) demo_check_release ;;
+    stills-capture) stills_capture "$@" ;;
+    stills) stills_render "$@" ;;
     help|--help|-h) demo_usage ;;
     *) demo_usage >&2; exit 64 ;;
 esac

@@ -110,6 +110,9 @@ class ColorTemperatureManager {
     /// Optional location lookup override for deterministic tests.
     var locationCoordinatesHook: (() -> (latitude: Double, longitude: Double)?)?
 
+    /// The current time. Tests and staged screenshots replace it to pin the time of day.
+    var currentDate: () -> Date = { Date() }
+
     /// - Parameter brightnessManager: Where warmth is applied. Pass an isolated instance in tests.
     init(brightnessManager: BrightnessManager = .shared, settings: AppSettings = .shared) {
         self.brightnessManager = brightnessManager
@@ -175,19 +178,20 @@ class ColorTemperatureManager {
     private func startPolling() {
         stopPolling()
         pollingTimer.start(interval: 60) { [weak self] in
-            self?.updateColorTemperature()
+            guard let self else { return }
+            updateColorTemperature(now: currentDate())
         }
 
         // Re-evaluate after either the Mac or only its screens wake. The delay lets
         // BrightnessManager finish display stabilization and gamma restoration first.
         let monitor = WorkspaceWakeMonitor(delay: .seconds(1.5)) { [weak self] in
             guard let self, isEnabled else { return }
-            updateColorTemperature()
+            updateColorTemperature(now: currentDate())
         }
         monitor.start()
         wakeMonitor = monitor
 
-        updateColorTemperature()
+        updateColorTemperature(now: currentDate())
     }
 
     private func stopPolling() {
@@ -200,8 +204,8 @@ class ColorTemperatureManager {
 
     /// Evaluates the current time-of-day state and applies the appropriate warmth.
     ///
-    /// - Parameter now: Current date/time (injectable for testing)
-    func updateColorTemperature(now: Date = Date()) {
+    /// - Parameter now: The time to evaluate; `currentDate()` when the manager runs on its own.
+    func updateColorTemperature(now: Date) {
         guard let location = locationCoordinates() else {
             isActive = false
             return
@@ -403,7 +407,7 @@ class ColorTemperatureManager {
 
         // Capture current state for boundary detection
         if let location = locationCoordinates() {
-            let now = Date()
+            let now = currentDate()
             let solar = SolarCalculator.sunriseSunset(
                 latitude: location.latitude,
                 longitude: location.longitude,
@@ -443,7 +447,7 @@ class ColorTemperatureManager {
     func nextTransitionDescription() -> String? {
         guard let location = locationCoordinates() else { return nil }
 
-        let now = Date()
+        let now = currentDate()
         let solar = SolarCalculator.sunriseSunset(
             latitude: location.latitude,
             longitude: location.longitude,

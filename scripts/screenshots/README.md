@@ -4,6 +4,11 @@ The capture helper saves actual Dimmerly windows. The compositor reuses the
 checked-in background, preserves native window resolution, and can generate
 either the App Store composition or the two GitHub/README images.
 
+The App Store listing doesn't use this composition. Its screenshots are the
+demo stills in `images/app-store/`; see
+[App Store screenshots](../demo/README.md#app-store-screenshots). The App Store
+variant here writes to `.build/` so it never replaces those files.
+
 Requires macOS 15.2 or later, Xcode command-line tools, and an Apple Development
 signing identity for the capture helper. Composition needs no signing or Screen
 Recording permission.
@@ -11,7 +16,7 @@ Recording permission.
 ## One command
 
 ```sh
-just screenshots          # images/app-store/01-menu-and-displays.png
+just screenshots          # .build/screenshots/app-store/menu-and-displays.png
 just screenshots-github   # images/image1.png and images/image2.png
 ```
 
@@ -124,7 +129,7 @@ scripts/screenshots.sh compose --variant app-store \
   --menu .build/screenshots/app-store/menu.png \
   --settings .build/screenshots/app-store/settings.png \
   --settings-mask .build/screenshots/app-store/settings-mask.png \
-  --output images/app-store/01-menu-and-displays.png
+  --output .build/screenshots/app-store/menu-and-displays.png
 ```
 
 The default is a 2880×1800 opaque PNG on the muted blue-gray background in
@@ -151,7 +156,7 @@ directory first when reviewing new captures.
 ## Verify
 
 ```sh
-sips -g pixelWidth -g pixelHeight -g hasAlpha images/app-store/01-menu-and-displays.png
+sips -g pixelWidth -g pixelHeight -g hasAlpha .build/screenshots/app-store/menu-and-displays.png
 git diff --check
 git diff --stat
 ```

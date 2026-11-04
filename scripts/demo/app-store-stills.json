@@ -1,0 +1,40 @@
+{
+  "fps": 30,
+  "leadIn": 2,
+  "timeZone": "America/Los_Angeles",
+  "now": "2026-11-03T17:20:00-08:00",
+  "location": { "latitude": 37.7749, "longitude": -122.4194 },
+  "displays": [
+    { "name": "Built-in Display", "builtIn": true, "brightness": 1 },
+    { "name": "External Display", "brightness": 1, "expanded": true }
+  ],
+  "presets": [
+    { "name": "Full", "brightness": 1, "warmth": 0 },
+    { "name": "Evening", "brightness": 0.6, "warmth": 0.45 },
+    { "name": "Night", "brightness": 0.35, "warmth": 0.8 }
+  ],
+  "steps": [
+    { "action": "openPanel", "duration": 0.3, "caption": "Dim and warm every display" },
+    { "action": "setBrightness", "value": 0.7, "duration": 0.4 },
+    { "action": "setWarmth", "value": 0.35, "duration": 0.4 },
+    { "action": "wait", "duration": 1.4 },
+    { "action": "setBrightness", "display": "External Display", "value": 0.35, "duration": 0.4, "caption": "Each screen on its own" },
+    { "action": "setWarmth", "value": 0, "duration": 0.4 },
+    { "action": "setBrightness", "display": "Built-in Display", "value": 1, "duration": 0.4 },
+    { "action": "wait", "duration": 1.4 },
+    { "action": "applyPreset", "preset": "Evening", "duration": 1.4, "caption": "Presets for your whole desk" },
+    { "action": "setBrightness", "display": "Built-in Display", "value": 0.85, "duration": 0.4, "caption": "Warmer in the evening" },
+    { "action": "setBrightness", "display": "External Display", "value": 0.7, "duration": 0.4 },
+    { "action": "setAutoWarmth", "enabled": true, "duration": 3.0 },
+    { "action": "closePanel", "duration": 0.5, "caption": "" }
+  ],
+  "stills": [
+    { "file": "01-dim-and-warm-every-display.png", "appearance": "light", "frame": 66, "clock": "Tue 9:41 PM" },
+    { "file": "02-each-screen-on-its-own.png", "appearance": "light", "frame": 144, "clock": "Tue 2:30 PM" },
+    { "file": "03-warmer-in-the-evening.png", "appearance": "light", "frame": 300, "clock": "Tue 5:20 PM" },
+    { "file": "04-presets-for-your-whole-desk.png", "appearance": "dark", "frame": 183, "clock": "Tue 7:30 PM" }
+  ],
+  "windowStills": [
+    { "file": "05-presets-on-a-schedule.png", "appearance": "light", "settingsTab": "schedule", "caption": "Presets on a schedule", "clock": "Tue 9:41 AM" }
+  ]
+}

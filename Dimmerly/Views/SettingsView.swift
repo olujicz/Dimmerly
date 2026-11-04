@@ -254,11 +254,11 @@ struct SettingsView: View {
     enum Tab: Hashable {
         case general, displays, schedule, shortcuts, about
 
-        /// The tab Settings opens on. Screenshot runs open on Displays.
+        /// The tab Settings opens on. Screenshot runs open on the staged tab, Displays by default.
         static var initial: Tab {
             #if DEBUG
                 if ScreenshotStage.scene == .settings {
-                    return .displays
+                    return ScreenshotStage.settingsTab
                 }
             #endif
             return .general
