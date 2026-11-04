@@ -7,15 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		729A00012F3C8B1700E8C290 /* MenuBarExtraAccess in Frameworks */ = {isa = PBXBuildFile; productRef = 729A00022F3C8B1700E8C290 /* MenuBarExtraAccess */; };
-		SC00000000000000000011 /* DimmingSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC00000000000000000001 /* DimmingSchedule.swift */; };
-		SC00000000000000000012 /* SolarCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC00000000000000000002 /* SolarCalculator.swift */; };
-		GM00000000000000000011 /* GammaMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = GM00000000000000000001 /* GammaMath.swift */; };
-		DN00000000000000000011 /* DisplayNameResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = DN00000000000000000001 /* DisplayNameResolver.swift */; };
-		IE00000000000000000011 /* DisplayIntentError.swift in Sources */ = {isa = PBXBuildFile; fileRef = IE00000000000000000001 /* DisplayIntentError.swift */; };
-		SC00000000000000000013 /* LocationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC00000000000000000003 /* LocationProvider.swift */; };
-		SC00000000000000000014 /* ScheduleManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC00000000000000000004 /* ScheduleManager.swift */; };
-		SC00000000000000000015 /* ScheduleViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC00000000000000000005 /* ScheduleViews.swift */; };
 		05024BFD6B91C5336F8E4CC1 /* AlertPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 473CD46DB2D77DD4EB8463DA /* AlertPresenter.swift */; };
 		34887812E1B9FF228147D4A5 /* KeyboardShortcut.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1B045C3D2AA639266BC0483 /* KeyboardShortcut.swift */; };
 		4418D8E7C90F85F1A0565B97 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76B136A03B60312AFD4F720E /* SettingsView.swift */; };
@@ -29,29 +20,55 @@
 		4CFE3A612F3C940000E8C290 /* WidgetIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CFE3A3F2F3C931400E8C290 /* WidgetIntents.swift */; };
 		4CFE3A622F3C940000E8C290 /* BrightnessPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF00000000000000000001 /* BrightnessPreset.swift */; };
 		4CFE3A632F3C940000E8C290 /* KeyboardShortcut.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1B045C3D2AA639266BC0483 /* KeyboardShortcut.swift */; };
+		729A00012F3C8B1700E8C290 /* MenuBarExtraAccess in Frameworks */ = {isa = PBXBuildFile; productRef = 729A00022F3C8B1700E8C290 /* MenuBarExtraAccess */; };
 		79B76AB2030457F5760B45AD /* LaunchAtLoginManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15EF8DD088138249EA3B9ED2 /* LaunchAtLoginManager.swift */; };
 		9B4E7A11F2B9407BA3C0D1E2 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 9B4E7A11F2B9407BA3C0D1E3 /* Localizable.xcstrings */; };
 		9B4E7A11F2B9407BA3C0D1E4 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 9B4E7A11F2B9407BA3C0D1E5 /* InfoPlist.xcstrings */; };
 		AA1234560000000000000001 /* Dimmerly.icns in Resources */ = {isa = PBXBuildFile; fileRef = AA1234560000000000000002 /* Dimmerly.icns */; };
 		AA12345600000000000000A2 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = AA12345600000000000000A1 /* AppIcon.icon */; };
+		AS0000000000000000000011 /* AppStoreShortcutManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AS0000000000000000000001 /* AppStoreShortcutManagerTests.swift */; };
+		B384217D3A68010EA915DE22 /* JSONDefaultsArrayStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3F49B65767256F001CAD0B6 /* JSONDefaultsArrayStore.swift */; };
 		BA0000000000000000000001 /* BrightnessManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0000000000000000000002 /* BrightnessManager.swift */; };
-		CG0000000000000000000011 /* BrightnessManager+CoreGraphics.swift in Sources */ = {isa = PBXBuildFile; fileRef = CG0000000000000000000001 /* BrightnessManager+CoreGraphics.swift */; };
 		BA0000000000000000000003 /* MenuBarPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0000000000000000000004 /* MenuBarPanel.swift */; };
 		BI0000000000000000000011 /* BlankingInputMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BI0000000000000000000001 /* BlankingInputMonitor.swift */; };
-		DP0000000000000000000011 /* DisplayOutputPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = DP0000000000000000000001 /* DisplayOutputPolicy.swift */; };
-		DG0000000000000000000011 /* DDCSessionGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = DG0000000000000000000001 /* DDCSessionGate.swift */; };
-		FI0000000000000000000011 /* DisplayIntentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FI0000000000000000000001 /* DisplayIntentTests.swift */; };
-		CR0000000000000000000011 /* ConnectedDisplayResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = CR0000000000000000000001 /* ConnectedDisplayResolver.swift */; };
+		BO0000000000000000000011 /* BrightnessManagerTests+DisplayOutput.swift in Sources */ = {isa = PBXBuildFile; fileRef = BO0000000000000000000001 /* BrightnessManagerTests+DisplayOutput.swift */; };
 		BS0000000000000000000011 /* BlankingSystemControllers.swift in Sources */ = {isa = PBXBuildFile; fileRef = BS0000000000000000000001 /* BlankingSystemControllers.swift */; };
 		C1B2C3D4E5F6A7B8C9D0E1F1 /* DimmerlyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B2C3D4E5F6A7B8C9D0E1F1 /* DimmerlyApp.swift */; };
-		DM00000000000000000011 /* DemoTimeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = DM00000000000000000001 /* DemoTimeline.swift */; };
 		C1B2C3D4E5F6A7B8C9D0E1F2 /* DisplayController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B2C3D4E5F6A7B8C9D0E1F2 /* DisplayController.swift */; };
 		C1B2C3D4E5F6A7B8C9D0E1F3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B1B2C3D4E5F6A7B8C9D0E1F4 /* Assets.xcassets */; };
+		CG0000000000000000000011 /* BrightnessManager+CoreGraphics.swift in Sources */ = {isa = PBXBuildFile; fileRef = CG0000000000000000000001 /* BrightnessManager+CoreGraphics.swift */; };
+		CP00000000000000000011 /* ControlCenterStatePublisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = CP00000000000000000001 /* ControlCenterStatePublisher.swift */; };
+		CP00000000000000000012 /* ControlCenterControlTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CP00000000000000000002 /* ControlCenterControlTests.swift */; };
+		CR0000000000000000000011 /* ConnectedDisplayResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = CR0000000000000000000001 /* ConnectedDisplayResolver.swift */; };
+		CT00000000000000000011 /* ColorTemperatureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CT00000000000000000001 /* ColorTemperatureManager.swift */; };
+		CT00000000000000000012 /* ColorTemperatureManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CT00000000000000000002 /* ColorTemperatureManagerTests.swift */; };
 		D020A5D272EBF573C8F22F90 /* KeyboardShortcutRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = C50F163FD03D0874576E9962 /* KeyboardShortcutRecorder.swift */; };
 		D4F246BF3A0883989414211C /* KeyboardShortcutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4938628BCBDB203349940ACE /* KeyboardShortcutManager.swift */; };
+		DA00000000000000000002 /* DimmerlyAppTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA00000000000000000001 /* DimmerlyAppTests.swift */; };
+		DC00000000000000000011 /* DDCPacketCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC00000000000000000001 /* DDCPacketCodec.swift */; };
+		DDADD6A8F394B61338B57630 /* JSONDefaultsArrayStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2F0BAA221177547FC5C458C /* JSONDefaultsArrayStoreTests.swift */; };
+		DG0000000000000000000011 /* DDCSessionGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = DG0000000000000000000001 /* DDCSessionGate.swift */; };
+		DM00000000000000000011 /* DemoTimeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = DM00000000000000000001 /* DemoTimeline.swift */; };
+		DM00000000000000000012 /* DemoTimelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DM00000000000000000002 /* DemoTimelineTests.swift */; };
+		DN00000000000000000011 /* DisplayNameResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = DN00000000000000000001 /* DisplayNameResolver.swift */; };
 		DN00000000000000000012 /* DisplayNameResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DN00000000000000000002 /* DisplayNameResolverTests.swift */; };
+		DP0000000000000000000011 /* DisplayOutputPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = DP0000000000000000000001 /* DisplayOutputPolicy.swift */; };
 		E8A1B2C3D4E5F6A7B8C9D001 /* ScreenBlanker.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8A1B2C3D4E5F6A7B8C9D002 /* ScreenBlanker.swift */; };
+		EX00000000000000000011 /* PresetManagementRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = EX00000000000000000001 /* PresetManagementRow.swift */; };
+		EX00000000000000000012 /* LocationPickerRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = EX00000000000000000002 /* LocationPickerRow.swift */; };
 		F002FDE8D5FAD64627544CEC /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE7B95B7556B68B59FE0DC7B /* AppSettings.swift */; };
+		FI0000000000000000000011 /* DisplayIntentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FI0000000000000000000001 /* DisplayIntentTests.swift */; };
+		GM00000000000000000011 /* GammaMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = GM00000000000000000001 /* GammaMath.swift */; };
+		HW00000000000000000011 /* DDCController.swift in Sources */ = {isa = PBXBuildFile; fileRef = HW00000000000000000001 /* DDCController.swift */; };
+		HW00000000000000000012 /* HardwareDisplayCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = HW00000000000000000002 /* HardwareDisplayCapability.swift */; };
+		HW00000000000000000013 /* HardwareBrightnessManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = HW00000000000000000003 /* HardwareBrightnessManager.swift */; };
+		HW00000000000000000014 /* DDCControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = HW00000000000000000004 /* DDCControllerTests.swift */; };
+		HW00000000000000000015 /* HardwareBrightnessManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = HW00000000000000000005 /* HardwareBrightnessManagerTests.swift */; };
+		IE00000000000000000011 /* DisplayIntentError.swift in Sources */ = {isa = PBXBuildFile; fileRef = IE00000000000000000001 /* DisplayIntentError.swift */; };
+		IT00000000000000000011 /* IdleTimerManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = IT00000000000000000001 /* IdleTimerManagerTests.swift */; };
+		LA00000000000000000011 /* LaunchAtLoginSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = LA00000000000000000010 /* LaunchAtLoginSettingsTests.swift */; };
+		LP00000000000000000011 /* LocationProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = LP00000000000000000001 /* LocationProviderTests.swift */; };
+		MB00000000000000000011 /* MenuBarPanelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = MB00000000000000000001 /* MenuBarPanelTests.swift */; };
 		NF00000000000000000011 /* BrightnessPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF00000000000000000001 /* BrightnessPreset.swift */; };
 		NF00000000000000000012 /* PresetManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF00000000000000000002 /* PresetManager.swift */; };
 		NF00000000000000000013 /* IdleTimerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF00000000000000000003 /* IdleTimerManager.swift */; };
@@ -59,62 +76,45 @@
 		NF00000000000000000015 /* DisplayEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF00000000000000000005 /* DisplayEntity.swift */; };
 		NF00000000000000000016 /* SleepDisplaysIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF00000000000000000006 /* SleepDisplaysIntent.swift */; };
 		NF00000000000000000017 /* SetDisplayBrightnessIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF00000000000000000007 /* SetDisplayBrightnessIntent.swift */; };
-		NF0000000000000000001B /* SetDisplayWarmthIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF0000000000000000000B /* SetDisplayWarmthIntent.swift */; };
-		NF0000000000000000001C /* SetDisplayContrastIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF0000000000000000000C /* SetDisplayContrastIntent.swift */; };
 		NF00000000000000000018 /* ToggleDimIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF00000000000000000008 /* ToggleDimIntent.swift */; };
 		NF00000000000000000019 /* DimmerlyShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF00000000000000000009 /* DimmerlyShortcuts.swift */; };
 		NF0000000000000000001A /* BrightnessPresetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF0000000000000000000A /* BrightnessPresetTests.swift */; };
-		PRV00000000000000000002 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = PRV00000000000000000001 /* PrivacyInfo.xcprivacy */; };
-		T1B2C3D4E5F6A7B8C9D0E301 /* DisplayControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1B2C3D4E5F6A7B8C9D0E300 /* DisplayControllerTests.swift */; };
-		DA00000000000000000002 /* DimmerlyAppTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA00000000000000000001 /* DimmerlyAppTests.swift */; };
-		DM00000000000000000012 /* DemoTimelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DM00000000000000000002 /* DemoTimelineTests.swift */; };
-		T1B2C3D4E5F6A7B8C9D0E311 /* AppSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1B2C3D4E5F6A7B8C9D0E310 /* AppSettingsTests.swift */; };
-		T1B2C3D4E5F6A7B8C9D0E321 /* KeyboardShortcutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1B2C3D4E5F6A7B8C9D0E320 /* KeyboardShortcutTests.swift */; };
-		AS0000000000000000000011 /* AppStoreShortcutManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AS0000000000000000000001 /* AppStoreShortcutManagerTests.swift */; };
-		UT00000000000000000001 /* BrightnessManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = UT00000000000000000010 /* BrightnessManagerTests.swift */; };
-		BO0000000000000000000011 /* BrightnessManagerTests+DisplayOutput.swift in Sources */ = {isa = PBXBuildFile; fileRef = BO0000000000000000000001 /* BrightnessManagerTests+DisplayOutput.swift */; };
-		SF0000000000000000000011 /* HardwareBrightnessManagerTests+Polling.swift in Sources */ = {isa = PBXBuildFile; fileRef = SF0000000000000000000001 /* HardwareBrightnessManagerTests+Polling.swift */; };
-		SG0000000000000000000011 /* ManualCoordinateTextTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SG0000000000000000000001 /* ManualCoordinateTextTests.swift */; };
-		SH0000000000000000000011 /* PresetShortcutCaptureViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SH0000000000000000000001 /* PresetShortcutCaptureViewTests.swift */; };
-		SI0000000000000000000011 /* LaunchAtLoginStatusTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SI0000000000000000000001 /* LaunchAtLoginStatusTests.swift */; };
-		UT00000000000000000002 /* PresetManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = UT00000000000000000020 /* PresetManagerTests.swift */; };
-		UT00000000000000000003 /* MenuBarIconStyleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = UT00000000000000000030 /* MenuBarIconStyleTests.swift */; };
+		NF0000000000000000001B /* SetDisplayWarmthIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF0000000000000000000B /* SetDisplayWarmthIntent.swift */; };
+		NF0000000000000000001C /* SetDisplayContrastIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF0000000000000000000C /* SetDisplayContrastIntent.swift */; };
 		NT00000000000000000001 /* SolarCalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = NT00000000000000000010 /* SolarCalculatorTests.swift */; };
 		NT00000000000000000002 /* DimmingScheduleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = NT00000000000000000020 /* DimmingScheduleTests.swift */; };
 		NT00000000000000000003 /* ScheduleManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = NT00000000000000000030 /* ScheduleManagerTests.swift */; };
-		LA00000000000000000011 /* LaunchAtLoginSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = LA00000000000000000010 /* LaunchAtLoginSettingsTests.swift */; };
-		CT00000000000000000011 /* ColorTemperatureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CT00000000000000000001 /* ColorTemperatureManager.swift */; };
-		WW00000000000000000011 /* WorkspaceWakeMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = WW00000000000000000001 /* WorkspaceWakeMonitor.swift */; };
+		PE00000000000000000011 /* PresetEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = PE00000000000000000001 /* PresetEntity.swift */; };
+		PRV00000000000000000002 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = PRV00000000000000000001 /* PrivacyInfo.xcprivacy */; };
 		PT00000000000000000011 /* PollingTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = PT00000000000000000001 /* PollingTimer.swift */; };
 		PT00000000000000000012 /* PollingTimerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = PT00000000000000000002 /* PollingTimerTests.swift */; };
-		B384217D3A68010EA915DE22 /* JSONDefaultsArrayStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3F49B65767256F001CAD0B6 /* JSONDefaultsArrayStore.swift */; };
-		DDADD6A8F394B61338B57630 /* JSONDefaultsArrayStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2F0BAA221177547FC5C458C /* JSONDefaultsArrayStoreTests.swift */; };
-		CT00000000000000000012 /* ColorTemperatureManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CT00000000000000000002 /* ColorTemperatureManagerTests.swift */; };
-		HW00000000000000000011 /* DDCController.swift in Sources */ = {isa = PBXBuildFile; fileRef = HW00000000000000000001 /* DDCController.swift */; };
-		DC00000000000000000011 /* DDCPacketCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC00000000000000000001 /* DDCPacketCodec.swift */; };
-		HW00000000000000000012 /* HardwareDisplayCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = HW00000000000000000002 /* HardwareDisplayCapability.swift */; };
-		HW00000000000000000013 /* HardwareBrightnessManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = HW00000000000000000003 /* HardwareBrightnessManager.swift */; };
-		EX00000000000000000011 /* PresetManagementRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = EX00000000000000000001 /* PresetManagementRow.swift */; };
-		EX00000000000000000012 /* LocationPickerRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = EX00000000000000000002 /* LocationPickerRow.swift */; };
+		SB00000000000000000011 /* ScreenBlankerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SB00000000000000000001 /* ScreenBlankerTests.swift */; };
+		SC00000000000000000011 /* DimmingSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC00000000000000000001 /* DimmingSchedule.swift */; };
+		SC00000000000000000012 /* SolarCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC00000000000000000002 /* SolarCalculator.swift */; };
+		SC00000000000000000013 /* LocationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC00000000000000000003 /* LocationProvider.swift */; };
+		SC00000000000000000014 /* ScheduleManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC00000000000000000004 /* ScheduleManager.swift */; };
+		SC00000000000000000015 /* ScheduleViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC00000000000000000005 /* ScheduleViews.swift */; };
+		SF0000000000000000000011 /* HardwareBrightnessManagerTests+Polling.swift in Sources */ = {isa = PBXBuildFile; fileRef = SF0000000000000000000001 /* HardwareBrightnessManagerTests+Polling.swift */; };
+		SG0000000000000000000011 /* ManualCoordinateTextTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SG0000000000000000000001 /* ManualCoordinateTextTests.swift */; };
+		SH0000000000000000000011 /* PresetShortcutCaptureViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SH0000000000000000000001 /* PresetShortcutCaptureViewTests.swift */; };
+		SH00000000000000000011 /* SharedConstantsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SH00000000000000000001 /* SharedConstantsTests.swift */; };
+		SI0000000000000000000011 /* LaunchAtLoginStatusTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SI0000000000000000000001 /* LaunchAtLoginStatusTests.swift */; };
+		T1B2C3D4E5F6A7B8C9D0E301 /* DisplayControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1B2C3D4E5F6A7B8C9D0E300 /* DisplayControllerTests.swift */; };
+		T1B2C3D4E5F6A7B8C9D0E311 /* AppSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1B2C3D4E5F6A7B8C9D0E310 /* AppSettingsTests.swift */; };
+		T1B2C3D4E5F6A7B8C9D0E321 /* KeyboardShortcutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = T1B2C3D4E5F6A7B8C9D0E320 /* KeyboardShortcutTests.swift */; };
+		UT00000000000000000001 /* BrightnessManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = UT00000000000000000010 /* BrightnessManagerTests.swift */; };
+		UT00000000000000000002 /* PresetManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = UT00000000000000000020 /* PresetManagerTests.swift */; };
+		UT00000000000000000003 /* MenuBarIconStyleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = UT00000000000000000030 /* MenuBarIconStyleTests.swift */; };
+		VM00000000000000000011 /* MenuBarPanelHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = VM00000000000000000001 /* MenuBarPanelHost.swift */; };
+		VM00000000000000000012 /* MenuBarPresetControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = VM00000000000000000002 /* MenuBarPresetControls.swift */; };
+		VM00000000000000000013 /* MenuBarDisplayControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = VM00000000000000000003 /* MenuBarDisplayControls.swift */; };
+		VM00000000000000000014 /* MenuBarDDCControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = VM00000000000000000004 /* MenuBarDDCControls.swift */; };
 		VS00000000000000000011 /* SettingsGeneralTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = VS00000000000000000001 /* SettingsGeneralTab.swift */; };
 		VS00000000000000000012 /* SettingsDisplayTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = VS00000000000000000002 /* SettingsDisplayTab.swift */; };
 		VS00000000000000000013 /* SettingsScheduleTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = VS00000000000000000003 /* SettingsScheduleTab.swift */; };
 		VS00000000000000000014 /* SettingsShortcutsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = VS00000000000000000004 /* SettingsShortcutsTab.swift */; };
 		VS00000000000000000015 /* SettingsAboutTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = VS00000000000000000005 /* SettingsAboutTab.swift */; };
-		VM00000000000000000011 /* MenuBarPanelHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = VM00000000000000000001 /* MenuBarPanelHost.swift */; };
-		VM00000000000000000012 /* MenuBarPresetControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = VM00000000000000000002 /* MenuBarPresetControls.swift */; };
-		VM00000000000000000013 /* MenuBarDisplayControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = VM00000000000000000003 /* MenuBarDisplayControls.swift */; };
-		VM00000000000000000014 /* MenuBarDDCControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = VM00000000000000000004 /* MenuBarDDCControls.swift */; };
-		HW00000000000000000014 /* DDCControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = HW00000000000000000004 /* DDCControllerTests.swift */; };
-		HW00000000000000000015 /* HardwareBrightnessManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = HW00000000000000000005 /* HardwareBrightnessManagerTests.swift */; };
-		MB00000000000000000011 /* MenuBarPanelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = MB00000000000000000001 /* MenuBarPanelTests.swift */; };
-		SB00000000000000000011 /* ScreenBlankerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SB00000000000000000001 /* ScreenBlankerTests.swift */; };
-		SH00000000000000000011 /* SharedConstantsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SH00000000000000000001 /* SharedConstantsTests.swift */; };
-		CP00000000000000000011 /* ControlCenterStatePublisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = CP00000000000000000001 /* ControlCenterStatePublisher.swift */; };
-		CP00000000000000000012 /* ControlCenterControlTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CP00000000000000000002 /* ControlCenterControlTests.swift */; };
-		IT00000000000000000011 /* IdleTimerManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = IT00000000000000000001 /* IdleTimerManagerTests.swift */; };
-		PE00000000000000000011 /* PresetEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = PE00000000000000000001 /* PresetEntity.swift */; };
-		LP00000000000000000011 /* LocationProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = LP00000000000000000001 /* LocationProviderTests.swift */; };
+		WW00000000000000000011 /* WorkspaceWakeMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = WW00000000000000000001 /* WorkspaceWakeMonitor.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -149,21 +149,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		SC00000000000000000001 /* DimmingSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DimmingSchedule.swift; sourceTree = "<group>"; };
-		SC00000000000000000002 /* SolarCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolarCalculator.swift; sourceTree = "<group>"; };
-		GM00000000000000000001 /* GammaMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GammaMath.swift; sourceTree = "<group>"; };
-		DN00000000000000000001 /* DisplayNameResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayNameResolver.swift; sourceTree = "<group>"; };
-		DN00000000000000000002 /* DisplayNameResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayNameResolverTests.swift; sourceTree = "<group>"; };
-		IE00000000000000000001 /* DisplayIntentError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayIntentError.swift; sourceTree = "<group>"; };
-		SC00000000000000000003 /* LocationProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationProvider.swift; sourceTree = "<group>"; };
-		SC00000000000000000004 /* ScheduleManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleManager.swift; sourceTree = "<group>"; };
-		SC00000000000000000005 /* ScheduleViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleViews.swift; sourceTree = "<group>"; };
-		BI0000000000000000000001 /* BlankingInputMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlankingInputMonitor.swift; sourceTree = "<group>"; };
-		DP0000000000000000000001 /* DisplayOutputPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayOutputPolicy.swift; sourceTree = "<group>"; };
-		DG0000000000000000000001 /* DDCSessionGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DDCSessionGate.swift; sourceTree = "<group>"; };
-		FI0000000000000000000001 /* DisplayIntentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayIntentTests.swift; sourceTree = "<group>"; };
-		CR0000000000000000000001 /* ConnectedDisplayResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectedDisplayResolver.swift; sourceTree = "<group>"; };
-		BS0000000000000000000001 /* BlankingSystemControllers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlankingSystemControllers.swift; sourceTree = "<group>"; };
 		15EF8DD088138249EA3B9ED2 /* LaunchAtLoginManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginManager.swift; sourceTree = "<group>"; };
 		473CD46DB2D77DD4EB8463DA /* AlertPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertPresenter.swift; sourceTree = "<group>"; };
 		4938628BCBDB203349940ACE /* KeyboardShortcutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutManager.swift; sourceTree = "<group>"; };
@@ -178,21 +163,53 @@
 		A1B2C3D4E5F6A7B8C9D0E1FF /* Dimmerly.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Dimmerly.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA1234560000000000000002 /* Dimmerly.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = Dimmerly.icns; sourceTree = "<group>"; };
 		AA12345600000000000000A1 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
+		AS0000000000000000000001 /* AppStoreShortcutManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStoreShortcutManagerTests.swift; sourceTree = "<group>"; };
 		B1B2C3D4E5F6A7B8C9D0E1F1 /* DimmerlyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DimmerlyApp.swift; sourceTree = "<group>"; };
-		DM00000000000000000001 /* DemoTimeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoTimeline.swift; sourceTree = "<group>"; };
 		B1B2C3D4E5F6A7B8C9D0E1F2 /* DisplayController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayController.swift; sourceTree = "<group>"; };
 		B1B2C3D4E5F6A7B8C9D0E1F3 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B1B2C3D4E5F6A7B8C9D0E1F4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		BA0000000000000000000002 /* BrightnessManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrightnessManager.swift; sourceTree = "<group>"; };
-		CG0000000000000000000001 /* BrightnessManager+CoreGraphics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BrightnessManager+CoreGraphics.swift"; sourceTree = "<group>"; };
 		BA0000000000000000000004 /* MenuBarPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPanel.swift; sourceTree = "<group>"; };
+		BI0000000000000000000001 /* BlankingInputMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlankingInputMonitor.swift; sourceTree = "<group>"; };
+		BO0000000000000000000001 /* BrightnessManagerTests+DisplayOutput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BrightnessManagerTests+DisplayOutput.swift"; sourceTree = "<group>"; };
+		BS0000000000000000000001 /* BlankingSystemControllers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlankingSystemControllers.swift; sourceTree = "<group>"; };
+		C3F49B65767256F001CAD0B6 /* JSONDefaultsArrayStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONDefaultsArrayStore.swift; sourceTree = "<group>"; };
 		C50F163FD03D0874576E9962 /* KeyboardShortcutRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutRecorder.swift; sourceTree = "<group>"; };
+		CG0000000000000000000001 /* BrightnessManager+CoreGraphics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BrightnessManager+CoreGraphics.swift"; sourceTree = "<group>"; };
+		CP00000000000000000001 /* ControlCenterStatePublisher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlCenterStatePublisher.swift; sourceTree = "<group>"; };
+		CP00000000000000000002 /* ControlCenterControlTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlCenterControlTests.swift; sourceTree = "<group>"; };
+		CR0000000000000000000001 /* ConnectedDisplayResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectedDisplayResolver.swift; sourceTree = "<group>"; };
+		CT00000000000000000001 /* ColorTemperatureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorTemperatureManager.swift; sourceTree = "<group>"; };
+		CT00000000000000000002 /* ColorTemperatureManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorTemperatureManagerTests.swift; sourceTree = "<group>"; };
 		D1B045C3D2AA639266BC0483 /* KeyboardShortcut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcut.swift; sourceTree = "<group>"; };
+		DA00000000000000000001 /* DimmerlyAppTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DimmerlyAppTests.swift; sourceTree = "<group>"; };
+		DC00000000000000000001 /* DDCPacketCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DDCPacketCodec.swift; sourceTree = "<group>"; };
+		DG0000000000000000000001 /* DDCSessionGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DDCSessionGate.swift; sourceTree = "<group>"; };
+		DM00000000000000000001 /* DemoTimeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoTimeline.swift; sourceTree = "<group>"; };
+		DM00000000000000000002 /* DemoTimelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoTimelineTests.swift; sourceTree = "<group>"; };
+		DN00000000000000000001 /* DisplayNameResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayNameResolver.swift; sourceTree = "<group>"; };
+		DN00000000000000000002 /* DisplayNameResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayNameResolverTests.swift; sourceTree = "<group>"; };
+		DP0000000000000000000001 /* DisplayOutputPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayOutputPolicy.swift; sourceTree = "<group>"; };
+		E2F0BAA221177547FC5C458C /* JSONDefaultsArrayStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONDefaultsArrayStoreTests.swift; sourceTree = "<group>"; };
 		E37863164B2170781448D5DC /* DisplayError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayError.swift; sourceTree = "<group>"; };
 		E8A1B2C3D4E5F6A7B8C9D002 /* ScreenBlanker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenBlanker.swift; sourceTree = "<group>"; };
 		ENT00000000000000000001 /* Dimmerly.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Dimmerly.entitlements; sourceTree = "<group>"; };
 		ENT00000000000000000002 /* DimmerlyAppStore.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DimmerlyAppStore.entitlements; sourceTree = "<group>"; };
+		EX00000000000000000001 /* PresetManagementRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetManagementRow.swift; sourceTree = "<group>"; };
+		EX00000000000000000002 /* LocationPickerRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPickerRow.swift; sourceTree = "<group>"; };
 		FE7B95B7556B68B59FE0DC7B /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
+		FI0000000000000000000001 /* DisplayIntentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayIntentTests.swift; sourceTree = "<group>"; };
+		GM00000000000000000001 /* GammaMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GammaMath.swift; sourceTree = "<group>"; };
+		HW00000000000000000001 /* DDCController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DDCController.swift; sourceTree = "<group>"; };
+		HW00000000000000000002 /* HardwareDisplayCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareDisplayCapability.swift; sourceTree = "<group>"; };
+		HW00000000000000000003 /* HardwareBrightnessManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareBrightnessManager.swift; sourceTree = "<group>"; };
+		HW00000000000000000004 /* DDCControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DDCControllerTests.swift; sourceTree = "<group>"; };
+		HW00000000000000000005 /* HardwareBrightnessManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareBrightnessManagerTests.swift; sourceTree = "<group>"; };
+		IE00000000000000000001 /* DisplayIntentError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayIntentError.swift; sourceTree = "<group>"; };
+		IT00000000000000000001 /* IdleTimerManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleTimerManagerTests.swift; sourceTree = "<group>"; };
+		LA00000000000000000010 /* LaunchAtLoginSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginSettingsTests.swift; sourceTree = "<group>"; };
+		LP00000000000000000001 /* LocationProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationProviderTests.swift; sourceTree = "<group>"; };
+		MB00000000000000000001 /* MenuBarPanelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPanelTests.swift; sourceTree = "<group>"; };
 		NF00000000000000000001 /* BrightnessPreset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrightnessPreset.swift; sourceTree = "<group>"; };
 		NF00000000000000000002 /* PresetManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetManager.swift; sourceTree = "<group>"; };
 		NF00000000000000000003 /* IdleTimerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleTimerManager.swift; sourceTree = "<group>"; };
@@ -200,63 +217,46 @@
 		NF00000000000000000005 /* DisplayEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayEntity.swift; sourceTree = "<group>"; };
 		NF00000000000000000006 /* SleepDisplaysIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepDisplaysIntent.swift; sourceTree = "<group>"; };
 		NF00000000000000000007 /* SetDisplayBrightnessIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetDisplayBrightnessIntent.swift; sourceTree = "<group>"; };
-		NF0000000000000000000B /* SetDisplayWarmthIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetDisplayWarmthIntent.swift; sourceTree = "<group>"; };
-		NF0000000000000000000C /* SetDisplayContrastIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetDisplayContrastIntent.swift; sourceTree = "<group>"; };
 		NF00000000000000000008 /* ToggleDimIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToggleDimIntent.swift; sourceTree = "<group>"; };
 		NF00000000000000000009 /* DimmerlyShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DimmerlyShortcuts.swift; sourceTree = "<group>"; };
 		NF0000000000000000000A /* BrightnessPresetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrightnessPresetTests.swift; sourceTree = "<group>"; };
-		PRV00000000000000000001 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		T1B2C3D4E5F6A7B8C9D0E1FF /* DimmerlyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DimmerlyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		T1B2C3D4E5F6A7B8C9D0E300 /* DisplayControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayControllerTests.swift; sourceTree = "<group>"; };
-		DA00000000000000000001 /* DimmerlyAppTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DimmerlyAppTests.swift; sourceTree = "<group>"; };
-		DM00000000000000000002 /* DemoTimelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoTimelineTests.swift; sourceTree = "<group>"; };
-		T1B2C3D4E5F6A7B8C9D0E310 /* AppSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsTests.swift; sourceTree = "<group>"; };
-		T1B2C3D4E5F6A7B8C9D0E320 /* KeyboardShortcutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutTests.swift; sourceTree = "<group>"; };
-		AS0000000000000000000001 /* AppStoreShortcutManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStoreShortcutManagerTests.swift; sourceTree = "<group>"; };
-		UT00000000000000000010 /* BrightnessManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrightnessManagerTests.swift; sourceTree = "<group>"; };
-		BO0000000000000000000001 /* BrightnessManagerTests+DisplayOutput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BrightnessManagerTests+DisplayOutput.swift"; sourceTree = "<group>"; };
-		SF0000000000000000000001 /* HardwareBrightnessManagerTests+Polling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HardwareBrightnessManagerTests+Polling.swift"; sourceTree = "<group>"; };
-		SG0000000000000000000001 /* ManualCoordinateTextTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualCoordinateTextTests.swift; sourceTree = "<group>"; };
-		SH0000000000000000000001 /* PresetShortcutCaptureViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetShortcutCaptureViewTests.swift; sourceTree = "<group>"; };
-		SI0000000000000000000001 /* LaunchAtLoginStatusTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginStatusTests.swift; sourceTree = "<group>"; };
-		UT00000000000000000020 /* PresetManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetManagerTests.swift; sourceTree = "<group>"; };
-		UT00000000000000000030 /* MenuBarIconStyleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarIconStyleTests.swift; sourceTree = "<group>"; };
+		NF0000000000000000000B /* SetDisplayWarmthIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetDisplayWarmthIntent.swift; sourceTree = "<group>"; };
+		NF0000000000000000000C /* SetDisplayContrastIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetDisplayContrastIntent.swift; sourceTree = "<group>"; };
 		NT00000000000000000010 /* SolarCalculatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolarCalculatorTests.swift; sourceTree = "<group>"; };
 		NT00000000000000000020 /* DimmingScheduleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DimmingScheduleTests.swift; sourceTree = "<group>"; };
 		NT00000000000000000030 /* ScheduleManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleManagerTests.swift; sourceTree = "<group>"; };
-		LA00000000000000000010 /* LaunchAtLoginSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginSettingsTests.swift; sourceTree = "<group>"; };
-		CT00000000000000000001 /* ColorTemperatureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorTemperatureManager.swift; sourceTree = "<group>"; };
-		WW00000000000000000001 /* WorkspaceWakeMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceWakeMonitor.swift; sourceTree = "<group>"; };
+		PE00000000000000000001 /* PresetEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetEntity.swift; sourceTree = "<group>"; };
+		PRV00000000000000000001 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		PT00000000000000000001 /* PollingTimer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollingTimer.swift; sourceTree = "<group>"; };
 		PT00000000000000000002 /* PollingTimerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollingTimerTests.swift; sourceTree = "<group>"; };
-		C3F49B65767256F001CAD0B6 /* JSONDefaultsArrayStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONDefaultsArrayStore.swift; sourceTree = "<group>"; };
-		E2F0BAA221177547FC5C458C /* JSONDefaultsArrayStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONDefaultsArrayStoreTests.swift; sourceTree = "<group>"; };
-		CT00000000000000000002 /* ColorTemperatureManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorTemperatureManagerTests.swift; sourceTree = "<group>"; };
-		HW00000000000000000001 /* DDCController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DDCController.swift; sourceTree = "<group>"; };
-		DC00000000000000000001 /* DDCPacketCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DDCPacketCodec.swift; sourceTree = "<group>"; };
-		HW00000000000000000002 /* HardwareDisplayCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareDisplayCapability.swift; sourceTree = "<group>"; };
-		HW00000000000000000003 /* HardwareBrightnessManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareBrightnessManager.swift; sourceTree = "<group>"; };
-		HW00000000000000000004 /* DDCControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DDCControllerTests.swift; sourceTree = "<group>"; };
-		HW00000000000000000005 /* HardwareBrightnessManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareBrightnessManagerTests.swift; sourceTree = "<group>"; };
-		MB00000000000000000001 /* MenuBarPanelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPanelTests.swift; sourceTree = "<group>"; };
 		SB00000000000000000001 /* ScreenBlankerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenBlankerTests.swift; sourceTree = "<group>"; };
+		SC00000000000000000001 /* DimmingSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DimmingSchedule.swift; sourceTree = "<group>"; };
+		SC00000000000000000002 /* SolarCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolarCalculator.swift; sourceTree = "<group>"; };
+		SC00000000000000000003 /* LocationProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationProvider.swift; sourceTree = "<group>"; };
+		SC00000000000000000004 /* ScheduleManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleManager.swift; sourceTree = "<group>"; };
+		SC00000000000000000005 /* ScheduleViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleViews.swift; sourceTree = "<group>"; };
+		SF0000000000000000000001 /* HardwareBrightnessManagerTests+Polling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HardwareBrightnessManagerTests+Polling.swift"; sourceTree = "<group>"; };
+		SG0000000000000000000001 /* ManualCoordinateTextTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualCoordinateTextTests.swift; sourceTree = "<group>"; };
+		SH0000000000000000000001 /* PresetShortcutCaptureViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetShortcutCaptureViewTests.swift; sourceTree = "<group>"; };
 		SH00000000000000000001 /* SharedConstantsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedConstantsTests.swift; sourceTree = "<group>"; };
-		CP00000000000000000001 /* ControlCenterStatePublisher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlCenterStatePublisher.swift; sourceTree = "<group>"; };
-		CP00000000000000000002 /* ControlCenterControlTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlCenterControlTests.swift; sourceTree = "<group>"; };
-		EX00000000000000000001 /* PresetManagementRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetManagementRow.swift; sourceTree = "<group>"; };
-		EX00000000000000000002 /* LocationPickerRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPickerRow.swift; sourceTree = "<group>"; };
+		SI0000000000000000000001 /* LaunchAtLoginStatusTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginStatusTests.swift; sourceTree = "<group>"; };
+		T1B2C3D4E5F6A7B8C9D0E1FF /* DimmerlyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DimmerlyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		T1B2C3D4E5F6A7B8C9D0E300 /* DisplayControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayControllerTests.swift; sourceTree = "<group>"; };
+		T1B2C3D4E5F6A7B8C9D0E310 /* AppSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsTests.swift; sourceTree = "<group>"; };
+		T1B2C3D4E5F6A7B8C9D0E320 /* KeyboardShortcutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutTests.swift; sourceTree = "<group>"; };
+		UT00000000000000000010 /* BrightnessManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrightnessManagerTests.swift; sourceTree = "<group>"; };
+		UT00000000000000000020 /* PresetManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetManagerTests.swift; sourceTree = "<group>"; };
+		UT00000000000000000030 /* MenuBarIconStyleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarIconStyleTests.swift; sourceTree = "<group>"; };
+		VM00000000000000000001 /* MenuBarPanelHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPanelHost.swift; sourceTree = "<group>"; };
+		VM00000000000000000002 /* MenuBarPresetControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPresetControls.swift; sourceTree = "<group>"; };
+		VM00000000000000000003 /* MenuBarDisplayControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarDisplayControls.swift; sourceTree = "<group>"; };
+		VM00000000000000000004 /* MenuBarDDCControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarDDCControls.swift; sourceTree = "<group>"; };
 		VS00000000000000000001 /* SettingsGeneralTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsGeneralTab.swift; sourceTree = "<group>"; };
 		VS00000000000000000002 /* SettingsDisplayTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsDisplayTab.swift; sourceTree = "<group>"; };
 		VS00000000000000000003 /* SettingsScheduleTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScheduleTab.swift; sourceTree = "<group>"; };
 		VS00000000000000000004 /* SettingsShortcutsTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsShortcutsTab.swift; sourceTree = "<group>"; };
 		VS00000000000000000005 /* SettingsAboutTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsAboutTab.swift; sourceTree = "<group>"; };
-		VM00000000000000000001 /* MenuBarPanelHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPanelHost.swift; sourceTree = "<group>"; };
-		VM00000000000000000002 /* MenuBarPresetControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPresetControls.swift; sourceTree = "<group>"; };
-		VM00000000000000000003 /* MenuBarDisplayControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarDisplayControls.swift; sourceTree = "<group>"; };
-		VM00000000000000000004 /* MenuBarDDCControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarDDCControls.swift; sourceTree = "<group>"; };
-		IT00000000000000000001 /* IdleTimerManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleTimerManagerTests.swift; sourceTree = "<group>"; };
-		PE00000000000000000001 /* PresetEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetEntity.swift; sourceTree = "<group>"; };
-		LP00000000000000000001 /* LocationProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationProviderTests.swift; sourceTree = "<group>"; };
+		WW00000000000000000001 /* WorkspaceWakeMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceWakeMonitor.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -467,39 +467,39 @@
 		};
 		T1B2C3D4E5F6A7B8C9D0E203 /* DimmerlyTests */ = {
 			isa = PBXGroup;
-				children = (
-					T1B2C3D4E5F6A7B8C9D0E310 /* AppSettingsTests.swift */,
-					FI0000000000000000000001 /* DisplayIntentTests.swift */,
-					DA00000000000000000001 /* DimmerlyAppTests.swift */,
-					DM00000000000000000002 /* DemoTimelineTests.swift */,
-					UT00000000000000000010 /* BrightnessManagerTests.swift */,
-					BO0000000000000000000001 /* BrightnessManagerTests+DisplayOutput.swift */,
-					SF0000000000000000000001 /* HardwareBrightnessManagerTests+Polling.swift */,
-					SG0000000000000000000001 /* ManualCoordinateTextTests.swift */,
-					SH0000000000000000000001 /* PresetShortcutCaptureViewTests.swift */,
-					SI0000000000000000000001 /* LaunchAtLoginStatusTests.swift */,
-					NF0000000000000000000A /* BrightnessPresetTests.swift */,
-					CT00000000000000000002 /* ColorTemperatureManagerTests.swift */,
-					HW00000000000000000004 /* DDCControllerTests.swift */,
-					NT00000000000000000020 /* DimmingScheduleTests.swift */,
-					DN00000000000000000002 /* DisplayNameResolverTests.swift */,
-					T1B2C3D4E5F6A7B8C9D0E300 /* DisplayControllerTests.swift */,
-					HW00000000000000000005 /* HardwareBrightnessManagerTests.swift */,
-					T1B2C3D4E5F6A7B8C9D0E320 /* KeyboardShortcutTests.swift */,
-					AS0000000000000000000001 /* AppStoreShortcutManagerTests.swift */,
-					LA00000000000000000010 /* LaunchAtLoginSettingsTests.swift */,
-					UT00000000000000000030 /* MenuBarIconStyleTests.swift */,
-					MB00000000000000000001 /* MenuBarPanelTests.swift */,
-					UT00000000000000000020 /* PresetManagerTests.swift */,
-					E2F0BAA221177547FC5C458C /* JSONDefaultsArrayStoreTests.swift */,
-					PT00000000000000000002 /* PollingTimerTests.swift */,
-					NT00000000000000000030 /* ScheduleManagerTests.swift */,
-					SB00000000000000000001 /* ScreenBlankerTests.swift */,
-					SH00000000000000000001 /* SharedConstantsTests.swift */,
-					CP00000000000000000002 /* ControlCenterControlTests.swift */,
-					NT00000000000000000010 /* SolarCalculatorTests.swift */,
-					IT00000000000000000001 /* IdleTimerManagerTests.swift */,
-					LP00000000000000000001 /* LocationProviderTests.swift */,
+			children = (
+				T1B2C3D4E5F6A7B8C9D0E310 /* AppSettingsTests.swift */,
+				FI0000000000000000000001 /* DisplayIntentTests.swift */,
+				DA00000000000000000001 /* DimmerlyAppTests.swift */,
+				DM00000000000000000002 /* DemoTimelineTests.swift */,
+				UT00000000000000000010 /* BrightnessManagerTests.swift */,
+				BO0000000000000000000001 /* BrightnessManagerTests+DisplayOutput.swift */,
+				SF0000000000000000000001 /* HardwareBrightnessManagerTests+Polling.swift */,
+				SG0000000000000000000001 /* ManualCoordinateTextTests.swift */,
+				SH0000000000000000000001 /* PresetShortcutCaptureViewTests.swift */,
+				SI0000000000000000000001 /* LaunchAtLoginStatusTests.swift */,
+				NF0000000000000000000A /* BrightnessPresetTests.swift */,
+				CT00000000000000000002 /* ColorTemperatureManagerTests.swift */,
+				HW00000000000000000004 /* DDCControllerTests.swift */,
+				NT00000000000000000020 /* DimmingScheduleTests.swift */,
+				DN00000000000000000002 /* DisplayNameResolverTests.swift */,
+				T1B2C3D4E5F6A7B8C9D0E300 /* DisplayControllerTests.swift */,
+				HW00000000000000000005 /* HardwareBrightnessManagerTests.swift */,
+				T1B2C3D4E5F6A7B8C9D0E320 /* KeyboardShortcutTests.swift */,
+				AS0000000000000000000001 /* AppStoreShortcutManagerTests.swift */,
+				LA00000000000000000010 /* LaunchAtLoginSettingsTests.swift */,
+				UT00000000000000000030 /* MenuBarIconStyleTests.swift */,
+				MB00000000000000000001 /* MenuBarPanelTests.swift */,
+				UT00000000000000000020 /* PresetManagerTests.swift */,
+				E2F0BAA221177547FC5C458C /* JSONDefaultsArrayStoreTests.swift */,
+				PT00000000000000000002 /* PollingTimerTests.swift */,
+				NT00000000000000000030 /* ScheduleManagerTests.swift */,
+				SB00000000000000000001 /* ScreenBlankerTests.swift */,
+				SH00000000000000000001 /* SharedConstantsTests.swift */,
+				CP00000000000000000002 /* ControlCenterControlTests.swift */,
+				NT00000000000000000010 /* SolarCalculatorTests.swift */,
+				IT00000000000000000001 /* IdleTimerManagerTests.swift */,
+				LP00000000000000000001 /* LocationProviderTests.swift */,
 			);
 			path = DimmerlyTests;
 			sourceTree = "<group>";
@@ -577,7 +577,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastSwiftUpdateCheck = 2620;
-				LastUpgradeCheck = 2620;
+				LastUpgradeCheck = 2720;
 				TargetAttributes = {
 					4CFE3A042F3C8B1600E8C290 = {
 						CreatedOnToolsVersion = 26.2;
@@ -716,7 +716,7 @@
 				SC00000000000000000011 /* DimmingSchedule.swift in Sources */,
 				SC00000000000000000012 /* SolarCalculator.swift in Sources */,
 				GM00000000000000000011 /* GammaMath.swift in Sources */,
-					DN00000000000000000011 /* DisplayNameResolver.swift in Sources */,
+				DN00000000000000000011 /* DisplayNameResolver.swift in Sources */,
 				SC00000000000000000013 /* LocationProvider.swift in Sources */,
 				SC00000000000000000014 /* ScheduleManager.swift in Sources */,
 				SC00000000000000000015 /* ScheduleViews.swift in Sources */,
@@ -738,24 +738,24 @@
 		T1B2C3D4E5F6A7B8C9D0E1FC /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
-				files = (
-					T1B2C3D4E5F6A7B8C9D0E301 /* DisplayControllerTests.swift in Sources */,
-					DA00000000000000000002 /* DimmerlyAppTests.swift in Sources */,
-					DM00000000000000000012 /* DemoTimelineTests.swift in Sources */,
-					T1B2C3D4E5F6A7B8C9D0E311 /* AppSettingsTests.swift in Sources */,
-					T1B2C3D4E5F6A7B8C9D0E321 /* KeyboardShortcutTests.swift in Sources */,
-					AS0000000000000000000011 /* AppStoreShortcutManagerTests.swift in Sources */,
-					NF0000000000000000001A /* BrightnessPresetTests.swift in Sources */,
-					UT00000000000000000001 /* BrightnessManagerTests.swift in Sources */,
-					BO0000000000000000000011 /* BrightnessManagerTests+DisplayOutput.swift in Sources */,
-					SF0000000000000000000011 /* HardwareBrightnessManagerTests+Polling.swift in Sources */,
-					SG0000000000000000000011 /* ManualCoordinateTextTests.swift in Sources */,
-					SH0000000000000000000011 /* PresetShortcutCaptureViewTests.swift in Sources */,
-					SI0000000000000000000011 /* LaunchAtLoginStatusTests.swift in Sources */,
-					UT00000000000000000002 /* PresetManagerTests.swift in Sources */,
-					LA00000000000000000011 /* LaunchAtLoginSettingsTests.swift in Sources */,
-					UT00000000000000000003 /* MenuBarIconStyleTests.swift in Sources */,
-					NT00000000000000000001 /* SolarCalculatorTests.swift in Sources */,
+			files = (
+				T1B2C3D4E5F6A7B8C9D0E301 /* DisplayControllerTests.swift in Sources */,
+				DA00000000000000000002 /* DimmerlyAppTests.swift in Sources */,
+				DM00000000000000000012 /* DemoTimelineTests.swift in Sources */,
+				T1B2C3D4E5F6A7B8C9D0E311 /* AppSettingsTests.swift in Sources */,
+				T1B2C3D4E5F6A7B8C9D0E321 /* KeyboardShortcutTests.swift in Sources */,
+				AS0000000000000000000011 /* AppStoreShortcutManagerTests.swift in Sources */,
+				NF0000000000000000001A /* BrightnessPresetTests.swift in Sources */,
+				UT00000000000000000001 /* BrightnessManagerTests.swift in Sources */,
+				BO0000000000000000000011 /* BrightnessManagerTests+DisplayOutput.swift in Sources */,
+				SF0000000000000000000011 /* HardwareBrightnessManagerTests+Polling.swift in Sources */,
+				SG0000000000000000000011 /* ManualCoordinateTextTests.swift in Sources */,
+				SH0000000000000000000011 /* PresetShortcutCaptureViewTests.swift in Sources */,
+				SI0000000000000000000011 /* LaunchAtLoginStatusTests.swift in Sources */,
+				UT00000000000000000002 /* PresetManagerTests.swift in Sources */,
+				LA00000000000000000011 /* LaunchAtLoginSettingsTests.swift in Sources */,
+				UT00000000000000000003 /* MenuBarIconStyleTests.swift in Sources */,
+				NT00000000000000000001 /* SolarCalculatorTests.swift in Sources */,
 				NT00000000000000000002 /* DimmingScheduleTests.swift in Sources */,
 				NT00000000000000000003 /* ScheduleManagerTests.swift in Sources */,
 				PT00000000000000000012 /* PollingTimerTests.swift in Sources */,
@@ -816,6 +816,7 @@
 				MARKETING_VERSION = 1.4.1;
 				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.dimmerly.DimmerlyWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG WIDGET_EXTENSION";
@@ -853,6 +854,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.dimmerly.DimmerlyWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = WIDGET_EXTENSION;
@@ -889,6 +891,7 @@
 				MARKETING_VERSION = 1.4.1;
 				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.dimmerly.DimmerlyWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG APPSTORE WIDGET_EXTENSION";
@@ -926,6 +929,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.dimmerly.DimmerlyWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "APPSTORE WIDGET_EXTENSION";
@@ -940,6 +944,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
@@ -1007,6 +1012,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
@@ -1076,6 +1082,7 @@
 				MARKETING_VERSION = 1.4.1;
 				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.dimmerly;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = Dimmerly/BridgingHeader.h;
 			};
 			name = Debug;
@@ -1094,6 +1101,7 @@
 				MARKETING_VERSION = 1.4.1;
 				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.dimmerly;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = Dimmerly/BridgingHeader.h;
 			};
 			name = Release;
@@ -1102,6 +1110,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
@@ -1179,6 +1188,7 @@
 				MARKETING_VERSION = 1.4.1;
 				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.dimmerly;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
 			};
 			name = "Debug-AppStore";
 		};
@@ -1205,6 +1215,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
@@ -1275,6 +1286,7 @@
 				MARKETING_VERSION = 1.4.1;
 				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.dimmerly;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
 			};
 			name = "Release-AppStore";
 		};
