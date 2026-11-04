@@ -114,7 +114,8 @@ enum CaptureWindows {
                 if options.mode == "menu" {
                     return isMenuPanel(size)
                 }
-                return size.width >= 400 && size.height >= 300
+                // Settings has a title; the staged app's untitled backdrop window behind it doesn't.
+                return size.width >= 400 && size.height >= 300 && $0.title?.isEmpty == false
             }
             guard candidates.count == 1, let window = candidates.first else {
                 let candidateDescriptions = candidates.map {

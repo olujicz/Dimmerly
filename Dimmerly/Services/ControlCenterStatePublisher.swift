@@ -15,7 +15,15 @@ import WidgetKit
 /// so Control Center asks its value provider again.
 @MainActor
 struct ControlCenterStatePublisher {
-    static let live = ControlCenterStatePublisher()
+    #if DEBUG
+        /// Screenshot runs (`DIMMERLY_SCREENSHOT`) publish nowhere, so a staged Auto Warmth or dim
+        /// change can't reach the real app-group suite or redraw the user's controls.
+        static let live = ScreenshotStage.isActive
+            ? ControlCenterStatePublisher(defaults: nil, reloadControls: { _ in }, reloadTimelines: {})
+            : ControlCenterStatePublisher()
+    #else
+        static let live = ControlCenterStatePublisher()
+    #endif
 
     let defaults: UserDefaults?
     let reloadControls: (String) -> Void

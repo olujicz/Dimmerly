@@ -35,7 +35,10 @@ and `contrast`.
   - `setBrightness` / `setWarmth`: `value`, optional `display` (all displays
     if omitted) and `easing` (`easeInOut`, the default, or `linear`). The value
     animates across the step's duration.
-  - `applyPreset`: `preset` by name.
+  - `applyPreset`: `preset` by name. The row shows its checkmark, as after a click.
+  - `setAutoWarmth`: `enabled`, true or false. Needs `location`.
+- Optional staging, used by the App Store stills (see below): `timeZone`, `now`
+  (ISO 8601 with an offset) and `location` (`latitude`, `longitude`).
 
 Brightness values must be between 0.1 (the app's minimum) and 1. The loop has to
 end where it starts, with the panel closed and the starting values; a unit test
@@ -150,32 +153,55 @@ Inputs:
 
 ## App Store screenshots
 
-`images/app-store/01-…` to `04-…` are stills from this demo, recorded from the
-App Store build so the panel matches what App Review sees ("Dim Displays", no
-hardware controls). They are 2560x1600 and opaque, an accepted Mac App Store size.
+`images/app-store/` holds the complete Mac App Store screenshot set. Upload
+them in file-name order:
+
+1. `01-dim-and-warm-every-display.png`
+2. `02-each-screen-on-its-own.png`
+3. `03-warmer-in-the-evening.png`: Auto Warmth on, in a staged evening
+4. `04-presets-for-your-whole-desk.png`: Evening just applied, with its checkmark
+5. `05-presets-on-a-schedule.png`: the Schedule tab of Settings
+
+They are 2560x1600 and opaque, an accepted Mac App Store size. Don't add other
+images to that folder; it should match the listing exactly.
+
+`app-store-stills.json` scripts them: a storyboard of its own, plus a `stills`
+list (file, appearance, frame, menu-bar clock) and a `windowStills` list
+(file, appearance, Settings tab, caption, clock). Each still's frame shows its
+own caption, which a unit test checks.
 
 ```sh
 DEMO_VARIANT=app-store scripts/demo.sh build
-DEMO_VARIANT=app-store scripts/demo.sh capture     # light and dark
+DEMO_VARIANT=app-store scripts/demo.sh stills-capture   # light and dark, then Settings
+DEMO_VARIANT=app-store scripts/demo.sh stills           # writes images/app-store
 ```
 
-The variant records into `.build/demo-app-store`. Don't run `export` with it:
-that writes the website's `images/demo` files. The build keeps the `APPSTORE`
-code but signs with the non-sandbox entitlements, because the sandbox can't read
-the storyboard or write the frame log in the repo.
+- The App Store build makes the panel match what App Review sees ("Dim
+  Displays", no hardware controls). It keeps the `APPSTORE` code but signs with
+  the non-sandbox entitlements, because the sandbox can't read the storyboard or
+  write the frame log in the repo.
+- `stills-capture` needs the same unlocked Mac and Screen Recording approval as
+  `capture`. It records into `.build/demo-app-store/stills-<appearance>` and
+  `stills-settings-<tab>-<appearance>`. Don't run `export` with the App Store
+  variant: that writes the website's `images/demo` files.
+- `stills` renders with `ComposeDemo --still`: the caption at the top and
+  larger, the menu bar and panel zoomed 1.25x, the devices smaller, no cursor.
+  Window stills use `--window` with a region capture and its mask. It checks
+  every image is 2560x1600 with no alpha channel.
 
-Render each still with `--frame N --png`, using a copy of the storyboard
-without the `cursor` key and a copy of `values.jsonl` whose `caption` is the
-still's caption on every frame except frame 0 (so it is fully faded in):
+### Staged time and place
 
-| Image | Appearance | Frame | Caption |
-| --- | --- | --- | --- |
-| 01 | light | 300 | Dim and warm every display |
-| 02 | light | 134 | Each screen on its own |
-| 03 | light | 232 | Warmer in the evening |
-| 04 | dark | 300 | Presets for your whole desk |
+Staged runs launch with `TZ` set to the storyboard's `timeZone` (default
+`America/Los_Angeles`) and `-AppleLocale en_US`, so times read as in the en-US
+listing, such as 5:20 PM. The app can't change its own time zone and refuses to
+stage in any other. The stills storyboard also sets:
 
-The compositor writes PNGs with an alpha channel, which App Store Connect
-rejects. Flatten them, for example with
-`sips -s format jpeg -s formatOptions 95` and then back to PNG, and check
-`sips -g hasAlpha` reports `no`.
+- `location`: San Francisco, for sunrise and sunset. Unset, the stage uses the
+  same place.
+- `now`: 2026-11-03 at 5:20 PM Pacific, about ten minutes after that day's
+  sunset, so Auto Warmth is late in its transition (about 3600K). Auto Warmth
+  reads this instead of the clock; the menu-bar clock in the still says the same.
+
+A `setAutoWarmth` step (`"enabled": true` or `false`) flips the panel's switch,
+and needs `location`. Every `applyPreset` step shows the row's checkmark, as a
+click does.

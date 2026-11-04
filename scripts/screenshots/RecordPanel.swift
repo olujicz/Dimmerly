@@ -91,11 +91,15 @@ enum PanelRecorder {
             writer.didStop = false
             try await stream.startCapture()
 
-            // Stop when the panel closes, the stream fails, or the app quits.
+            // Stop when the panel closes or changes size, the stream fails, or the app quits. A
+            // stream keeps the size it starts with, so a panel that grows (Auto Warmth's status
+            // line) or shrinks starts a new segment at its new size.
             while isRunning(processID), !writer.didStop {
                 try await Task.sleep(for: .milliseconds(100))
                 let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
-                guard content.windows.contains(where: { $0.windowID == window.windowID }) else { break }
+                guard let current = content.windows.first(where: { $0.windowID == window.windowID }),
+                      current.frame.size == window.frame.size
+                else { break }
             }
             if !writer.didStop {
                 try? await stream.stopCapture()

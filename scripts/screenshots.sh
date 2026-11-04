@@ -21,7 +21,7 @@ refresh does everything: builds the debug app for the variant, launches it in it
 staged screenshot mode (isolated settings, no display or data changes), captures the
 menu panel and Displays settings, quits it, and composes the final image.
   app-store (default): Dimmerly App Store / Debug-AppStore
-                       -> images/app-store/01-menu-and-displays.png
+                       -> .build/screenshots/app-store/menu-and-displays.png
   github:              Dimmerly / Debug -> images/image1.png and images/image2.png
 --appearance forces the app into light or dark; without it the app follows the system.
 The panel is captured over a plain window whose colour its frosted glass picks up: the
@@ -185,14 +185,21 @@ MESSAGE
     return 1
 }
 
+# Staged runs format times and numbers as US English, whatever this Mac's region is, so
+# captures match the en-US listing (for example 5:20 PM, not 17:20).
+staged_locale_args=(-AppleLocale en_US -AppleLanguages '(en)')
+# The staged Mac's time zone (ScreenshotStage.defaultTimeZone; a demo storyboard can name
+# another). The app can't change its own, so it refuses to stage in any other.
+staged_time_zone='America/Los_Angeles'
+
 # Launches the staged debug app for one scene and records its PID in staged_pid. An optional
 # appearance (light or dark, empty to follow the system) and #RRGGBB backdrop colour follow.
 launch_staged() {
     local app="$1" scene="$2" appearance="${3:-}" backdrop="${4:-}"
     # Debug builds write coverage data to the working directory unless told otherwise.
-    DIMMERLY_SCREENSHOT="$scene" DIMMERLY_SCREENSHOT_APPEARANCE="$appearance" \
+    TZ="$staged_time_zone" DIMMERLY_SCREENSHOT="$scene" DIMMERLY_SCREENSHOT_APPEARANCE="$appearance" \
         DIMMERLY_SCREENSHOT_BACKDROP="$backdrop" LLVM_PROFILE_FILE="$repo_dir/.build/default.profraw" \
-        "$app/Contents/MacOS/Dimmerly" >/dev/null 2>&1 &
+        "$app/Contents/MacOS/Dimmerly" "${staged_locale_args[@]}" >/dev/null 2>&1 &
     staged_pid=$!
 }
 
@@ -246,7 +253,7 @@ refresh() {
     case "$variant" in
         app-store)
             scheme='Dimmerly App Store'; configuration='Debug-AppStore'; backdrop='#708FA7'
-            output="${output:-$repo_dir/images/app-store/01-menu-and-displays.png}" ;;
+            output="${output:-$repo_dir/.build/screenshots/app-store/menu-and-displays.png}" ;;
         github)
             scheme='Dimmerly'; configuration='Debug'; backdrop='#1E252E'
             output="${output:-$repo_dir/images}" ;;

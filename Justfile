@@ -42,7 +42,7 @@ check: format-check lint test build-appstore
 run: build
     @open "{{build_dir}}/Build/Products/Debug/Dimmerly.app"
 
-# Recreate the App Store screenshot from the live app (unlocked Mac, Screen Recording for the helper)
+# Compose a menu-and-Settings App Store image from the live app (unlocked Mac, Screen Recording for the helper)
 screenshots:
     scripts/screenshots.sh refresh --variant app-store --appearance dark
 

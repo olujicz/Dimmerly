@@ -23,6 +23,10 @@ final class DemoTimelineTests: XCTestCase {
             .appendingPathComponent("scripts/demo/storyboard.json")
     }
 
+    private static var stillsStoryboardURL: URL {
+        bundledStoryboardURL.deletingLastPathComponent().appendingPathComponent("app-store-stills.json")
+    }
+
     private func decode(_ json: String) throws -> DemoStoryboard {
         try JSONDecoder().decode(DemoStoryboard.self, from: Data(json.utf8))
     }
@@ -30,12 +34,22 @@ final class DemoTimelineTests: XCTestCase {
     private final class PanelCalls {
         var opened = 0
         var closed = 0
+        var confirmed: [UUID] = []
+        var autoWarmth: [Bool] = []
     }
 
     private func makePlayer(
         _ storyboard: DemoStoryboard,
         calls: PanelCalls = PanelCalls()
     ) -> (DemoPlayer, BrightnessManager) {
+        let (player, brightness, _) = makePlayerAndPresets(storyboard, calls: calls)
+        return (player, brightness)
+    }
+
+    private func makePlayerAndPresets(
+        _ storyboard: DemoStoryboard,
+        calls: PanelCalls = PanelCalls()
+    ) -> (DemoPlayer, BrightnessManager, PresetManager) {
         let brightness = ScreenshotStage.makeBrightnessManager(displays: storyboard.displays)
         let presets = ScreenshotStage.makePresetManager(presets: storyboard.presets)
         let player = DemoPlayer(
@@ -43,9 +57,11 @@ final class DemoTimelineTests: XCTestCase {
             brightnessManager: brightness,
             presetManager: presets,
             openPanel: { calls.opened += 1 },
-            closePanel: { calls.closed += 1 }
+            closePanel: { calls.closed += 1 },
+            confirmPreset: { calls.confirmed.append($0) },
+            setAutoWarmth: { calls.autoWarmth.append($0) }
         )
-        return (player, brightness)
+        return (player, brightness, presets)
     }
 
     private let oneDisplay = """
@@ -100,6 +116,46 @@ final class DemoTimelineTests: XCTestCase {
         XCTAssertGreaterThan(gammaWrites, 0, "Value changes should reach the gamma hook")
         let after = watchedKeys.map { UserDefaults.standard.object(forKey: $0) as? NSObject }
         XCTAssertEqual(before, after)
+    }
+
+    // MARK: The App Store stills storyboard
+
+    func testStillsStoryboardIsValidAndStagesAnEvening() throws {
+        let storyboard = try DemoStoryboard.load(from: Self.stillsStoryboardURL)
+        let calls = PanelCalls()
+        let (player, _, presets) = makePlayerAndPresets(storyboard, calls: calls)
+
+        let records = player.advance(to: .max)
+
+        XCTAssertEqual(records.count, storyboard.totalFrames)
+        XCTAssertNotNil(storyboard.stagedNow)
+        XCTAssertEqual(calls.autoWarmth, [true], "The evening still turns Auto Warmth on")
+        XCTAssertEqual(calls.confirmed, presets.presets.filter { $0.name == "Evening" }.map(\.id))
+    }
+
+    /// Each still's frame shows its own caption, and the frames the captions name exist.
+    func testStillsFramesShowTheirCaptions() throws {
+        struct Still: Decodable {
+            let file: String
+            let frame: Int
+        }
+        struct Stills: Decodable {
+            let stills: [Still]
+        }
+        let data = try Data(contentsOf: Self.stillsStoryboardURL)
+        let stills = try JSONDecoder().decode(Stills.self, from: data).stills
+        let storyboard = try DemoStoryboard.load(from: Self.stillsStoryboardURL)
+        let (player, _) = makePlayer(storyboard)
+        let records = player.advance(to: .max)
+
+        XCTAssertFalse(stills.isEmpty)
+        for still in stills {
+            let record = try XCTUnwrap(records.first { $0.frame == still.frame }, still.file)
+            XCTAssertTrue(record.panelOpen, still.file)
+            // "02-each-screen-on-its-own.png" shows "Each screen on its own".
+            let words = still.file.dropFirst(3).dropLast(4).replacingOccurrences(of: "-", with: " ")
+            XCTAssertEqual(record.caption.lowercased(), words, still.file)
+        }
     }
 
     // MARK: Timing and easing
@@ -205,6 +261,14 @@ final class DemoTimelineTests: XCTestCase {
                 "Step 1 (wait): duration must be zero or more seconds"
             ),
             (storyboard(steps: #"{"action": "openPanel"}"#), "The steps last no time at all"),
+            (
+                storyboard(steps: #"{"action": "setAutoWarmth", "duration": 1}"#),
+                "Step 1 (setAutoWarmth): needs enabled"
+            ),
+            (
+                storyboard(steps: #"{"action": "setAutoWarmth", "enabled": true, "duration": 1}"#),
+                "Auto Warmth needs the storyboard's location"
+            ),
         ]
         for (json, reason) in cases {
             let storyboard = try decode(json)
@@ -215,6 +279,28 @@ final class DemoTimelineTests: XCTestCase {
                 )
             }
         }
+    }
+
+    func testStagedClockAndPlaceMustBeValid() throws {
+        let base = #"{"fps": 10, "displays": [{"name": "A", "brightness": 1}], "presets": [],"#
+            + #" "steps": [{"action": "wait", "duration": 1}], EXTRA}"#
+        let cases: [(extra: String, reason: String)] = [
+            (#""timeZone": "Mars/Olympus""#, "is not a time zone identifier"),
+            (#""now": "tomorrow evening""#, "must be an ISO 8601 date"),
+            (#""location": {"latitude": 91, "longitude": 0}"#, "location must have a latitude"),
+        ]
+        for (extra, reason) in cases {
+            let storyboard = try decode(base.replacingOccurrences(of: "EXTRA", with: extra))
+            XCTAssertThrowsError(try storyboard.validate(), reason) { error in
+                XCTAssertTrue(error.localizedDescription.contains(reason), error.localizedDescription)
+            }
+        }
+        let valid = try decode(base.replacingOccurrences(
+            of: "EXTRA",
+            with: #""timeZone": "America/Los_Angeles", "now": "2026-11-03T17:20:00-08:00""#
+        ))
+        XCTAssertNoThrow(try valid.validate())
+        XCTAssertEqual(valid.stagedNow?.timeIntervalSince1970, 1_793_755_200)
     }
 
     func testUnknownActionIsRejectedWhenLoading() throws {

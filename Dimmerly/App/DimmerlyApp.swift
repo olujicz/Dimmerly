@@ -146,7 +146,7 @@ struct DimmerlyApp: App {
             panelPresenter.configure(
                 statusItem: statusItem,
                 contentBuilder: { selectedPresetID in
-                    NSHostingController(rootView: menuBarPanel(selectedPresetID: selectedPresetID))
+                    MenuBarPanelPresenter.hostingController(for: menuBarPanel(selectedPresetID: selectedPresetID))
                 },
                 didDismiss: {
                     menuBarPanelCoordinator.externalPresentationDidDismiss()
@@ -267,7 +267,12 @@ enum DimmerlyURL {
 final class AppServices {
     let shortcutManager = KeyboardShortcutManager()
     let presetShortcutManager = PresetShortcutManager()
-    let scheduleManager = ScheduleManager()
+    #if DEBUG
+        /// Screenshot runs (`DIMMERLY_SCREENSHOT`) get staged schedules; see `ScreenshotStage`.
+        let scheduleManager = ScreenshotStage.isActive ? ScreenshotStage.makeScheduleManager() : ScheduleManager()
+    #else
+        let scheduleManager = ScheduleManager()
+    #endif
     /// Not @Observable: held for its lifecycle only.
     let idleTimerManager = IdleTimerManager()
 
@@ -691,6 +696,10 @@ final class StatusItemQuickActions: NSObject {
         nonisolated static let backdropEnvironmentKey = "DIMMERLY_SCREENSHOT_BACKDROP"
         nonisolated static let storyboardEnvironmentKey = "DIMMERLY_DEMO_STORYBOARD"
         nonisolated static let demoOutputEnvironmentKey = "DIMMERLY_DEMO_OUTPUT"
+        nonisolated static let settingsTabEnvironmentKey = "DIMMERLY_SCREENSHOT_SETTINGS_TAB"
+
+        /// Posted by a demo run with a preset ID, so the panel shows that preset's checkmark.
+        nonisolated static let presetConfirmedNotification = Notification.Name("DimmerlyDemoPresetConfirmed")
 
         /// The demo scene's storyboard. A demo run can't do anything useful without one, so a
         /// missing or invalid storyboard ends the run with the reason.
@@ -754,6 +763,34 @@ final class StatusItemQuickActions: NSObject {
             storyboard?.presets ?? screenshotPresets
         }
 
+        /// San Francisco, for sunrise and sunset. A storyboard can name another place.
+        nonisolated static let defaultLocation = DemoStoryboard.Location(latitude: 37.7749, longitude: -122.4194)
+        nonisolated static let defaultTimeZone = "America/Los_Angeles"
+
+        nonisolated static var location: DemoStoryboard.Location {
+            storyboard?.location ?? defaultLocation
+        }
+
+        /// The staged Mac's time zone, so times shown match the staged location whatever this Mac
+        /// uses. The process can't change its own (`NSTimeZone.default` doesn't move
+        /// `TimeZone.current`), so the scripts launch with `TZ` set to it.
+        nonisolated static var timeZoneIdentifier: String {
+            storyboard?.timeZone ?? defaultTimeZone
+        }
+
+        /// The Settings tab a `settings` run opens on: `DIMMERLY_SCREENSHOT_SETTINGS_TAB=displays`
+        /// (the default) or `schedule`.
+        nonisolated static let settingsTab: SettingsView.Tab = switch ProcessInfo.processInfo
+            .environment[settingsTabEnvironmentKey]
+        {
+        case nil, "", "displays":
+            .displays
+        case "schedule":
+            .schedule
+        case let value?:
+            fail("\(settingsTabEnvironmentKey) must be displays or schedule, not \(value).")
+        }
+
         /// Display rows that open with their warmth and contrast sliders showing.
         nonisolated static var expandedDisplayNames: Set<String> {
             Set(displays.filter { $0.expanded == true }.map(\.name))
@@ -765,7 +802,13 @@ final class StatusItemQuickActions: NSObject {
         }
 
         static func makeSettings() -> AppSettings {
-            AppSettings(defaults: defaults)
+            let settings = AppSettings(defaults: defaults)
+            // The Schedule tab lists schedules only while scheduling is on. Nothing runs them:
+            // launch setup is skipped, and this is set before anything observes it.
+            if scene == .settings, settingsTab == .schedule {
+                settings.scheduleEnabled = true
+            }
+            return settings
         }
 
         /// Made-up IDs that no connected display uses, so nothing can address a real screen.
@@ -857,11 +900,43 @@ final class StatusItemQuickActions: NSObject {
         }
 
         static func makeLocationProvider() -> LocationProvider {
-            LocationProvider(forTesting: true, defaults: defaults)
+            let provider = LocationProvider(forTesting: true, defaults: defaults)
+            provider.latitude = location.latitude
+            provider.longitude = location.longitude
+            return provider
         }
 
         static func makeColorTemperatureManager() -> ColorTemperatureManager {
-            ColorTemperatureManager(brightnessManager: .shared, settings: .shared)
+            let manager = ColorTemperatureManager(brightnessManager: .shared, settings: .shared)
+            if let now = storyboard?.stagedNow {
+                manager.currentDate = { now }
+            }
+            return manager
+        }
+
+        /// Sunset and bedtime schedules for the Schedule tab, on the staged presets.
+        static func makeScheduleManager() -> ScheduleManager {
+            let presets = PresetManager.shared.presets
+            func presetID(_ name: String) -> UUID? {
+                presets.first { $0.name == name }?.id
+            }
+            let staged = [
+                presetID("Evening").map {
+                    DimmingSchedule(name: "Sunset", trigger: .sunset(offsetMinutes: 0), presetID: $0)
+                },
+                presetID("Night").map {
+                    DimmingSchedule(name: "Bedtime", trigger: .fixedTime(hour: 22, minute: 30), presetID: $0)
+                },
+                presetID("Full").map {
+                    DimmingSchedule(name: "Morning", trigger: .sunrise(offsetMinutes: 30), presetID: $0)
+                },
+            ].compactMap(\.self)
+            if let data = try? JSONEncoder().encode(staged) {
+                defaults.set(data, forKey: ScheduleManager.schedulesKey)
+            }
+            return ScheduleManager(defaults: defaults, locationCoordinates: {
+                (location.latitude, location.longitude)
+            })
         }
 
         private struct NoWidgetSynchronizer: WidgetPresetSynchronizing {
@@ -877,6 +952,9 @@ final class StatusItemQuickActions: NSObject {
         static func statusItemDidAttach(openSettings: @escaping () -> Void) {
             guard let scene, !didPresent else { return }
             didPresent = true
+            guard TimeZone.current.identifier == timeZoneIdentifier else {
+                fail("Launch with TZ=\(timeZoneIdentifier), so sunrise, sunset and times match the staged place.")
+            }
             if let appearance = stagedAppearance() {
                 NSApp.appearance = appearance
             }
@@ -921,7 +999,13 @@ final class StatusItemQuickActions: NSObject {
                 brightnessManager: .shared,
                 presetManager: .shared,
                 openPanel: {},
-                closePanel: {}
+                closePanel: {},
+                confirmPreset: { NotificationCenter.default.post(name: presetConfirmedNotification, object: $0) },
+                setAutoWarmth: { enabled in
+                    // What the panel's switch does; the app's onChange then finds nothing to change.
+                    AppSettings.shared.autoColorTempEnabled = enabled
+                    ColorTemperatureManager.shared.apply(enabled: enabled)
+                }
             )
             do {
                 demoRunner = try DemoRunner(player: player, outputURL: URL(fileURLWithPath: output))
@@ -988,6 +1072,31 @@ final class StatusItemQuickActions: NSObject {
             window.center()
             window.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
+            showBackdrop(behindSettings: window)
+        }
+
+        /// The Settings toolbar's material picks up what is behind the window, which a region
+        /// capture would otherwise take from the real desktop. With `DIMMERLY_SCREENSHOT_BACKDROP`
+        /// set, a plain window of that colour goes behind it; the mask capture keeps only the window.
+        private static func showBackdrop(behindSettings window: NSWindow) {
+            guard backdropWindow == nil,
+                  let hex = ProcessInfo.processInfo.environment[backdropEnvironmentKey], !hex.isEmpty
+            else { return }
+            guard let color = color(hex: hex) else {
+                fail("\(backdropEnvironmentKey) must be a #RRGGBB colour, not \(hex).")
+            }
+            let backdrop = NSWindow(
+                contentRect: window.frame.insetBy(dx: -80, dy: -80),
+                styleMask: .borderless,
+                backing: .buffered,
+                defer: false
+            )
+            backdrop.backgroundColor = color
+            backdrop.isOpaque = true
+            backdrop.hasShadow = false
+            backdrop.ignoresMouseEvents = true
+            backdrop.order(.below, relativeTo: window.windowNumber)
+            backdropWindow = backdrop
         }
     }
 #endif

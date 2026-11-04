@@ -34,6 +34,12 @@
             var warmth: Double?
         }
 
+        /// Where the staged Mac is, for Auto Warmth's sunrise and sunset.
+        struct Location: Codable, Equatable {
+            var latitude: Double
+            var longitude: Double
+        }
+
         struct Step: Codable, Equatable {
             var action: DemoStepAction
             /// Seconds the step lasts. A value change animates across it; other actions happen
@@ -43,6 +49,8 @@
             var display: String?
             var value: Double?
             var preset: String?
+            /// Whether `setAutoWarmth` turns Auto Warmth on or off.
+            var enabled: Bool?
             var easing: DemoEasing?
             /// Text the compositor shows from this step on; an empty string clears it.
             var caption: String?
@@ -58,6 +66,16 @@
         var displays: [Display]
         var presets: [Preset]
         var steps: [Step]
+        /// The staged Mac's time zone identifier, such as `America/Los_Angeles`.
+        var timeZone: String?
+        /// The staged time Auto Warmth evaluates, as ISO 8601 with an offset. Unset uses the clock.
+        var now: String?
+        var location: Location?
+
+        /// `now` as a date; nil when it is unset or invalid (`validate` rejects invalid ones).
+        var stagedNow: Date? {
+            now.flatMap { try? Date($0, strategy: .iso8601) }
+        }
 
         var totalSeconds: Double {
             steps.reduce(0) { $0 + $1.seconds }
@@ -93,6 +111,19 @@
                 throw DemoStoryboardError("leadIn must be zero or more seconds.")
             }
             guard !displays.isEmpty else { throw DemoStoryboardError("Add at least one display.") }
+            if let timeZone, TimeZone(identifier: timeZone) == nil {
+                throw DemoStoryboardError("timeZone \"\(timeZone)\" is not a time zone identifier.")
+            }
+            if let now, stagedNow == nil {
+                throw DemoStoryboardError("now \"\(now)\" must be an ISO 8601 date with an offset.")
+            }
+            if let location,
+               !((-90 ... 90).contains(location.latitude) && (-180 ... 180).contains(location.longitude))
+            {
+                throw DemoStoryboardError(
+                    "location must have a latitude from -90 to 90 and a longitude from -180 to 180."
+                )
+            }
             try Self.requireUnique(displays.map(\.name), kind: "display")
             try Self.requireUnique(presets.map(\.name), kind: "preset")
             for display in displays {
@@ -139,6 +170,13 @@
                 guard presets.contains(where: { $0.name == preset }) else {
                     throw DemoStoryboardError("\(label): no preset is named \"\(preset)\".")
                 }
+            case .setAutoWarmth:
+                guard step.enabled != nil else {
+                    throw DemoStoryboardError("\(label): needs enabled (true or false).")
+                }
+                guard location != nil else {
+                    throw DemoStoryboardError("\(label): Auto Warmth needs the storyboard's location.")
+                }
             case .wait, .openPanel, .closePanel:
                 break
             }
@@ -175,6 +213,7 @@
         case setBrightness
         case setWarmth
         case applyPreset
+        case setAutoWarmth
     }
 
     /// How a value change moves between its start and target.
@@ -246,6 +285,8 @@
         private let presetManager: PresetManager
         private let openPanel: () -> Void
         private let closePanel: () -> Void
+        private let confirmPreset: (UUID) -> Void
+        private let setAutoWarmth: (Bool) -> Void
         private let schedule: [ScheduledStep]
         private var nextStepIndex = 0
         private var animations: [Animation] = []
@@ -258,13 +299,17 @@
             brightnessManager: BrightnessManager,
             presetManager: PresetManager,
             openPanel: @escaping () -> Void,
-            closePanel: @escaping () -> Void
+            closePanel: @escaping () -> Void,
+            confirmPreset: @escaping (UUID) -> Void = { _ in },
+            setAutoWarmth: @escaping (Bool) -> Void = { _ in }
         ) {
             self.storyboard = storyboard
             self.brightnessManager = brightnessManager
             self.presetManager = presetManager
             self.openPanel = openPanel
             self.closePanel = closePanel
+            self.confirmPreset = confirmPreset
+            self.setAutoWarmth = setAutoWarmth
 
             let fps = Double(storyboard.fps)
             let lastFrame = storyboard.totalFrames - 1
@@ -328,6 +373,12 @@
             case .applyPreset:
                 if let preset = presetManager.presets.first(where: { $0.name == step.preset }) {
                     presetManager.applyPreset(preset, to: brightnessManager)
+                    // The checkmark a click on the row shows, since the cursor clicks it.
+                    confirmPreset(preset.id)
+                }
+            case .setAutoWarmth:
+                if let enabled = step.enabled {
+                    setAutoWarmth(enabled)
                 }
             case .setBrightness, .setWarmth:
                 guard let value = step.value else { return }
