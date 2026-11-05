@@ -11,7 +11,8 @@ import CoreGraphics
 /// and are covered by the unit tests, so they stay a short manual check.
 ///
 /// Before running, configure in Dimmerly: the main shortcut (default Shift-Option-Command-D) and
-/// one preset on Control-Option-1 whose values differ from the current display state. Close any
+/// one preset on Control-Option-1, or pass `--preset` with the shortcut a preset already uses.
+/// That preset's values must differ from the current display state. Close any
 /// other Dimmerly copy. The check dims the displays, presses Escape to wake them and applies the
 /// preset, so expect the screen to change.
 @main
@@ -302,8 +303,9 @@ final class Check {
             report.note("The preset is still applied; switch back to your usual preset afterwards")
         } else {
             report.fail("""
-            Preset shortcut \(options.presetShortcut) didn't change any display's gamma. Make sure that \
-            preset's values differ from the current state, then run again.
+            Preset shortcut \(options.presetShortcut) didn't change any display's gamma. Check that a preset \
+            is bound to \(options.presetShortcut) (or pass --preset with the shortcut one uses) and that its \
+            values differ from the current state, then run again.
             """)
         }
     }
