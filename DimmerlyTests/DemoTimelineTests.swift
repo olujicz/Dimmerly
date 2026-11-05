@@ -158,6 +158,25 @@ final class DemoTimelineTests: XCTestCase {
         }
     }
 
+    /// App Store previews must run 15-30 seconds: the recorded panel plus the Settings hold.
+    func testPreviewStoryboardIsValidAndFitsTheAppStoreLength() throws {
+        let url = Self.bundledStoryboardURL.deletingLastPathComponent()
+            .appendingPathComponent("app-store-preview.json")
+        let storyboard = try DemoStoryboard.load(from: url)
+        let settingsSeconds = try JSONDecoder()
+            .decode(PreviewSettings.self, from: Data(contentsOf: url)).preview.settingsSeconds
+        let calls = PanelCalls()
+        let (player, _, presets) = makePlayerAndPresets(storyboard, calls: calls)
+
+        let records = player.advance(to: .max)
+
+        XCTAssertTrue(records.last?.panelOpen == true, "The preview cuts from the open panel to Settings")
+        XCTAssertEqual(calls.autoWarmth, [true])
+        let id = { (name: String) in presets.presets.first { $0.name == name }?.id }
+        XCTAssertEqual(calls.confirmed, [id("Evening"), id("Full")].compactMap(\.self))
+        XCTAssertTrue((15 ... 30).contains(storyboard.totalSeconds + settingsSeconds))
+    }
+
     // MARK: Timing and easing
 
     func testLinearStepReachesItsTargetOnItsLastFrame() throws {
@@ -326,4 +345,13 @@ final class DemoTimelineTests: XCTestCase {
         let realIDs = Set(BrightnessManager.activeDisplayIDs())
         XCTAssertTrue(realIDs.isDisjoint(with: brightness.displays.map(\.id)))
     }
+}
+
+/// The `preview` block of `scripts/demo/app-store-preview.json`.
+private struct PreviewSettings: Decodable {
+    struct Settings: Decodable {
+        let settingsSeconds: Double
+    }
+
+    let preview: Settings
 }

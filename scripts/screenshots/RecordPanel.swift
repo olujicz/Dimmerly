@@ -76,7 +76,9 @@ enum PanelRecorder {
                 continue
             }
             segments += 1
-            let region = try await PanelRegion(window: window, processID: processID)
+            // Taller than the panel, so content that grows while it's open (Auto Warmth's status
+            // line) stays in this stream instead of stopping it for a gap with no frames.
+            let region = try await PanelRegion(window: window, processID: processID, extraHeight: 60)
             writer.mask = region.mask
             try region.writeShape(to: outputDirectory.appendingPathComponent("shape.png"))
             let filter = region.filter
@@ -91,15 +93,21 @@ enum PanelRecorder {
             writer.didStop = false
             try await stream.startCapture()
 
-            // Stop when the panel closes or changes size, the stream fails, or the app quits. A
-            // stream keeps the size it starts with, so a panel that grows (Auto Warmth's status
-            // line) or shrinks starts a new segment at its new size.
+            // Stop when the panel closes, the stream fails, or the app quits. A panel that changes
+            // size within the region keeps recording with a fresh outline; one that outgrows it
+            // starts a new segment at its new size.
+            var shapeSize = window.frame.size
             while isRunning(processID), !writer.didStop {
-                try await Task.sleep(for: .milliseconds(100))
+                try await Task.sleep(for: .milliseconds(50))
                 let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
                 guard let current = content.windows.first(where: { $0.windowID == window.windowID }),
-                      current.frame.size == window.frame.size
+                      region.contains(current.frame)
                 else { break }
+                if current.frame.size != shapeSize {
+                    shapeSize = current.frame.size
+                    let mask = try await region.currentMask()
+                    writer.sampleQueue.sync { writer.mask = mask }
+                }
             }
             if !writer.didStop {
                 try? await stream.stopCapture()
@@ -237,8 +245,14 @@ struct PanelRegion {
     let geometry: String
     /// Whether a backdrop window was behind the panel; without one the material is flat grey.
     let hasBackdrop: Bool
+    /// The recorded screen area, in global points.
+    let frame: CGRect
+    private let shapeFilter: SCContentFilter
+    private let shapeConfiguration: SCStreamConfiguration
 
-    init(window: SCWindow, processID: pid_t) async throws {
+    /// `extraHeight` points below the panel are recorded too, so the panel can grow without a
+    /// new stream; they stay transparent until it does.
+    init(window: SCWindow, processID: pid_t, extraHeight: CGFloat = 0) async throws {
         let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
         guard let application = window.owningApplication,
               let display = content.displays.first(where: { $0.frame.contains(window.frame.origin) })
@@ -255,9 +269,11 @@ struct PanelRegion {
         }
         hasBackdrop = !backdrops.isEmpty
         let scale = CGFloat(SCContentFilter(desktopIndependentWindow: window).pointPixelScale)
-        width = Int((window.frame.width * scale).rounded())
-        height = Int((window.frame.height * scale).rounded())
-        let sourceRect = window.frame.offsetBy(dx: -display.frame.minX, dy: -display.frame.minY)
+        frame = CGRect(x: window.frame.minX, y: window.frame.minY, width: window.frame.width,
+                       height: window.frame.height + extraHeight)
+        width = Int((frame.width * scale).rounded())
+        height = Int((frame.height * scale).rounded())
+        let sourceRect = frame.offsetBy(dx: -display.frame.minX, dy: -display.frame.minY)
 
         let shapeConfiguration = SCStreamConfiguration()
         shapeConfiguration.sourceRect = sourceRect
@@ -266,8 +282,10 @@ struct PanelRegion {
         shapeConfiguration.showsCursor = false
         shapeConfiguration.backgroundColor = .clear
         shapeConfiguration.ignoreShadowsDisplay = true
+        shapeFilter = SCContentFilter(display: display, including: [application], exceptingWindows: backdrops)
+        self.shapeConfiguration = shapeConfiguration
         shape = try await SCScreenshotManager.captureImage(
-            contentFilter: SCContentFilter(display: display, including: [application], exceptingWindows: backdrops),
+            contentFilter: shapeFilter,
             configuration: shapeConfiguration
         )
         mask = try Self.alphaMask(of: shape, width: width, height: height)
@@ -281,6 +299,20 @@ struct PanelRegion {
         configuration.colorSpaceName = CGColorSpace.sRGB
         configuration.showsCursor = false
         geometry = "window \(window.frame) display \(display.frame) scale \(scale) backdrops \(backdrops.count)"
+    }
+
+    /// Whether a panel at `windowFrame` still fits in the recorded area.
+    func contains(_ windowFrame: CGRect) -> Bool {
+        frame.insetBy(dx: -0.5, dy: -0.5).contains(windowFrame)
+    }
+
+    /// The panel's outline now, after it changed size inside the recorded area.
+    func currentMask() async throws -> [UInt8] {
+        let shape = try await SCScreenshotManager.captureImage(
+            contentFilter: shapeFilter,
+            configuration: shapeConfiguration
+        )
+        return try Self.alphaMask(of: shape, width: width, height: height)
     }
 
     /// One still of the panel, cut out with its shape.

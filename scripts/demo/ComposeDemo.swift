@@ -42,6 +42,9 @@ Usage: ComposeDemo --appearance light|dark --values FILE --panel-dir DIR --story
            the menu bar and panel are zoomed, the devices are smaller, there is no cursor,
            and the frame's caption shows in full.
 --clock    the menu-bar clock text (default "Tue 9:41").
+--preview  writes the App Store app preview (1920x1080 ProRes): the recorded panel with its
+           captions and cursor, then --window/--window-mask holding for --window-seconds
+           (default 5.5) under --caption. With --frame N it writes that frame as a PNG instead.
 --window   an App Store still of a window instead of the scene: a region capture of the
            window, the same-sized window capture whose alpha outlines it (--window-mask),
            and its caption.
@@ -671,8 +674,12 @@ struct Theme {
 
 // MARK: - Static scene
 
-func drawBackground(theme: Theme, context: CGContext) {
-    let canvas = CGRect(x: 0, y: 0, width: Layout.width, height: Layout.height)
+func drawBackground(
+    theme: Theme,
+    context: CGContext,
+    size: CGSize = CGSize(width: Layout.width, height: Layout.height)
+) {
+    let canvas = CGRect(origin: .zero, size: size)
     context.drawLinearGradient(gradient(theme.backdrop), start: .zero,
                                end: CGPoint(x: canvas.maxX, y: canvas.maxY), options: [])
     // A gentle vignette on the backdrop only, so device and UI pixels stay untouched.
@@ -995,7 +1002,8 @@ enum CursorAnchor {
 }
 
 func drawCaptionLine( // swiftlint:disable:this function_parameter_count
-    _ text: String, font: NSFont, top: CGFloat, alpha: Double, theme: Theme, context: CGContext
+    _ text: String, font: NSFont, top: CGFloat, alpha: Double, theme: Theme, context: CGContext,
+    x: CGFloat = Layout.margin
 ) {
     guard alpha > 0.002 else { return }
     let shadow = NSShadow()
@@ -1008,7 +1016,7 @@ func drawCaptionLine( // swiftlint:disable:this function_parameter_count
         .foregroundColor: theme.caption.withAlphaComponent(theme.caption.alphaComponent * alpha),
         .kern: -0.9 * font.pointSize / 62,
     ].merging(theme.captionShadow > 0 ? [.shadow: shadow] : [:]) { a, _ in a })
-    withAppKit(context) { string.draw(at: CGPoint(x: Layout.margin, y: top)) }
+    withAppKit(context) { string.draw(at: CGPoint(x: x, y: top)) }
 }
 
 final class Compositor {
@@ -1319,7 +1327,23 @@ final class Compositor {
             drawSymbol(dimmerlyIcon, centeredAt: icon, alpha: 1, context: context)
         }
 
-        // The real panel, anchored by its arrow tip, fading and scaling from the tip.
+        try drawPanel(panelState, highQuality: style.uiScale != 1, context: context)
+        context.restoreGState()
+
+        if style.isStill {
+            // A still shows its caption in full, whatever the fade would be on this frame.
+            if !values.caption.isEmpty {
+                drawCaptionText(values.caption, alpha: 1, rise: 0, context: context)
+            }
+            return
+        }
+        drawCaption(captionStates[f], context: context)
+
+        drawPointer(at: time, context: context)
+    }
+
+    /// The real panel, anchored by its arrow tip at `Layout.panelTip`, fading and scaling from the tip.
+    func drawPanel(_ panelState: PanelState, highQuality: Bool, context: CGContext) throws {
         if panelState.progress > 0, let captureFrame = panelState.captureFrame {
             let panel = try panel(for: captureFrame)
             let scale = 0.95 + 0.05 * CGFloat(panelState.progress)
@@ -1335,33 +1359,25 @@ final class Compositor {
             )
             context.beginTransparencyLayer(auxiliaryInfo: nil)
             context.setShadow(offset: CGSize(width: 0, height: -1), blur: 3, color: color(0x07121F, theme.panelEdge))
-            context.interpolationQuality = scale == 1 && style.uiScale == 1 ? .none : .high
+            context.interpolationQuality = scale == 1 && !highQuality ? .none : .high
             drawImage(panel.image, in: CGRect(x: -panel.tip.x, y: -panel.tip.y,
                                               width: CGFloat(panel.image.width), height: CGFloat(panel.image.height)),
                       context: context)
             context.endTransparencyLayer()
             context.restoreGState()
         }
-        context.restoreGState()
+    }
 
-        if style.isStill {
-            // A still shows its caption in full, whatever the fade would be on this frame.
-            if !values.caption.isEmpty {
-                drawCaptionText(values.caption, alpha: 1, rise: 0, context: context)
+    /// The scripted cursor and its click rings, in canvas coordinates.
+    func drawPointer(at time: Double, context: CGContext) {
+        guard let hotspot = cursorPosition(at: time) else { return }
+        for click in clicks {
+            let progress = (time - click.time) / 0.3
+            if progress >= 0, progress < 1 {
+                drawClickRing(at: click.position, progress: progress, theme: theme, context: context)
             }
-            return
         }
-        drawCaption(captionStates[f], context: context)
-
-        if let hotspot = cursorPosition(at: time) {
-            for click in clicks {
-                let progress = (time - click.time) / 0.3
-                if progress >= 0, progress < 1 {
-                    drawClickRing(at: click.position, progress: progress, theme: theme, context: context)
-                }
-            }
-            drawCursor(at: hotspot, scale: pressScale(at: time), context: context)
-        }
+        drawCursor(at: hotspot, scale: pressScale(at: time), context: context)
     }
 
     func drawCaption(_ state: CaptionState, context: CGContext) {
@@ -1398,6 +1414,34 @@ func opaque(_ image: CGImage) throws -> CGImage {
 
 // MARK: - Window still
 
+/// A captured window, cut to its mask's outline, with a macOS window shadow.
+func drawMaskedWindow(_ window: CGImage, mask: CGImage, in rect: CGRect, theme: Theme, context: CGContext) {
+    context.saveGState()
+    context.setShadow(offset: CGSize(width: 0, height: -28), blur: 80, color: color(0x07121F, theme.panelShadow))
+    context.beginTransparencyLayer(auxiliaryInfo: nil)
+    context.setShadow(offset: CGSize(width: 0, height: -1), blur: 3, color: color(0x07121F, theme.panelEdge))
+    context.beginTransparencyLayer(auxiliaryInfo: nil)
+    context.translateBy(x: rect.minX, y: rect.maxY)
+    context.scaleBy(x: 1, y: -1)
+    context.clip(to: CGRect(origin: .zero, size: rect.size), mask: mask)
+    context.interpolationQuality = .high
+    context.draw(window, in: CGRect(origin: .zero, size: rect.size))
+    context.endTransparencyLayer()
+    context.endTransparencyLayer()
+    context.restoreGState()
+}
+
+/// Crops a region capture that rounded a few pixels larger than its mask to the mask's size.
+func croppedToMask(_ capture: CGImage, mask: CGImage) throws -> CGImage {
+    let extraWidth = capture.width - mask.width, extraHeight = capture.height - mask.height
+    guard (0 ... 4).contains(extraWidth), (0 ... 4).contains(extraHeight),
+          [.premultipliedFirst, .premultipliedLast, .first, .last].contains(mask.alphaInfo),
+          let window = capture.cropping(to: CGRect(x: extraWidth / 2, y: extraHeight / 2,
+                                                   width: mask.width, height: mask.height))
+    else { throw DemoError.invalid("The window mask must have alpha and match the window capture's size") }
+    return window
+}
+
 /// An App Store still of a window, such as Settings, in the still layout: the backdrop and the
 /// zoomed menu bar, the window centred under the caption with a window shadow, and the caption.
 /// `window` is an opaque region capture; `mask` is a same-sized capture whose alpha outlines it.
@@ -1410,12 +1454,7 @@ func renderWindowStill(
 ) throws -> CGImage {
     // A region capture of a window at a fractional screen position can round a few pixels
     // larger than the window; keep its centre at the mask's size.
-    let extraWidth = capture.width - mask.width, extraHeight = capture.height - mask.height
-    guard (0 ... 4).contains(extraWidth), (0 ... 4).contains(extraHeight),
-          [.premultipliedFirst, .premultipliedLast, .first, .last].contains(mask.alphaInfo),
-          let window = capture.cropping(to: CGRect(x: extraWidth / 2, y: extraHeight / 2,
-                                                   width: mask.width, height: mask.height))
-    else { throw DemoError.invalid("The window mask must have alpha and match the window capture's size") }
+    let window = try croppedToMask(capture, mask: mask)
     let context = try makeContext(width: Layout.width, height: Layout.height,
                                   bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)
     drawBackground(theme: theme, context: context)
@@ -1442,36 +1481,168 @@ func renderWindowStill(
                       y: (area.minY + (available.height - size.height) / 2).rounded(),
                       width: size.width, height: size.height)
 
-    context.saveGState()
-    context.setShadow(offset: CGSize(width: 0, height: -28), blur: 80, color: color(0x07121F, theme.panelShadow))
-    context.beginTransparencyLayer(auxiliaryInfo: nil)
-    context.setShadow(offset: CGSize(width: 0, height: -1), blur: 3, color: color(0x07121F, theme.panelEdge))
-    context.beginTransparencyLayer(auxiliaryInfo: nil)
-    context.translateBy(x: rect.minX, y: rect.maxY)
-    context.scaleBy(x: 1, y: -1)
-    context.clip(to: CGRect(origin: .zero, size: rect.size), mask: mask)
-    context.interpolationQuality = .high
-    context.draw(window, in: CGRect(origin: .zero, size: rect.size))
-    context.endTransparencyLayer()
-    context.endTransparencyLayer()
-    context.restoreGState()
+    drawMaskedWindow(window, mask: mask, in: rect, theme: theme, context: context)
 
     drawCaptionLine(caption, font: font, top: style.captionTop, alpha: 1, theme: theme, context: context)
     guard let image = context.makeImage() else { throw DemoError.invalid("Cannot render the window still") }
     return image
 }
 
+// MARK: - App Store preview
+
+/// The App Store app preview: 1920x1080, only real captures of the app (guideline 2.3.4) plus
+/// captions and the cursor as overlays. No illustrated displays or menu bar: the dimming itself
+/// is a gamma change that screen recordings don't show. The recorded panel plays first, then a
+/// captured Settings window holds with its own caption.
+final class PreviewRenderer {
+    static let width = 1920
+    static let height = 1080
+    /// Where the panel's arrow tip sits; the 652-pixel-wide capture keeps a right margin of 150.
+    static let panelTip = CGPoint(x: 1444, y: 96)
+    static let captionX: CGFloat = 150
+    static let captionWidth: CGFloat = 880
+    static let crossfade = 0.4
+
+    let compositor: Compositor
+    let window: CGImage
+    let mask: CGImage
+    let windowCaption: String
+    let windowFrames: Int
+    let background: CGImage
+    let captionFont = NSFont.systemFont(ofSize: 66, weight: .semibold)
+
+    init(
+        compositor: Compositor,
+        window capture: CGImage,
+        mask: CGImage,
+        windowCaption: String,
+        windowSeconds: Double
+    ) throws {
+        self.compositor = compositor
+        self.mask = mask
+        window = try croppedToMask(capture, mask: mask)
+        self.windowCaption = windowCaption
+        windowFrames = Int((windowSeconds * Double(compositor.fps)).rounded())
+        let context = try makeContext(width: Self.width, height: Self.height,
+                                      bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)
+        drawBackground(theme: compositor.theme, context: context,
+                       size: CGSize(width: Self.width, height: Self.height))
+        addGrain(context.data!.assumingMemoryBound(to: UInt8.self), width: Self.width, height: Self.height,
+                 amplitude: 1.6, seed: 0x6EA1_0F0D)
+        guard let image = context.makeImage() else { throw DemoError.invalid("Cannot render the backdrop") }
+        background = image
+    }
+
+    var frameCount: Int {
+        compositor.frames.count + windowFrames
+    }
+
+    func render(frame f: Int, into context: CGContext) throws {
+        drawImage(background, in: CGRect(x: 0, y: 0, width: Self.width, height: Self.height), context: context)
+        let panelFrames = compositor.frames.count
+        if f < panelFrames {
+            try drawPanelScene(frame: f, context: context)
+            return
+        }
+        let t = smoothstep(min(Double(f - panelFrames) / Double(compositor.fps) / Self.crossfade, 1))
+        if t < 1 {
+            context.saveGState()
+            context.setAlpha(CGFloat(1 - t))
+            context.beginTransparencyLayer(auxiliaryInfo: nil)
+            try drawPanelScene(frame: panelFrames - 1, context: context)
+            context.endTransparencyLayer()
+            context.restoreGState()
+        }
+        context.saveGState()
+        context.setAlpha(CGFloat(t))
+        context.beginTransparencyLayer(auxiliaryInfo: nil)
+        drawWindowScene(context: context)
+        context.endTransparencyLayer()
+        context.restoreGState()
+    }
+
+    /// The panel and cursor, mapped from the video's canvas so the panel's tip lands on `panelTip`.
+    private func drawPanelScene(frame f: Int, context: CGContext) throws {
+        let time = Double(f) / Double(compositor.fps)
+        context.saveGState()
+        context.translateBy(x: Self.panelTip.x - Layout.panelTip.x, y: Self.panelTip.y - Layout.panelTip.y)
+        try compositor.drawPanel(compositor.panelStates[f], highQuality: false, context: context)
+        compositor.drawPointer(at: time, context: context)
+        context.restoreGState()
+
+        let state = compositor.captionStates[f]
+        if let leaving = state.leaving {
+            drawCaption(leaving, alpha: state.leavingAlpha, rise: 0, context: context)
+        }
+        if let entering = state.entering {
+            drawCaption(entering, alpha: state.enteringProgress, rise: 12 * CGFloat(1 - state.enteringProgress),
+                        context: context)
+        }
+    }
+
+    private func drawWindowScene(context: CGContext) {
+        let top: CGFloat = 120
+        drawCaptionLine(windowCaption, font: captionFont, top: top, alpha: 1, theme: compositor.theme,
+                        context: context, x: Self.captionX)
+        let areaTop = top + captionFont.pointSize * 1.2 + 70
+        let available = CGSize(width: CGFloat(Self.width) - 2 * Self.captionX,
+                               height: CGFloat(Self.height) - areaTop - 80)
+        let scale = min(1, available.width / CGFloat(window.width), available.height / CGFloat(window.height))
+        let size = CGSize(width: (CGFloat(window.width) * scale).rounded(),
+                          height: (CGFloat(window.height) * scale).rounded())
+        let rect = CGRect(x: ((CGFloat(Self.width) - size.width) / 2).rounded(),
+                          y: (areaTop + (available.height - size.height) / 2).rounded(),
+                          width: size.width, height: size.height)
+        drawMaskedWindow(window, mask: mask, in: rect, theme: compositor.theme, context: context)
+    }
+
+    /// A caption left of the panel, wrapped to its column and centred vertically.
+    private func drawCaption(_ text: String, alpha: Double, rise: CGFloat, context: CGContext) {
+        guard alpha > 0.002 else { return }
+        let theme = compositor.theme
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: captionFont,
+            .foregroundColor: theme.caption.withAlphaComponent(theme.caption.alphaComponent * alpha),
+            .kern: -0.9 * captionFont.pointSize / 62,
+        ]
+        let string = NSAttributedString(string: text, attributes: attributes)
+        let bounds = string.boundingRect(with: CGSize(width: Self.captionWidth, height: 1000),
+                                         options: [.usesLineFragmentOrigin, .usesFontLeading])
+        let origin = CGPoint(x: Self.captionX, y: ((CGFloat(Self.height) - bounds.height) / 2).rounded() + rise)
+        withAppKit(context) {
+            string.draw(with: CGRect(origin: origin, size: CGSize(width: Self.captionWidth, height: bounds.height)),
+                        options: [.usesLineFragmentOrigin, .usesFontLeading])
+        }
+    }
+}
+
 // MARK: - Modes
 
 func writeMovie(_ compositor: Compositor, to path: String) async throws {
+    try await writeMovie(width: Layout.width, height: Layout.height, frames: compositor.frames.count,
+                         fps: compositor.fps, to: path)
+    { frame, context in
+        try compositor.render(frame: frame, into: context)
+    }
+}
+
+/// Writes ProRes 422 HQ, tagged BT.709, rendering each frame into a flipped canvas context.
+func writeMovie( // swiftlint:disable:this function_parameter_count
+    width: Int,
+    height: Int,
+    frames frameCount: Int,
+    fps: Int,
+    to path: String,
+    render: (Int, CGContext) throws -> Void
+) async throws {
     let url = URL(fileURLWithPath: path)
     try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
     try? FileManager.default.removeItem(at: url)
     let writer = try AVAssetWriter(outputURL: url, fileType: .mov)
     let input = AVAssetWriterInput(mediaType: .video, outputSettings: [
         AVVideoCodecKey: AVVideoCodecType.proRes422HQ,
-        AVVideoWidthKey: Layout.width,
-        AVVideoHeightKey: Layout.height,
+        AVVideoWidthKey: width,
+        AVVideoHeightKey: height,
         AVVideoColorPropertiesKey: [
             AVVideoColorPrimariesKey: AVVideoColorPrimaries_ITU_R_709_2,
             AVVideoTransferFunctionKey: AVVideoTransferFunction_ITU_R_709_2,
@@ -1481,7 +1652,7 @@ func writeMovie(_ compositor: Compositor, to path: String) async throws {
     guard writer.canAdd(input) else { throw DemoError.invalid("Cannot add a ProRes track") }
     let attributes = CVPixelBufferCreationAttributes(
         pixelFormatType: CVPixelFormatType(rawValue: kCVPixelFormatType_32BGRA),
-        size: CVImageSize(width: Layout.width, height: Layout.height)
+        size: CVImageSize(width: width, height: height)
     )
     let receiver = writer.inputPixelBufferReceiver(for: input, pixelBufferAttributes: attributes)
     try writer.start()
@@ -1489,15 +1660,15 @@ func writeMovie(_ compositor: Compositor, to path: String) async throws {
     let pool = try receiver.pixelBufferPool ?? CVMutablePixelBuffer.Pool(pixelBufferAttributes: attributes)
 
     let bgra = CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue
-    for frame in 0 ..< compositor.frames.count {
+    for frame in 0 ..< frameCount {
         let buffer = try pool.makeMutablePixelBuffer()
         try buffer.withUnsafeBuffer { pixels in
             CVPixelBufferLockBaseAddress(pixels, [])
             defer { CVPixelBufferUnlockBaseAddress(pixels, []) }
-            let context = try makeContext(width: Layout.width, height: Layout.height,
+            let context = try makeContext(width: width, height: height,
                                           data: CVPixelBufferGetBaseAddress(pixels),
                                           bytesPerRow: CVPixelBufferGetBytesPerRow(pixels), bitmapInfo: bgra)
-            try compositor.render(frame: frame, into: context)
+            try render(frame, context)
             CVBufferSetAttachment(
                 pixels,
                 kCVImageBufferColorPrimariesKey,
@@ -1518,7 +1689,7 @@ func writeMovie(_ compositor: Compositor, to path: String) async throws {
             )
         }
         try await receiver.append(CVReadOnlyPixelBuffer(buffer),
-                                  with: CMTime(value: CMTimeValue(frame), timescale: CMTimeScale(compositor.fps)))
+                                  with: CMTime(value: CMTimeValue(frame), timescale: CMTimeScale(fps)))
     }
     receiver.finish()
     await writer.finishWriting()
@@ -1619,7 +1790,7 @@ struct ComposeDemo {
         }
     }
 
-    // swiftlint:disable:next function_body_length
+    // swiftlint:disable:next function_body_length cyclomatic_complexity
     static func run(_ args: [String]) async throws {
         if args == ["--help"] || args == ["-h"] {
             print(usage)
@@ -1638,6 +1809,8 @@ struct ComposeDemo {
             "--window",
             "--window-mask",
             "--caption",
+            "--preview",
+            "--window-seconds",
         ]
         var options: [String: String] = [:]
         var check = false
@@ -1667,6 +1840,41 @@ struct ComposeDemo {
         }
         guard let appearance = try Appearance(rawValue: required("--appearance")) else {
             throw DemoError.invalid("--appearance must be light or dark\n\(usage)")
+        }
+        if let preview = options["--preview"] {
+            let (fps, frames) = try loadValues(required("--values"))
+            let compositor = try Compositor(
+                fps: fps, frames: frames, cursor: loadCursor(required("--storyboard")),
+                panelDir: required("--panel-dir"), theme: Theme.make(appearance)
+            )
+            guard let seconds = Double(options["--window-seconds"] ?? "5.5"), seconds > 0 else {
+                throw DemoError.invalid("--window-seconds must be a positive number")
+            }
+            let renderer = try PreviewRenderer(
+                compositor: compositor, window: loadImage(required("--window")),
+                mask: loadImage(required("--window-mask")), windowCaption: required("--caption"),
+                windowSeconds: seconds
+            )
+            let total = Double(renderer.frameCount) / Double(fps)
+            guard (15 ... 30).contains(total) else {
+                throw DemoError.invalid(String(format: "An App Store preview runs 15-30 s; this one is %.1f s", total))
+            }
+            if let frame = options["--frame"].flatMap(Int.init) {
+                let context = try makeContext(width: PreviewRenderer.width, height: PreviewRenderer.height)
+                try renderer.render(frame: frame, into: context)
+                guard let image = context.makeImage() else { throw DemoError.invalid("Cannot render frame \(frame)") }
+                try writePNG(opaque(image), to: preview)
+                print("Wrote \(preview) (preview frame \(frame))")
+                return
+            }
+            try await writeMovie(width: PreviewRenderer.width, height: PreviewRenderer.height,
+                                 frames: renderer.frameCount, fps: fps, to: preview)
+            { frame, context in
+                try renderer.render(frame: frame, into: context)
+            }
+            print(String(format: "Wrote %@ (%d frames, %.1f s, 1920x1080 ProRes 422 HQ)", preview,
+                         renderer.frameCount, total))
+            return
         }
         if let window = options["--window"] {
             let image = try renderWindowStill(
