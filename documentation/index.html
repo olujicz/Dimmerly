@@ -39,11 +39,22 @@
             "applicationCategory": "DesktopEnhancementApplication",
             "operatingSystem": "macOS 15 Sequoia or later",
             "isAccessibleForFree": true,
-            "offers": {
-                "@type": "Offer",
-                "price": 0,
-                "priceCurrency": "USD"
-            },
+            "offers": [
+                {
+                    "@type": "Offer",
+                    "name": "Direct download",
+                    "url": "https://github.com/olujicz/Dimmerly/releases/latest",
+                    "price": 0,
+                    "priceCurrency": "USD"
+                },
+                {
+                    "@type": "Offer",
+                    "name": "Mac App Store edition",
+                    "url": "https://apps.apple.com/app/id6759058022",
+                    "price": 4.99,
+                    "priceCurrency": "USD"
+                }
+            ],
             "license": "https://github.com/olujicz/Dimmerly/blob/main/LICENSE"
         }
     </script>
@@ -71,6 +82,7 @@
                 <p class="hero-description">Dimmerly is a free, open-source app that puts per-display brightness, warmth, contrast, and external monitor hardware controls in the macOS menu bar. Save presets and schedules, with software dimming when hardware control is unavailable.</p>
                 <div class="actions">
                     <a class="button" href="https://github.com/olujicz/Dimmerly/releases/latest" data-analytics-event="download_direct">Download for macOS</a>
+                    <a class="text-link" href="https://apps.apple.com/app/id6759058022" data-analytics-event="view_app_store">Or buy it on the Mac App Store</a>
                     <span class="requirement">Requires macOS 15 Sequoia or later</span>
                 </div>
             </div>
@@ -97,6 +109,7 @@
             <div>
                 <h2 id="install-title">Install with Homebrew.</h2>
                 <p class="install-note">This installs the direct build, which includes the DDC/CI hardware controls.</p>
+                <p class="install-note">You can also buy Dimmerly on the <a href="https://apps.apple.com/app/id6759058022" data-analytics-event="view_app_store">Mac App Store</a>. The purchase supports development, and the App Store keeps the app updated. That edition runs in Apple&rsquo;s sandbox and dims with software, so it has no DDC/CI controls, input switching, monitor volume, or display sleep.</p>
             </div>
             <div class="code-block" role="group" aria-label="Homebrew installation commands" data-analytics-event="view_homebrew_install">
                 <pre tabindex="0"><code>brew tap olujicz/dimmerly

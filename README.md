@@ -91,10 +91,12 @@ Download the latest signed and notarized DMG from
 This is the recommended build when you want DDC/CI hardware controls and display
 sleep.
 
-### App Store build
+### Mac App Store
 
-The repository also includes a sandboxed App Store configuration. See
-[Build Differences](#build-differences) for its capabilities.
+Dimmerly is also on the [Mac App Store](https://apps.apple.com/app/id6759058022). The App Store
+edition is paid, and buying it supports development. It is the sandboxed build:
+it uses software dimming and has no DDC/CI hardware controls or display sleep.
+See [Build Differences](#build-differences) for details.
 
 ### Build from source
 
