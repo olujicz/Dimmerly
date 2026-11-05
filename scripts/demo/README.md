@@ -205,3 +205,33 @@ stage in any other. The stills storyboard also sets:
 A `setAutoWarmth` step (`"enabled": true` or `false`) flips the panel's switch,
 and needs `location`. Every `applyPreset` step shows the row's checkmark, as a
 click does.
+
+## App Store preview
+
+`app-store-preview.json` scripts the listing's app preview: about 16 seconds of
+the real panel (dragging brightness and warmth, applying Evening and Full,
+turning Auto Warmth on), then the Schedule tab capture from `stills-capture`
+holding for `preview.settingsSeconds` under its own caption.
+
+```sh
+DEMO_VARIANT=app-store scripts/demo.sh stills-capture    # once, for the Schedule tab capture
+DEMO_VARIANT=app-store scripts/demo.sh preview-capture
+DEMO_VARIANT=app-store scripts/demo.sh preview
+```
+
+- Guideline 2.3.4 allows only screen captures of the app itself, with text or
+  video overlays. So the preview has no illustrated displays or menu bar: only
+  the recorded panel and Settings window, captions and the cursor. Dimming is a
+  gamma change, which screen recordings don't show, so it can't be filmed.
+- `preview` renders a 1920x1080 ProRes master with `ComposeDemo --preview`,
+  then encodes `.build/demo-app-store/preview/Dimmerly-App-Store-Preview.mp4`:
+  H.264 High 4.0 at 30 fps with a silent stereo AAC track. Mac previews must be
+  1920x1080 and 15-30 seconds long; the compositor refuses any other length.
+- The file is about 6 MB and isn't committed. Upload it to the listing's Mac
+  preview set and set its poster frame (14.5 s shows Auto Warmth). Because it
+  is 16:9 and the screenshots are 16:10, the App Store shows it in "A Closer
+  Look", not before the screenshots.
+- The recorder captures 60 points below the panel, so the panel can grow while
+  it's open (Auto Warmth adds a status line) without restarting the stream. A
+  restart would leave a gap with no frames, which shows as a freeze.
+

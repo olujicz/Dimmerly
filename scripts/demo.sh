@@ -27,6 +27,8 @@ storyboard="$script_dir/demo/storyboard.json"
 # The App Store stills play their own storyboard into .build/demo-app-store/stills-<appearance>.
 stills_storyboard="$script_dir/demo/app-store-stills.json"
 stills_output="$repo_dir/images/app-store"
+# The App Store app preview: its own storyboard, rendered outside the repo (it is ~25 MB).
+preview_storyboard="$script_dir/demo/app-store-preview.json"
 run_prefix=''
 exports="$repo_dir/images/demo"
 # The website follows the system colour scheme, so every capture and export is made in both.
@@ -48,6 +50,10 @@ Usage:
                                               record the App Store stills storyboard and Settings
   DEMO_VARIANT=app-store scripts/demo.sh stills
                                               render images/app-store from those recordings
+  DEMO_VARIANT=app-store scripts/demo.sh preview-capture
+                                              record the App Store preview storyboard
+  DEMO_VARIANT=app-store scripts/demo.sh preview
+                                              render the App Store preview video
 
 Without an appearance, capture, compose and export run for light and then dark. The
 demo app is forced into that appearance, whatever this Mac uses.
@@ -344,6 +350,50 @@ stills_render() {
     echo "Stills: $stills_output. Inspect every image before uploading."
 }
 
+preview_capture() {
+    [[ $# -eq 0 ]] || { demo_usage >&2; return 64; }
+    require_app_store_variant || return
+    storyboard="$preview_storyboard" run_prefix='preview-'
+    for_appearances capture_with_retry "$(json_value "$preview_storyboard" preview.appearance)"
+    echo "Recorded. Render with: DEMO_VARIANT=app-store scripts/demo.sh preview"
+}
+
+# Renders the preview to ProRes, then encodes what App Store Connect accepts for a Mac preview:
+# 1920x1080 H.264 High 4.0 at 30 fps, 15-30 s, with a silent stereo AAC track.
+preview_render() {
+    [[ $# -eq 0 ]] || { demo_usage >&2; return 64; }
+    require_app_store_variant || return
+    command -v ffmpeg >/dev/null || { echo 'ffmpeg is required: brew install ffmpeg' >&2; return 1; }
+    local tool tab caption seconds settings out
+    tool="$(compose_tool)"
+    run_prefix='preview-'
+    use_appearance "$(json_value "$preview_storyboard" preview.appearance)"
+    tab="$(json_value "$preview_storyboard" preview.settingsTab)"
+    caption="$(json_value "$preview_storyboard" preview.settingsCaption)"
+    seconds="$(json_value "$preview_storyboard" preview.settingsSeconds)"
+    settings="$demo_dir/stills-settings-$tab-$appearance"
+    [[ -s "$values" && -d "$run_dir/panel" ]] || {
+        echo 'Missing the preview recording; run DEMO_VARIANT=app-store scripts/demo.sh preview-capture.' >&2
+        return 1
+    }
+    [[ -s "$settings/settings.png" && -s "$settings/settings-mask.png" ]] || {
+        echo "Missing the $tab settings capture; run DEMO_VARIANT=app-store scripts/demo.sh stills-capture." >&2
+        return 1
+    }
+    out="$demo_dir/preview"
+    mkdir -p "$out"
+    "$tool" --appearance "$appearance" --values "$values" --panel-dir "$run_dir/panel" \
+        --storyboard "$preview_storyboard" --window "$settings/settings.png" \
+        --window-mask "$settings/settings-mask.png" --caption "$caption" --window-seconds "$seconds" \
+        --preview "$out/master.mov"
+    ffmpeg -hide_banner -loglevel error -y -i "$out/master.mov" \
+        -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=48000 \
+        -map 0:v -map 1:a -shortest -c:v libx264 -profile:v high -level 4.0 -pix_fmt yuv420p -r 30 \
+        -b:v 11M -maxrate 12M -bufsize 24M -c:a aac -b:a 256k -ar 48000 -ac 2 -movflags +faststart \
+        "$out/Dimmerly-App-Store-Preview.mp4"
+    echo "Preview: $out/Dimmerly-App-Store-Preview.mp4"
+}
+
 # The demo and screenshot stage are DEBUG-only; a Release binary must not contain them.
 demo_check_release() {
     local release_derived="$demo_dir/ReleaseDerivedData"
@@ -384,6 +434,8 @@ case "$command" in
     check-release) demo_check_release ;;
     stills-capture) stills_capture "$@" ;;
     stills) stills_render "$@" ;;
+    preview-capture) preview_capture "$@" ;;
+    preview) preview_render "$@" ;;
     help|--help|-h) demo_usage ;;
     *) demo_usage >&2; exit 64 ;;
 esac
