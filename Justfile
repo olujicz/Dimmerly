@@ -54,6 +54,12 @@ screenshots-github:
 demo:
     scripts/demo.sh render
 
+# Check the installed TestFlight/App Store build's global shortcuts (dims displays; needs Accessibility for the terminal)
+qa-app-store-shortcuts *args:
+    @mkdir -p {{build_dir}}/qa
+    xcrun swiftc -O -parse-as-library scripts/qa/AppStoreShortcutsCheck.swift -o {{build_dir}}/qa/AppStoreShortcutsCheck
+    {{build_dir}}/qa/AppStoreShortcutsCheck {{args}}
+
 # Lint Swift sources
 lint:
     swiftlint lint --config {{swiftlint_config}} --quiet --strict {{source_paths}}
