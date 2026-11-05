@@ -65,6 +65,8 @@ jobs:
           cp images/demo/dimmerly-demo-light-poster.jpg build/pages/assets/dimmerly-demo-light-poster.jpg
           cp images/demo/dimmerly-demo-dark-poster.jpg build/pages/assets/dimmerly-demo-dark-poster.jpg
           cp IconComposerLayers/AppIcon-IconComposer/rendered/icon_128x128@2x.png build/pages/assets/dimmerly-icon.png
+          cp images/badges/download-on-the-mac-app-store-black.svg build/pages/assets/download-on-the-mac-app-store-black.svg
+          cp images/badges/download-on-the-mac-app-store-white.svg build/pages/assets/download-on-the-mac-app-store-white.svg
           touch build/pages/.nojekyll
 
       - name: Inject Cloudflare Web Analytics token
@@ -99,6 +101,8 @@ jobs:
           test -s build/pages/assets/dimmerly-demo-light-poster.jpg
           test -s build/pages/assets/dimmerly-demo-dark-poster.jpg
           test -s build/pages/assets/dimmerly-icon.png
+          test -s build/pages/assets/download-on-the-mac-app-store-black.svg
+          test -s build/pages/assets/download-on-the-mac-app-store-white.svg
           for page in build/pages/*.html; do
             test "$(grep -c 'https://static.cloudflareinsights.com/beacon.min.js' "$page")" -eq 1
             grep -q 'data-cf-beacon' "$page"

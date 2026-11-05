@@ -303,6 +303,19 @@ p { text-wrap: pretty; }
     margin-top: 30px;
 }
 
+/* Apple's badge artwork is used unmodified; the gap in .actions keeps the
+   required clear space of a quarter of the badge height. */
+.app-store-badge {
+    display: inline-flex;
+    border-radius: 8px;
+}
+
+.app-store-badge img {
+    display: block;
+    width: auto;
+    height: 40px;
+}
+
 .requirement {
     color: var(--muted);
     font-size: 0.88rem;
