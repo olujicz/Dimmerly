@@ -187,14 +187,6 @@ panel. Use **Apply Brightness Preset** to apply its saved display settings.
 Individual menu bar display controls can also be targeted from Shortcuts and
 Spotlight on macOS 15.4 and later.
 
-### App Store shortcut changes in 1.3.0
-
-App Store global shortcuts need at least two modifiers, including Control or
-Command. Previously saved shortcuts that do not meet this rule are not registered;
-reassign them in Settings. For example, use Control–Option–1 for a preset
-instead of Command–1. Settings explains invalid or unavailable bindings.
-The direct-download shortcut requirements are unchanged.
-
 ## Known limitations
 
 - DDC/CI monitor controls require a DDC/CI-capable display and connection.
