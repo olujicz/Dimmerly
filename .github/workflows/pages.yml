@@ -44,6 +44,7 @@ jobs:
           set -euo pipefail
           mkdir -p build/pages/assets
           cp documentation/index.html build/pages/index.html
+          cp documentation/guides.html build/pages/guides.html
           cp documentation/external-monitor-brightness.html build/pages/external-monitor-brightness.html
           cp documentation/multi-monitor-control.html build/pages/multi-monitor-control.html
           cp documentation/ddc-ci-not-working.html build/pages/ddc-ci-not-working.html
@@ -78,6 +79,7 @@ jobs:
           done
 
           test -s build/pages/index.html
+          test -s build/pages/guides.html
           test -s build/pages/external-monitor-brightness.html
           test -s build/pages/multi-monitor-control.html
           test -s build/pages/ddc-ci-not-working.html
@@ -103,6 +105,11 @@ jobs:
             test "$(grep -c 'https://static.cloudflareinsights.com/beacon.min.js' "$page")" -eq 1
             grep -q 'data-cf-beacon' "$page"
           done
+          # A placeholder left in a page means the token never reached it.
+          if grep -l '__CLOUDFLARE_WEB_ANALYTICS_TOKEN__' build/pages/*.html; then
+            echo "Analytics token placeholder left in the pages listed above" >&2
+            exit 1
+          fi
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v5

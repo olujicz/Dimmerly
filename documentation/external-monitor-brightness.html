@@ -54,7 +54,7 @@
     <header class="site-header container">
         <a class="brand" href="./" aria-label="Dimmerly home">Dimmerly</a>
         <nav class="nav" aria-label="Primary navigation">
-            <a href="external-monitor-brightness.html" aria-current="page">Guides</a>
+            <a href="guides.html" aria-current="true">Guides</a>
             <a href="support.html">Support</a>
             <a href="https://github.com/olujicz/Dimmerly/releases" data-analytics-event="view_releases">Releases</a>
             <a href="https://github.com/olujicz/Dimmerly">Source</a>
@@ -62,11 +62,16 @@
     </header>
 
     <main id="main" class="guide-main container">
-        <p class="eyebrow">External display guide</p>
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+            <ol>
+                <li><a href="guides.html">Guides</a></li>
+                <li aria-current="page">External monitors</li>
+            </ol>
+        </nav>
         <h1>Control external monitor brightness on macOS.</h1>
         <p class="lead">macOS does not expose every third-party monitor&rsquo;s brightness controls in one place. Dimmerly puts per-display brightness, warmth, contrast, and supported monitor controls in the menu bar.</p>
 
-        <div class="guide-summary" aria-label="Dimmerly external monitor control overview">
+        <div class="guide-summary" role="group" aria-label="Dimmerly external monitor control overview">
             <div class="summary-item">
                 <span>Hardware control</span>
                 <strong>DDC/CI on supported displays</strong>
@@ -113,13 +118,13 @@ brew install --cask dimmerly</code></pre>
 
         <section class="guide-section" aria-labelledby="versions-title">
             <h2 id="versions-title">Direct download or App Store build?</h2>
-            <p>Both builds provide the everyday display controls. Choose the direct build when external-monitor hardware control or display sleep is important.</p>
-            <div class="comparison-wrap">
+            <p>Both builds provide the everyday display controls. Choose the direct-download build when external-monitor hardware control or display sleep is important.</p>
+            <div class="comparison-wrap" tabindex="0" role="region" aria-labelledby="versions-title">
                 <table class="comparison">
                     <thead>
                         <tr>
                             <th scope="col">Capability</th>
-                            <th scope="col">Direct download</th>
+                            <th scope="col">Direct-download build</th>
                             <th scope="col">App Store build</th>
                         </tr>
                     </thead>

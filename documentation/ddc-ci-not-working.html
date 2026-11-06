@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="External monitor brightness not changing on your Mac? Find where DDC/CI stops: the monitor setting, a dock or adapter, the HDMI port, a locked-up controller, or another app.">
+    <meta name="description" content="External monitor brightness not changing on your Mac? Find where DDC/CI stops: the monitor setting, a dock or adapter, the HDMI port, or a locked-up controller.">
     <meta name="theme-color" content="#f3f1ec" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#151613" media="(prefers-color-scheme: dark)">
     <title>External Monitor Brightness Not Working on Mac? Fix DDC/CI — Dimmerly</title>
@@ -54,7 +54,7 @@
     <header class="site-header container">
         <a class="brand" href="./" aria-label="Dimmerly home">Dimmerly</a>
         <nav class="nav" aria-label="Primary navigation">
-            <a href="external-monitor-brightness.html" aria-current="page">Guides</a>
+            <a href="guides.html" aria-current="true">Guides</a>
             <a href="support.html">Support</a>
             <a href="https://github.com/olujicz/Dimmerly/releases" data-analytics-event="view_releases">Releases</a>
             <a href="https://github.com/olujicz/Dimmerly">Source</a>
@@ -62,11 +62,16 @@
     </header>
 
     <main id="main" class="guide-main container">
-        <p class="eyebrow">Troubleshooting guide</p>
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+            <ol>
+                <li><a href="guides.html">Guides</a></li>
+                <li aria-current="page">Troubleshooting</li>
+            </ol>
+        </nav>
         <h1>External monitor brightness not working on your Mac?</h1>
         <p class="lead">Mac apps change an external monitor&rsquo;s backlight over DDC/CI, a control channel that runs inside the video cable. When the brightness slider does nothing, or only darkens the picture, something between the Mac and the monitor is dropping those commands. Work through the checks below in order.</p>
 
-        <div class="guide-summary" aria-label="DDC/CI troubleshooting overview">
+        <div class="guide-summary" role="group" aria-label="DDC/CI troubleshooting overview">
             <div class="summary-item">
                 <span>Most common cause</span>
                 <strong>A dock, hub, KVM, or adapter in the path</strong>
@@ -85,7 +90,7 @@
             <h2 id="status-title">1. See what Dimmerly found</h2>
             <p>Open Dimmerly from the menu bar. A display under hardware control shows a small cable icon next to its name. No icon means Dimmerly is dimming that display in software, which darkens the picture but leaves the backlight as it was.</p>
             <p>For the reason, open <strong>Settings &rsaquo; Displays</strong> and look at the <strong>Hardware Control</strong> section. Each monitor gets a status line:</p>
-            <div class="comparison-wrap">
+            <div class="comparison-wrap" tabindex="0" role="region" aria-label="Hardware Control status messages">
                 <table class="comparison">
                     <thead>
                         <tr>
@@ -113,7 +118,7 @@
                     </tbody>
                 </table>
             </div>
-            <p>If the section is missing, you have the App Store build. It runs in Apple&rsquo;s sandbox, which doesn&rsquo;t allow DDC/CI. Install the <a href="https://github.com/olujicz/Dimmerly/releases/latest" data-analytics-event="download_direct">direct download</a> or the Homebrew cask instead. If <strong>Use hardware controls when available</strong> is off, turn it on.</p>
+            <p>If the section is missing, you have the App Store build. It runs in Apple&rsquo;s sandbox, which doesn&rsquo;t allow DDC/CI. Install the <a href="https://github.com/olujicz/Dimmerly/releases/latest" data-analytics-event="download_direct">direct-download build</a> from GitHub or with Homebrew instead. If <strong>Use hardware controls when available</strong> is off, turn it on.</p>
         </section>
 
         <section class="guide-section" aria-labelledby="monitor-title">

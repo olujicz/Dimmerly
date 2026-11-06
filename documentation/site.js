@@ -21,26 +21,37 @@
         button.type = "button";
         button.className = "copy-button";
         button.textContent = "Copy";
-        button.setAttribute("aria-label", "Copy the commands to the clipboard");
+
+        // The button's label changes silently, so the result is also spoken
+        // through a status region.
+        var announcement = document.createElement("span");
+        announcement.className = "visually-hidden";
+        announcement.setAttribute("role", "status");
 
         var reset;
+        function show(label, message) {
+            button.textContent = label;
+            announcement.textContent = message;
+        }
+
         button.addEventListener("click", function () {
             navigator.clipboard.writeText(code.textContent.trim()).then(
                 function () {
-                    button.textContent = "Copied";
+                    show("Copied", "Commands copied to the clipboard.");
                 },
                 function () {
-                    button.textContent = "Press ⌘C";
+                    show("Press ⌘C", "Copying failed. Select the commands and press Command-C.");
                 }
             );
 
             window.clearTimeout(reset);
             reset = window.setTimeout(function () {
-                button.textContent = "Copy";
+                show("Copy", "");
             }, 2000);
         });
 
         block.appendChild(button);
+        block.appendChild(announcement);
     });
 })();
 
@@ -132,9 +143,11 @@
     video.addEventListener("play", showState);
     video.addEventListener("pause", showState);
 
+    // Pick the variant before allowing preload, so a dark page never starts
+    // fetching the light video.
     video.controls = false;
-    video.preload = "metadata";
     useVariant();
+    video.preload = "metadata";
     video.parentNode.appendChild(button);
     showState();
 
@@ -172,12 +185,14 @@
     var page = document.querySelector(".lost");
     var value = document.querySelector("[data-lost-value]");
     var status = document.querySelector("[data-lost-status]");
-    var lastStatus = "";
+    // Starts from the markup's message, so loading the page announces nothing.
+    var lastStatus = status.textContent;
 
     function update() {
         var level = Number(slider.value);
         page.style.setProperty("--level", String(level / 100));
         value.textContent = level + "%";
+        slider.setAttribute("aria-valuetext", level + "%");
 
         var message = level === 100
             ? "Full brightness, still nothing here. Try a preset."

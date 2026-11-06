@@ -18,6 +18,9 @@
     --console-line: #42464d;
     --panel-shadow: rgb(23 23 23 / 16%);
     --container: 820px;
+    /* About 75 characters a line in the system font. The ch unit measures the
+       wide digit zero in SF, so it overshoots. */
+    --measure: 35rem;
 }
 
 .page-home { --container: 1160px; }
@@ -88,6 +91,15 @@ p { text-wrap: pretty; }
     outline-offset: 3px;
 }
 
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
 .container {
     width: min(var(--container), calc(100% - 48px));
     margin: 0 auto;
@@ -134,7 +146,7 @@ p { text-wrap: pretty; }
     min-height: 44px;
 }
 
-.nav a[aria-current="page"] { color: var(--ink); }
+.nav a[aria-current] { color: var(--ink); }
 
 .footer a {
     display: inline-flex;
@@ -285,7 +297,7 @@ p { text-wrap: pretty; }
     font-size: clamp(2.6rem, 5.2vw, 4.5rem);
     font-weight: 720;
     line-height: 1.03;
-    letter-spacing: -0.05em;
+    letter-spacing: -0.035em;
 }
 
 .hero-description {
@@ -327,12 +339,11 @@ p { text-wrap: pretty; }
     line-height: 0;
 }
 
-/* The menu panel is 300 points wide, so images/image1.png at 600 pixels is a
-   2x capture. Rendering at 300 CSS pixels keeps it pixel-exact on Retina
-   instead of upscaling it. */
+/* images/image1.png is a 652-pixel 2x capture of the menu panel. Rendering it
+   at 326 CSS pixels keeps it pixel-exact on Retina instead of scaling it. */
 .screenshot {
     display: block;
-    width: 300px;
+    width: 326px;
     max-width: 100%;
     height: auto;
     filter: drop-shadow(0 18px 26px var(--panel-shadow));
@@ -400,7 +411,8 @@ p { text-wrap: pretty; }
     .demo-toggle:hover { background: rgb(23 26 31 / 88%); }
 }
 
-/* Native 2x Settings capture, displayed at no more than its 580-point width. */
+/* images/image2.png is a 1040-pixel 2x Settings capture, shown at no more than
+   its 520-point width so Retina screens never upscale it. */
 .settings-showcase {
     display: grid;
     grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
@@ -420,7 +432,7 @@ p { text-wrap: pretty; }
 
 .settings-screenshot {
     display: block;
-    width: min(100%, 580px);
+    width: min(100%, 520px);
     height: auto;
     margin-inline: auto;
     filter: drop-shadow(0 18px 26px var(--panel-shadow));
@@ -447,6 +459,7 @@ p { text-wrap: pretty; }
     grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
     gap: 40px;
     align-items: center;
+    margin-bottom: 76px;
     padding: 34px 38px;
     /* The border keeps the block's shape readable in dark mode, where the
        console background sits close to the page background. */
@@ -468,11 +481,21 @@ p { text-wrap: pretty; }
 }
 
 .install-note {
-    max-width: 360px;
+    max-width: 380px;
     margin: 14px 0 0;
     color: var(--console-text);
     font-size: 0.92rem;
 }
+
+.install-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 18px;
+    margin-top: 24px;
+}
+
+.install-actions .requirement { color: var(--console-text); }
 
 .install .code-block { max-width: none; }
 
@@ -568,15 +591,9 @@ p { text-wrap: pretty; }
     background: color-mix(in srgb, var(--blue) 7%, transparent);
 }
 
-.guide-kicker {
-    color: var(--blue-dark);
-    font: 0.78rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-}
-
-.guide-card h3 {
-    margin: 22px 0 10px;
+.guide-card h3,
+.guide-card-title {
+    margin: 0 0 10px;
     font-size: 1.05rem;
     line-height: 1.3;
 }
@@ -610,6 +627,7 @@ p { text-wrap: pretty; }
 .page-home .trust h2 { font-size: clamp(1.5rem, 2.8vw, 2.2rem); }
 
 .trust p {
+    max-width: var(--measure);
     margin: 0;
     color: var(--muted);
     font-size: 0.95rem;
@@ -619,21 +637,41 @@ p { text-wrap: pretty; }
 
 .guide-main { padding: 70px 0 76px; }
 
-.eyebrow {
-    margin: 0 0 16px;
-    color: var(--blue-dark);
-    font: 0.78rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+/* Where a guide sits: a link back to the guides index. */
+.breadcrumb ol {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 8px;
+    margin: 0 0 18px;
+    padding: 0;
+    color: var(--muted);
+    font-size: 0.9rem;
+    list-style: none;
+}
+
+.breadcrumb li + li::before {
+    content: "/";
+    margin-right: 8px;
+    color: var(--line);
+}
+
+.page-guide main nav.breadcrumb a {
+    color: var(--muted);
+    text-decoration: none;
+}
+
+.page-guide main nav.breadcrumb a:hover {
+    color: var(--ink);
+    text-decoration: underline;
 }
 
 .page-guide h1 {
     max-width: 760px;
     margin: 0;
-    font-size: clamp(2.45rem, 6vw, 4.6rem);
+    font-size: clamp(2.25rem, 5vw, 3.6rem);
     font-weight: 720;
-    line-height: 1.02;
-    letter-spacing: -0.05em;
+    line-height: 1.05;
+    letter-spacing: -0.035em;
 }
 
 .lead {
@@ -672,7 +710,11 @@ p { text-wrap: pretty; }
     line-height: 1.35;
 }
 
-.guide-section { padding-top: 66px; }
+.guide-index { margin-top: 48px; }
+
+.guide-section { padding: 66px 0 26px; }
+
+.guide-section:last-child { padding-bottom: 0; }
 
 .guide-section + .guide-section { border-top: 1px solid var(--line); }
 
@@ -691,7 +733,7 @@ p { text-wrap: pretty; }
 
 .guide-section p,
 .guide-section li {
-    max-width: 720px;
+    max-width: var(--measure);
     margin: 0 0 14px;
     font-size: 1rem;
     text-wrap: pretty;
@@ -699,7 +741,7 @@ p { text-wrap: pretty; }
 
 .guide-section ul,
 .guide-section ol {
-    max-width: 720px;
+    max-width: var(--measure);
     margin: 0 0 16px;
     padding-left: 24px;
 }
@@ -709,15 +751,18 @@ p { text-wrap: pretty; }
 .guide-section .code-block { margin: 22px 0; }
 
 .note {
-    max-width: 720px;
+    max-width: var(--measure);
     margin-top: 24px;
     padding: 20px 24px;
-    border-left: 3px solid var(--blue);
+    border: 1px solid var(--line);
+    border-radius: 12px;
     background: var(--panel);
 }
 
 .note p:last-child { margin-bottom: 0; }
 
+/* Focusable (tabindex in the markup) so keyboard users can scroll it in
+   Safari, which doesn't focus scroll containers on its own. */
 .comparison-wrap {
     overflow-x: auto;
     margin-top: 24px;
@@ -751,6 +796,22 @@ p { text-wrap: pretty; }
 
 .comparison-apps th:first-child,
 .comparison-apps td:first-child { width: 22%; }
+
+/* The row labels stay in view while the other apps scroll past. Borders on
+   sticky cells scroll away in a collapsed table, so an inset shadow draws
+   the label column's right edge. */
+.comparison-apps tbody th,
+.comparison-apps thead th:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    box-shadow: inset -1px 0 0 var(--line);
+}
+
+.comparison-apps thead th:nth-child(2),
+.comparison-apps tbody td:nth-child(2) {
+    background: color-mix(in srgb, var(--blue) 7%, var(--paper));
+}
 
 .guide-actions {
     display: flex;
@@ -807,8 +868,10 @@ p { text-wrap: pretty; }
 
 .page-doc p,
 .page-doc li {
+    max-width: var(--measure);
     margin: 0 0 12px;
     font-size: 1rem;
+    text-wrap: pretty;
 }
 
 .page-doc ul,
@@ -836,16 +899,41 @@ p { text-wrap: pretty; }
     margin-top: 32px;
 }
 
-/* Body links on guide and text pages keep the underline-on-hover treatment */
+/* Links inside running text stay underlined, so they don't rely on color
+   alone (WCAG 1.4.1). Buttons, text links, and cards carry their own cues. */
 
-.page-guide main a:not(.button),
-.page-doc main a:not(.button) { text-decoration: none; }
-
-.page-guide main a:not(.button):hover,
-.page-doc main a:not(.button):hover {
-    text-decoration: underline;
+.page-guide main a:not(.button, .text-link, .guide-card),
+.page-doc main a:not(.button, .text-link, .guide-card) {
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
     text-underline-offset: 3px;
 }
+
+.page-guide main a:not(.button, .text-link, .guide-card):hover,
+.page-doc main a:not(.button, .text-link, .guide-card):hover {
+    text-decoration-color: currentColor;
+}
+
+/* Support page: which build you have, and where each answer is. */
+.page-doc .support-index {
+    columns: 2 240px;
+    column-gap: 32px;
+    margin: 0;
+    padding-left: 0;
+    list-style: none;
+}
+
+.page-doc .support-index li {
+    margin: 0 0 6px;
+    break-inside: avoid;
+}
+
+.page-doc main .support-index a { text-decoration-line: none; }
+.page-doc main .support-index a:hover { text-decoration-line: underline; }
+
+.page-doc h2[id],
+.page-doc h3[id] { scroll-margin-top: 24px; }
 
 /* 404 page: a copy of the app's menu bar panel. Its slider sets --level on
    <main>, and the illustrated screen dims the way software dimming does, with
@@ -858,6 +946,7 @@ p { text-wrap: pretty; }
     --lost-panel-ink: #1d1d1f;
     --lost-panel-muted: #6e6e73;
     --lost-track: rgb(23 23 23 / 12%);
+    --lost-switch-edge: rgb(23 23 23 / 50%);
     --lost-hover: rgb(23 23 23 / 6%);
 }
 
@@ -868,6 +957,7 @@ p { text-wrap: pretty; }
         --lost-panel-ink: #f2f2f4;
         --lost-panel-muted: #a3a6ad;
         --lost-track: rgb(255 255 255 / 16%);
+        --lost-switch-edge: rgb(255 255 255 / 45%);
         --lost-hover: rgb(255 255 255 / 8%);
     }
 }
@@ -880,8 +970,7 @@ p { text-wrap: pretty; }
     padding-top: 24px;
 }
 
-.page-404 .eyebrow { margin: 40px 0 0; }
-.page-404 h1 { margin-top: 10px; }
+.page-404 h1 { margin-top: 40px; }
 .page-404 .tagline { max-width: 440px; margin-bottom: 40px; }
 
 .lost-display {
@@ -932,7 +1021,7 @@ p { text-wrap: pretty; }
     font-size: clamp(4rem, 11vw, 6.5rem);
     font-weight: 760;
     line-height: 1;
-    letter-spacing: -0.05em;
+    letter-spacing: -0.04em;
 }
 
 .lost-caption {
@@ -1007,7 +1096,7 @@ p { text-wrap: pretty; }
 .lost-slider input {
     flex: 1;
     min-width: 0;
-    height: 22px;
+    height: 28px;
     margin: 0;
     background: transparent;
     appearance: none;
@@ -1057,6 +1146,8 @@ p { text-wrap: pretty; }
     margin: 0;
     border-radius: 12px;
     background: var(--lost-track);
+    /* The edge keeps the switch visible when it's off (WCAG 1.4.11). */
+    box-shadow: inset 0 0 0 1px var(--lost-switch-edge);
     appearance: none;
     cursor: pointer;
     transition: background-color 0.2s ease;
@@ -1075,7 +1166,10 @@ p { text-wrap: pretty; }
     transition: transform 0.2s ease;
 }
 
-.lost-switch:checked { background: var(--blue); }
+.lost-switch:checked {
+    background: var(--blue);
+    box-shadow: none;
+}
 .lost-switch:checked::after { transform: translateX(16px); }
 
 .page-404 .lost-status {
@@ -1143,7 +1237,6 @@ p { text-wrap: pretty; }
 
 .page-404 main .lost-panel .lost-button:hover { background: var(--blue-dark); }
 
-.lost-button svg { fill: currentColor; stroke: none; }
 
 .page-404 .lost-footer {
     display: flex;
@@ -1167,12 +1260,19 @@ p { text-wrap: pretty; }
         gap: 0;
     }
 
+    .page-404 .tagline { margin-bottom: 28px; }
+
     .lost-panel {
         width: min(100%, 380px);
-        margin: 48px auto 0;
+        margin: 32px auto 0;
     }
 
-    .lost-display { margin: 0 auto; }
+    /* Small enough that the panel's slider shows on the first screen of a
+       phone, and the picture it dims stays in view above it. */
+    .lost-display {
+        max-width: 240px;
+        margin: 0 auto;
+    }
 }
 
 /* Responsive */
@@ -1182,6 +1282,8 @@ p { text-wrap: pretty; }
     .product-figure { grid-column: 8 / -1; }
     .benefits-heading { grid-column: 1 / span 5; }
     .benefit-list { grid-column: 6 / -1; }
+    .benefit { grid-template-columns: 34px 1fr; }
+    .benefit p { grid-column: 2; }
     .guides { grid-template-columns: 1fr 2fr; }
     .trust { grid-template-columns: 1fr 2fr; }
     .trust .text-link { grid-column: 2; }
@@ -1231,6 +1333,7 @@ p { text-wrap: pretty; }
     .install {
         grid-template-columns: 1fr;
         gap: 24px;
+        margin-bottom: 56px;
         padding: 28px 24px;
     }
 
@@ -1241,9 +1344,12 @@ p { text-wrap: pretty; }
     }
 
     .install .copy-button {
-        top: 22px;
+        top: 12px;
         right: 0;
     }
+
+    /* Room under the copy button so it never sits on the first command. */
+    .install .code-block pre { padding-top: 56px; }
 
     .benefits {
         display: block;
@@ -1251,8 +1357,6 @@ p { text-wrap: pretty; }
     }
 
     .benefits-heading { margin-bottom: 38px; }
-    .benefit { grid-template-columns: 34px 1fr; }
-    .benefit p { grid-column: 2; }
 
     .guides {
         display: block;
