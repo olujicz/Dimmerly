@@ -327,26 +327,104 @@ p { text-wrap: pretty; }
     justify-self: end;
 }
 
-/* The stage carries the visual weight of the column so the screenshot itself
-   can stay at its native size. */
-.product-stage {
-    display: flex;
-    justify-content: center;
-    padding: 56px 40px;
-    border: 1px solid var(--line);
-    border-radius: 18px;
-    background: linear-gradient(155deg, color-mix(in srgb, var(--blue) 9%, var(--paper)), var(--paper) 70%);
-    line-height: 0;
+/* Hero: a working copy of the menu bar panel under two illustrated screens.
+   Each slider sets --external or --builtin on the figure, and each screen
+   dims the way software dimming does, with a dark layer over a lit picture.
+   The panel component itself (.mini-*) is shared with the 404 page. */
+.hero-desk { width: min(100%, 460px); }
+
+.desk {
+    position: relative;
+    aspect-ratio: 460 / 300;
 }
 
-/* images/image1.png is a 652-pixel 2x capture of the menu panel. Rendering it
-   at 326 CSS pixels keeps it pixel-exact on Retina instead of scaling it. */
-.screenshot {
-    display: block;
-    width: 326px;
-    max-width: 100%;
-    height: auto;
-    filter: drop-shadow(0 18px 26px var(--panel-shadow));
+.desk-monitor {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 76%;
+}
+
+.desk-laptop {
+    position: absolute;
+    right: 4%;
+    bottom: 0;
+    width: 44%;
+}
+
+.desk-screen {
+    position: relative;
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    border: 7px solid #1b1c1f;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #9db9e0 0%, #d9d3d6 48%, #f2cfa8 70%, #c98f6e 100%);
+    box-shadow: 0 0 0 1px var(--line), 0 14px 30px var(--panel-shadow);
+}
+
+.desk-laptop .desk-screen {
+    border-width: 5px;
+    border-radius: 8px 8px 2px 2px;
+}
+
+.desk-screen[data-screen="external"] { --level: var(--external); }
+.desk-screen[data-screen="builtin"] { --level: var(--builtin); }
+
+/* Warmth tints the picture; the dark layer on top stands in for gamma dimming. */
+.desk-screen::before,
+.desk-screen::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.desk-screen::before {
+    background: #ff9d4d;
+    mix-blend-mode: multiply;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.hero-desk:has(.mini-switch:checked) .desk-screen::before { opacity: 0.38; }
+
+.desk-screen::after {
+    background: #050506;
+    opacity: calc((1 - var(--level)) * 0.9);
+    transition: opacity 0.08s linear;
+}
+
+/* A preset glides the screens to their new levels; dragging stays direct. */
+.hero-desk.is-gliding .desk-screen::after { transition: opacity 0.5s ease-out; }
+
+.desk-stand {
+    width: 20%;
+    height: 30px;
+    margin: 0 auto;
+    background: linear-gradient(#2a2b2f, #1b1c1f);
+    clip-path: polygon(20% 0, 80% 0, 100% 100%, 0 100%);
+}
+
+.desk-base {
+    height: 8px;
+    margin: 0 -8%;
+    border-radius: 0 0 8px 8px;
+    background: linear-gradient(#c9c9cc, #9a9a9f);
+    box-shadow: 0 10px 20px var(--panel-shadow);
+}
+
+.hero-desk .mini-panel {
+    position: relative;
+    z-index: 1;
+    width: min(100%, 300px);
+    margin: 14px 0 0;
+}
+
+.hero-desk-caption {
+    margin-top: 14px;
+    text-wrap: pretty;
+    color: var(--muted);
+    font-size: 13px;
 }
 
 /* The demo loop. It is a 1280x800 scene with its own captions, so it takes the
@@ -951,26 +1029,30 @@ p { text-wrap: pretty; }
    <main>, and the illustrated screen dims the way software dimming does, with
    a dark layer over a lit picture. */
 
-.page-404 {
-    --container: 960px;
-    --lost-panel: #f7f6f3;
-    --lost-panel-line: rgb(23 23 23 / 10%);
-    --lost-panel-ink: #1d1d1f;
-    --lost-panel-muted: #6e6e73;
-    --lost-track: rgb(23 23 23 / 12%);
-    --lost-switch-edge: rgb(23 23 23 / 50%);
-    --lost-hover: rgb(23 23 23 / 6%);
+.page-404 { --container: 960px; }
+
+/* The panel copy shared by the home page hero and the 404 page. */
+.page-404,
+.page-home {
+    --mini-panel: #f7f6f3;
+    --mini-panel-line: rgb(23 23 23 / 10%);
+    --mini-panel-ink: #1d1d1f;
+    --mini-panel-muted: #6e6e73;
+    --mini-track: rgb(23 23 23 / 12%);
+    --mini-switch-edge: rgb(23 23 23 / 50%);
+    --mini-hover: rgb(23 23 23 / 6%);
 }
 
 @media (prefers-color-scheme: dark) {
-    .page-404 {
-        --lost-panel: #30343b;
-        --lost-panel-line: rgb(255 255 255 / 10%);
-        --lost-panel-ink: #f2f2f4;
-        --lost-panel-muted: #a3a6ad;
-        --lost-track: rgb(255 255 255 / 16%);
-        --lost-switch-edge: rgb(255 255 255 / 45%);
-        --lost-hover: rgb(255 255 255 / 8%);
+    .page-404,
+    .page-home {
+        --mini-panel: #30343b;
+        --mini-panel-line: rgb(255 255 255 / 10%);
+        --mini-panel-ink: #f2f2f4;
+        --mini-panel-muted: #a3a6ad;
+        --mini-track: rgb(255 255 255 / 16%);
+        --mini-switch-edge: rgb(255 255 255 / 45%);
+        --mini-hover: rgb(255 255 255 / 8%);
     }
 }
 
@@ -1020,7 +1102,7 @@ p { text-wrap: pretty; }
     opacity: 0;
 }
 
-.lost:has(.lost-switch:checked) .lost-screen::before { opacity: 0.38; }
+.lost:has(.mini-switch:checked) .lost-screen::before { opacity: 0.38; }
 
 .lost-screen::after {
     background: #050506;
@@ -1051,19 +1133,19 @@ p { text-wrap: pretty; }
     clip-path: polygon(18% 0, 82% 0, 100% 100%, 0 100%);
 }
 
-.lost-panel {
+.mini-panel {
     margin-top: 40px;
     padding: 14px 0 6px;
-    border: 1px solid var(--lost-panel-line);
+    border: 1px solid var(--mini-panel-line);
     border-radius: 16px;
-    background: var(--lost-panel);
+    background: var(--mini-panel);
     box-shadow: 0 22px 50px var(--panel-shadow);
-    color: var(--lost-panel-ink);
+    color: var(--mini-panel-ink);
     font-size: 0.95rem;
     line-height: 1.35;
 }
 
-.lost-panel svg {
+.mini-panel svg {
     width: 16px;
     height: 16px;
     flex: none;
@@ -1074,7 +1156,7 @@ p { text-wrap: pretty; }
     stroke-linejoin: round;
 }
 
-.lost-row {
+.mini-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1083,29 +1165,29 @@ p { text-wrap: pretty; }
     padding: 0 18px;
 }
 
-.lost-name {
+.mini-name {
     display: inline-flex;
     align-items: center;
     gap: 8px;
 }
 
-.lost-value {
-    color: var(--lost-panel-muted);
+.mini-value {
+    color: var(--mini-panel-muted);
     font-variant-numeric: tabular-nums;
     font-weight: 600;
 }
 
-.lost-slider {
+.mini-slider {
     display: flex;
     align-items: center;
     gap: 10px;
     padding: 4px 18px 6px;
-    color: var(--lost-panel-muted);
+    color: var(--mini-panel-muted);
 }
 
-.lost-sun-small { transform: scale(0.85); }
+.mini-sun-small { transform: scale(0.85); }
 
-.lost-slider input {
+.mini-slider input {
     flex: 1;
     min-width: 0;
     height: 28px;
@@ -1115,19 +1197,19 @@ p { text-wrap: pretty; }
     cursor: pointer;
 }
 
-.lost-slider input::-webkit-slider-runnable-track {
+.mini-slider input::-webkit-slider-runnable-track {
     height: 5px;
     border-radius: 3px;
-    background: linear-gradient(to right, var(--blue) calc(var(--level) * 100%), var(--lost-track) 0);
+    background: linear-gradient(to right, var(--blue) calc(var(--level) * 100%), var(--mini-track) 0);
 }
 
-.lost-slider input::-moz-range-track {
+.mini-slider input::-moz-range-track {
     height: 5px;
     border-radius: 3px;
-    background: linear-gradient(to right, var(--blue) calc(var(--level) * 100%), var(--lost-track) 0);
+    background: linear-gradient(to right, var(--blue) calc(var(--level) * 100%), var(--mini-track) 0);
 }
 
-.lost-slider input::-webkit-slider-thumb {
+.mini-slider input::-webkit-slider-thumb {
     width: 22px;
     height: 16px;
     margin-top: -5.5px;
@@ -1138,7 +1220,7 @@ p { text-wrap: pretty; }
     appearance: none;
 }
 
-.lost-slider input::-moz-range-thumb {
+.mini-slider input::-moz-range-thumb {
     width: 22px;
     height: 16px;
     border: 0;
@@ -1147,25 +1229,25 @@ p { text-wrap: pretty; }
     box-shadow: 0 1px 3px rgb(0 0 0 / 35%);
 }
 
-.lost-sunrise { color: #e8952f; }
+.mini-sunrise { color: #e8952f; }
 
-.lost-warmth { cursor: pointer; }
+.mini-warmth { cursor: pointer; }
 
-.lost-switch {
+.mini-switch {
     position: relative;
     width: 40px;
     height: 24px;
     margin: 0;
     border-radius: 12px;
-    background: var(--lost-track);
+    background: var(--mini-track);
     /* The edge keeps the switch visible when it's off (WCAG 1.4.11). */
-    box-shadow: inset 0 0 0 1px var(--lost-switch-edge);
+    box-shadow: inset 0 0 0 1px var(--mini-switch-edge);
     appearance: none;
     cursor: pointer;
     transition: background-color 0.2s ease;
 }
 
-.lost-switch::after {
+.mini-switch::after {
     content: "";
     position: absolute;
     top: 2px;
@@ -1178,42 +1260,61 @@ p { text-wrap: pretty; }
     transition: transform 0.2s ease;
 }
 
-.lost-switch:checked {
+.mini-switch:checked {
     background: var(--blue);
     box-shadow: none;
 }
-.lost-switch:checked::after { transform: translateX(16px); }
+.mini-switch:checked::after { transform: translateX(16px); }
 
-.page-404 .lost-status {
+.page-404 .mini-status {
     margin: 2px 18px 12px;
-    color: var(--lost-panel-muted);
+    color: var(--mini-panel-muted);
     font-size: 0.82rem;
 }
 
-.lost-section {
+.mini-section {
     padding: 10px 8px;
-    border-top: 1px solid var(--lost-panel-line);
+    border-top: 1px solid var(--mini-panel-line);
 }
 
-.lost-section h2,
-.page-404 .lost-section h2 {
+.mini-section h2,
+.page-404 .mini-section h2,
+.mini-heading {
     margin: 2px 10px 6px;
-    color: var(--lost-panel-muted);
+    color: var(--mini-panel-muted);
     font-size: 0.82rem;
     font-weight: 600;
     letter-spacing: 0;
 }
 
-.lost-presets,
-.page-404 .lost-presets {
+.mini-presets,
+.page-404 .mini-presets {
     margin: 0;
     padding: 0;
     list-style: none;
 }
 
-.page-404 .lost-presets li { margin: 0; }
+.page-404 .mini-presets li { margin: 0; }
 
-.page-404 main .lost-panel a {
+.mini-preset {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 34px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--mini-panel-ink);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.mini-preset:hover:not(:disabled) { background: var(--mini-hover); }
+.mini-preset:disabled { cursor: default; }
+
+.page-404 main .mini-panel a {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1221,23 +1322,23 @@ p { text-wrap: pretty; }
     min-height: 34px;
     padding: 0 10px;
     border-radius: 7px;
-    color: var(--lost-panel-ink);
+    color: var(--mini-panel-ink);
     text-decoration: none;
 }
 
-.page-404 main .lost-panel a:hover {
-    background: var(--lost-hover);
+.page-404 main .mini-panel a:hover {
+    background: var(--mini-hover);
     text-decoration: none;
 }
 
-.lost-presets kbd {
-    color: var(--lost-panel-muted);
+.mini-presets kbd {
+    color: var(--mini-panel-muted);
     font: inherit;
     font-size: 0.85rem;
     letter-spacing: 0.06em;
 }
 
-.page-404 main .lost-panel .lost-button {
+.page-404 main .mini-panel .mini-button {
     justify-content: center;
     gap: 10px;
     min-height: 40px;
@@ -1247,23 +1348,23 @@ p { text-wrap: pretty; }
     font-weight: 600;
 }
 
-.page-404 main .lost-panel .lost-button:hover { background: var(--blue-dark); }
+.page-404 main .mini-panel .mini-button:hover { background: var(--blue-dark); }
 
 
-.page-404 .lost-footer {
+.page-404 .mini-footer {
     display: flex;
     justify-content: space-between;
 }
 
-.page-404 main .lost-footer a {
+.page-404 main .mini-footer a {
     justify-content: flex-start;
     gap: 8px;
-    color: var(--lost-panel-muted);
+    color: var(--mini-panel-muted);
 }
 
 /* Touch screens have no Control-Option shortcuts to press. */
 @media (hover: none) {
-    .lost-presets kbd { display: none; }
+    .mini-presets kbd { display: none; }
 }
 
 @media (max-width: 760px) {
@@ -1274,7 +1375,7 @@ p { text-wrap: pretty; }
 
     .page-404 .tagline { margin-bottom: 28px; }
 
-    .lost-panel {
+    .mini-panel {
         width: min(100%, 380px);
         margin: 32px auto 0;
     }
@@ -1328,8 +1429,6 @@ p { text-wrap: pretty; }
         width: min(100%, 380px);
         margin: 54px auto 0;
     }
-
-    .product-stage { padding: 34px 20px; }
 
     .demo { padding-bottom: 56px; }
     .demo-frame { border-radius: 12px; }

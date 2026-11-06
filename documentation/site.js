@@ -209,7 +209,7 @@
     slider.addEventListener("input", update);
     update();
 
-    var presets = document.querySelectorAll(".lost-presets a");
+    var presets = document.querySelectorAll(".mini-presets a");
     document.addEventListener("keydown", function (event) {
         if (!event.ctrlKey || !event.altKey || event.metaKey || event.shiftKey) {
             return;
@@ -221,5 +221,54 @@
             event.preventDefault();
             window.location.href = preset.href;
         }
+    });
+})();
+
+// Home page hero: a working copy of the menu bar panel. Each slider dims its
+// own illustrated screen, and the presets set both screens and Auto Warmth at
+// once. Without JavaScript the sliders and presets stay disabled.
+(function () {
+    "use strict";
+
+    var desk = document.querySelector("[data-hero-desk]");
+    if (!desk) {
+        return;
+    }
+
+    var sliders = desk.querySelectorAll("[data-desk-slider]");
+    var warmth = desk.querySelector("[data-desk-warmth]");
+    var status = desk.querySelector("[data-desk-status]");
+
+    function show(slider) {
+        var name = slider.getAttribute("data-desk-slider");
+        var level = Number(slider.value);
+        desk.style.setProperty("--" + name, String(level / 100));
+        slider.style.setProperty("--level", String(level / 100));
+        slider.setAttribute("aria-valuetext", level + "%");
+        desk.querySelector('[data-desk-value="' + name + '"]').textContent = level + "%";
+    }
+
+    Array.prototype.forEach.call(sliders, function (slider) {
+        slider.disabled = false;
+        slider.addEventListener("input", function () {
+            desk.classList.remove("is-gliding");
+            show(slider);
+        });
+        show(slider);
+    });
+
+    Array.prototype.forEach.call(desk.querySelectorAll("[data-preset]"), function (button) {
+        button.disabled = false;
+        button.addEventListener("click", function () {
+            // "external builtin warmth", for example "70 60 on".
+            var values = button.getAttribute("data-preset").split(" ");
+            desk.classList.add("is-gliding");
+            Array.prototype.forEach.call(sliders, function (slider, index) {
+                slider.value = values[index];
+                show(slider);
+            });
+            warmth.checked = values[2] === "on";
+            status.textContent = button.textContent + " applied.";
+        });
     });
 })();
