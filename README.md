@@ -187,15 +187,6 @@ panel. Use **Apply Brightness Preset** to apply its saved display settings.
 Individual menu bar display controls can also be targeted from Shortcuts and
 Spotlight on macOS 15.4 and later.
 
-### Upgrading from before 1.2.0
-
-Existing Shortcuts with a specific display selected need that display reselected
-once after upgrading to 1.2.0 or later. Open each affected shortcut in the
-Shortcuts app, select the connected display again in its Dimmerly action, and
-save the shortcut.
-The new display identities prevent a shortcut from targeting another monitor
-when macOS reuses a numeric display ID.
-
 ### App Store shortcut changes in 1.3.0
 
 App Store global shortcuts need at least two modifiers, including Control or
