@@ -44,6 +44,7 @@ jobs:
           set -euo pipefail
           mkdir -p build/pages/assets
           cp documentation/index.html build/pages/index.html
+          cp documentation/guides.html build/pages/guides.html
           cp documentation/external-monitor-brightness.html build/pages/external-monitor-brightness.html
           cp documentation/multi-monitor-control.html build/pages/multi-monitor-control.html
           cp documentation/ddc-ci-not-working.html build/pages/ddc-ci-not-working.html
@@ -67,6 +68,32 @@ jobs:
           cp IconComposerLayers/AppIcon-IconComposer/rendered/icon_128x128@2x.png build/pages/assets/dimmerly-icon.png
           touch build/pages/.nojekyll
 
+      # The source links the download buttons to the latest release page. Here they
+      # get the latest published release's DMG, so a click starts the download.
+      # Drafts and pre-releases are never "latest". Without the DMG asset, the
+      # buttons keep the release page.
+      - name: Link download buttons to the latest DMG
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          release_page='https://github.com/olujicz/Dimmerly/releases/latest'
+          tag="$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName)"
+          dmg_name="Dimmerly-${tag#v}.dmg"
+          if ! gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | grep -qxF "$dmg_name"; then
+            echo "::warning::$tag has no $dmg_name asset; download buttons keep the release page"
+            exit 0
+          fi
+          dmg_url="https://github.com/$GITHUB_REPOSITORY/releases/download/$tag/$dmg_name"
+          for page in build/pages/*.html; do
+            sed -i "s|class=\"button\" href=\"$release_page\"|class=\"button\" href=\"$dmg_url\"|g" "$page"
+          done
+          grep -qF "class=\"button\" href=\"$dmg_url\"" build/pages/index.html
+          if grep -lF "class=\"button\" href=\"$release_page\"" build/pages/*.html; then
+            echo "Download buttons above still link to the release page" >&2
+            exit 1
+          fi
+
       - name: Inject Cloudflare Web Analytics token
         env:
           CLOUDFLARE_WEB_ANALYTICS_TOKEN: ${{ secrets.CLOUDFLARE_WEB_ANALYTICS_TOKEN }}
@@ -78,6 +105,7 @@ jobs:
           done
 
           test -s build/pages/index.html
+          test -s build/pages/guides.html
           test -s build/pages/external-monitor-brightness.html
           test -s build/pages/multi-monitor-control.html
           test -s build/pages/ddc-ci-not-working.html
@@ -103,6 +131,11 @@ jobs:
             test "$(grep -c 'https://static.cloudflareinsights.com/beacon.min.js' "$page")" -eq 1
             grep -q 'data-cf-beacon' "$page"
           done
+          # A placeholder left in a page means the token never reached it.
+          if grep -l '__CLOUDFLARE_WEB_ANALYTICS_TOKEN__' build/pages/*.html; then
+            echo "Analytics token placeholder left in the pages listed above" >&2
+            exit 1
+          fi
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v5

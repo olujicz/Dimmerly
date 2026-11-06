@@ -54,7 +54,7 @@
     <header class="site-header container">
         <a class="brand" href="./" aria-label="Dimmerly home">Dimmerly</a>
         <nav class="nav" aria-label="Primary navigation">
-            <a href="external-monitor-brightness.html">Guides</a>
+            <a href="guides.html" aria-current="true">Guides</a>
             <a href="support.html">Support</a>
             <a href="https://github.com/olujicz/Dimmerly/releases" data-analytics-event="view_releases">Releases</a>
             <a href="https://github.com/olujicz/Dimmerly">Source</a>
@@ -62,11 +62,16 @@
     </header>
 
     <main id="main" class="guide-main container">
-        <p class="eyebrow">Multi-monitor guide</p>
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+            <ol>
+                <li><a href="guides.html">Guides</a></li>
+                <li aria-current="page">Multiple monitors</li>
+            </ol>
+        </nav>
         <h1>Control multiple monitors from one Mac menu bar panel.</h1>
         <p class="lead">Dimmerly keeps each display&rsquo;s brightness, warmth, contrast, presets, and supported hardware controls in one place, so a multi-monitor desk does not require a trip through each monitor&rsquo;s buttons.</p>
 
-        <div class="guide-summary" aria-label="Dimmerly multi-monitor overview">
+        <div class="guide-summary" role="group" aria-label="Dimmerly multi-monitor overview">
             <div class="summary-item">
                 <span>Each display</span>
                 <strong>Independent brightness and color controls</strong>

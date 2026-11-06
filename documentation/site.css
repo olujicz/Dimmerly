@@ -18,6 +18,9 @@
     --console-line: #42464d;
     --panel-shadow: rgb(23 23 23 / 16%);
     --container: 820px;
+    /* About 75 characters a line in the system font. The ch unit measures the
+       wide digit zero in SF, so it overshoots. */
+    --measure: 35rem;
 }
 
 .page-home { --container: 1160px; }
@@ -88,6 +91,15 @@ p { text-wrap: pretty; }
     outline-offset: 3px;
 }
 
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
 .container {
     width: min(var(--container), calc(100% - 48px));
     margin: 0 auto;
@@ -134,7 +146,7 @@ p { text-wrap: pretty; }
     min-height: 44px;
 }
 
-.nav a[aria-current="page"] { color: var(--ink); }
+.nav a[aria-current] { color: var(--ink); }
 
 .footer a {
     display: inline-flex;
@@ -285,7 +297,7 @@ p { text-wrap: pretty; }
     font-size: clamp(2.6rem, 5.2vw, 4.5rem);
     font-weight: 720;
     line-height: 1.03;
-    letter-spacing: -0.05em;
+    letter-spacing: -0.035em;
 }
 
 .hero-description {
@@ -315,27 +327,104 @@ p { text-wrap: pretty; }
     justify-self: end;
 }
 
-/* The stage carries the visual weight of the column so the screenshot itself
-   can stay at its native size. */
-.product-stage {
-    display: flex;
-    justify-content: center;
-    padding: 56px 40px;
-    border: 1px solid var(--line);
-    border-radius: 18px;
-    background: linear-gradient(155deg, color-mix(in srgb, var(--blue) 9%, var(--paper)), var(--paper) 70%);
-    line-height: 0;
+/* Hero: a working copy of the menu bar panel under two illustrated screens.
+   Each slider sets --external or --builtin on the figure, and each screen
+   dims the way software dimming does, with a dark layer over a lit picture.
+   The panel component itself (.mini-*) is shared with the 404 page. */
+.hero-desk { width: min(100%, 460px); }
+
+.desk {
+    position: relative;
+    aspect-ratio: 460 / 300;
 }
 
-/* The menu panel is 300 points wide, so images/image1.png at 600 pixels is a
-   2x capture. Rendering at 300 CSS pixels keeps it pixel-exact on Retina
-   instead of upscaling it. */
-.screenshot {
-    display: block;
-    width: 300px;
-    max-width: 100%;
-    height: auto;
-    filter: drop-shadow(0 18px 26px var(--panel-shadow));
+.desk-monitor {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 76%;
+}
+
+.desk-laptop {
+    position: absolute;
+    right: 4%;
+    bottom: 0;
+    width: 44%;
+}
+
+.desk-screen {
+    position: relative;
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    border: 7px solid #1b1c1f;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #9db9e0 0%, #d9d3d6 48%, #f2cfa8 70%, #c98f6e 100%);
+    box-shadow: 0 0 0 1px var(--line), 0 14px 30px var(--panel-shadow);
+}
+
+.desk-laptop .desk-screen {
+    border-width: 5px;
+    border-radius: 8px 8px 2px 2px;
+}
+
+.desk-screen[data-screen="external"] { --level: var(--external); }
+.desk-screen[data-screen="builtin"] { --level: var(--builtin); }
+
+/* Warmth tints the picture; the dark layer on top stands in for gamma dimming. */
+.desk-screen::before,
+.desk-screen::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.desk-screen::before {
+    background: #ff9d4d;
+    mix-blend-mode: multiply;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.hero-desk:has(.mini-switch:checked) .desk-screen::before { opacity: 0.38; }
+
+.desk-screen::after {
+    background: #050506;
+    opacity: calc((1 - var(--level)) * 0.9);
+    transition: opacity 0.08s linear;
+}
+
+/* A preset glides the screens to their new levels; dragging stays direct. */
+.hero-desk.is-gliding .desk-screen::after { transition: opacity 0.5s ease-out; }
+
+.desk-stand {
+    width: 20%;
+    height: 30px;
+    margin: 0 auto;
+    background: linear-gradient(#2a2b2f, #1b1c1f);
+    clip-path: polygon(20% 0, 80% 0, 100% 100%, 0 100%);
+}
+
+.desk-base {
+    height: 8px;
+    margin: 0 -8%;
+    border-radius: 0 0 8px 8px;
+    background: linear-gradient(#c9c9cc, #9a9a9f);
+    box-shadow: 0 10px 20px var(--panel-shadow);
+}
+
+.hero-desk .mini-panel {
+    position: relative;
+    z-index: 1;
+    width: min(100%, 300px);
+    margin: 14px 0 0;
+}
+
+.hero-desk-caption {
+    margin-top: 14px;
+    text-wrap: pretty;
+    color: var(--muted);
+    font-size: 13px;
 }
 
 /* The demo loop. It is a 1280x800 scene with its own captions, so it takes the
@@ -400,15 +489,23 @@ p { text-wrap: pretty; }
     .demo-toggle:hover { background: rgb(23 26 31 / 88%); }
 }
 
-/* Native 2x Settings capture, displayed at no more than its 580-point width. */
+/* images/image2.png is a 1040-pixel 2x capture of the whole Displays pane. It
+   is shown at up to 440 points, so Retina screens scale it down, never up. The
+   pane is tall, so the text beside it stays in view while it scrolls past. */
 .settings-showcase {
     display: grid;
     grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
     gap: 64px;
-    align-items: center;
+    align-items: start;
     padding-top: 76px;
     padding-bottom: 76px;
     border-top: 1px solid var(--line);
+}
+
+.settings-copy {
+    position: sticky;
+    top: 40px;
+    padding-top: 40px;
 }
 
 .settings-copy p {
@@ -420,7 +517,7 @@ p { text-wrap: pretty; }
 
 .settings-screenshot {
     display: block;
-    width: min(100%, 580px);
+    width: min(100%, 440px);
     height: auto;
     margin-inline: auto;
     filter: drop-shadow(0 18px 26px var(--panel-shadow));
@@ -440,6 +537,11 @@ p { text-wrap: pretty; }
         padding-top: 48px;
         padding-bottom: 48px;
     }
+
+    .settings-copy {
+        position: static;
+        padding-top: 0;
+    }
 }
 
 .install {
@@ -447,6 +549,7 @@ p { text-wrap: pretty; }
     grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
     gap: 40px;
     align-items: center;
+    margin-bottom: 76px;
     padding: 34px 38px;
     /* The border keeps the block's shape readable in dark mode, where the
        console background sits close to the page background. */
@@ -468,11 +571,21 @@ p { text-wrap: pretty; }
 }
 
 .install-note {
-    max-width: 360px;
+    max-width: 380px;
     margin: 14px 0 0;
     color: var(--console-text);
     font-size: 0.92rem;
 }
+
+.install-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 18px;
+    margin-top: 24px;
+}
+
+.install-actions .requirement { color: var(--console-text); }
 
 .install .code-block { max-width: none; }
 
@@ -568,15 +681,9 @@ p { text-wrap: pretty; }
     background: color-mix(in srgb, var(--blue) 7%, transparent);
 }
 
-.guide-kicker {
-    color: var(--blue-dark);
-    font: 0.78rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-}
-
-.guide-card h3 {
-    margin: 22px 0 10px;
+.guide-card h3,
+.guide-card-title {
+    margin: 0 0 10px;
     font-size: 1.05rem;
     line-height: 1.3;
 }
@@ -610,6 +717,7 @@ p { text-wrap: pretty; }
 .page-home .trust h2 { font-size: clamp(1.5rem, 2.8vw, 2.2rem); }
 
 .trust p {
+    max-width: var(--measure);
     margin: 0;
     color: var(--muted);
     font-size: 0.95rem;
@@ -619,21 +727,41 @@ p { text-wrap: pretty; }
 
 .guide-main { padding: 70px 0 76px; }
 
-.eyebrow {
-    margin: 0 0 16px;
-    color: var(--blue-dark);
-    font: 0.78rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+/* Where a guide sits: a link back to the guides index. */
+.breadcrumb ol {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 8px;
+    margin: 0 0 18px;
+    padding: 0;
+    color: var(--muted);
+    font-size: 0.9rem;
+    list-style: none;
+}
+
+.breadcrumb li + li::before {
+    content: "/";
+    margin-right: 8px;
+    color: var(--line);
+}
+
+.page-guide main nav.breadcrumb a {
+    color: var(--muted);
+    text-decoration: none;
+}
+
+.page-guide main nav.breadcrumb a:hover {
+    color: var(--ink);
+    text-decoration: underline;
 }
 
 .page-guide h1 {
     max-width: 760px;
     margin: 0;
-    font-size: clamp(2.45rem, 6vw, 4.6rem);
+    font-size: clamp(2.25rem, 5vw, 3.6rem);
     font-weight: 720;
-    line-height: 1.02;
-    letter-spacing: -0.05em;
+    line-height: 1.05;
+    letter-spacing: -0.035em;
 }
 
 .lead {
@@ -672,7 +800,11 @@ p { text-wrap: pretty; }
     line-height: 1.35;
 }
 
-.guide-section { padding-top: 66px; }
+.guide-index { margin-top: 48px; }
+
+.guide-section { padding: 66px 0 26px; }
+
+.guide-section:last-child { padding-bottom: 0; }
 
 .guide-section + .guide-section { border-top: 1px solid var(--line); }
 
@@ -691,7 +823,7 @@ p { text-wrap: pretty; }
 
 .guide-section p,
 .guide-section li {
-    max-width: 720px;
+    max-width: var(--measure);
     margin: 0 0 14px;
     font-size: 1rem;
     text-wrap: pretty;
@@ -699,7 +831,7 @@ p { text-wrap: pretty; }
 
 .guide-section ul,
 .guide-section ol {
-    max-width: 720px;
+    max-width: var(--measure);
     margin: 0 0 16px;
     padding-left: 24px;
 }
@@ -709,15 +841,18 @@ p { text-wrap: pretty; }
 .guide-section .code-block { margin: 22px 0; }
 
 .note {
-    max-width: 720px;
+    max-width: var(--measure);
     margin-top: 24px;
     padding: 20px 24px;
-    border-left: 3px solid var(--blue);
+    border: 1px solid var(--line);
+    border-radius: 12px;
     background: var(--panel);
 }
 
 .note p:last-child { margin-bottom: 0; }
 
+/* Focusable (tabindex in the markup) so keyboard users can scroll it in
+   Safari, which doesn't focus scroll containers on its own. */
 .comparison-wrap {
     overflow-x: auto;
     margin-top: 24px;
@@ -751,6 +886,22 @@ p { text-wrap: pretty; }
 
 .comparison-apps th:first-child,
 .comparison-apps td:first-child { width: 22%; }
+
+/* The row labels stay in view while the other apps scroll past. Borders on
+   sticky cells scroll away in a collapsed table, so an inset shadow draws
+   the label column's right edge. */
+.comparison-apps tbody th,
+.comparison-apps thead th:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    box-shadow: inset -1px 0 0 var(--line);
+}
+
+.comparison-apps thead th:nth-child(2),
+.comparison-apps tbody td:nth-child(2) {
+    background: color-mix(in srgb, var(--blue) 7%, var(--paper));
+}
 
 .guide-actions {
     display: flex;
@@ -807,8 +958,10 @@ p { text-wrap: pretty; }
 
 .page-doc p,
 .page-doc li {
+    max-width: var(--measure);
     margin: 0 0 12px;
     font-size: 1rem;
+    text-wrap: pretty;
 }
 
 .page-doc ul,
@@ -836,39 +989,70 @@ p { text-wrap: pretty; }
     margin-top: 32px;
 }
 
-/* Body links on guide and text pages keep the underline-on-hover treatment */
+/* Links inside running text stay underlined, so they don't rely on color
+   alone (WCAG 1.4.1). Buttons, text links, and cards carry their own cues. */
 
-.page-guide main a:not(.button),
-.page-doc main a:not(.button) { text-decoration: none; }
-
-.page-guide main a:not(.button):hover,
-.page-doc main a:not(.button):hover {
-    text-decoration: underline;
+.page-guide main a:not(.button, .text-link, .guide-card),
+.page-doc main a:not(.button, .text-link, .guide-card) {
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
     text-underline-offset: 3px;
 }
+
+.page-guide main a:not(.button, .text-link, .guide-card):hover,
+.page-doc main a:not(.button, .text-link, .guide-card):hover {
+    text-decoration-color: currentColor;
+}
+
+/* Support page: which build you have, and where each answer is. */
+.page-doc .support-index {
+    columns: 2 240px;
+    column-gap: 32px;
+    margin: 0;
+    padding-left: 0;
+    list-style: none;
+}
+
+.page-doc .support-index li {
+    margin: 0 0 6px;
+    break-inside: avoid;
+}
+
+.page-doc main .support-index a { text-decoration-line: none; }
+.page-doc main .support-index a:hover { text-decoration-line: underline; }
+
+.page-doc h2[id],
+.page-doc h3[id] { scroll-margin-top: 24px; }
 
 /* 404 page: a copy of the app's menu bar panel. Its slider sets --level on
    <main>, and the illustrated screen dims the way software dimming does, with
    a dark layer over a lit picture. */
 
-.page-404 {
-    --container: 960px;
-    --lost-panel: #f7f6f3;
-    --lost-panel-line: rgb(23 23 23 / 10%);
-    --lost-panel-ink: #1d1d1f;
-    --lost-panel-muted: #6e6e73;
-    --lost-track: rgb(23 23 23 / 12%);
-    --lost-hover: rgb(23 23 23 / 6%);
+.page-404 { --container: 960px; }
+
+/* The panel copy shared by the home page hero and the 404 page. */
+.page-404,
+.page-home {
+    --mini-panel: #f7f6f3;
+    --mini-panel-line: rgb(23 23 23 / 10%);
+    --mini-panel-ink: #1d1d1f;
+    --mini-panel-muted: #6e6e73;
+    --mini-track: rgb(23 23 23 / 12%);
+    --mini-switch-edge: rgb(23 23 23 / 50%);
+    --mini-hover: rgb(23 23 23 / 6%);
 }
 
 @media (prefers-color-scheme: dark) {
-    .page-404 {
-        --lost-panel: #30343b;
-        --lost-panel-line: rgb(255 255 255 / 10%);
-        --lost-panel-ink: #f2f2f4;
-        --lost-panel-muted: #a3a6ad;
-        --lost-track: rgb(255 255 255 / 16%);
-        --lost-hover: rgb(255 255 255 / 8%);
+    .page-404,
+    .page-home {
+        --mini-panel: #30343b;
+        --mini-panel-line: rgb(255 255 255 / 10%);
+        --mini-panel-ink: #f2f2f4;
+        --mini-panel-muted: #a3a6ad;
+        --mini-track: rgb(255 255 255 / 16%);
+        --mini-switch-edge: rgb(255 255 255 / 45%);
+        --mini-hover: rgb(255 255 255 / 8%);
     }
 }
 
@@ -880,8 +1064,7 @@ p { text-wrap: pretty; }
     padding-top: 24px;
 }
 
-.page-404 .eyebrow { margin: 40px 0 0; }
-.page-404 h1 { margin-top: 10px; }
+.page-404 h1 { margin-top: 40px; }
 .page-404 .tagline { max-width: 440px; margin-bottom: 40px; }
 
 .lost-display {
@@ -919,7 +1102,7 @@ p { text-wrap: pretty; }
     opacity: 0;
 }
 
-.lost:has(.lost-switch:checked) .lost-screen::before { opacity: 0.38; }
+.lost:has(.mini-switch:checked) .lost-screen::before { opacity: 0.38; }
 
 .lost-screen::after {
     background: #050506;
@@ -932,7 +1115,7 @@ p { text-wrap: pretty; }
     font-size: clamp(4rem, 11vw, 6.5rem);
     font-weight: 760;
     line-height: 1;
-    letter-spacing: -0.05em;
+    letter-spacing: -0.04em;
 }
 
 .lost-caption {
@@ -950,19 +1133,19 @@ p { text-wrap: pretty; }
     clip-path: polygon(18% 0, 82% 0, 100% 100%, 0 100%);
 }
 
-.lost-panel {
+.mini-panel {
     margin-top: 40px;
     padding: 14px 0 6px;
-    border: 1px solid var(--lost-panel-line);
+    border: 1px solid var(--mini-panel-line);
     border-radius: 16px;
-    background: var(--lost-panel);
+    background: var(--mini-panel);
     box-shadow: 0 22px 50px var(--panel-shadow);
-    color: var(--lost-panel-ink);
+    color: var(--mini-panel-ink);
     font-size: 0.95rem;
     line-height: 1.35;
 }
 
-.lost-panel svg {
+.mini-panel svg {
     width: 16px;
     height: 16px;
     flex: none;
@@ -973,7 +1156,7 @@ p { text-wrap: pretty; }
     stroke-linejoin: round;
 }
 
-.lost-row {
+.mini-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -982,51 +1165,51 @@ p { text-wrap: pretty; }
     padding: 0 18px;
 }
 
-.lost-name {
+.mini-name {
     display: inline-flex;
     align-items: center;
     gap: 8px;
 }
 
-.lost-value {
-    color: var(--lost-panel-muted);
+.mini-value {
+    color: var(--mini-panel-muted);
     font-variant-numeric: tabular-nums;
     font-weight: 600;
 }
 
-.lost-slider {
+.mini-slider {
     display: flex;
     align-items: center;
     gap: 10px;
     padding: 4px 18px 6px;
-    color: var(--lost-panel-muted);
+    color: var(--mini-panel-muted);
 }
 
-.lost-sun-small { transform: scale(0.85); }
+.mini-sun-small { transform: scale(0.85); }
 
-.lost-slider input {
+.mini-slider input {
     flex: 1;
     min-width: 0;
-    height: 22px;
+    height: 28px;
     margin: 0;
     background: transparent;
     appearance: none;
     cursor: pointer;
 }
 
-.lost-slider input::-webkit-slider-runnable-track {
+.mini-slider input::-webkit-slider-runnable-track {
     height: 5px;
     border-radius: 3px;
-    background: linear-gradient(to right, var(--blue) calc(var(--level) * 100%), var(--lost-track) 0);
+    background: linear-gradient(to right, var(--blue) calc(var(--level) * 100%), var(--mini-track) 0);
 }
 
-.lost-slider input::-moz-range-track {
+.mini-slider input::-moz-range-track {
     height: 5px;
     border-radius: 3px;
-    background: linear-gradient(to right, var(--blue) calc(var(--level) * 100%), var(--lost-track) 0);
+    background: linear-gradient(to right, var(--blue) calc(var(--level) * 100%), var(--mini-track) 0);
 }
 
-.lost-slider input::-webkit-slider-thumb {
+.mini-slider input::-webkit-slider-thumb {
     width: 22px;
     height: 16px;
     margin-top: -5.5px;
@@ -1037,7 +1220,7 @@ p { text-wrap: pretty; }
     appearance: none;
 }
 
-.lost-slider input::-moz-range-thumb {
+.mini-slider input::-moz-range-thumb {
     width: 22px;
     height: 16px;
     border: 0;
@@ -1046,23 +1229,25 @@ p { text-wrap: pretty; }
     box-shadow: 0 1px 3px rgb(0 0 0 / 35%);
 }
 
-.lost-sunrise { color: #e8952f; }
+.mini-sunrise { color: #e8952f; }
 
-.lost-warmth { cursor: pointer; }
+.mini-warmth { cursor: pointer; }
 
-.lost-switch {
+.mini-switch {
     position: relative;
     width: 40px;
     height: 24px;
     margin: 0;
     border-radius: 12px;
-    background: var(--lost-track);
+    background: var(--mini-track);
+    /* The edge keeps the switch visible when it's off (WCAG 1.4.11). */
+    box-shadow: inset 0 0 0 1px var(--mini-switch-edge);
     appearance: none;
     cursor: pointer;
     transition: background-color 0.2s ease;
 }
 
-.lost-switch::after {
+.mini-switch::after {
     content: "";
     position: absolute;
     top: 2px;
@@ -1075,39 +1260,61 @@ p { text-wrap: pretty; }
     transition: transform 0.2s ease;
 }
 
-.lost-switch:checked { background: var(--blue); }
-.lost-switch:checked::after { transform: translateX(16px); }
+.mini-switch:checked {
+    background: var(--blue);
+    box-shadow: none;
+}
+.mini-switch:checked::after { transform: translateX(16px); }
 
-.page-404 .lost-status {
+.page-404 .mini-status {
     margin: 2px 18px 12px;
-    color: var(--lost-panel-muted);
+    color: var(--mini-panel-muted);
     font-size: 0.82rem;
 }
 
-.lost-section {
+.mini-section {
     padding: 10px 8px;
-    border-top: 1px solid var(--lost-panel-line);
+    border-top: 1px solid var(--mini-panel-line);
 }
 
-.lost-section h2,
-.page-404 .lost-section h2 {
+.mini-section h2,
+.page-404 .mini-section h2,
+.mini-heading {
     margin: 2px 10px 6px;
-    color: var(--lost-panel-muted);
+    color: var(--mini-panel-muted);
     font-size: 0.82rem;
     font-weight: 600;
     letter-spacing: 0;
 }
 
-.lost-presets,
-.page-404 .lost-presets {
+.mini-presets,
+.page-404 .mini-presets {
     margin: 0;
     padding: 0;
     list-style: none;
 }
 
-.page-404 .lost-presets li { margin: 0; }
+.page-404 .mini-presets li { margin: 0; }
 
-.page-404 main .lost-panel a {
+.mini-preset {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 34px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--mini-panel-ink);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.mini-preset:hover:not(:disabled) { background: var(--mini-hover); }
+.mini-preset:disabled { cursor: default; }
+
+.page-404 main .mini-panel a {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1115,23 +1322,23 @@ p { text-wrap: pretty; }
     min-height: 34px;
     padding: 0 10px;
     border-radius: 7px;
-    color: var(--lost-panel-ink);
+    color: var(--mini-panel-ink);
     text-decoration: none;
 }
 
-.page-404 main .lost-panel a:hover {
-    background: var(--lost-hover);
+.page-404 main .mini-panel a:hover {
+    background: var(--mini-hover);
     text-decoration: none;
 }
 
-.lost-presets kbd {
-    color: var(--lost-panel-muted);
+.mini-presets kbd {
+    color: var(--mini-panel-muted);
     font: inherit;
     font-size: 0.85rem;
     letter-spacing: 0.06em;
 }
 
-.page-404 main .lost-panel .lost-button {
+.page-404 main .mini-panel .mini-button {
     justify-content: center;
     gap: 10px;
     min-height: 40px;
@@ -1141,24 +1348,23 @@ p { text-wrap: pretty; }
     font-weight: 600;
 }
 
-.page-404 main .lost-panel .lost-button:hover { background: var(--blue-dark); }
+.page-404 main .mini-panel .mini-button:hover { background: var(--blue-dark); }
 
-.lost-button svg { fill: currentColor; stroke: none; }
 
-.page-404 .lost-footer {
+.page-404 .mini-footer {
     display: flex;
     justify-content: space-between;
 }
 
-.page-404 main .lost-footer a {
+.page-404 main .mini-footer a {
     justify-content: flex-start;
     gap: 8px;
-    color: var(--lost-panel-muted);
+    color: var(--mini-panel-muted);
 }
 
 /* Touch screens have no Control-Option shortcuts to press. */
 @media (hover: none) {
-    .lost-presets kbd { display: none; }
+    .mini-presets kbd { display: none; }
 }
 
 @media (max-width: 760px) {
@@ -1167,12 +1373,19 @@ p { text-wrap: pretty; }
         gap: 0;
     }
 
-    .lost-panel {
+    .page-404 .tagline { margin-bottom: 28px; }
+
+    .mini-panel {
         width: min(100%, 380px);
-        margin: 48px auto 0;
+        margin: 32px auto 0;
     }
 
-    .lost-display { margin: 0 auto; }
+    /* Small enough that the panel's slider shows on the first screen of a
+       phone, and the picture it dims stays in view above it. */
+    .lost-display {
+        max-width: 240px;
+        margin: 0 auto;
+    }
 }
 
 /* Responsive */
@@ -1182,6 +1395,8 @@ p { text-wrap: pretty; }
     .product-figure { grid-column: 8 / -1; }
     .benefits-heading { grid-column: 1 / span 5; }
     .benefit-list { grid-column: 6 / -1; }
+    .benefit { grid-template-columns: 34px 1fr; }
+    .benefit p { grid-column: 2; }
     .guides { grid-template-columns: 1fr 2fr; }
     .trust { grid-template-columns: 1fr 2fr; }
     .trust .text-link { grid-column: 2; }
@@ -1215,8 +1430,6 @@ p { text-wrap: pretty; }
         margin: 54px auto 0;
     }
 
-    .product-stage { padding: 34px 20px; }
-
     .demo { padding-bottom: 56px; }
     .demo-frame { border-radius: 12px; }
 
@@ -1231,6 +1444,7 @@ p { text-wrap: pretty; }
     .install {
         grid-template-columns: 1fr;
         gap: 24px;
+        margin-bottom: 56px;
         padding: 28px 24px;
     }
 
@@ -1241,9 +1455,12 @@ p { text-wrap: pretty; }
     }
 
     .install .copy-button {
-        top: 22px;
+        top: 12px;
         right: 0;
     }
+
+    /* Room under the copy button so it never sits on the first command. */
+    .install .code-block pre { padding-top: 56px; }
 
     .benefits {
         display: block;
@@ -1251,8 +1468,6 @@ p { text-wrap: pretty; }
     }
 
     .benefits-heading { margin-bottom: 38px; }
-    .benefit { grid-template-columns: 34px 1fr; }
-    .benefit p { grid-column: 2; }
 
     .guides {
         display: block;

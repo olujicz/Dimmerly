@@ -250,8 +250,12 @@ When final QA passes:
 4. Publish the release.
 5. Verify the public release page downloads the same checksum.
 6. Update and verify the Homebrew tap using the next section.
-7. Announce the release only after the public download, checksum, and Homebrew
-   tap are verified.
+7. Run the GitHub Pages workflow from `main` (Actions > GitHub Pages > Run
+   workflow). The website's download buttons link straight to the latest
+   release's DMG, and the link is resolved when the site is built. Then check
+   that the home page's Download button fetches `Dimmerly-<version>.dmg`.
+8. Announce the release only after the public download, checksum, Homebrew
+   tap, and website download are verified.
 
 ## Homebrew Tap Update
 
@@ -314,7 +318,11 @@ If a release is published with a blocking issue:
 1. Mark the release as pre-release or add a warning to the release notes.
 2. Remove the DMG asset only if the build is unsafe to distribute.
 3. Re-link the previous stable release in the notes.
-4. Create a patch version and follow this runbook from the pre-release checklist.
+4. Run the GitHub Pages workflow from `main`, so the website's download
+   buttons stop pointing at the withdrawn DMG. A pre-release is skipped when
+   the link is resolved, and a release without its DMG falls back to the
+   release page.
+5. Create a patch version and follow this runbook from the pre-release checklist.
 
 Do not retag a published version. Use a new patch version so users and GitHub release assets remain auditable.
 

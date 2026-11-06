@@ -21,26 +21,37 @@
         button.type = "button";
         button.className = "copy-button";
         button.textContent = "Copy";
-        button.setAttribute("aria-label", "Copy the commands to the clipboard");
+
+        // The button's label changes silently, so the result is also spoken
+        // through a status region.
+        var announcement = document.createElement("span");
+        announcement.className = "visually-hidden";
+        announcement.setAttribute("role", "status");
 
         var reset;
+        function show(label, message) {
+            button.textContent = label;
+            announcement.textContent = message;
+        }
+
         button.addEventListener("click", function () {
             navigator.clipboard.writeText(code.textContent.trim()).then(
                 function () {
-                    button.textContent = "Copied";
+                    show("Copied", "Commands copied to the clipboard.");
                 },
                 function () {
-                    button.textContent = "Press ⌘C";
+                    show("Press ⌘C", "Copying failed. Select the commands and press Command-C.");
                 }
             );
 
             window.clearTimeout(reset);
             reset = window.setTimeout(function () {
-                button.textContent = "Copy";
+                show("Copy", "");
             }, 2000);
         });
 
         block.appendChild(button);
+        block.appendChild(announcement);
     });
 })();
 
@@ -132,9 +143,11 @@
     video.addEventListener("play", showState);
     video.addEventListener("pause", showState);
 
+    // Pick the variant before allowing preload, so a dark page never starts
+    // fetching the light video.
     video.controls = false;
-    video.preload = "metadata";
     useVariant();
+    video.preload = "metadata";
     video.parentNode.appendChild(button);
     showState();
 
@@ -172,12 +185,14 @@
     var page = document.querySelector(".lost");
     var value = document.querySelector("[data-lost-value]");
     var status = document.querySelector("[data-lost-status]");
-    var lastStatus = "";
+    // Starts from the markup's message, so loading the page announces nothing.
+    var lastStatus = status.textContent;
 
     function update() {
         var level = Number(slider.value);
         page.style.setProperty("--level", String(level / 100));
         value.textContent = level + "%";
+        slider.setAttribute("aria-valuetext", level + "%");
 
         var message = level === 100
             ? "Full brightness, still nothing here. Try a preset."
@@ -194,7 +209,7 @@
     slider.addEventListener("input", update);
     update();
 
-    var presets = document.querySelectorAll(".lost-presets a");
+    var presets = document.querySelectorAll(".mini-presets a");
     document.addEventListener("keydown", function (event) {
         if (!event.ctrlKey || !event.altKey || event.metaKey || event.shiftKey) {
             return;
@@ -206,5 +221,54 @@
             event.preventDefault();
             window.location.href = preset.href;
         }
+    });
+})();
+
+// Home page hero: a working copy of the menu bar panel. Each slider dims its
+// own illustrated screen, and the presets set both screens and Auto Warmth at
+// once. Without JavaScript the sliders and presets stay disabled.
+(function () {
+    "use strict";
+
+    var desk = document.querySelector("[data-hero-desk]");
+    if (!desk) {
+        return;
+    }
+
+    var sliders = desk.querySelectorAll("[data-desk-slider]");
+    var warmth = desk.querySelector("[data-desk-warmth]");
+    var status = desk.querySelector("[data-desk-status]");
+
+    function show(slider) {
+        var name = slider.getAttribute("data-desk-slider");
+        var level = Number(slider.value);
+        desk.style.setProperty("--" + name, String(level / 100));
+        slider.style.setProperty("--level", String(level / 100));
+        slider.setAttribute("aria-valuetext", level + "%");
+        desk.querySelector('[data-desk-value="' + name + '"]').textContent = level + "%";
+    }
+
+    Array.prototype.forEach.call(sliders, function (slider) {
+        slider.disabled = false;
+        slider.addEventListener("input", function () {
+            desk.classList.remove("is-gliding");
+            show(slider);
+        });
+        show(slider);
+    });
+
+    Array.prototype.forEach.call(desk.querySelectorAll("[data-preset]"), function (button) {
+        button.disabled = false;
+        button.addEventListener("click", function () {
+            // "external builtin warmth", for example "70 60 on".
+            var values = button.getAttribute("data-preset").split(" ");
+            desk.classList.add("is-gliding");
+            Array.prototype.forEach.call(sliders, function (slider, index) {
+                slider.value = values[index];
+                show(slider);
+            });
+            warmth.checked = values[2] === "on";
+            status.textContent = button.textContent + " applied.";
+        });
     });
 })();

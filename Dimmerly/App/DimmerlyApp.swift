@@ -808,6 +808,12 @@ final class StatusItemQuickActions: NSObject {
             if scene == .settings, settingsTab == .schedule {
                 settings.scheduleEnabled = true
             }
+            // The Displays tab shows inactivity dimming and automatic warmth switched on, with
+            // their options. The same applies: nothing acts on either setting.
+            if scene == .settings, settingsTab == .displays {
+                settings.idleTimerEnabled = true
+                settings.autoColorTempEnabled = true
+            }
             return settings
         }
 

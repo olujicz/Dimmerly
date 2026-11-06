@@ -55,7 +55,7 @@
     <header class="site-header container">
         <a class="brand" href="./" aria-label="Dimmerly home">Dimmerly</a>
         <nav class="nav" aria-label="Primary navigation">
-            <a href="external-monitor-brightness.html" aria-current="page">Guides</a>
+            <a href="guides.html" aria-current="true">Guides</a>
             <a href="support.html">Support</a>
             <a href="https://github.com/olujicz/Dimmerly/releases" data-analytics-event="view_releases">Releases</a>
             <a href="https://github.com/olujicz/Dimmerly">Source</a>
@@ -63,11 +63,16 @@
     </header>
 
     <main id="main" class="guide-main container">
-        <p class="eyebrow">Comparison</p>
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+            <ol>
+                <li><a href="guides.html">Guides</a></li>
+                <li aria-current="page">Comparison</li>
+            </ol>
+        </nav>
         <h1>Dimmerly, MonitorControl, Lunar, or BetterDisplay?</h1>
         <p class="lead">All four apps control an external monitor&rsquo;s brightness from the Mac menu bar over DDC/CI, and all four fall back to software dimming when DDC/CI isn&rsquo;t available. They differ in price, in whether you can read the source, and in what they add on top.</p>
 
-        <div class="guide-summary" aria-label="Comparison overview">
+        <div class="guide-summary" role="group" aria-label="Comparison overview">
             <div class="summary-item">
                 <span>Free and open source</span>
                 <strong>Dimmerly, MonitorControl</strong>
@@ -85,7 +90,7 @@
         <section class="guide-section" aria-labelledby="table-title">
             <h2 id="table-title">Side by side</h2>
             <p>&ldquo;Pro&rdquo; means the feature needs the paid license. Prices and features change, so check the linked sources before you buy.</p>
-            <div class="comparison-wrap">
+            <div class="comparison-wrap" tabindex="0" role="region" aria-labelledby="table-title">
                 <table class="comparison comparison-apps">
                     <thead>
                         <tr>

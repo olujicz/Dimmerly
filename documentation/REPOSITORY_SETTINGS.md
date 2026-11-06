@@ -57,6 +57,7 @@ GitHub Pages must use **GitHub Actions** as its publishing source. The
 `.github/workflows/pages.yml` workflow builds the public static site from:
 
 - `documentation/index.html`
+- `documentation/guides.html`
 - `documentation/external-monitor-brightness.html`
 - `documentation/multi-monitor-control.html`
 - `documentation/ddc-ci-not-working.html`
@@ -83,9 +84,18 @@ GitHub Pages must use **GitHub Actions** as its publishing source. The
 The rest of `documentation/` remains visible in the repository but is not
 published to GitHub Pages.
 
+The download buttons in the source link to the latest release page. When the
+workflow builds the site, it looks up the latest published release and points
+those buttons at its `Dimmerly-<version>.dmg` instead. If that release has no
+DMG asset, the buttons keep the release page link. The Pages environment only
+deploys from `main`, so a published release doesn't redeploy the site on its
+own; run the workflow by hand after publishing (see
+`documentation/RELEASE.md`).
+
 These public URLs must resolve:
 
 - `https://dimmerly.olujic.in.rs/`
+- `https://dimmerly.olujic.in.rs/guides.html`
 - `https://dimmerly.olujic.in.rs/external-monitor-brightness.html`
 - `https://dimmerly.olujic.in.rs/multi-monitor-control.html`
 - `https://dimmerly.olujic.in.rs/ddc-ci-not-working.html`
