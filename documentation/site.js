@@ -157,3 +157,54 @@
         }
     });
 })();
+
+// 404 page: the panel's brightness slider dims the illustrated screen, and the
+// presets answer to the same Control-Option-number shortcuts as in the app.
+// Without JavaScript the slider stays disabled and the links still work.
+(function () {
+    "use strict";
+
+    var slider = document.querySelector("[data-lost-brightness]");
+    if (!slider) {
+        return;
+    }
+
+    var page = document.querySelector(".lost");
+    var value = document.querySelector("[data-lost-value]");
+    var status = document.querySelector("[data-lost-status]");
+    var lastStatus = "";
+
+    function update() {
+        var level = Number(slider.value);
+        page.style.setProperty("--level", String(level / 100));
+        value.textContent = level + "%";
+
+        var message = level === 100
+            ? "Full brightness, still nothing here. Try a preset."
+            : "No reply from this address.";
+        // Only touch the live region when the message changes, so screen
+        // readers don't repeat it on every step of the slider.
+        if (message !== lastStatus) {
+            status.textContent = message;
+            lastStatus = message;
+        }
+    }
+
+    slider.disabled = false;
+    slider.addEventListener("input", update);
+    update();
+
+    var presets = document.querySelectorAll(".lost-presets a");
+    document.addEventListener("keydown", function (event) {
+        if (!event.ctrlKey || !event.altKey || event.metaKey || event.shiftKey) {
+            return;
+        }
+        // event.code, because Option changes event.key on a Mac keyboard.
+        var match = /^Digit([1-9])$/.exec(event.code);
+        var preset = match && presets[Number(match[1]) - 1];
+        if (preset) {
+            event.preventDefault();
+            window.location.href = preset.href;
+        }
+    });
+})();

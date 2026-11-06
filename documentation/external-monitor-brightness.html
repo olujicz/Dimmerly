@@ -83,7 +83,7 @@
 
         <section class="guide-section" aria-labelledby="hardware-title">
             <h2 id="hardware-title">How hardware monitor control works</h2>
-            <p>The direct-download build can communicate with compatible external monitors through DDC/CI. When the display and connection support it, Dimmerly can adjust the monitor&rsquo;s hardware brightness and expose additional controls such as contrast, volume, mute, or input source.</p>
+            <p>The direct-download build talks to compatible external monitors over DDC/CI. When the display and connection support it, Dimmerly changes the monitor&rsquo;s hardware brightness and adds controls such as contrast, volume, mute, or input source.</p>
             <p>Install the signed and notarized build from <a href="https://github.com/olujicz/Dimmerly/releases/latest" data-analytics-event="download_direct">GitHub Releases</a>, or install it with Homebrew:</p>
             <div class="code-block" role="group" aria-label="Homebrew installation commands" data-analytics-event="view_homebrew_install">
                 <pre tabindex="0"><code>brew tap olujicz/dimmerly
@@ -101,14 +101,14 @@ brew install --cask dimmerly</code></pre>
                 <li>Open the Dimmerly menu and expand the display row. If the hardware indicator is not present, the app is using software dimming for that display.</li>
             </ol>
             <div class="note">
-                <p><strong>Connection support varies.</strong> A monitor can support DDC/CI while a particular adapter or dock does not pass the commands through. This is why the same display may work when connected directly but not through a dock.</p>
+                <p><strong>Connection support varies.</strong> A monitor can support DDC/CI while a particular adapter or dock does not pass the commands through. The same display may work when connected directly but not through a dock.</p>
             </div>
         </section>
 
         <section class="guide-section" aria-labelledby="software-title">
             <h2 id="software-title">When Dimmerly uses software dimming</h2>
             <p>Software dimming changes the image sent to the display through macOS&rsquo;s gamma tables. It changes perceived brightness, but it does not change the monitor&rsquo;s physical backlight. This fallback is useful for built-in displays and external monitors that do not expose usable DDC/CI controls.</p>
-            <p>The direct-download build can fall back to software dimming for a display when hardware control is unavailable. The App Store build uses the sandbox-compatible software controls and does not provide DDC/CI hardware control.</p>
+            <p>The direct-download build can fall back to software dimming for a display when hardware control is unavailable. The App Store build runs in Apple&rsquo;s sandbox, so it uses software controls only and has no DDC/CI hardware control.</p>
         </section>
 
         <section class="guide-section" aria-labelledby="versions-title">

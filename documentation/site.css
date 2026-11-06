@@ -847,6 +847,334 @@ p { text-wrap: pretty; }
     text-underline-offset: 3px;
 }
 
+/* 404 page: a copy of the app's menu bar panel. Its slider sets --level on
+   <main>, and the illustrated screen dims the way software dimming does, with
+   a dark layer over a lit picture. */
+
+.page-404 {
+    --container: 960px;
+    --lost-panel: #f7f6f3;
+    --lost-panel-line: rgb(23 23 23 / 10%);
+    --lost-panel-ink: #1d1d1f;
+    --lost-panel-muted: #6e6e73;
+    --lost-track: rgb(23 23 23 / 12%);
+    --lost-hover: rgb(23 23 23 / 6%);
+}
+
+@media (prefers-color-scheme: dark) {
+    .page-404 {
+        --lost-panel: #30343b;
+        --lost-panel-line: rgb(255 255 255 / 10%);
+        --lost-panel-ink: #f2f2f4;
+        --lost-panel-muted: #a3a6ad;
+        --lost-track: rgb(255 255 255 / 16%);
+        --lost-hover: rgb(255 255 255 / 8%);
+    }
+}
+
+.lost {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 56px;
+    align-items: start;
+    padding-top: 24px;
+}
+
+.page-404 .eyebrow { margin: 40px 0 0; }
+.page-404 h1 { margin-top: 10px; }
+.page-404 .tagline { max-width: 440px; margin-bottom: 40px; }
+
+.lost-display {
+    max-width: 420px;
+    margin: 0;
+}
+
+.lost-screen {
+    position: relative;
+    display: grid;
+    place-content: center;
+    gap: 4px;
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    border: 10px solid #1b1c1f;
+    border-radius: 14px;
+    background: linear-gradient(160deg, #fdfcf8, #e9eef6);
+    box-shadow: 0 0 0 1px var(--line), 0 18px 40px var(--panel-shadow);
+    text-align: center;
+}
+
+/* Warmth tints the picture; the dark layer on top stands in for gamma dimming. */
+.lost-screen::before,
+.lost-screen::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.lost-screen::before {
+    background: #ff9d4d;
+    mix-blend-mode: multiply;
+    opacity: 0;
+}
+
+.lost:has(.lost-switch:checked) .lost-screen::before { opacity: 0.38; }
+
+.lost-screen::after {
+    background: #050506;
+    opacity: calc((1 - var(--level)) * 0.94);
+    transition-duration: 0.08s;
+}
+
+.lost-code {
+    color: #171717;
+    font-size: clamp(4rem, 11vw, 6.5rem);
+    font-weight: 760;
+    line-height: 1;
+    letter-spacing: -0.05em;
+}
+
+.lost-caption {
+    color: #686761;
+    font: 0.78rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.lost-stand {
+    width: 22%;
+    height: 34px;
+    margin: 0 auto;
+    background: linear-gradient(#2a2b2f, #1b1c1f);
+    clip-path: polygon(18% 0, 82% 0, 100% 100%, 0 100%);
+}
+
+.lost-panel {
+    margin-top: 40px;
+    padding: 14px 0 6px;
+    border: 1px solid var(--lost-panel-line);
+    border-radius: 16px;
+    background: var(--lost-panel);
+    box-shadow: 0 22px 50px var(--panel-shadow);
+    color: var(--lost-panel-ink);
+    font-size: 0.95rem;
+    line-height: 1.35;
+}
+
+.lost-panel svg {
+    width: 16px;
+    height: 16px;
+    flex: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.lost-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 36px;
+    padding: 0 18px;
+}
+
+.lost-name {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.lost-value {
+    color: var(--lost-panel-muted);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+}
+
+.lost-slider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 18px 6px;
+    color: var(--lost-panel-muted);
+}
+
+.lost-sun-small { transform: scale(0.85); }
+
+.lost-slider input {
+    flex: 1;
+    min-width: 0;
+    height: 22px;
+    margin: 0;
+    background: transparent;
+    appearance: none;
+    cursor: pointer;
+}
+
+.lost-slider input::-webkit-slider-runnable-track {
+    height: 5px;
+    border-radius: 3px;
+    background: linear-gradient(to right, var(--blue) calc(var(--level) * 100%), var(--lost-track) 0);
+}
+
+.lost-slider input::-moz-range-track {
+    height: 5px;
+    border-radius: 3px;
+    background: linear-gradient(to right, var(--blue) calc(var(--level) * 100%), var(--lost-track) 0);
+}
+
+.lost-slider input::-webkit-slider-thumb {
+    width: 22px;
+    height: 16px;
+    margin-top: -5.5px;
+    border: 0;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 35%);
+    appearance: none;
+}
+
+.lost-slider input::-moz-range-thumb {
+    width: 22px;
+    height: 16px;
+    border: 0;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 35%);
+}
+
+.lost-sunrise { color: #e8952f; }
+
+.lost-warmth { cursor: pointer; }
+
+.lost-switch {
+    position: relative;
+    width: 40px;
+    height: 24px;
+    margin: 0;
+    border-radius: 12px;
+    background: var(--lost-track);
+    appearance: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.lost-switch::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 30%);
+    transition: transform 0.2s ease;
+}
+
+.lost-switch:checked { background: var(--blue); }
+.lost-switch:checked::after { transform: translateX(16px); }
+
+.page-404 .lost-status {
+    margin: 2px 18px 12px;
+    color: var(--lost-panel-muted);
+    font-size: 0.82rem;
+}
+
+.lost-section {
+    padding: 10px 8px;
+    border-top: 1px solid var(--lost-panel-line);
+}
+
+.lost-section h2,
+.page-404 .lost-section h2 {
+    margin: 2px 10px 6px;
+    color: var(--lost-panel-muted);
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0;
+}
+
+.lost-presets,
+.page-404 .lost-presets {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.page-404 .lost-presets li { margin: 0; }
+
+.page-404 main .lost-panel a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 34px;
+    padding: 0 10px;
+    border-radius: 7px;
+    color: var(--lost-panel-ink);
+    text-decoration: none;
+}
+
+.page-404 main .lost-panel a:hover {
+    background: var(--lost-hover);
+    text-decoration: none;
+}
+
+.lost-presets kbd {
+    color: var(--lost-panel-muted);
+    font: inherit;
+    font-size: 0.85rem;
+    letter-spacing: 0.06em;
+}
+
+.page-404 main .lost-panel .lost-button {
+    justify-content: center;
+    gap: 10px;
+    min-height: 40px;
+    border-radius: 999px;
+    background: var(--blue);
+    color: var(--button-text);
+    font-weight: 600;
+}
+
+.page-404 main .lost-panel .lost-button:hover { background: var(--blue-dark); }
+
+.lost-button svg { fill: currentColor; stroke: none; }
+
+.page-404 .lost-footer {
+    display: flex;
+    justify-content: space-between;
+}
+
+.page-404 main .lost-footer a {
+    justify-content: flex-start;
+    gap: 8px;
+    color: var(--lost-panel-muted);
+}
+
+/* Touch screens have no Control-Option shortcuts to press. */
+@media (hover: none) {
+    .lost-presets kbd { display: none; }
+}
+
+@media (max-width: 760px) {
+    .lost {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+
+    .lost-panel {
+        width: min(100%, 380px);
+        margin: 48px auto 0;
+    }
+
+    .lost-display { margin: 0 auto; }
+}
+
 /* Responsive */
 
 @media (max-width: 860px) {
