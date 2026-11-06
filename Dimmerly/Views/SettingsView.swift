@@ -249,7 +249,16 @@ func applyLaunchAtLoginChange(
 /// Uses a TabView to organize settings into logical groups following macOS HIG.
 struct SettingsView: View {
     static let paneWidth: CGFloat = 520
-    static let maxPaneHeight: CGFloat = 600
+    /// Panes taller than this scroll. A staged screenshot shows the whole pane instead, so the
+    /// capture never stops partway down the form.
+    static var maxPaneHeight: CGFloat {
+        #if DEBUG
+            if ScreenshotStage.isActive {
+                return 1200
+            }
+        #endif
+        return 600
+    }
 
     enum Tab: Hashable {
         case general, displays, schedule, shortcuts, about
