@@ -411,16 +411,23 @@ p { text-wrap: pretty; }
     .demo-toggle:hover { background: rgb(23 26 31 / 88%); }
 }
 
-/* images/image2.png is a 1040-pixel 2x Settings capture, shown at no more than
-   its 520-point width so Retina screens never upscale it. */
+/* images/image2.png is a 1040-pixel 2x capture of the whole Displays pane. It
+   is shown at up to 440 points, so Retina screens scale it down, never up. The
+   pane is tall, so the text beside it stays in view while it scrolls past. */
 .settings-showcase {
     display: grid;
     grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
     gap: 64px;
-    align-items: center;
+    align-items: start;
     padding-top: 76px;
     padding-bottom: 76px;
     border-top: 1px solid var(--line);
+}
+
+.settings-copy {
+    position: sticky;
+    top: 40px;
+    padding-top: 40px;
 }
 
 .settings-copy p {
@@ -432,7 +439,7 @@ p { text-wrap: pretty; }
 
 .settings-screenshot {
     display: block;
-    width: min(100%, 520px);
+    width: min(100%, 440px);
     height: auto;
     margin-inline: auto;
     filter: drop-shadow(0 18px 26px var(--panel-shadow));
@@ -451,6 +458,11 @@ p { text-wrap: pretty; }
         gap: 32px;
         padding-top: 48px;
         padding-bottom: 48px;
+    }
+
+    .settings-copy {
+        position: static;
+        padding-top: 0;
     }
 }
 
