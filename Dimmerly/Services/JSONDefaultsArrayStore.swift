@@ -58,7 +58,7 @@ struct JSONDefaultsArrayStore<Element: Codable & Identifiable> {
                 }
             } catch {
                 logger.error(
-                    "Stored \(key, privacy: .public) is unreadable: \(error.localizedDescription, privacy: .public)"
+                    "Stored \(key, privacy: .public) is unreadable: \(error.localizedDescription, privacy: .private)"
                 )
                 backUpUnreadable(data)
                 return values
@@ -90,7 +90,7 @@ struct JSONDefaultsArrayStore<Element: Codable & Identifiable> {
             logger.error(
                 """
                 Failed to encode \(elementsDescription, privacy: .public): \
-                \(error.localizedDescription, privacy: .public)
+                \(error.localizedDescription, privacy: .private)
                 """
             )
             return false

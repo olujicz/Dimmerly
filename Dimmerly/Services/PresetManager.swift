@@ -73,7 +73,7 @@ struct AppGroupWidgetPresetSynchronizer: WidgetPresetSynchronizing {
             reloadWidgets()
         } catch {
             presetManagerLogger.error(
-                "Failed to encode widget presets: \(error.localizedDescription, privacy: .public)"
+                "Failed to encode widget presets: \(error.localizedDescription, privacy: .private)"
             )
         }
     }

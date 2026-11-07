@@ -80,8 +80,8 @@ enum SharedConstants {
                 // failure that `UserDefaults(suiteName:)` may not even care about.
                 sharedConstantsLogger.error(
                     """
-                    Could not create app-group container at \(url.path, privacy: .public): \
-                    \(error.localizedDescription, privacy: .public)
+                    Could not create app-group container at \(url.path, privacy: .private): \
+                    \(error.localizedDescription, privacy: .private)
                     """
                 )
             }

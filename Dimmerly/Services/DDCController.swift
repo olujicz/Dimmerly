@@ -1099,7 +1099,9 @@
                         sleep: sleep
                     )
                     guard lastWriteResult.succeeded else {
-                        logger.debug("DDC write 0x\(vcpHex, privacy: .public) failed: \(lastWriteResult.last)")
+                        logger.debug(
+                            "DDC write 0x\(vcpHex, privacy: .public) failed: \(lastWriteResult.last, privacy: .public)"
+                        )
                         continue
                     }
 
@@ -1115,7 +1117,12 @@
                         register: DDCAppleSiliconReadContract.dataAddress
                     )
                     guard r == KERN_SUCCESS else {
-                        logger.debug("DDC read 0x\(vcpHex, privacy: .public) attempt \(attempt + 1) failed: \(r)")
+                        logger.debug(
+                            """
+                            DDC read 0x\(vcpHex, privacy: .public) attempt \(attempt + 1, privacy: .public) \
+                            failed: \(r, privacy: .public)
+                            """
+                        )
                         continue
                     }
 
