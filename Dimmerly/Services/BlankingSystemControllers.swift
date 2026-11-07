@@ -88,7 +88,11 @@ final class SystemBlankingWindowController: BlankingWindowControlling {
             }
             if let window = windows.values.first {
                 BlankingWindowPresentation.activateForLocalInputCapture(window) {
-                    NSApp.activate()
+                    // The idle timer and schedules blank without a click, so the frontmost
+                    // app has no reason to yield. A cooperative activate() could leave it
+                    // active, sending keystrokes to a hidden app and missing the wake key.
+                    // Take focus instead of requesting it.
+                    NSApp.activate(ignoringOtherApps: true)
                 }
             }
         #endif
