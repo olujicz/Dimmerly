@@ -138,6 +138,7 @@ struct PresetsSectionView: View {
         }
         .accessibilityLabel(Text("Apply \(preset.name)"))
         .accessibilityHint(Text("Applies saved brightness settings to all displays"))
+        .accessibilityAddTraits(selectedPresetID == preset.id ? .isSelected : [])
         .help(preset.name)
         .contextMenu {
             Button("Save Current Settings") {
@@ -189,11 +190,15 @@ struct PresetsSectionView: View {
         }
     }
 
+    /// The preset the panel was opened for (from Spotlight, Shortcuts or a widget) is tinted
+    /// and outlined, so it stands out by shape as well as by color. A checkmark would read as
+    /// "applied", which this preset isn't yet.
     @ViewBuilder
     private func presetRowBackground(for preset: BrightnessPreset) -> some View {
         if selectedPresetID == preset.id {
             RoundedRectangle(cornerRadius: 8)
                 .fill(.tint.opacity(0.20))
+                .strokeBorder(.tint, lineWidth: 1)
         } else {
             RoundedRectangle(cornerRadius: 8)
                 .fill(hoveredPresetID == preset.id ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.clear))
@@ -264,6 +269,5 @@ struct FooterLabel: View {
         )
         .contentShape(RoundedRectangle(cornerRadius: 8))
         .animation(reduceMotion ? nil : .spring(response: 0.2, dampingFraction: 0.8), value: isHovered)
-        .accessibilityAddTraits(.isButton)
     }
 }

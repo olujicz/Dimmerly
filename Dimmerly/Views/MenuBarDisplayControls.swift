@@ -168,6 +168,8 @@ private struct SliderSnapMarkerLayer: View {
     /// Normalised knob position, used only to skip the marker currently under the knob.
     let knobPosition: Double
 
+    @Environment(\.colorSchemeContrast) private var contrast
+
     var body: some View {
         GeometryReader { geometry in
             // The knob travels between its own centre points, so the usable track is inset
@@ -180,8 +182,9 @@ private struct SliderSnapMarkerLayer: View {
             ForEach(Array(positions.enumerated()), id: \.offset) { _, position in
                 Capsule()
                     // Primary rather than secondary: the tick has to stay legible against
-                    // both the filled and unfilled halves of the track.
-                    .fill(.primary.opacity(0.3))
+                    // both the filled and unfilled halves of the track. Increase Contrast
+                    // doubles its strength.
+                    .fill(.primary.opacity(contrast == .increased ? 0.6 : 0.3))
                     .frame(width: 1, height: 5)
                     .position(
                         x: knobRadius + trackWidth * position,
@@ -209,6 +212,28 @@ extension View {
     /// is faded here; fading a whole row with `.opacity` dimmed the controls twice.
     func dimmedWhenDisabled() -> some View {
         modifier(DisabledDecorationOpacity())
+    }
+}
+
+/// The 20x20 pt minimum click target macOS asks for, given to the 12 pt icon buttons in a
+/// display row without moving anything: the label fills the full target, and the button
+/// overhangs into the row's spacing by the same amount it grew, so layout still sees 12 pt
+/// and the icon columns stay aligned across rows.
+private enum IconButtonHitTarget {
+    static let size: CGFloat = 20
+    static let overhang: CGFloat = (size - 12) / 2
+}
+
+private extension View {
+    /// Applied to the label: makes the whole 20x20 pt square clickable.
+    func iconButtonHitTarget() -> some View {
+        frame(width: IconButtonHitTarget.size, height: IconButtonHitTarget.size)
+            .contentShape(Rectangle())
+    }
+
+    /// Applied to the button: returns the extra size to the row's spacing.
+    func iconButtonOverhang() -> some View {
+        padding(-IconButtonHitTarget.overhang)
     }
 }
 
@@ -339,6 +364,8 @@ extension DisplaySliderRow where Leading == DisplaySliderIcon {
 
 struct DisplayBrightnessRow: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
 
     let display: ExternalDisplay
     let isBlanked: Bool
@@ -435,13 +462,13 @@ struct DisplayBrightnessRow: View {
                     if hasNativeBacklight {
                         Image(systemName: "sun.max.fill")
                             .font(.caption2)
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(hardwareBadgeStyle)
                             .help("Native hardware brightness")
                             .accessibilityLabel(Text("Native hardware brightness"))
                     } else if hasDDC {
                         Image(systemName: "cable.connector.horizontal")
                             .font(.caption2)
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(hardwareBadgeStyle)
                             .help("Hardware control via DDC/CI")
                             .accessibilityLabel(Text("Hardware Control"))
                     }
@@ -462,8 +489,10 @@ struct DisplayBrightnessRow: View {
                         .symbolReplaceTransition(value: isBlanked)
                         .frame(width: 12)
                         .foregroundStyle(isBlanked ? .primary : .secondary)
+                        .iconButtonHitTarget()
                 }
                 .buttonStyle(.borderless)
+                .iconButtonOverhang()
                 .help(isBlanked ? Text("Restore display") : Text("Dim display"))
                 .accessibilityLabel(isBlanked ? Text("Restore display") : Text("Dim display"))
                 .accessibilityHint(
@@ -522,13 +551,7 @@ struct DisplayBrightnessRow: View {
                                 ),
                                 display.name
                             ),
-                            accessibilityValue: { value in String(
-                                format: NSLocalizedString(
-                                    "%dK",
-                                    comment: "Accessibility value: warmth in Kelvin"
-                                ),
-                                Int(GammaMath.kelvinForWarmth(value))
-                            ) },
+                            accessibilityValue: warmthAccessibilityValue(for:),
                             onChange: onWarmthChange
                         )
                         .tint(.orange)
@@ -536,22 +559,22 @@ struct DisplayBrightnessRow: View {
 
                     HStack {
                         Text(verbatim: "\(Int(GammaMath.kelvinForWarmth(warmthValue)))K")
-                            .font(.caption2)
+                            .font(.caption)
                             .foregroundStyle(.secondary)
                             .monospacedDigit()
 
                         if isAutoColorTemp {
                             Text("Auto")
-                                .font(.caption2)
+                                .font(.caption)
                                 .fontWeight(.semibold)
                                 .foregroundStyle(.primary)
                                 .padding(.horizontal, 5)
                                 .padding(.vertical, 1)
                                 .background {
-                                    Capsule().fill(.orange.opacity(0.16))
+                                    Capsule().fill(.orange.opacity(autoBadgeFillOpacity))
                                 }
                                 .overlay {
-                                    Capsule().stroke(.orange, lineWidth: 0.75)
+                                    Capsule().stroke(.orange, lineWidth: autoBadgeStrokeWidth)
                                 }
                                 .accessibilityHidden(true)
                         }
@@ -614,8 +637,10 @@ struct DisplayBrightnessRow: View {
                                         .font(.caption2)
                                         .frame(width: 12)
                                         .foregroundStyle(isMuted ? .red : .secondary)
+                                        .iconButtonHitTarget()
                                 }
                                 .buttonStyle(.borderless)
+                                .iconButtonOverhang()
                                 .help(isMuted ? "Unmute" : "Mute")
                                 .accessibilityLabel(isMuted ? Text("Unmute") : Text("Mute"))
                             } else {
@@ -746,6 +771,44 @@ struct DisplayBrightnessRow: View {
                     name: display.name
                 )).map { EntityIdentifier(for: DisplayEntity.self, identifier: $0) }
             )
+        )
+    }
+
+    /// The hardware-control badge is a hint, so it's quiet by default; Increase Contrast
+    /// lifts it one level so it still reads on the glass.
+    private var hardwareBadgeStyle: HierarchicalShapeStyle {
+        contrast == .increased ? .secondary : .tertiary
+    }
+
+    /// The Auto badge's tint is translucent, so it's dropped under Reduce Transparency and
+    /// Increase Contrast, where the outline and text carry the badge on their own.
+    private var autoBadgeFillOpacity: Double {
+        reduceTransparency || contrast == .increased ? 0 : 0.16
+    }
+
+    private var autoBadgeStrokeWidth: CGFloat {
+        contrast == .increased ? 1.5 : 0.75
+    }
+
+    /// The warmth slider's spoken value. While Auto Warmth sets the warmth, it says so: the
+    /// Auto badge beside the Kelvin label is hidden from VoiceOver.
+    private func warmthAccessibilityValue(for value: Double) -> String {
+        let kelvin = Int(GammaMath.kelvinForWarmth(value))
+        if isAutoColorTemp {
+            return String(
+                format: NSLocalizedString(
+                    "%dK, automatic",
+                    comment: "Accessibility value: warmth in Kelvin while Auto Warmth is setting it"
+                ),
+                kelvin
+            )
+        }
+        return String(
+            format: NSLocalizedString(
+                "%dK",
+                comment: "Accessibility value: warmth in Kelvin"
+            ),
+            kelvin
         )
     }
 }

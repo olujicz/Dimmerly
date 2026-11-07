@@ -253,8 +253,7 @@ struct MenuBarPanel: View {
     // MARK: - Sliders
 
     private var panelDivider: some View {
-        Divider()
-            .opacity(MenuBarPanelGlassStyle.separatorOpacity)
+        PanelDivider()
     }
 
     /// The rows live in their own view so slider-driven changes to `brightnessManager.displays`
@@ -404,6 +403,17 @@ private struct MenuBarDisplaySliders: View {
     }
 }
 
+/// A section separator softened to sit on the panel's glass. Increase Contrast restores the
+/// system's full-strength separator.
+private struct PanelDivider: View {
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    var body: some View {
+        Divider()
+            .opacity(contrast == .increased ? 1 : MenuBarPanelGlassStyle.separatorOpacity)
+    }
+}
+
 /// Auto Warmth switch and its next-transition status line.
 private struct MenuBarAutoWarmthToggle: View {
     @Environment(AppSettings.self) private var settings
@@ -412,25 +422,27 @@ private struct MenuBarAutoWarmthToggle: View {
     var body: some View {
         @Bindable var settings = settings
         return VStack(spacing: 2) {
-            HStack {
-                Image(systemName: "sun.horizon")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-                    .frame(width: 14)
-                Text("Auto Warmth")
-                    .font(.callout)
-                Spacer()
-                Toggle("", isOn: $settings.autoColorTempEnabled)
-                    .toggleStyle(.switch)
-                    .controlSize(.small)
-                    .labelsHidden()
-                    .accessibilityLabel(Text("Auto Warmth"))
+            // One labelled switch, so VoiceOver reads "Auto Warmth" once. The label's
+            // Spacer keeps the switch at the trailing edge.
+            Toggle(isOn: $settings.autoColorTempEnabled) {
+                HStack {
+                    Image(systemName: "sun.horizon")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                        .frame(width: 14)
+                        .accessibilityHidden(true)
+                    Text("Auto Warmth")
+                        .font(.callout)
+                    Spacer()
+                }
             }
+            .toggleStyle(.switch)
+            .controlSize(.small)
 
             if settings.autoColorTempEnabled {
                 HStack {
                     autoWarmthStatusText
-                        .font(.caption2)
+                        .font(.caption)
                         .foregroundStyle(.secondary)
                     Spacer()
                 }

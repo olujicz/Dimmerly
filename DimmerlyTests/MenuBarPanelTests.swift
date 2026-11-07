@@ -130,8 +130,8 @@ final class MenuBarPanelTests: XCTestCase {
         XCTAssertTrue(source.contains("Text(\"Auto\")"))
         XCTAssertTrue(source.contains(".fontWeight(.semibold)"))
         XCTAssertTrue(source.contains(".foregroundStyle(.primary)"))
-        XCTAssertTrue(source.contains("Capsule().fill(.orange.opacity(0.16))"))
-        XCTAssertTrue(source.contains("Capsule().stroke(.orange, lineWidth: 0.75)"))
+        XCTAssertTrue(source.contains("Capsule().fill(.orange.opacity(autoBadgeFillOpacity))"))
+        XCTAssertTrue(source.contains("Capsule().stroke(.orange, lineWidth: autoBadgeStrokeWidth)"))
     }
 
     @MainActor
@@ -1097,5 +1097,20 @@ final class HiddenStatusItemTests: XCTestCase {
 
         XCTAssertEqual(presentations, [nil])
         XCTAssertEqual(settingsOpened, 0)
+    }
+}
+
+extension MenuBarPanelTests {
+    func testAutoTemperatureBadgeAdaptsToContrastAndTransparencySettings() throws {
+        let sourceURL = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Dimmerly/Views/MenuBarDisplayControls.swift")
+        let source = try String(contentsOf: sourceURL, encoding: .utf8)
+
+        // The translucent tint drops out, and the outline thickens, for Reduce Transparency
+        // and Increase Contrast.
+        XCTAssertTrue(source.contains("reduceTransparency || contrast == .increased ? 0 : 0.16"))
+        XCTAssertTrue(source.contains("contrast == .increased ? 1.5 : 0.75"))
     }
 }
