@@ -18,7 +18,7 @@ Semantic Versioning.
 
 ### Fixed
 - A brightness, warmth or contrast change made just before quitting, logging out or updating is saved instead of lost.
-- Presets and schedules that can't be read are always kept aside. Before, a second unreadable payload could replace the first one, and the next save then lost it.
+- Presets and schedules that can't be read are always kept aside. Before, once one unreadable copy had been set aside, later unreadable data wasn't kept, and the next save lost it.
 - Opening Dimmerly from Finder or Spotlight while its menu bar icon is hidden, or behind the camera housing, opens Settings. Before, nothing happened. The widget, Open Brightness Preset and `dimmerly://open` do the same when the icon can't be reached.
 - On macOS 27, the menu bar icon is highlighted while a panel opened from Spotlight, Shortcuts or the widget is showing. Closing the panel from inside no longer clicks the menu bar icon.
 - A widget button whose request Dimmerly can't read reports the failure right away instead of after five seconds.
