@@ -28122,6 +28122,359 @@
           }
         }
       }
+    },
+    "Open Location Services Settings" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ortungsdienste-Einstellungen öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Location Services Settings"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir los ajustes de Localización"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir les réglages du Service de localisation"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri le impostazioni di Localizzazione"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "位置情報サービスの設定を開く"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "위치 서비스 설정 열기"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open instellingen voor Locatievoorzieningen"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir os ajustes de Serviços de Localização"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otvori podešavanja usluga lokacije"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开定位服务设置"
+          }
+        }
+      }
+    },
+    "Open Location Services in System Settings" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ortungsdienste in den Systemeinstellungen öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Location Services in System Settings"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir Localización en Ajustes del Sistema"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir Service de localisation dans Réglages Système"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri Localizzazione in Impostazioni di Sistema"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "システム設定で位置情報サービスを開く"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "시스템 설정에서 위치 서비스 열기"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Locatievoorzieningen in Systeeminstellingen"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir Serviços de Localização nos Ajustes do Sistema"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otvori usluge lokacije u Sistemskim podešavanjima"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在“系统设置”中打开定位服务"
+          }
+        }
+      }
+    },
+    "Location Services is turned off. Turn it on in System Settings > Privacy & Security > Location Services, or enter a location manually." : {
+      "comment" : "Settings: Location Services is off for the whole Mac; names the System Settings path",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Ortungsdienste sind deaktiviert. Aktiviere sie in Systemeinstellungen > Datenschutz & Sicherheit > Ortungsdienste oder gib einen Standort manuell ein."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Location Services is turned off. Turn it on in System Settings > Privacy & Security > Location Services, or enter a location manually."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Localización está desactivada. Actívala en Ajustes del Sistema > Privacidad y seguridad > Localización, o introduce una ubicación manualmente."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le Service de localisation est désactivé. Activez-le dans Réglages Système > Confidentialité et sécurité > Service de localisation, ou saisissez un lieu manuellement."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Localizzazione è disattivata. Attivala in Impostazioni di Sistema > Privacy e sicurezza > Localizzazione, oppure inserisci una posizione manualmente."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "位置情報サービスがオフになっています。システム設定 > プライバシーとセキュリティ > 位置情報サービスでオンにするか、位置を手動で入力してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "위치 서비스가 꺼져 있습니다. 시스템 설정 > 개인정보 보호 및 보안 > 위치 서비스에서 켜거나 위치를 직접 입력하세요."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Locatievoorzieningen staat uit. Zet het aan in Systeeminstellingen > Privacy en beveiliging > Locatievoorzieningen, of voer handmatig een locatie in."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Os Serviços de Localização estão desativados. Ative-os em Ajustes do Sistema > Privacidade e Segurança > Serviços de Localização ou insira uma localização manualmente."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usluge lokacije su isključene. Uključi ih u Sistemska podešavanja > Privatnost i bezbednost > Usluge lokacije ili ručno unesi lokaciju."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "定位服务已关闭。请在“系统设置 > 隐私与安全性 > 定位服务”中打开，或手动输入位置。"
+          }
+        }
+      }
+    },
+    "Dimmerly doesn’t have access to your location. Allow it in System Settings > Privacy & Security > Location Services, or enter a location manually." : {
+      "comment" : "Settings: location access was turned down; names the System Settings path",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly hat keinen Zugriff auf deinen Standort. Erlaube ihn in Systemeinstellungen > Datenschutz & Sicherheit > Ortungsdienste oder gib einen Standort manuell ein."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly doesn’t have access to your location. Allow it in System Settings > Privacy & Security > Location Services, or enter a location manually."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly no tiene acceso a tu ubicación. Permítelo en Ajustes del Sistema > Privacidad y seguridad > Localización, o introduce una ubicación manualmente."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly n’a pas accès à votre position. Autorisez-le dans Réglages Système > Confidentialité et sécurité > Service de localisation, ou saisissez un lieu manuellement."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly non ha accesso alla tua posizione. Consentilo in Impostazioni di Sistema > Privacy e sicurezza > Localizzazione, oppure inserisci una posizione manualmente."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly は位置情報にアクセスできません。システム設定 > プライバシーとセキュリティ > 位置情報サービスで許可するか、位置を手動で入力してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly가 위치에 접근할 수 없습니다. 시스템 설정 > 개인정보 보호 및 보안 > 위치 서비스에서 허용하거나 위치를 직접 입력하세요."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly heeft geen toegang tot je locatie. Sta het toe in Systeeminstellingen > Privacy en beveiliging > Locatievoorzieningen, of voer handmatig een locatie in."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Dimmerly não tem acesso à sua localização. Permita em Ajustes do Sistema > Privacidade e Segurança > Serviços de Localização ou insira uma localização manualmente."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly nema pristup tvojoj lokaciji. Dozvoli ga u Sistemska podešavanja > Privatnost i bezbednost > Usluge lokacije ili ručno unesi lokaciju."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly 无法访问你的位置。请在“系统设置 > 隐私与安全性 > 定位服务”中允许访问，或手动输入位置。"
+          }
+        }
+      }
+    },
+    "Location access is restricted on this Mac. Enter a location manually." : {
+      "comment" : "Settings: location access is blocked by a policy the person can't change",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Standortzugriff ist auf diesem Mac eingeschränkt. Gib einen Standort manuell ein."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Location access is restricted on this Mac. Enter a location manually."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El acceso a la ubicación está restringido en este Mac. Introduce una ubicación manualmente."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’accès à la position est restreint sur ce Mac. Saisissez un lieu manuellement."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’accesso alla posizione è limitato su questo Mac. Inserisci una posizione manualmente."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このMacでは位置情報へのアクセスが制限されています。位置を手動で入力してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 Mac에서는 위치 접근이 제한되어 있습니다. 위치를 직접 입력하세요."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Locatietoegang is beperkt op deze Mac. Voer handmatig een locatie in."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O acesso à localização está restrito neste Mac. Insira uma localização manualmente."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pristup lokaciji je ograničen na ovom Mac računaru. Ručno unesi lokaciju."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此 Mac 上的位置访问受到限制。请手动输入位置。"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

@@ -6,6 +6,7 @@
 //  and Color Temperature settings sections.
 //
 
+import AppKit
 import SwiftUI
 
 /// A self-contained row for picking or entering a location,
@@ -56,10 +57,71 @@ struct LocationPickerRow: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+
+            if let problem = locationProvider.accessProblem {
+                accessProblemRow(problem)
+            }
         }
         .sheet(isPresented: $showManualLocation) {
             ManualLocationSheet()
                 .environment(locationProvider)
+        }
+        // Re-check on return from System Settings rather than trusting the last answer.
+        .task { await locationProvider.refreshAccessProblem() }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            Task { await locationProvider.refreshAccessProblem() }
+        }
+    }
+
+    /// Says why "Use Current Location" didn't work and where to fix it. The text names the
+    /// System Settings path as well, in case the button's URL stops resolving in a later macOS.
+    private func accessProblemRow(_ problem: LocationAccessProblem) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Label {
+                Text(accessProblemMessage(problem))
+                    .fixedSize(horizontal: false, vertical: true)
+            } icon: {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+            }
+            .font(.caption)
+            .accessibilityElement(children: .combine)
+
+            // Restricted access is set by a policy the person can't change in System Settings.
+            if problem != .restricted {
+                ExternalLinkButton(
+                    title: Text("Open Location Services Settings"),
+                    help: Text("Open Location Services in System Settings"),
+                    action: { locationProvider.openLocationPrivacySettings() }
+                )
+                .font(.caption)
+            }
+        }
+    }
+
+    private func accessProblemMessage(_ problem: LocationAccessProblem) -> String {
+        switch problem {
+        case .servicesOff:
+            String(
+                localized: """
+                Location Services is turned off. Turn it on in System Settings > Privacy & Security > \
+                Location Services, or enter a location manually.
+                """,
+                comment: "Settings: Location Services is off for the whole Mac; names the System Settings path"
+            )
+        case .denied:
+            String(
+                localized: """
+                Dimmerly doesn’t have access to your location. Allow it in System Settings > \
+                Privacy & Security > Location Services, or enter a location manually.
+                """,
+                comment: "Settings: location access was turned down; names the System Settings path"
+            )
+        case .restricted:
+            String(
+                localized: "Location access is restricted on this Mac. Enter a location manually.",
+                comment: "Settings: location access is blocked by a policy the person can't change"
+            )
         }
     }
 

@@ -179,4 +179,115 @@ final class LocationProviderTests: XCTestCase {
 
         XCTAssertEqual(provider.authorizationStatus, .denied)
     }
+
+    // MARK: - Access problems
+
+    /// Waits for main-actor hops queued so far. Main-actor tasks run FIFO, so a hop
+    /// enqueued after them runs last.
+    private func settleMainActor() {
+        let settled = expectation(description: "main actor settled")
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(50))
+            settled.fulfill()
+        }
+        wait(for: [settled], timeout: 2.0)
+    }
+
+    func testAccessProblemReflectsServicesSwitchBeforeAuthorization() {
+        XCTAssertEqual(LocationAccessProblem.current(servicesEnabled: false, status: .authorizedAlways), .servicesOff)
+        XCTAssertEqual(LocationAccessProblem.current(servicesEnabled: false, status: .denied), .servicesOff)
+        XCTAssertEqual(LocationAccessProblem.current(servicesEnabled: true, status: .denied), .denied)
+        XCTAssertEqual(LocationAccessProblem.current(servicesEnabled: true, status: .restricted), .restricted)
+        XCTAssertNil(LocationAccessProblem.current(servicesEnabled: true, status: .notDetermined))
+        XCTAssertNil(LocationAccessProblem.current(servicesEnabled: true, status: .authorizedAlways))
+    }
+
+    func testRequestWithLocationServicesOffReportsIt() {
+        // `forTesting` keeps the system's own authorization callbacks out of the assertion.
+        let provider = LocationProvider(forTesting: true, defaults: testDefaults)
+        XCTAssertNil(provider.accessProblem, "Nothing is reported before anyone asks")
+
+        provider.requestLocation()
+        settleMainActor()
+
+        XCTAssertEqual(provider.accessProblem, .servicesOff)
+    }
+
+    func testDeniedPromptForPendingRequestIsReported() {
+        let provider = LocationProvider(forTesting: true, defaults: testDefaults)
+        provider.requestLocation()
+        settleMainActor()
+        // Stands in for a refresh that saw Location Services come back while the request waited.
+        provider.accessProblem = nil
+
+        provider.locationManager(CLLocationManager(), didFailWithError: CLError(.denied))
+        settleMainActor()
+
+        XCTAssertEqual(provider.accessProblem, .denied)
+    }
+
+    func testUnsolicitedDenialIsNotReported() {
+        let provider = LocationProvider(forTesting: true, defaults: testDefaults)
+
+        provider.locationManager(CLLocationManager(), didFailWithError: CLError(.denied))
+        provider.applyAuthorizationStatus(.denied)
+        settleMainActor()
+
+        XCTAssertNil(provider.accessProblem, "No request was waiting, so there is nothing to explain")
+    }
+
+    func testRefreshClearsProblemOnceAccessComesBack() async {
+        let provider = LocationProvider(
+            forTesting: true,
+            defaults: testDefaults,
+            locationServicesAvailable: { true }
+        )
+        provider.accessProblem = .servicesOff
+        provider.authorizationStatus = .notDetermined
+
+        await provider.refreshAccessProblem()
+
+        XCTAssertNil(provider.accessProblem)
+    }
+
+    func testRefreshKeepsProblemWhileStillDenied() async {
+        let provider = LocationProvider(
+            forTesting: true,
+            defaults: testDefaults,
+            locationServicesAvailable: { true }
+        )
+        provider.accessProblem = .denied
+        provider.authorizationStatus = .denied
+
+        await provider.refreshAccessProblem()
+        XCTAssertEqual(provider.accessProblem, .denied)
+    }
+
+    func testRefreshReportsLocationServicesTurnedOff() async {
+        let provider = LocationProvider(forTesting: true, defaults: testDefaults)
+        provider.accessProblem = .denied
+        provider.authorizationStatus = .denied
+
+        await provider.refreshAccessProblem()
+        XCTAssertEqual(provider.accessProblem, .servicesOff)
+    }
+
+    func testGrantedAuthorizationClearsDeniedProblem() {
+        let provider = LocationProvider(forTesting: true, defaults: testDefaults)
+        provider.accessProblem = .denied
+
+        provider.applyAuthorizationStatus(.authorizedAlways)
+        settleMainActor()
+
+        XCTAssertNil(provider.accessProblem)
+    }
+
+    func testManualLocationClearsProblem() {
+        let provider = LocationProvider(forTesting: true, defaults: testDefaults)
+        provider.accessProblem = .denied
+
+        provider.setManualLocation(latitude: 45.0, longitude: 20.0)
+
+        XCTAssertNil(provider.accessProblem)
+    }
 }
