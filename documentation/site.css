@@ -59,11 +59,28 @@ a {
     transition: color 0.15s ease;
 }
 
+/* Text wrapping, site-wide. Everything stays left-aligned and ragged right;
+   nothing is justified, because browsers hyphenate too unreliably to keep
+   justified lines from opening wide gaps between words.
+   - Headings, table labels, and centered captions are short, so balance
+     evens out their lines.
+   - Running text uses pretty, which keeps a lone word off the last line
+     and smooths the right edge.
+   - Long words and URLs may break rather than push past a narrow screen. */
+body { overflow-wrap: break-word; }
+
 h1,
 h2,
-h3 { text-wrap: balance; }
+h3,
+h4,
+th,
+.summary-item strong { text-wrap: balance; }
 
-p { text-wrap: pretty; }
+p,
+li,
+dd,
+td,
+figcaption { text-wrap: pretty; }
 
 .skip-link {
     position: absolute;
@@ -119,11 +136,17 @@ p { text-wrap: pretty; }
 .brand {
     display: inline-flex;
     align-items: center;
+    gap: 10px;
     min-height: 44px;
     color: var(--ink);
     font-size: 1rem;
     font-weight: 700;
     text-decoration: none;
+}
+
+.brand-icon {
+    width: 28px;
+    height: 28px;
 }
 
 .nav {
@@ -194,11 +217,15 @@ p { text-wrap: pretty; }
     justify-content: center;
     min-height: 48px;
     padding: 0 20px;
+    border: 0;
     border-radius: 8px;
     background: var(--blue);
     color: var(--button-text);
+    font-family: inherit;
+    font-size: 1rem;
     font-weight: 650;
     text-decoration: none;
+    cursor: pointer;
     transition: background-color 0.15s ease;
 }
 
@@ -266,172 +293,223 @@ p { text-wrap: pretty; }
 
 .hero {
     display: grid;
-    grid-template-columns: repeat(12, 1fr);
-    gap: 24px;
-    align-items: center;
-    min-height: 650px;
-    /* Short at the bottom, so the top of the demo below shows above the fold. */
-    padding: 78px 0 56px;
-}
-
-.hero-copy-block { grid-column: 1 / span 6; }
-
-.product-label {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin: 0 0 18px;
-    color: var(--blue-dark);
-    font-size: 0.92rem;
-    font-weight: 650;
-}
-
-.app-icon {
-    width: 48px;
-    height: 48px;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    gap: 28px 56px;
+    align-items: end;
+    padding: 56px 0 40px;
 }
 
 .page-home h1 {
-    max-width: 720px;
     margin: 0;
-    font-size: clamp(2.6rem, 5.2vw, 4.5rem);
+    font-size: clamp(2.5rem, 4.6vw, 4.1rem);
     font-weight: 720;
     line-height: 1.03;
-    letter-spacing: -0.035em;
+    letter-spacing: -0.032em;
 }
 
 .hero-description {
-    max-width: 580px;
-    margin: 24px 0 0;
+    max-width: 34rem;
+    margin: 0;
     color: var(--muted);
-    font-size: clamp(1.05rem, 1.7vw, 1.22rem);
+    font-size: 1.06rem;
 }
 
 .actions {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 16px;
-    margin-top: 30px;
+    gap: 12px 22px;
+    margin-top: 24px;
 }
 
+.hero-meta,
 .requirement {
     color: var(--muted);
     font-size: 0.88rem;
 }
 
-.product-figure {
-    grid-column: 8 / -1;
-    width: min(100%, 440px);
+.hero-meta { margin: 16px 0 0; }
+
+/* Set by site.js after a click on a download button. */
+.download-status:not(:empty) {
+    margin: 12px 0 0;
+    font-size: 0.9rem;
+}
+
+.download-status a { color: inherit; }
+
+/* Hero stage: the desk from the demo recording, with a working copy of the
+   menu bar panel. Each slider sets --external or --builtin on the figure, and
+   each screen dims the way software dimming does, with a dark layer over the
+   lit picture. The panel component itself (.mini-*) is shared with the 404
+   page. */
+.stage-section { padding-bottom: 104px; }
+
+.stage {
+    position: relative;
     margin: 0;
-    justify-self: end;
 }
 
-/* Hero: a working copy of the menu bar panel under two illustrated screens.
-   Each slider sets --external or --builtin on the figure, and each screen
-   dims the way software dimming does, with a dark layer over a lit picture.
-   The panel component itself (.mini-*) is shared with the 404 page. */
-.hero-desk { width: min(100%, 460px); }
-
-.desk {
+.stage-desk {
     position: relative;
-    aspect-ratio: 460 / 300;
-}
-
-.desk-monitor {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 76%;
-}
-
-.desk-laptop {
-    position: absolute;
-    right: 4%;
-    bottom: 0;
-    width: 44%;
-}
-
-.desk-screen {
-    position: relative;
-    aspect-ratio: 16 / 10;
     overflow: hidden;
-    border: 7px solid #1b1c1f;
-    border-radius: 10px;
-    background: linear-gradient(180deg, #9db9e0 0%, #d9d3d6 48%, #f2cfa8 70%, #c98f6e 100%);
-    box-shadow: 0 0 0 1px var(--line), 0 14px 30px var(--panel-shadow);
+    border-radius: 18px;
+    background: #eeece7;
+    box-shadow: 0 0 0 1px var(--line);
 }
 
-.desk-laptop .desk-screen {
-    border-width: 5px;
-    border-radius: 8px 8px 2px 2px;
+.stage-scene { position: relative; }
+
+.stage-desk img {
+    display: block;
+    width: 100%;
+    height: auto;
 }
 
-.desk-screen[data-screen="external"] { --level: var(--external); }
-.desk-screen[data-screen="builtin"] { --level: var(--builtin); }
+/* With the panel below the desk, the empty right side where it hangs on
+   wide screens is cropped away, so the displays are larger. The scene and
+   its screen layers scale together. */
+@media (max-width: 999px) {
+    .stage-scene { width: 128%; }
+}
 
-/* Warmth tints the picture; the dark layer on top stands in for gamma dimming. */
-.desk-screen::before,
-.desk-screen::after {
-    content: "";
+/* The screen rectangles of the 2560 x 1360 desk, from the demo compositor's
+   layout (scripts/demo/ComposeDemo.swift). The laptop stands in front of
+   the monitor, so the monitor's layers skip the corner the laptop covers. */
+.stage-screen {
     position: absolute;
-    inset: 0;
     pointer-events: none;
 }
 
-.desk-screen::before {
-    background: #ff9d4d;
+.stage-screen[data-screen="external"] {
+    --level: var(--external);
+    left: 7.539%;
+    top: 22.059%;
+    width: 43.75%;
+    height: 46.324%;
+    /* The cut-out's corner follows the laptop's rounded corner. */
+    clip-path: polygon(-1px -1px, calc(100% + 1px) -1px, calc(100% + 1px) 89.05%, 85.89% 89.05%, 83.75% 92.86%, 83.75% calc(100% + 1px), -1px calc(100% + 1px));
+}
+
+.stage-screen[data-screen="builtin"] {
+    --level: var(--builtin);
+    left: 44.922%;
+    top: 64.706%;
+    width: 25%;
+    height: 29.412%;
+}
+
+/* Warmth tints the picture; the dark layer on top stands in for gamma dimming.
+   Both reach a pixel into the bezel, so no lit seam shows at the glass edge. */
+.stage-screen::before,
+.stage-screen::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+}
+
+.stage-screen::before {
+    background: #ffa257;
     mix-blend-mode: multiply;
     opacity: 0;
-    transition: opacity 0.4s ease;
+    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.hero-desk:has(.mini-switch:checked) .desk-screen::before { opacity: 0.38; }
+.stage:has(.mini-switch:checked) .stage-screen::before { opacity: 0.34; }
 
-.desk-screen::after {
+.stage-screen::after {
     background: #050506;
-    opacity: calc((1 - var(--level)) * 0.9);
-    transition: opacity 0.08s linear;
+    /* Gamma dimming scales the encoded colour, like black at this opacity. */
+    opacity: calc(1 - var(--level));
 }
 
-/* A preset glides the screens to their new levels; dragging stays direct. */
-.hero-desk.is-gliding .desk-screen::after { transition: opacity 0.5s ease-out; }
-
-.desk-stand {
-    width: 20%;
-    height: 30px;
-    margin: 0 auto;
-    background: linear-gradient(#2a2b2f, #1b1c1f);
-    clip-path: polygon(20% 0, 80% 0, 100% 100%, 0 100%);
+.stage-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin: 22px 0 0;
+    color: var(--ink);
+    font-size: 0.95rem;
+    font-weight: 600;
 }
 
-.desk-base {
-    height: 8px;
-    margin: 0 -8%;
-    border-radius: 0 0 8px 8px;
-    background: linear-gradient(#c9c9cc, #9a9a9f);
-    box-shadow: 0 10px 20px var(--panel-shadow);
+.stage-hint svg {
+    display: none;
+    width: 40px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 
-.hero-desk .mini-panel {
+.stage .mini-panel {
     position: relative;
     z-index: 1;
-    width: min(100%, 300px);
-    margin: 14px 0 0;
+    width: min(100%, 360px);
+    margin: 16px auto 0;
 }
 
-.hero-desk-caption {
-    margin-top: 14px;
-    text-wrap: pretty;
+.stage-caption {
+    margin-top: 18px;
     color: var(--muted);
     font-size: 13px;
+    text-align: center;
+    text-wrap: balance;
+}
+
+/* Wide enough to hang the panel from the menu bar, under the Dimmerly icon
+   at 86.33% across the desk, as macOS places it. The panel shifts left
+   rather than run off the edge. */
+@media (min-width: 1000px) {
+    .stage {
+        --panel-width: 280px;
+        --panel-left: min(calc(86.33% - var(--panel-width) / 2), calc(100% - var(--panel-width) - 8px));
+    }
+
+    .stage .mini-panel {
+        position: absolute;
+        top: 4.6%;
+        left: var(--panel-left);
+        width: var(--panel-width);
+        margin: 0;
+    }
+
+    .stage-hint {
+        position: absolute;
+        top: 9.5%;
+        right: calc(100% - var(--panel-left) + 18px);
+        margin: 0;
+    }
+
+    .stage-hint svg { display: block; }
+}
+
+@media (prefers-color-scheme: dark) {
+    .stage-desk { background: #1e232b; }
 }
 
 /* The demo loop. It is a 1280x800 scene with its own captions, so it takes the
    full container width; narrower, the panel's text in it gets too small. The
    frame's background matches each video's backdrop, so nothing flashes before
    the poster loads, and its border holds the darker page edge in dark mode. */
-.demo { padding-bottom: 76px; }
+.demo { padding-bottom: 104px; }
+
+.demo-heading {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    gap: 18px 56px;
+    align-items: end;
+    margin-bottom: 36px;
+}
+
+.demo-heading p {
+    max-width: 30rem;
+    margin: 0;
+    color: var(--muted);
+}
 
 .demo-figure { margin: 0; }
 
@@ -475,6 +553,7 @@ p { text-wrap: pretty; }
     color: var(--muted);
     font-size: 13px;
     text-align: center;
+    text-wrap: balance;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -528,6 +607,7 @@ p { text-wrap: pretty; }
     color: var(--muted);
     font-size: 13px;
     text-align: center;
+    text-wrap: balance;
 }
 
 @media (max-width: 700px) {
@@ -546,29 +626,26 @@ p { text-wrap: pretty; }
 
 .install {
     display: grid;
-    grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
-    gap: 40px;
-    align-items: center;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 48px 64px;
     margin-bottom: 76px;
-    padding: 34px 38px;
-    /* The border keeps the block's shape readable in dark mode, where the
-       console background sits close to the page background. */
+    padding: 44px 48px;
+    /* The border keeps the block's shape readable in dark mode. */
     border: 1px solid var(--console-line);
+    border-radius: 18px;
     background: var(--console);
     color: var(--console-ink);
+    scroll-margin-top: 24px;
 }
 
 .page-home h2 {
     margin: 0;
     font-size: clamp(1.9rem, 3.7vw, 3rem);
     line-height: 1.08;
-    letter-spacing: -0.036em;
+    letter-spacing: -0.032em;
 }
 
-.page-home .install h2 {
-    max-width: 360px;
-    font-size: clamp(1.45rem, 2.8vw, 2.2rem);
-}
+.page-home .install h2 { font-size: clamp(1.7rem, 3.2vw, 2.6rem); }
 
 .install-note {
     max-width: 380px;
@@ -585,19 +662,119 @@ p { text-wrap: pretty; }
     margin-top: 24px;
 }
 
-.install-actions .requirement { color: var(--console-text); }
+.install .requirement,
+.install .download-status { color: var(--console-text); }
 
-.install .code-block { max-width: none; }
+.install .text-link { color: var(--console-ink); }
+
+.install .code-block {
+    max-width: none;
+    margin-top: 28px;
+}
 
 .install .code-block pre {
-    padding: 20px 0 20px 28px;
-    border-left: 1px solid var(--console-line);
+    padding: 18px 0 0;
+    border-top: 1px solid var(--console-line);
     background: transparent;
 }
 
 .install .copy-button {
-    top: 12px;
+    top: 14px;
     right: 0;
+}
+
+.install-steps {
+    padding-left: 64px;
+    border-left: 1px solid var(--console-line);
+}
+
+.install-steps h3 {
+    margin: 6px 0 20px;
+    font-size: 1.15rem;
+    letter-spacing: -0.01em;
+    scroll-margin-top: 24px;
+}
+
+.steps {
+    margin: 0;
+    padding: 0;
+    counter-reset: step;
+    list-style: none;
+}
+
+.steps li {
+    position: relative;
+    margin: 0 0 18px;
+    padding-left: 44px;
+    color: var(--console-text);
+    font-size: 0.95rem;
+    counter-increment: step;
+}
+
+.steps li::before {
+    content: counter(step);
+    position: absolute;
+    top: -1px;
+    left: 0;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--console-line);
+    border-radius: 50%;
+    color: var(--console-ink);
+    font-size: 0.85rem;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+}
+
+.steps strong,
+.install-updates strong {
+    display: block;
+    color: var(--console-ink);
+    font-weight: 650;
+}
+
+.install-steps a {
+    color: var(--console-ink);
+    text-decoration-thickness: 1px;
+    text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+    text-underline-offset: 3px;
+}
+
+.menu-icon {
+    display: inline-block;
+    width: 1.05em;
+    height: 1.05em;
+    vertical-align: -0.16em;
+    color: var(--console-ink);
+}
+
+.menu-icon circle { fill: currentColor; }
+
+.menu-icon path {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.6;
+    stroke-linecap: round;
+}
+
+.install-updates {
+    margin: 24px 0 0;
+    padding-top: 20px;
+    border-top: 1px solid var(--console-line);
+    color: var(--console-text);
+    font-size: 0.9rem;
+}
+
+.install code {
+    font: 0.86em ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: var(--console-ink);
+}
+
+@media (prefers-color-scheme: dark) {
+    /* A step lighter than the page, so the block reads as a surface. */
+    .install { background: #202226; }
 }
 
 .benefits {
@@ -622,15 +799,10 @@ p { text-wrap: pretty; }
 
 .benefit {
     display: grid;
-    grid-template-columns: 44px minmax(150px, 0.75fr) minmax(220px, 1.25fr);
-    gap: 20px;
+    grid-template-columns: minmax(150px, 0.75fr) minmax(220px, 1.25fr);
+    gap: 20px 32px;
     padding: 25px 0;
     border-bottom: 1px solid var(--line);
-}
-
-.benefit-number {
-    color: var(--blue-dark);
-    font: 0.78rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 .benefit h3,
@@ -706,13 +878,12 @@ p { text-wrap: pretty; }
     display: grid;
     grid-template-columns: 1fr 2fr auto;
     gap: 32px;
-    align-items: center;
-    padding: 38px 0;
+    align-items: start;
+    margin-bottom: 76px;
+    padding: 40px 0;
     border-top: 1px solid var(--line);
     border-bottom: 1px solid var(--line);
 }
-
-.trust + .trust { border-top: 0; }
 
 .page-home .trust h2 { font-size: clamp(1.5rem, 2.8vw, 2.2rem); }
 
@@ -721,6 +892,18 @@ p { text-wrap: pretty; }
     margin: 0;
     color: var(--muted);
     font-size: 0.95rem;
+}
+
+.trust .trust-version {
+    margin-top: 12px;
+    color: var(--ink);
+}
+
+.trust-links {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
 }
 
 /* Guide pages */
@@ -806,7 +989,11 @@ p { text-wrap: pretty; }
 
 .guide-section:last-child { padding-bottom: 0; }
 
-.guide-section + .guide-section { border-top: 1px solid var(--line); }
+/* The rule between sections is as wide as the text, so lines and text end
+   together; tables still take the full width. */
+.guide-section + .guide-section {
+    background: linear-gradient(var(--line), var(--line)) top left / min(100%, var(--measure)) 1px no-repeat;
+}
 
 .guide-section h2 {
     margin: 0 0 16px;
@@ -826,7 +1013,6 @@ p { text-wrap: pretty; }
     max-width: var(--measure);
     margin: 0 0 14px;
     font-size: 1rem;
-    text-wrap: pretty;
 }
 
 .guide-section ul,
@@ -856,6 +1042,12 @@ p { text-wrap: pretty; }
 .comparison-wrap {
     overflow-x: auto;
     margin-top: 24px;
+    /* A shadow at the right edge while there is more table to scroll to.
+       The paper-coloured cover scrolls with the content and hides the shadow
+       once the end is reached. */
+    background:
+        linear-gradient(to left, var(--paper) 30%, transparent) right / 32px 100% no-repeat local,
+        radial-gradient(farthest-side at 100% 50%, rgb(0 0 0 / 22%), transparent) right / 14px 100% no-repeat scroll;
 }
 
 .comparison {
@@ -961,7 +1153,6 @@ p { text-wrap: pretty; }
     max-width: var(--measure);
     margin: 0 0 12px;
     font-size: 1rem;
-    text-wrap: pretty;
 }
 
 .page-doc ul,
@@ -1187,6 +1378,8 @@ p { text-wrap: pretty; }
 
 .mini-sun-small { transform: scale(0.85); }
 
+/* --fill runs from 0 at the slider's minimum to 1 at its maximum. Like the
+   app, the sliders stop at 10%. */
 .mini-slider input {
     flex: 1;
     min-width: 0;
@@ -1200,13 +1393,13 @@ p { text-wrap: pretty; }
 .mini-slider input::-webkit-slider-runnable-track {
     height: 5px;
     border-radius: 3px;
-    background: linear-gradient(to right, var(--blue) calc(var(--level) * 100%), var(--mini-track) 0);
+    background: linear-gradient(to right, var(--blue) calc(var(--fill) * 100%), var(--mini-track) 0);
 }
 
 .mini-slider input::-moz-range-track {
     height: 5px;
     border-radius: 3px;
-    background: linear-gradient(to right, var(--blue) calc(var(--level) * 100%), var(--mini-track) 0);
+    background: linear-gradient(to right, var(--blue) calc(var(--fill) * 100%), var(--mini-track) 0);
 }
 
 .mini-slider input::-webkit-slider-thumb {
@@ -1216,7 +1409,8 @@ p { text-wrap: pretty; }
     border: 0;
     border-radius: 8px;
     background: #fff;
-    box-shadow: 0 1px 3px rgb(0 0 0 / 35%);
+    /* The ring keeps the white thumb visible on the light panel. */
+    box-shadow: 0 0 0 0.5px rgb(0 0 0 / 30%), 0 1px 3px rgb(0 0 0 / 35%);
     appearance: none;
 }
 
@@ -1226,7 +1420,7 @@ p { text-wrap: pretty; }
     border: 0;
     border-radius: 8px;
     background: #fff;
-    box-shadow: 0 1px 3px rgb(0 0 0 / 35%);
+    box-shadow: 0 0 0 0.5px rgb(0 0 0 / 30%), 0 1px 3px rgb(0 0 0 / 35%);
 }
 
 .mini-sunrise { color: #e8952f; }
@@ -1314,6 +1508,17 @@ p { text-wrap: pretty; }
 .mini-preset:hover:not(:disabled) { background: var(--mini-hover); }
 .mini-preset:disabled { cursor: default; }
 
+/* The applied preset shows a checkmark, as in the app. */
+.mini-check {
+    margin-left: auto;
+    color: var(--blue);
+    visibility: hidden;
+}
+
+.mini-panel .mini-check { stroke-width: 1.8; }
+
+.mini-preset[aria-pressed="true"]:not(:disabled) .mini-check { visibility: visible; }
+
 .page-404 main .mini-panel a {
     display: flex;
     align-items: center;
@@ -1362,9 +1567,16 @@ p { text-wrap: pretty; }
     color: var(--mini-panel-muted);
 }
 
-/* Touch screens have no Control-Option shortcuts to press. */
+/* Touch screens have no Control-Option shortcuts to press, and fingers need
+   bigger targets than the app's pointer-sized rows. */
 @media (hover: none) {
     .mini-presets kbd { display: none; }
+}
+
+@media (pointer: coarse) {
+    .mini-slider input { height: 44px; }
+    .mini-preset,
+    .page-404 main .mini-panel a { min-height: 44px; }
 }
 
 @media (max-width: 760px) {
@@ -1375,7 +1587,7 @@ p { text-wrap: pretty; }
 
     .page-404 .tagline { margin-bottom: 28px; }
 
-    .mini-panel {
+    .page-404 .mini-panel {
         width: min(100%, 380px);
         margin: 32px auto 0;
     }
@@ -1391,15 +1603,22 @@ p { text-wrap: pretty; }
 /* Responsive */
 
 @media (max-width: 860px) {
-    .hero-copy-block { grid-column: 1 / span 7; }
-    .product-figure { grid-column: 8 / -1; }
+    .hero,
+    .demo-heading { grid-template-columns: minmax(0, 1fr); }
     .benefits-heading { grid-column: 1 / span 5; }
     .benefit-list { grid-column: 6 / -1; }
-    .benefit { grid-template-columns: 34px 1fr; }
-    .benefit p { grid-column: 2; }
+    .benefit { grid-template-columns: 1fr; gap: 6px; }
     .guides { grid-template-columns: 1fr 2fr; }
     .trust { grid-template-columns: 1fr 2fr; }
-    .trust .text-link { grid-column: 2; }
+    .trust-links { grid-column: 2; }
+
+    .install { grid-template-columns: minmax(0, 1fr); }
+
+    .install-steps {
+        padding: 36px 0 0;
+        border-top: 1px solid var(--console-line);
+        border-left: 0;
+    }
 }
 
 @media (max-width: 700px) {
@@ -1419,18 +1638,10 @@ p { text-wrap: pretty; }
         gap: 2px 18px;
     }
 
-    .hero {
-        display: block;
-        min-height: auto;
-        padding: 60px 0 48px;
-    }
-
-    .product-figure {
-        width: min(100%, 380px);
-        margin: 54px auto 0;
-    }
-
-    .demo { padding-bottom: 56px; }
+    .hero { padding: 44px 0 32px; }
+    .stage-section { padding-bottom: 72px; }
+    .stage-desk { border-radius: 12px; }
+    .demo { padding-bottom: 72px; }
     .demo-frame { border-radius: 12px; }
 
     .demo-toggle {
@@ -1442,22 +1653,13 @@ p { text-wrap: pretty; }
     }
 
     .install {
-        grid-template-columns: 1fr;
-        gap: 24px;
+        gap: 28px;
         margin-bottom: 56px;
-        padding: 28px 24px;
+        padding: 28px 22px;
+        border-radius: 14px;
     }
 
-    .install .code-block pre {
-        padding: 20px 0 0;
-        border-top: 1px solid var(--console-line);
-        border-left: 0;
-    }
-
-    .install .copy-button {
-        top: 12px;
-        right: 0;
-    }
+    .install-steps { padding-top: 28px; }
 
     /* Room under the copy button so it never sits on the first command. */
     .install .code-block pre { padding-top: 56px; }
@@ -1482,7 +1684,7 @@ p { text-wrap: pretty; }
         gap: 16px;
     }
 
-    .trust .text-link { grid-column: 1; }
+    .trust-links { grid-column: 1; }
     .footer { flex-direction: column; }
 
     .guide-main { padding-top: 52px; }

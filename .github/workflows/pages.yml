@@ -65,6 +65,10 @@ jobs:
           cp images/demo/dimmerly-demo-dark.mp4 build/pages/assets/dimmerly-demo-dark.mp4
           cp images/demo/dimmerly-demo-light-poster.jpg build/pages/assets/dimmerly-demo-light-poster.jpg
           cp images/demo/dimmerly-demo-dark-poster.jpg build/pages/assets/dimmerly-demo-dark-poster.jpg
+          cp images/demo/dimmerly-desk-light-1280.jpg build/pages/assets/dimmerly-desk-light-1280.jpg
+          cp images/demo/dimmerly-desk-light-2320.jpg build/pages/assets/dimmerly-desk-light-2320.jpg
+          cp images/demo/dimmerly-desk-dark-1280.jpg build/pages/assets/dimmerly-desk-dark-1280.jpg
+          cp images/demo/dimmerly-desk-dark-2320.jpg build/pages/assets/dimmerly-desk-dark-2320.jpg
           cp IconComposerLayers/AppIcon-IconComposer/rendered/icon_128x128@2x.png build/pages/assets/dimmerly-icon.png
           touch build/pages/.nojekyll
 
@@ -126,6 +130,10 @@ jobs:
           test -s build/pages/assets/dimmerly-demo-dark.mp4
           test -s build/pages/assets/dimmerly-demo-light-poster.jpg
           test -s build/pages/assets/dimmerly-demo-dark-poster.jpg
+          test -s build/pages/assets/dimmerly-desk-light-1280.jpg
+          test -s build/pages/assets/dimmerly-desk-light-2320.jpg
+          test -s build/pages/assets/dimmerly-desk-dark-1280.jpg
+          test -s build/pages/assets/dimmerly-desk-dark-2320.jpg
           test -s build/pages/assets/dimmerly-icon.png
           for page in build/pages/*.html; do
             test "$(grep -c 'https://static.cloudflareinsights.com/beacon.min.js' "$page")" -eq 1

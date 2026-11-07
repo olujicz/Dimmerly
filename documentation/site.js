@@ -2,6 +2,13 @@
 // does not support custom events. The data-analytics-event attributes in the
 // markup stay reserved for a future event-capable analytics integration.
 //
+// How far along its track a range input's thumb sits, from 0 to 1. The panel
+// copies stop at 10% like the app, so this isn't the value divided by 100.
+function sliderFill(slider) {
+    var min = Number(slider.min);
+    return (Number(slider.value) - min) / (Number(slider.max) - min);
+}
+
 // Adds a copy button to each code block. The button is created here rather
 // than in the markup so pages without JavaScript never show a dead control.
 (function () {
@@ -191,6 +198,7 @@
     function update() {
         var level = Number(slider.value);
         page.style.setProperty("--level", String(level / 100));
+        slider.style.setProperty("--fill", String(sliderFill(slider)));
         value.textContent = level + "%";
         slider.setAttribute("aria-valuetext", level + "%");
 
@@ -224,9 +232,12 @@
     });
 })();
 
-// Home page hero: a working copy of the menu bar panel. Each slider dims its
-// own illustrated screen, and the presets set both screens and Auto Warmth at
-// once. Without JavaScript the sliders and presets stay disabled.
+// Home page hero: a working copy of the menu bar panel over the desk from the
+// demo recording. Each slider dims its own screen, and the presets set both
+// screens and Auto Warmth at once, gliding the sliders the way the app does.
+// The first time the desk comes into view it glides to Evening by itself,
+// unless the visitor has already touched the panel or asks for reduced motion.
+// Without JavaScript the sliders and presets stay disabled.
 (function () {
     "use strict";
 
@@ -236,39 +247,176 @@
     }
 
     var sliders = desk.querySelectorAll("[data-desk-slider]");
+    var presets = desk.querySelectorAll("[data-preset]");
     var warmth = desk.querySelector("[data-desk-warmth]");
     var status = desk.querySelector("[data-desk-status]");
+    var reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");
+    var touched = false;
+    var frame;
 
     function show(slider) {
         var name = slider.getAttribute("data-desk-slider");
         var level = Number(slider.value);
         desk.style.setProperty("--" + name, String(level / 100));
-        slider.style.setProperty("--level", String(level / 100));
+        slider.style.setProperty("--fill", String(sliderFill(slider)));
         slider.setAttribute("aria-valuetext", level + "%");
         desk.querySelector('[data-desk-value="' + name + '"]').textContent = level + "%";
+    }
+
+    // Marks the applied preset; null clears the mark after a manual change.
+    function select(applied) {
+        Array.prototype.forEach.call(presets, function (button) {
+            button.setAttribute("aria-pressed", String(button === applied));
+        });
+    }
+
+    function glide(targets, duration) {
+        window.cancelAnimationFrame(frame);
+        var from = Array.prototype.map.call(sliders, function (slider) {
+            return Number(slider.value);
+        });
+        function set(progress) {
+            Array.prototype.forEach.call(sliders, function (slider, index) {
+                slider.value = Math.round(from[index] + (targets[index] - from[index]) * progress);
+                show(slider);
+            });
+        }
+        if (reducedMotion && reducedMotion.matches) {
+            set(1);
+            return;
+        }
+        var start;
+        function step(now) {
+            start = start || now;
+            var t = Math.min((now - start) / duration, 1);
+            // Exponential ease-out: quick to respond, slow to settle.
+            set(t === 1 ? 1 : 1 - Math.pow(2, -10 * t));
+            if (t < 1) {
+                frame = window.requestAnimationFrame(step);
+            }
+        }
+        frame = window.requestAnimationFrame(step);
+    }
+
+    // data-preset is "external builtin warmth", for example "70 60 on".
+    function apply(button, duration) {
+        var values = button.getAttribute("data-preset").split(" ");
+        glide([Number(values[0]), Number(values[1])], duration);
+        warmth.checked = values[2] === "on";
+        select(button);
     }
 
     Array.prototype.forEach.call(sliders, function (slider) {
         slider.disabled = false;
         slider.addEventListener("input", function () {
-            desk.classList.remove("is-gliding");
+            touched = true;
+            window.cancelAnimationFrame(frame);
+            select(null);
             show(slider);
         });
         show(slider);
     });
 
-    Array.prototype.forEach.call(desk.querySelectorAll("[data-preset]"), function (button) {
+    warmth.addEventListener("change", function () {
+        touched = true;
+        select(null);
+    });
+
+    Array.prototype.forEach.call(presets, function (button) {
         button.disabled = false;
         button.addEventListener("click", function () {
-            // "external builtin warmth", for example "70 60 on".
-            var values = button.getAttribute("data-preset").split(" ");
-            desk.classList.add("is-gliding");
-            Array.prototype.forEach.call(sliders, function (slider, index) {
-                slider.value = values[index];
-                show(slider);
-            });
-            warmth.checked = values[2] === "on";
+            touched = true;
+            apply(button, 700);
             status.textContent = button.textContent + " applied.";
+        });
+    });
+
+    if ((reducedMotion && reducedMotion.matches) || !("IntersectionObserver" in window)) {
+        return;
+    }
+    var evening = desk.querySelector('[data-preset="70 60 on"]');
+    var observer = new IntersectionObserver(function (entries) {
+        if (!entries[0].isIntersecting) {
+            return;
+        }
+        observer.disconnect();
+        window.setTimeout(function () {
+            if (!touched) {
+                apply(evening, 1800);
+            }
+        }, 900);
+    }, { threshold: 0.6 });
+    observer.observe(desk.querySelector(".stage-desk"));
+})();
+
+// Download buttons. A phone or tablet can't run a Mac app, so there the first
+// action sends this page to a Mac (the share sheet offers AirDrop, Messages,
+// and Mail) and the DMG link steps back to a text link. On a Mac, a click that
+// starts the DMG download says what to do next, because the browser's own
+// download indicator doesn't.
+(function () {
+    "use strict";
+
+    var groups = document.querySelectorAll("[data-download]");
+    if (!groups.length || !window.matchMedia) {
+        return;
+    }
+
+    var handheld = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+    var canonical = document.querySelector('link[rel="canonical"]');
+    var pageURL = canonical ? canonical.href : window.location.href;
+
+    Array.prototype.forEach.call(groups, function (group) {
+        var link = group.querySelector(".button");
+        var status = document.createElement("p");
+        status.className = "download-status";
+        status.setAttribute("role", "status");
+        group.parentNode.insertBefore(status, group.nextSibling);
+
+        if (handheld && (navigator.share || navigator.clipboard)) {
+            var send = document.createElement("button");
+            send.type = "button";
+            send.className = "button";
+            send.textContent = "Send to your Mac";
+            send.addEventListener("click", function () {
+                if (navigator.share) {
+                    navigator.share({ title: "Dimmerly for macOS", url: pageURL }).catch(function () {});
+                    return;
+                }
+                navigator.clipboard.writeText(pageURL).then(
+                    function () {
+                        status.textContent = "Link copied. Open it on your Mac to download Dimmerly.";
+                    },
+                    function () {
+                        status.textContent = "Open " + pageURL + " on your Mac to download Dimmerly.";
+                    }
+                );
+            });
+            link.className = "text-link";
+            link.textContent = "Or download the DMG";
+            group.insertBefore(send, link);
+            // The hero's "After you download" link gives way; the steps are
+            // still below for anyone reading on a phone.
+            var after = group.querySelector('a[href="#download-steps"]');
+            if (after) {
+                after.remove();
+            }
+            return;
+        }
+
+        link.addEventListener("click", function () {
+            // Locally and before a release has its DMG, the button opens the
+            // release page instead, which needs no follow-up.
+            if (!/\.dmg$/.test(link.href)) {
+                return;
+            }
+            status.textContent = "Downloading Dimmerly. Next, open the DMG and drag Dimmerly to Applications. ";
+            if (group.getAttribute("data-download") !== "install") {
+                var steps = document.createElement("a");
+                steps.href = "#download-steps";
+                steps.textContent = "All the steps";
+                status.appendChild(steps);
+            }
         });
     });
 })();
