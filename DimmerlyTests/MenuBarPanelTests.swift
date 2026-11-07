@@ -1031,6 +1031,24 @@ final class HiddenStatusItemTests: XCTestCase {
             screens: [screen]
         ))
         XCTAssertFalse(StatusItemReachability.isReachable(isVisible: true, buttonFrame: onScreen, screens: []))
+        XCTAssertFalse(StatusItemReachability.isReachable(
+            isVisible: true,
+            buttonFrame: NSRect(x: 1500, y: 1300, width: 30, height: 24),
+            screens: [screen]
+        ))
+    }
+
+    /// An automatically hidden menu bar sits just above the screen's top edge, and the item in
+    /// it is still one pointer move away.
+    @MainActor
+    func testStatusItemInAnAutomaticallyHiddenMenuBarIsReachable() {
+        let screen = StatusItemReachability.Screen(frame: NSRect(x: 0, y: 0, width: 1920, height: 1080))
+
+        XCTAssertTrue(StatusItemReachability.isReachable(
+            isVisible: true,
+            buttonFrame: NSRect(x: 1500, y: 1080, width: 30, height: 24),
+            screens: [screen]
+        ))
     }
 
     @MainActor

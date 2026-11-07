@@ -227,11 +227,18 @@ enum StatusItemReachability {
     }
 
     /// The item is reachable when it's shown, its centre is on a screen, and it isn't behind
-    /// that screen's camera housing.
+    /// that screen's camera housing. An automatically hidden menu bar (a setting, or a
+    /// full-screen Space) slides just above the top edge and comes back when the pointer
+    /// reaches it, so an item directly above a screen counts as on that screen.
     static func isReachable(isVisible: Bool, buttonFrame: NSRect, screens: [Screen]) -> Bool {
         guard isVisible, !buttonFrame.isEmpty else { return false }
         let center = NSPoint(x: buttonFrame.midX, y: buttonFrame.midY)
-        guard let screen = screens.first(where: { $0.frame.contains(center) }) else { return false }
+        let hiddenMenuBarAllowance = buttonFrame.height * 2
+        guard let screen = screens.first(where: { screen in
+            var frame = screen.frame
+            frame.size.height += hiddenMenuBarAllowance
+            return frame.contains(center)
+        }) else { return false }
         if let cameraHousing = screen.cameraHousing, cameraHousing.contains(center) {
             return false
         }
