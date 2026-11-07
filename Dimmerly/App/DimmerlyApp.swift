@@ -364,12 +364,14 @@ final class AppServices {
     }
 
     /// Blanking cannot outlive the app, so the dim toggle must not keep showing it as on.
+    /// Display values changed in the last moments before quitting are saved right away.
     private func observeTermination() {
         _ = NotificationCenter.default.addObserver(
             forName: NSApplication.willTerminateNotification,
             object: nil, queue: .main
-        ) { _ in
+        ) { [brightnessManager] _ in
             MainActor.assumeIsolated {
+                brightnessManager.flushPendingPersistence()
                 ControlCenterStatePublisher.live.publishDimState(false)
             }
         }

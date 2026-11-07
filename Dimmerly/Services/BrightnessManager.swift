@@ -164,8 +164,13 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
 
     /// Active preset transition animation task (cancelled when a new transition starts)
     /// Tracks only displays with explicit brightness targets so completion and cancellation
-    /// never write backlight values that the preset left unchanged.
-    private var activeTransition: (task: Task<Void, Never>, hardwareBrightnessDisplayIDs: Set<CGDirectDisplayID>)?
+    /// never write backlight values that the preset left unchanged. `targets` lets a flush on
+    /// quit save the values the transition was heading to.
+    private var activeTransition: (
+        task: Task<Void, Never>,
+        targets: [TransitionTarget],
+        hardwareBrightnessDisplayIDs: Set<CGDirectDisplayID>
+    )?
 
     /// Coalesces system and screen wake events before reapplying display output.
     private var wakeMonitor: WorkspaceWakeMonitor?
@@ -1126,7 +1131,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
             persistAll()
             activeTransition = nil
         }
-        activeTransition = (task, hardwareBrightnessDisplayIDs)
+        activeTransition = (task, targets, hardwareBrightnessDisplayIDs)
 
         return true
     }
@@ -1145,6 +1150,31 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
             guard !Task.isCancelled else { return }
             self.persistAll()
         }
+    }
+
+    /// Saves pending changes right away. Called when the app terminates, so a change made in
+    /// the last 500 ms is not lost with the debounce task. A running preset transition is
+    /// stopped and its end values are saved, since it can no longer finish and persist them.
+    func flushPendingPersistence() {
+        persistTask?.cancel()
+        persistTask = nil
+        if let activeTransition {
+            activeTransition.task.cancel()
+            self.activeTransition = nil
+            for target in activeTransition.targets {
+                guard let index = displays.firstIndex(where: { $0.id == target.displayID }) else { continue }
+                if let brightness = target.end.brightness {
+                    displays[index].brightness = brightness
+                }
+                if let warmth = target.end.warmth {
+                    displays[index].warmth = warmth
+                }
+                if let contrast = target.end.contrast {
+                    displays[index].contrast = contrast
+                }
+            }
+        }
+        persistAll()
     }
 
     // MARK: - Gamma
