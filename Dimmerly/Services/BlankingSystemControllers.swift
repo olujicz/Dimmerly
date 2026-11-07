@@ -88,7 +88,7 @@ final class SystemBlankingWindowController: BlankingWindowControlling {
             }
             if let window = windows.values.first {
                 BlankingWindowPresentation.activateForLocalInputCapture(window) {
-                    NSApp.activate(ignoringOtherApps: true)
+                    NSApp.activate()
                 }
             }
         #endif

@@ -63,7 +63,7 @@ final class MenuBarPanelCoordinator {
     func openPreset(
         id: UUID,
         presentationPath: MenuBarPanelPresentationPath = .current,
-        activateApp: @escaping @MainActor () -> Void = { NSApp.activate(ignoringOtherApps: true) }
+        activateApp: @escaping @MainActor () -> Void = { NSApp.activate() }
     ) {
         open(presetID: id, presentationPath: presentationPath, activateApp: activateApp)
     }
@@ -71,7 +71,7 @@ final class MenuBarPanelCoordinator {
     /// Opens the panel without selecting a preset, for example from the widget background.
     func openPanel(
         presentationPath: MenuBarPanelPresentationPath = .current,
-        activateApp: @escaping @MainActor () -> Void = { NSApp.activate(ignoringOtherApps: true) }
+        activateApp: @escaping @MainActor () -> Void = { NSApp.activate() }
     ) {
         open(presetID: nil, presentationPath: presentationPath, activateApp: activateApp)
     }

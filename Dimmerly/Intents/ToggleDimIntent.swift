@@ -116,7 +116,7 @@ struct OpenPresetIntent: OpenIntent {
         try perform(
             using: PresetManager.shared,
             coordinator: MenuBarPanelCoordinator.shared,
-            activateApp: { NSApp.activate(ignoringOtherApps: true) }
+            activateApp: { NSApp.activate() }
         )
         return .result()
     }
