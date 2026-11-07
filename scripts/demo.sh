@@ -240,6 +240,17 @@ demo_export() {
     # uses a frame that explains the app: panel open, presets applied, caption showing.
     echo 'Encoding the poster...'
     ffmpeg "${quiet[@]}" -ss "$poster_time" -i "$master" -frames:v 1 -vf scale=1280:800:flags=lanczos -q:v 3 "$poster"
+    # The website hero's desk: frame 0, with both displays at full brightness and the panel
+    # closed. The page draws its own panel and dims each screen over this picture. The crop
+    # stops above the caption, and delogo paints out the pointer, which storyboard.json holds
+    # at panel point (210, 470) when the loop starts. Move the box if that key moves.
+    echo 'Encoding the desk stills...'
+    local desk_width
+    for desk_width in 1280 2320; do
+        ffmpeg "${quiet[@]}" -i "$master" -frames:v 1 \
+            -vf "delogo=x=2286:y=968:w=90:h=100,crop=2560:1360:0:0,scale=$desk_width:-2:flags=lanczos" \
+            -q:v 4 "$exports/dimmerly-desk-$appearance-$desk_width.jpg"
+    done
     echo 'Encoding the social MP4...'
     ffmpeg "${quiet[@]}" -i "$master" -vf scale=1920:1200:flags=lanczos -c:v libx264 -preset slow -crf 20 \
         -pix_fmt yuv420p -movflags +faststart -an "$social"
@@ -253,6 +264,8 @@ demo_export() {
 
     check_budget "$website" $((1500 * 1024))
     check_budget "$poster" $((150 * 1024))
+    check_budget "$exports/dimmerly-desk-$appearance-1280.jpg" $((80 * 1024))
+    check_budget "$exports/dimmerly-desk-$appearance-2320.jpg" $((160 * 1024))
     check_budget "$readme" $((3 * 1024 * 1024))
     check_budget "$social" $((8 * 1024 * 1024))
     echo "Exports: $exports (social MP4: $social)"

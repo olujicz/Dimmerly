@@ -78,6 +78,9 @@ GitHub Pages must use **GitHub Actions** as its publishing source. The
 - `images/demo/dimmerly-demo-light-poster.jpg` and
   `images/demo/dimmerly-demo-dark-poster.jpg`, published under the same names in
   `assets/`
+- `images/demo/dimmerly-desk-light-1280.jpg`, `dimmerly-desk-light-2320.jpg`,
+  `dimmerly-desk-dark-1280.jpg` and `dimmerly-desk-dark-2320.jpg` (the home page
+  hero's desk), published under the same names in `assets/`
 - `IconComposerLayers/AppIcon-IconComposer/rendered/icon_128x128@2x.png`, published
   as `assets/dimmerly-icon.png`
 
