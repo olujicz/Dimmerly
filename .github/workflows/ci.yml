@@ -28,6 +28,9 @@ jobs:
       - name: Test Xcode Toolchain Gate
         run: bash .github/scripts/test-verify-xcode.sh
 
+      - name: Test Notarization Gate
+        run: bash .github/scripts/test-notarize.sh
+
       - name: Test CI Scope Classifier
         run: .github/scripts/test-ci-scope.sh
 

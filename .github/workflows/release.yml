@@ -280,15 +280,15 @@ jobs:
           fi
 
       - name: Notarize app
+        env:
+          NOTARY_KEY_ID: ${{ secrets.APPSTORE_CONNECT_API_KEY_ID }}
+          NOTARY_ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
         run: |
           set -euo pipefail
 
           ditto -c -k --keepParent "$EXPORT_PATH/Dimmerly.app" build/Dimmerly-app.zip
-          xcrun notarytool submit build/Dimmerly-app.zip \
-            --key "private_keys/AuthKey_${{ secrets.APPSTORE_CONNECT_API_KEY_ID }}.p8" \
-            --key-id "${{ secrets.APPSTORE_CONNECT_API_KEY_ID }}" \
-            --issuer "${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}" \
-            --wait
+          NOTARY_KEY_PATH="private_keys/AuthKey_${NOTARY_KEY_ID}.p8" \
+            bash .github/scripts/notarize.sh build/Dimmerly-app.zip build/notary-logs/app.json
           xcrun stapler staple "$EXPORT_PATH/Dimmerly.app"
           xcrun stapler validate "$EXPORT_PATH/Dimmerly.app"
           spctl --assess --type execute --verbose=4 "$EXPORT_PATH/Dimmerly.app"
@@ -310,14 +310,22 @@ jobs:
           codesign --verify --verbose=2 "$DMG_PATH"
 
       - name: Notarize DMG
+        env:
+          NOTARY_KEY_ID: ${{ secrets.APPSTORE_CONNECT_API_KEY_ID }}
+          NOTARY_ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
         run: |
           set -euo pipefail
 
-          xcrun notarytool submit "$DMG_PATH" \
-            --key "private_keys/AuthKey_${{ secrets.APPSTORE_CONNECT_API_KEY_ID }}.p8" \
-            --key-id "${{ secrets.APPSTORE_CONNECT_API_KEY_ID }}" \
-            --issuer "${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}" \
-            --wait
+          NOTARY_KEY_PATH="private_keys/AuthKey_${NOTARY_KEY_ID}.p8" \
+            bash .github/scripts/notarize.sh "$DMG_PATH" build/notary-logs/dmg.json
+
+      - name: Upload notary logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: Dimmerly-${{ steps.release_version.outputs.version }}-notary-logs
+          path: build/notary-logs/
+          if-no-files-found: ignore
 
       - name: Staple and assess DMG
         run: |
