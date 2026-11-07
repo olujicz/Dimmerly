@@ -48,6 +48,7 @@ just setup          # Configure pre-commit hooks (SwiftFormat, SwiftLint, Gitlea
 just build          # Build debug
 just build-release  # Build release
 just build-appstore # Build App Store scheme
+just archive-appstore <version> <build> # Archive the App Store edition and check its Xcode, version and build
 just test           # Run both distribution test suites
 just test-direct    # Run direct-distribution tests
 just test-appstore  # Run App Store tests

@@ -24,6 +24,13 @@ build-release:
 archive-appstore version build:
     xcodebuild archive -project {{project}} -scheme '{{appstore_scheme}}' -configuration Release-AppStore -destination 'generic/platform=macOS' -archivePath build/appstore-{{version}}-{{build}}/Dimmerly.xcarchive -allowProvisioningUpdates
     bash .github/scripts/verify-built-xcode.sh build/appstore-{{version}}-{{build}}/Dimmerly.xcarchive
+    @info=build/appstore-{{version}}-{{build}}/Dimmerly.xcarchive/Products/Applications/Dimmerly.app/Contents/Info.plist; \
+        v="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$info")"; \
+        b="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$info")"; \
+        if [ "$v" != '{{version}}' ] || [ "$b" != '{{build}}' ]; then \
+            echo "Archived app is $v ($b), expected {{version}} ({{build}}); update MARKETING_VERSION and CURRENT_PROJECT_VERSION" >&2; exit 1; \
+        fi; \
+        echo "Archived app is $v ($b)"
 
 # Build the App Store scheme
 build-appstore:

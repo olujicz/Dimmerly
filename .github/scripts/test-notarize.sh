@@ -10,11 +10,12 @@ cat > "$fixture_dir/xcrun" <<'SH'
 #!/usr/bin/env bash
 case "$2" in
     submit)
+        [[ " $* " == *" --key $NOTARY_KEY_PATH --key-id $NOTARY_KEY_ID --issuer $NOTARY_ISSUER_ID "* ]] || exit 2
         printf '%s\n' "$TEST_SUBMIT_OUTPUT"
         exit "${TEST_SUBMIT_EXIT:-0}"
         ;;
     log)
-        if [[ "$3" != "test-id" ]]; then
+        if [[ "$3" != "test-id" || " $* " != *" --key $NOTARY_KEY_PATH --key-id $NOTARY_KEY_ID --issuer $NOTARY_ISSUER_ID "* ]]; then
             exit 1
         fi
         log_path="${*: -1}"
@@ -73,6 +74,8 @@ assert_gate 1 'an unreadable log fails closed'
 export TEST_SUBMIT_OUTPUT='{"id":"test-id","status":"Invalid"}' TEST_SUBMIT_EXIT=1 TEST_LOG="$error_log"
 assert_gate 1 'an invalid submission fails and still fetches its log'
 [[ -s "$fixture_dir/notary-log.json" ]] || { echo 'FAIL: invalid log was not kept' >&2; exit 1; }
+export TEST_SUBMIT_OUTPUT="$accepted" TEST_SUBMIT_EXIT=1 TEST_LOG="$clean_log"
+assert_gate 1 'an accepted status with a failing notarytool exit fails'
 export TEST_SUBMIT_OUTPUT='{"id":"test-id","status":"In Progress"}' TEST_SUBMIT_EXIT=0 TEST_LOG="$clean_log"
 assert_gate 1 'a submission that is not accepted fails'
 export TEST_SUBMIT_OUTPUT='Error: HTTP status code: 401' TEST_SUBMIT_EXIT=1
