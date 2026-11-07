@@ -736,8 +736,15 @@
             let nativeConfigurationChanged = self.controlMode != controlMode
                 || self.experimentalNativeBrightnessEnabled != experimentalNativeBrightnessEnabled
             self.controlMode = controlMode
-            self.pollingInterval = TimeInterval(pollingInterval)
-            minimumWriteInterval = TimeInterval(writeDelayMilliseconds) / 1000.0
+            // Clamped to the Settings ranges: an interval of 0 would make the poll loop spin.
+            let pollingRange = AppSettings.ddcPollingIntervalRange
+            let writeDelayRange = AppSettings.ddcWriteDelayRange
+            self.pollingInterval = TimeInterval(
+                min(max(pollingInterval, pollingRange.lowerBound), pollingRange.upperBound)
+            )
+            minimumWriteInterval = TimeInterval(
+                min(max(writeDelayMilliseconds, writeDelayRange.lowerBound), writeDelayRange.upperBound)
+            ) / 1000.0
             self.experimentalNativeBrightnessEnabled = experimentalNativeBrightnessEnabled
             if nativeConfigurationChanged {
                 // Starting a new session invalidates brightness I/O captured under the old one.

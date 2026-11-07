@@ -52,7 +52,54 @@ final class AppSettingsTests: XCTestCase {
         )
     }
 
+    func testStoredNumbersOutsideTheSettingsRangesAreClampedOnLoad() {
+        testDefaults.set(0, forKey: "dimmerlyIdleTimerMinutes")
+        testDefaults.set(100_000, forKey: "dimmerlyDayTemperature")
+        testDefaults.set(-5, forKey: "dimmerlyNightTemperature")
+        testDefaults.set(0, forKey: "dimmerlyColorTempTransitionMinutes")
+
+        let loaded = AppSettings(defaults: testDefaults)
+
+        XCTAssertEqual(loaded.idleTimerMinutes, 1)
+        XCTAssertEqual(loaded.dayTemperature, 6500)
+        XCTAssertEqual(loaded.nightTemperature, 1900)
+        XCTAssertEqual(loaded.colorTempTransitionMinutes, 10)
+    }
+
+    func testStoredNumbersInsideTheSettingsRangesAreKept() {
+        testDefaults.set(42, forKey: "dimmerlyIdleTimerMinutes")
+        testDefaults.set(5000, forKey: "dimmerlyDayTemperature")
+        testDefaults.set(3000, forKey: "dimmerlyNightTemperature")
+        testDefaults.set(90, forKey: "dimmerlyColorTempTransitionMinutes")
+
+        let loaded = AppSettings(defaults: testDefaults)
+
+        XCTAssertEqual(loaded.idleTimerMinutes, 42)
+        XCTAssertEqual(loaded.dayTemperature, 5000)
+        XCTAssertEqual(loaded.nightTemperature, 3000)
+        XCTAssertEqual(loaded.colorTempTransitionMinutes, 90)
+    }
+
     #if !APPSTORE
+        func testStoredDDCTimingOutsideTheSettingsRangesIsClampedOnLoad() {
+            testDefaults.set(0, forKey: "dimmerlyDDCPollingInterval")
+            testDefaults.set(10000, forKey: "dimmerlyDDCWriteDelay")
+
+            let loaded = AppSettings(defaults: testDefaults)
+
+            XCTAssertEqual(loaded.ddcPollingInterval, 1)
+            XCTAssertEqual(loaded.ddcWriteDelay, 200)
+        }
+
+        func testRuntimeSettingsClampAPollingIntervalThatWouldSpin() {
+            let manager = HardwareBrightnessManager(forTesting: true, ddcInterface: MockDDCInterface())
+
+            manager.applyRuntimeSettings(controlMode: .hardware, pollingInterval: 0, writeDelayMilliseconds: 0)
+
+            XCTAssertEqual(manager.pollingInterval, 1)
+            XCTAssertEqual(manager.minimumWriteInterval, 0.02, accuracy: 0.0001)
+        }
+
         func testExperimentalNativeBrightnessDefaultsOffEvenWhenDDCIsEnabled() {
             let newSettings = AppSettings(defaults: testDefaults)
 
