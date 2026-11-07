@@ -156,7 +156,7 @@ After stapling, the workflow runs `verify-dmg.sh`. It fails the release if any o
 - every app extension in `Contents/PlugIns` is signed by the release team with the Hardened Runtime and a secure timestamp, and at least one extension (the widget) is present
 - the final entitlements of the app and each extension (`codesign -d --entitlements - --xml`) contain no `com.apple.security.get-task-allow` and include the `<team ID>.rs.in.olujic.dimmerly` app group, and each extension is sandboxed
 
-The workflow notarizes the app zip and then the DMG with `.github/scripts/notarize.sh`. It submits with `--output-format json`, keeps the submission ID, and always fetches `xcrun notarytool log` for it, also when the submission is Accepted. It prints the log status and any issues, and fails unless the status is Accepted and the log lists no issue of severity `error`. Both logs are uploaded as the `Dimmerly-<version>-notary-logs` artifact, also when a later step fails. The logs contain no credentials. CI tests this gate with `.github/scripts/test-notarize.sh` and a stand-in `notarytool`.
+The workflow notarizes the app zip and then the DMG with `.github/scripts/notarize.sh`. It submits with `--output-format json`, keeps the submission ID, and always fetches `xcrun notarytool log` for it, also when the submission is Accepted. It prints the log status and any issues, and fails unless the status is Accepted and the log lists no issues at all; a warning fails the release too. Both logs are uploaded as the `Dimmerly-<version>-notary-logs` artifact, also when a later step fails. The logs contain no credentials. CI tests this gate with `.github/scripts/test-notarize.sh` and a stand-in `notarytool`.
 
 To preview the layout locally, build a DMG from any exported or downloaded `Dimmerly.app`:
 
@@ -207,7 +207,7 @@ Swift 6.4 includes the code behind `#if compiler(>=6.4)`: macOS 27 intent execut
 1. Open GitHub Actions.
 2. Run the `Release` workflow manually.
 3. Enter the intended stable SemVer version, for example `1.0.0`.
-4. Download the `Dimmerly-<version>-signed-dmg` artifact. Check the `Dimmerly-<version>-notary-logs` artifact for warnings, even though the workflow only fails on errors.
+4. Download the `Dimmerly-<version>-signed-dmg` artifact.
 5. Verify the checksum:
 
 ```bash

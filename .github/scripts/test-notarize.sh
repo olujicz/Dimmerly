@@ -62,7 +62,10 @@ assert_gate 0 'an accepted submission with a clean log passes'
 [[ -s "$fixture_dir/notary-log.json" ]] || { echo 'FAIL: accepted log was not kept' >&2; exit 1; }
 printf 'PASS: the log of an accepted submission is kept\n'
 TEST_LOG="$warning_log"
-assert_gate 0 'warnings in an accepted log are reported but pass'
+assert_gate 1 'a warning in an accepted log fails'
+[[ -s "$fixture_dir/notary-log.json" ]] || { echo 'FAIL: warning log was not kept' >&2; exit 1; }
+TEST_LOG='{"status":"Accepted","statusSummary":"Ready for distribution","issues":[]}'
+assert_gate 0 'an empty issue list passes'
 TEST_LOG="$error_log"
 assert_gate 1 'an error issue in an accepted log fails'
 TEST_LOG='not json'

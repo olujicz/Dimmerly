@@ -5,7 +5,7 @@
 #
 # Reads the App Store Connect API key from NOTARY_KEY_PATH, NOTARY_KEY_ID, and
 # NOTARY_ISSUER_ID. Fails unless the submission is Accepted and its log lists
-# no issues of severity "error". The log itself contains no credentials.
+# no issues at all, warnings included. The log itself contains no credentials.
 set -euo pipefail
 
 if [[ $# -ne 2 ]]; then
@@ -53,16 +53,16 @@ jq -r '
     ((.issues // [])[] | "\(.severity // "unknown"): \(.path // "-"): \(.message // "")")
 ' "$log_path"
 
-error_count="$(jq '[(.issues // [])[] | select(.severity == "error")] | length' "$log_path")"
+issue_count="$(jq '(.issues // []) | length' "$log_path")"
 
 if [[ "$status" != "Accepted" || "$submit_status" -ne 0 ]]; then
     echo "Notarization of $(basename "$file_path") was not accepted (status: ${status:-unknown})." >&2
     exit 1
 fi
 
-if [[ "$error_count" -ne 0 ]]; then
-    echo "The notary log for $(basename "$file_path") lists $error_count error issue(s)." >&2
+if [[ "$issue_count" -ne 0 ]]; then
+    echo "The notary log for $(basename "$file_path") lists $issue_count issue(s); warnings fail the release too." >&2
     exit 1
 fi
 
-echo "Notarization of $(basename "$file_path") accepted with no error issues."
+echo "Notarization of $(basename "$file_path") accepted with no issues."
