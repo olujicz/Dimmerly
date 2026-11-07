@@ -7,6 +7,24 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+### Changed
+- Settings explains why your current location isn't available: Location Services is off, or Dimmerly's access is denied or restricted. It links to System Settings > Privacy & Security > Location Services instead of opening System Settings without saying why.
+- The menu bar panel is easier to read with Increase Contrast or Reduce Transparency, with stronger separators, slider ticks and badges. Small status text is a little larger. The hardware brightness warning in Settings is a plain line with a warning icon instead of a tinted box.
+- The Blank and Mute buttons next to each display are easier to click.
+- The preset the panel was opened for has an outline as well as a fill, and VoiceOver reads it as selected.
+- VoiceOver reads Auto Warmth once, says "automatic" on the warmth slider while Auto Warmth is on, and announces a shortcut conflict when you record one.
+- Settings reopens on the pane you last used.
+- On macOS 15 through 25 the menu bar panel uses the standard system background.
+
+### Fixed
+- A brightness, warmth or contrast change made just before quitting, logging out or updating is saved instead of lost.
+- Presets and schedules that can't be read are always kept aside. Before, a second unreadable payload could replace the first one, and the next save then lost it.
+- Opening Dimmerly from Finder or Spotlight while its menu bar icon is hidden, or behind the camera housing, opens Settings. Before, nothing happened. The widget, Open Brightness Preset and `dimmerly://open` do the same when the icon can't be reached.
+- On macOS 27, the menu bar icon is highlighted while a panel opened from Spotlight, Shortcuts or the widget is showing. Closing the panel from inside no longer clicks the menu bar icon.
+- A widget button whose request Dimmerly can't read reports the failure right away instead of after five seconds.
+- Stored timing and color temperature settings are kept within their allowed range. A polling interval of 0 can no longer keep Dimmerly busy polling monitors.
+- In Serbian, the idle timer description uses the right plural form for every number of minutes.
+
 ## [1.4.2] - 2026-11-05
 
 ### Fixed
