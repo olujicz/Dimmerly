@@ -133,13 +133,18 @@ final class JSONDefaultsArrayStoreTests: XCTestCase {
         XCTAssertEqual(backupString(), #"[{"level":1,"name":"c"}]"#)
     }
 
-    func testUnreadableBackupIsKeptUntouched() {
+    private func unreadableBackups() -> [Data]? {
+        defaults.object(forKey: "itemsBackupUnreadable") as? [Data]
+    }
+
+    func testLegacyUnreadableBackupIsMovedToTheUnreadableList() {
         XCTAssertTrue(store.save([Item(name: "a", level: 0.5)]))
         let backup = Data("not json".utf8)
         defaults.set(backup, forKey: "itemsBackup")
 
         XCTAssertEqual(store.load(), [Item(name: "a", level: 0.5)])
-        XCTAssertEqual(defaults.data(forKey: "itemsBackup"), backup)
+        XCTAssertNil(defaults.data(forKey: "itemsBackup"))
+        XCTAssertEqual(unreadableBackups(), [backup])
     }
 
     func testUnreadableDataIsBackedUpAsIs() {
@@ -147,8 +152,49 @@ final class JSONDefaultsArrayStoreTests: XCTestCase {
         defaults.set(raw, forKey: "items")
 
         XCTAssertEqual(store.load(), [])
-        XCTAssertEqual(defaults.data(forKey: "itemsBackup"), raw)
+        XCTAssertEqual(unreadableBackups(), [raw])
+        XCTAssertNil(defaults.data(forKey: "itemsBackup"))
         XCTAssertEqual(defaults.data(forKey: "items"), raw)
+    }
+
+    func testUndecodableElementsAreBackedUpNextToALegacyUnreadableBackup() {
+        let legacy = Data("not json".utf8)
+        defaults.set(legacy, forKey: "itemsBackup")
+        defaults.set(Data(#"[{"name":"a","level":0.5},{"name":"broken"}]"#.utf8), forKey: "items")
+
+        XCTAssertEqual(store.load(), [Item(name: "a", level: 0.5)])
+        XCTAssertTrue(store.save([Item(name: "a", level: 0.5)]))
+        XCTAssertEqual(store.load(), [Item(name: "a", level: 0.5)])
+
+        XCTAssertEqual(backupString(), #"[{"name":"broken"}]"#, "The broken element must survive the save")
+        XCTAssertEqual(unreadableBackups(), [legacy])
+    }
+
+    func testUnreadablePayloadIsBackedUpNextToElementLeftovers() {
+        defaults.set(Data(#"[{"name":"a","level":0.5},{"name":"broken"}]"#.utf8), forKey: "items")
+        _ = store.load()
+        let raw = Data("not json".utf8)
+        defaults.set(raw, forKey: "items")
+
+        XCTAssertEqual(store.load(), [])
+        XCTAssertTrue(store.save([Item(name: "b", level: 1)]))
+        XCTAssertEqual(store.load(), [Item(name: "b", level: 1)])
+
+        XCTAssertEqual(unreadableBackups(), [raw], "The unreadable list must survive the save")
+        XCTAssertEqual(backupString(), #"[{"name":"broken"}]"#)
+    }
+
+    func testEveryDistinctUnreadablePayloadIsKeptOnce() {
+        let first = Data("not json".utf8)
+        let second = Data(#"{"name":"a"}"#.utf8)
+
+        defaults.set(first, forKey: "items")
+        _ = store.load()
+        _ = store.load()
+        defaults.set(second, forKey: "items")
+        _ = store.load()
+
+        XCTAssertEqual(unreadableBackups(), [first, second])
     }
 
     func testFailedEncodeLeavesStoredDataUnchanged() {
