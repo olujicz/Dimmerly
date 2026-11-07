@@ -143,78 +143,14 @@ enum MenuBarDisplayAction {
     }
 }
 
-/// Where the panel's translucent background comes from.
-enum MenuBarPanelBackground: Equatable {
-    /// macOS 26 and later: the host draws native Liquid Glass. The `MenuBarExtra`
-    /// window keeps its default container background and `NSPopover` draws its own
-    /// glass, so the panel adds no material, window tweaks, or background clearing.
-    case systemGlass
-    /// macOS 15 through 25: the panel clears the host window and draws its own
-    /// rounded `.menu` `NSVisualEffectView`, styled by `MenuBarPanelGlassStyle`.
-    case visualEffectMaterial
-
-    static var current: Self {
-        resolve(supportsNativeGlass: supportsNativeGlass)
-    }
-
-    static func resolve(supportsNativeGlass: Bool) -> Self {
-        supportsNativeGlass ? .systemGlass : .visualEffectMaterial
-    }
-
-    /// Native glass needs both the macOS 26 SDK (Swift 6.2) and a macOS 26 runtime.
-    /// An app built with an older SDK runs without Liquid Glass even on macOS 26.
-    private static var supportsNativeGlass: Bool {
-        #if compiler(>=6.2)
-            if #available(macOS 26.0, *) {
-                return true
-            }
-        #endif
-        return false
-    }
-}
-
-/// Styling for the `.visualEffectMaterial` fallback background.
+/// Styling shared by the panel's sections.
+///
+/// The panel draws no background of its own on any macOS version: the `MenuBarExtra`
+/// window and `NSPopover` supply the system material (Liquid Glass on macOS 26 and later,
+/// the menu material before that), including its Increase Contrast and Reduce
+/// Transparency variants.
 enum MenuBarPanelGlassStyle {
-    static let windowMaterial: NSVisualEffectView.Material = .menu
-    static let blendingMode: NSVisualEffectView.BlendingMode = .behindWindow
-    static let state: NSVisualEffectView.State = .active
-    static let clearsHostWindowBackground = true
-    static let cornerRadius: CGFloat = 22
     static let separatorOpacity = 0.55
-}
-
-@MainActor
-enum MenuBarPanelGlassBackgroundPolicy {
-    static func shouldClearLayerBackground(
-        for view: NSView,
-        glassIdentifier: NSUserInterfaceItemIdentifier
-    ) -> Bool {
-        guard view.identifier != glassIdentifier else { return false }
-        guard !isProtectedControl(view) else { return false }
-
-        return isContainerView(view)
-    }
-
-    static func shouldVisitSubviews(
-        of view: NSView,
-        glassIdentifier: NSUserInterfaceItemIdentifier
-    ) -> Bool {
-        guard view.identifier != glassIdentifier else { return false }
-        return !isProtectedControl(view)
-    }
-
-    private static func isContainerView(_ view: NSView) -> Bool {
-        view is NSClipView
-            || type(of: view) == NSView.self
-            || view.subviews.isEmpty == false
-    }
-
-    private static func isProtectedControl(_ view: NSView) -> Bool {
-        view is NSVisualEffectView
-            || view is NSControl
-            || view is NSScrollView
-            || view.accessibilityRole() == .slider
-    }
 }
 
 @MainActor
@@ -290,7 +226,6 @@ struct MenuBarPanel: View {
             }
         }
         .frame(width: 300)
-        .menuBarPanelBackground()
     }
 
     private func scrollToSelectedPreset(using proxy: ScrollViewProxy) {
