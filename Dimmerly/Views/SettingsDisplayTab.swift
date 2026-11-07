@@ -124,35 +124,26 @@ struct DisplaySettingsTab: View {
 
             if settings.idleTimerEnabled {
                 Stepper(value: $settings.idleTimerMinutes, in: 1 ... 60) {
+                    // The catalog's plural variations pick "minute" or "minutes" per language.
                     Text(
-                        settings.idleTimerMinutes == 1
-                            ? String(
-                                localized: "1 minute",
-                                comment: "Idle timer stepper label: singular"
-                            )
-                            : String(
-                                format: NSLocalizedString(
-                                    "%d minutes",
-                                    comment: "Idle timer stepper label: number of minutes"
-                                ),
-                                settings.idleTimerMinutes
-                            )
+                        String.localizedStringWithFormat(
+                            NSLocalizedString(
+                                "%d minutes",
+                                comment: "Idle timer stepper label: number of minutes"
+                            ),
+                            settings.idleTimerMinutes
+                        )
                     )
                 }
 
                 Text(
-                    settings.idleTimerMinutes == 1
-                        ? String(
-                            localized: "Displays will dim automatically after 1 minute of inactivity.",
-                            comment: "Idle timer description: singular"
-                        )
-                        : String(
-                            format: NSLocalizedString(
-                                "Displays will dim automatically after %d minutes of inactivity.",
-                                comment: "Idle timer description"
-                            ),
-                            settings.idleTimerMinutes
-                        )
+                    String.localizedStringWithFormat(
+                        NSLocalizedString(
+                            "Displays will dim automatically after %d minutes of inactivity.",
+                            comment: "Idle timer description"
+                        ),
+                        settings.idleTimerMinutes
+                    )
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -359,8 +350,8 @@ struct DisplaySettingsTab: View {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .foregroundStyle(.orange)
                         }
-                        .padding(10)
-                        .background(.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+                        // No tinted box: a translucent orange fill loses contrast on the grouped
+                        // form background, and the orange warning icon already marks the row.
                         .accessibilityElement(children: .combine)
                     }
 

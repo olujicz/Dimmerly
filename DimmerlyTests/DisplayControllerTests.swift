@@ -57,6 +57,54 @@ import XCTest
             }
         }
 
+        private func process(_ path: String, _ arguments: [String] = []) -> Process {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: path)
+            process.arguments = arguments
+            return process
+        }
+
+        func testRunReportsTheExitStatus() async {
+            let succeeded = await DisplayController.run(process("/usr/bin/true"), timeout: .seconds(10))
+            let failed = await DisplayController.run(process("/usr/bin/false"), timeout: .seconds(10))
+
+            if case .failure = succeeded {
+                XCTFail("Expected success")
+            }
+            guard case let .failure(.pmsetFailed(status)) = failed else {
+                return XCTFail("Expected pmsetFailed failure")
+            }
+            XCTAssertEqual(status, 1)
+        }
+
+        func testRunTerminatesAProcessThatOutlivesTheTimeout() async {
+            let sleeper = process("/bin/sleep", ["30"])
+            let start = ContinuousClock.now
+
+            let result = await DisplayController.run(sleeper, timeout: .milliseconds(100))
+
+            XCTAssertLessThan(ContinuousClock.now - start, .seconds(10))
+            XCTAssertFalse(sleeper.isRunning)
+            guard case let .failure(.pmsetFailed(status)) = result else {
+                return XCTFail("Expected pmsetFailed failure")
+            }
+            XCTAssertEqual(status, SIGTERM)
+        }
+
+        func testRunTerminatesTheProcessWhenCancelled() async {
+            let sleeper = process("/bin/sleep", ["30"])
+            let task = Task { await DisplayController.run(sleeper, timeout: .seconds(60)) }
+            try? await Task.sleep(for: .milliseconds(100))
+
+            task.cancel()
+            let result = await task.value
+
+            XCTAssertFalse(sleeper.isRunning)
+            guard case .failure(.pmsetFailed) = result else {
+                return XCTFail("Expected pmsetFailed failure")
+            }
+        }
+
         /// Tests that error types have proper localized descriptions
         func testDisplayErrorDescriptions() {
             // Test pmsetNotFound error

@@ -239,6 +239,18 @@ class AppSettings {
         }
     #endif
 
+    // MARK: - Ranges
+
+    /// Ranges the Settings controls allow. Stored values outside them (edited defaults, or
+    /// written by another build) are clamped on load; a polling interval of 0, for example,
+    /// would make the hardware poll loop spin.
+    nonisolated static let idleTimerMinutesRange = 1 ... 60
+    nonisolated static let dayTemperatureRange = 2700 ... 6500
+    nonisolated static let nightTemperatureRange = 1900 ... 4500
+    nonisolated static let colorTempTransitionMinutesRange = 10 ... 120
+    nonisolated static let ddcPollingIntervalRange = 1 ... 30
+    nonisolated static let ddcWriteDelayRange = 20 ... 200
+
     // MARK: - Computed Properties
 
     /// Computed property for the selected menu bar icon style
@@ -291,14 +303,12 @@ class AppSettings {
         menuBarIconRaw = d.string(forKey: "dimmerlyMenuBarIcon") ?? MenuBarIconStyle.defaultIcon.rawValue
 
         // Int properties (need default value handling since UserDefaults.integer returns 0 for missing)
-        idleTimerMinutes = d.object(forKey: "dimmerlyIdleTimerMinutes") != nil
-            ? d.integer(forKey: "dimmerlyIdleTimerMinutes") : 5
-        dayTemperature = d.object(forKey: "dimmerlyDayTemperature") != nil
-            ? d.integer(forKey: "dimmerlyDayTemperature") : 6500
-        nightTemperature = d.object(forKey: "dimmerlyNightTemperature") != nil
-            ? d.integer(forKey: "dimmerlyNightTemperature") : 2700
-        colorTempTransitionMinutes = d.object(forKey: "dimmerlyColorTempTransitionMinutes") != nil
-            ? d.integer(forKey: "dimmerlyColorTempTransitionMinutes") : 40
+        idleTimerMinutes = Self.integer(d, "dimmerlyIdleTimerMinutes", default: 5, in: Self.idleTimerMinutesRange)
+        dayTemperature = Self.integer(d, "dimmerlyDayTemperature", default: 6500, in: Self.dayTemperatureRange)
+        nightTemperature = Self.integer(d, "dimmerlyNightTemperature", default: 2700, in: Self.nightTemperatureRange)
+        colorTempTransitionMinutes = Self.integer(
+            d, "dimmerlyColorTempTransitionMinutes", default: 40, in: Self.colorTempTransitionMinutesRange
+        )
 
         #if !APPSTORE
             ddcEnabled = d.object(forKey: "dimmerlyDDCEnabled") != nil
@@ -308,10 +318,21 @@ class AppSettings {
             ddcControlModeRaw = storedMode == DDCControlMode.softwareOnly.rawValue
                 ? DDCControlMode.softwareOnly.rawValue
                 : DDCControlMode.hardware.rawValue
-            ddcPollingInterval = d.object(forKey: "dimmerlyDDCPollingInterval") != nil
-                ? d.integer(forKey: "dimmerlyDDCPollingInterval") : 5
-            ddcWriteDelay = d.object(forKey: "dimmerlyDDCWriteDelay") != nil
-                ? d.integer(forKey: "dimmerlyDDCWriteDelay") : 50
+            ddcPollingInterval = Self.integer(
+                d, "dimmerlyDDCPollingInterval", default: 5, in: Self.ddcPollingIntervalRange
+            )
+            ddcWriteDelay = Self.integer(d, "dimmerlyDDCWriteDelay", default: 50, in: Self.ddcWriteDelayRange)
         #endif
+    }
+
+    /// The integer stored under `key` clamped to `range`, or `defaultValue` when nothing is stored.
+    private static func integer(
+        _ defaults: UserDefaults,
+        _ key: String,
+        default defaultValue: Int,
+        in range: ClosedRange<Int>
+    ) -> Int {
+        guard defaults.object(forKey: key) != nil else { return defaultValue }
+        return min(max(defaults.integer(forKey: key), range.lowerBound), range.upperBound)
     }
 }

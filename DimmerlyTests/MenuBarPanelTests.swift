@@ -130,8 +130,8 @@ final class MenuBarPanelTests: XCTestCase {
         XCTAssertTrue(source.contains("Text(\"Auto\")"))
         XCTAssertTrue(source.contains(".fontWeight(.semibold)"))
         XCTAssertTrue(source.contains(".foregroundStyle(.primary)"))
-        XCTAssertTrue(source.contains("Capsule().fill(.orange.opacity(0.16))"))
-        XCTAssertTrue(source.contains("Capsule().stroke(.orange, lineWidth: 0.75)"))
+        XCTAssertTrue(source.contains("Capsule().fill(.orange.opacity(autoBadgeFillOpacity))"))
+        XCTAssertTrue(source.contains("Capsule().stroke(.orange, lineWidth: autoBadgeStrokeWidth)"))
     }
 
     @MainActor
@@ -165,6 +165,51 @@ final class MenuBarPanelTests: XCTestCase {
 
         XCTAssertFalse(coordinator.isPresented)
         XCTAssertNil(coordinator.requestedPresetID)
+    }
+
+    /// On macOS 27 the open `MenuBarExtra` window closes through its expanded interface
+    /// session, so the binding is left for MenuBarExtraAccess to clear and it sends no click.
+    @MainActor
+    func testDismissEndsTheSystemPanelSessionInsteadOfClearingTheBinding() {
+        let coordinator = MenuBarPanelCoordinator()
+        var endedSessions = 0
+        coordinator.configureSystemPanelSession {
+            endedSessions += 1
+            return true
+        }
+        coordinator.openPreset(id: UUID(), presentationPath: .menuBarExtra, activateApp: {})
+
+        coordinator.dismiss()
+
+        XCTAssertEqual(endedSessions, 1)
+        XCTAssertTrue(coordinator.isPresented)
+        XCTAssertNil(coordinator.requestedPresetID)
+    }
+
+    @MainActor
+    func testDismissClearsTheBindingWithoutASystemPanelSession() {
+        let coordinator = MenuBarPanelCoordinator()
+        coordinator.configureSystemPanelSession { false }
+        coordinator.openPreset(id: UUID(), presentationPath: .menuBarExtra, activateApp: {})
+
+        coordinator.dismiss()
+
+        XCTAssertFalse(coordinator.isPresented)
+    }
+
+    @MainActor
+    func testDismissLeavesTheSystemPanelSessionAloneWhileTheWindowIsClosed() {
+        let coordinator = MenuBarPanelCoordinator()
+        var endedSessions = 0
+        coordinator.configureSystemPanelSession {
+            endedSessions += 1
+            return true
+        }
+
+        coordinator.dismiss()
+
+        XCTAssertEqual(endedSessions, 0)
+        XCTAssertFalse(coordinator.isPresented)
     }
 
     @MainActor
@@ -295,185 +340,17 @@ final class MenuBarPanelTests: XCTestCase {
         XCTAssertNil(StatusItemAnchorWindow().anchor(over: NSButton()))
     }
 
-    @MainActor
-    func testGlassBackgroundPolicyPreservesSwiftUISliderBackingViews() {
-        let glassIdentifier = NSUserInterfaceItemIdentifier("DimmerlyMenuBarPanelGlass")
-        let sliderBackingView = NSView()
-        sliderBackingView.setAccessibilityRole(.slider)
-
-        XCTAssertFalse(
-            MenuBarPanelGlassBackgroundPolicy.shouldClearLayerBackground(
-                for: sliderBackingView,
-                glassIdentifier: glassIdentifier
-            )
-        )
-        XCTAssertFalse(
-            MenuBarPanelGlassBackgroundPolicy.shouldVisitSubviews(
-                of: sliderBackingView,
-                glassIdentifier: glassIdentifier
-            )
-        )
-    }
-
-    func testMenuBarPanelChromeClearsWindowContainerWithoutManualPerimeterStroke() throws {
-        let viewsURL = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appendingPathComponent("Dimmerly/Views")
+    /// The `MenuBarExtra` window and the popover supply the system material on every macOS
+    /// version, so the panel draws no background, clears no window, and walks no view tree.
+    func testPanelLeavesItsBackgroundToTheSystem() throws {
         let source = try ["MenuBarPanel.swift", "MenuBarPanelHost.swift"]
-            .map { try String(contentsOf: viewsURL.appendingPathComponent($0), encoding: .utf8) }
+            .map { try Self.repositorySource("Dimmerly/Views/\($0)") }
             .joined(separator: "\n")
 
-        XCTAssertTrue(source.contains(".menuBarPanelChrome()"))
-        XCTAssertTrue(source.contains("containerBackground(.clear, for: .window)"))
+        XCTAssertFalse(source.contains("NSVisualEffectView"))
+        XCTAssertFalse(source.contains("containerBackground("))
+        XCTAssertFalse(source.contains("layer?.backgroundColor"))
         XCTAssertFalse(source.contains(".stroke(.separator.opacity(0.45), lineWidth: 0.75)"))
-    }
-
-    func testMenuBarPanelBodyAppliesBackgroundThroughSingleOSAwareEntryPoint() throws {
-        let sourceURL = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appendingPathComponent("Dimmerly/Views/MenuBarPanel.swift")
-        let source = try String(contentsOf: sourceURL, encoding: .utf8)
-
-        XCTAssertTrue(source.contains(".menuBarPanelBackground()"))
-        XCTAssertFalse(
-            source.contains(".menuBarPanelHostGlass()"),
-            "The fallback material must only be applied through menuBarPanelBackground()"
-        )
-        XCTAssertFalse(source.contains(".menuBarPanelChrome()"))
-    }
-
-    // MARK: - Background Selection
-
-    func testBackgroundUsesSystemGlassWhenNativeGlassIsSupported() {
-        XCTAssertEqual(MenuBarPanelBackground.resolve(supportsNativeGlass: true), .systemGlass)
-    }
-
-    func testBackgroundFallsBackToVisualEffectMaterialWithoutNativeGlass() {
-        XCTAssertEqual(
-            MenuBarPanelBackground.resolve(supportsNativeGlass: false),
-            .visualEffectMaterial
-        )
-    }
-
-    func testCurrentBackgroundMatchesRunningOSAndCompiler() {
-        var expected = MenuBarPanelBackground.visualEffectMaterial
-        #if compiler(>=6.2)
-            if #available(macOS 26.0, *) {
-                expected = .systemGlass
-            }
-        #endif
-
-        XCTAssertEqual(MenuBarPanelBackground.current, expected)
-    }
-
-    @MainActor
-    func testSystemGlassBackgroundLeavesHostWindowAndContentUntouched() {
-        let (window, hostingView) = Self.hostPanelBackground(.systemGlass)
-
-        XCTAssertTrue(Self.glassEffectViews(in: hostingView).isEmpty)
-        XCTAssertFalse(Self.containsView(of: MenuBarPanelWindowConfiguratorView.self, in: hostingView))
-        XCTAssertFalse(Self.containsView(of: MenuBarPanelHostRefreshConfiguratorView.self, in: hostingView))
-        XCTAssertTrue(window.isOpaque)
-        XCTAssertNotEqual(window.backgroundColor, .clear)
-    }
-
-    @MainActor
-    func testVisualEffectFallbackKeepsMenuMaterialAndTransparentHostWindow() {
-        let (window, hostingView) = Self.hostPanelBackground(.visualEffectMaterial)
-
-        let effectViews = Self.glassEffectViews(in: hostingView)
-        XCTAssertEqual(effectViews.count, 1)
-        XCTAssertEqual(effectViews.first?.material, .menu)
-        XCTAssertEqual(effectViews.first?.blendingMode, .behindWindow)
-        XCTAssertEqual(effectViews.first?.state, .active)
-        XCTAssertEqual(effectViews.first?.layer?.cornerRadius, 22)
-        XCTAssertTrue(Self.containsView(of: MenuBarPanelHostRefreshConfiguratorView.self, in: hostingView))
-        XCTAssertFalse(window.isOpaque)
-        XCTAssertEqual(window.backgroundColor, .clear)
-    }
-
-    func testMenuBarPanelGlassStyleUsesSingleMenuMaterialLayer() {
-        XCTAssertEqual(MenuBarPanelGlassStyle.windowMaterial, .menu)
-        XCTAssertEqual(MenuBarPanelGlassStyle.blendingMode, .behindWindow)
-        XCTAssertEqual(MenuBarPanelGlassStyle.state, .active)
-        XCTAssertTrue(MenuBarPanelGlassStyle.clearsHostWindowBackground)
-    }
-
-    @MainActor
-    func testGlassBackgroundPolicyClearsContainerViews() {
-        let glassIdentifier = NSUserInterfaceItemIdentifier("DimmerlyMenuBarPanelGlass")
-        let container = NSView()
-        let clipView = NSClipView()
-
-        XCTAssertTrue(
-            MenuBarPanelGlassBackgroundPolicy.shouldClearLayerBackground(
-                for: container,
-                glassIdentifier: glassIdentifier
-            )
-        )
-        XCTAssertTrue(
-            MenuBarPanelGlassBackgroundPolicy.shouldClearLayerBackground(
-                for: clipView,
-                glassIdentifier: glassIdentifier
-            )
-        )
-    }
-
-    @MainActor
-    func testGlassBackgroundPolicyPreservesScrollViewsControlsAndGlassEffectView() {
-        let glassIdentifier = NSUserInterfaceItemIdentifier("DimmerlyMenuBarPanelGlass")
-        let scrollView = NSScrollView()
-        let button = NSButton(title: "Turn Displays Off", target: nil, action: nil)
-        let slider = NSSlider(value: 0.5, minValue: 0, maxValue: 1, target: nil, action: nil)
-        let effectView = NSVisualEffectView()
-        effectView.identifier = glassIdentifier
-
-        for view in [scrollView, button, slider, effectView] {
-            XCTAssertFalse(
-                MenuBarPanelGlassBackgroundPolicy.shouldClearLayerBackground(
-                    for: view,
-                    glassIdentifier: glassIdentifier
-                )
-            )
-            XCTAssertFalse(
-                MenuBarPanelGlassBackgroundPolicy.shouldVisitSubviews(
-                    of: view,
-                    glassIdentifier: glassIdentifier
-                )
-            )
-        }
-    }
-
-    @MainActor
-    func testConfigureWindowDoesNotInjectEffectViewIntoHostingContentView() {
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 300, height: 400),
-            styleMask: [.borderless],
-            backing: .buffered,
-            defer: true
-        )
-        let hostingContentView = NSView()
-        window.contentView = hostingContentView
-
-        MenuBarPanelHostGlass.configureWindow(window)
-
-        let injectedEffectViews = hostingContentView.subviews.compactMap { $0 as? NSVisualEffectView }
-        XCTAssertTrue(
-            injectedEffectViews.isEmpty,
-            "Adding NSVisualEffectView to NSHostingController.view is unsupported by AppKit"
-        )
-    }
-
-    @MainActor
-    func testGlassBackgroundViewUsesConfiguredMenuMaterial() {
-        let effectView = MenuBarPanelGlassBackgroundView.makeEffectView()
-
-        XCTAssertEqual(effectView.material, MenuBarPanelGlassStyle.windowMaterial)
-        XCTAssertEqual(effectView.blendingMode, MenuBarPanelGlassStyle.blendingMode)
-        XCTAssertEqual(effectView.state, MenuBarPanelGlassStyle.state)
-        XCTAssertEqual(effectView.layer?.cornerRadius, MenuBarPanelGlassStyle.cornerRadius)
     }
 
     func testFooterButtonsOwnHoverStateRatherThanTheirLabel() throws {
@@ -798,114 +675,6 @@ final class MenuBarPanelTests: XCTestCase {
         }
     }
 
-    // MARK: - Host Glass Configuration
-
-    @MainActor
-    func testConfigureWindowMakesHostWindowTransparent() {
-        let window = Self.makeTestWindow()
-
-        MenuBarPanelHostGlass.configureWindow(window)
-
-        XCTAssertFalse(window.isOpaque)
-        XCTAssertEqual(window.backgroundColor, .clear)
-    }
-
-    @MainActor
-    func testConfigureWindowIsIdempotent() {
-        let window = Self.makeTestWindow()
-
-        MenuBarPanelHostGlass.configureWindow(window)
-        MenuBarPanelHostGlass.configureWindow(window)
-
-        XCTAssertFalse(window.isOpaque)
-        XCTAssertEqual(window.backgroundColor, .clear)
-
-        let effectViews = window.contentView?.subviews.compactMap { $0 as? NSVisualEffectView } ?? []
-        XCTAssertTrue(effectViews.isEmpty)
-    }
-
-    @MainActor
-    func testRefreshContentBackgroundsClearsNewlyAddedContainerViews() {
-        let window = Self.makeTestWindow()
-        MenuBarPanelHostGlass.configureWindow(window)
-
-        let newContainer = NSView()
-        newContainer.wantsLayer = true
-        newContainer.layer?.backgroundColor = NSColor.white.cgColor
-        window.contentView?.addSubview(newContainer)
-
-        MenuBarPanelHostGlass.refreshContentBackgrounds(in: window)
-
-        XCTAssertEqual(newContainer.layer?.backgroundColor, NSColor.clear.cgColor)
-    }
-
-    @MainActor
-    func testHostRefreshConfiguratorCoalescesRapidScheduleRefreshCalls() {
-        // Regression test: `updateNSView` calls `scheduleRefresh()` on every SwiftUI body
-        // re-evaluation (dozens per second while dragging a slider). These must coalesce
-        // into a single actual hierarchy walk per run-loop turn, not one walk per call.
-        let window = Self.makeTestWindow()
-        let configuratorView = MenuBarPanelHostRefreshConfiguratorView()
-        window.contentView?.addSubview(configuratorView)
-
-        for _ in 0 ..< 20 {
-            configuratorView.scheduleRefresh()
-        }
-
-        drainMainRunLoop()
-
-        XCTAssertEqual(configuratorView.refreshCount, 1)
-    }
-
-    @MainActor
-    private static func hostPanelBackground(
-        _ background: MenuBarPanelBackground
-    ) -> (NSWindow, NSView) {
-        let window = makeTestWindow()
-        let hostingView = NSHostingView(
-            rootView: Color.clear
-                .frame(width: 300, height: 200)
-                .menuBarPanelBackground(background)
-        )
-        hostingView.frame = NSRect(x: 0, y: 0, width: 300, height: 200)
-        window.contentView = hostingView
-        hostingView.layoutSubtreeIfNeeded()
-        drainMainRunLoop()
-        return (window, hostingView)
-    }
-
-    @MainActor
-    private static func glassEffectViews(in view: NSView) -> [NSVisualEffectView] {
-        let ownMatch = (view as? NSVisualEffectView).flatMap {
-            $0.identifier == MenuBarPanelHostGlass.glassIdentifier ? [$0] : nil
-        } ?? []
-        return ownMatch + view.subviews.flatMap { glassEffectViews(in: $0) }
-    }
-
-    @MainActor
-    private static func containsView(of type: (some NSView).Type, in view: NSView) -> Bool {
-        view.isKind(of: type) || view.subviews.contains { containsView(of: type, in: $0) }
-    }
-
-    @MainActor
-    private static func drainMainRunLoop(iterations: Int = 12) {
-        for _ in 0 ..< iterations {
-            RunLoop.current.run(until: Date().addingTimeInterval(0.01))
-        }
-    }
-
-    @MainActor
-    private static func makeTestWindow() -> NSWindow {
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 300, height: 200),
-            styleMask: [.borderless],
-            backing: .buffered,
-            defer: false
-        )
-        window.contentView = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 200))
-        return window
-    }
-
     // MARK: - Close Panel Environment Action
 
     @MainActor
@@ -1180,5 +949,186 @@ final class MenuBarPanelHostingTests: XCTestCase {
         RunLoop.main.run(until: Date().addingTimeInterval(0.1))
         controller.view.layoutSubtreeIfNeeded()
         XCTAssertEqual(controller.preferredContentSize.height, 260, accuracy: 0.5)
+    }
+}
+
+/// Popover presentation of the panel on macOS 27.
+final class MenuBarPanelPresenterTests: XCTestCase {
+    /// The popover follows the hosting controller's `preferredContentSize`; nothing sizes it by hand.
+    @MainActor
+    func testPresenterSizesThePopoverFromThePanelsPreferredContentSize() {
+        let window = NSWindow(
+            contentRect: NSRect(x: 200, y: 200, width: 200, height: 100),
+            styleMask: [.borderless], backing: .buffered, defer: false
+        )
+        window.isReleasedWhenClosed = false
+        let button = NSButton(frame: NSRect(x: 80, y: 40, width: 40, height: 24))
+        window.contentView?.addSubview(button)
+        window.orderFrontRegardless()
+        defer { window.orderOut(nil) }
+        let popover = NSPopover()
+        popover.animates = false
+        let presenter = MenuBarPanelPresenter(anchorProvider: { (button.bounds, button) }, popoverFactory: { popover })
+        defer { presenter.dismiss() }
+        presenter.configure(
+            statusItem: nil,
+            contentBuilder: { _ in
+                MenuBarPanelPresenter.hostingController(for: Color.clear.frame(width: 300, height: 260))
+            },
+            didDismiss: {}
+        )
+
+        presenter.present(selectedPresetID: nil)
+        RunLoop.main.run(until: Date().addingTimeInterval(0.1))
+
+        XCTAssertTrue(popover.isShown)
+        XCTAssertEqual(popover.contentSize.width, 300, accuracy: 0.5)
+        XCTAssertEqual(popover.contentSize.height, 260, accuracy: 0.5)
+    }
+
+    /// On macOS 27 no expanded interface session runs for the popover, so the presenter
+    /// highlights the status item itself while the panel is open.
+    @MainActor
+    func testPresenterHighlightsTheStatusItemWhileThePanelIsOpen() throws {
+        let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        defer { NSStatusBar.system.removeStatusItem(statusItem) }
+        let button = try XCTUnwrap(statusItem.button)
+        let anchor = NSButton(frame: NSRect(x: 0, y: 0, width: 40, height: 24))
+        let popover = PopoverSpy()
+        let presenter = MenuBarPanelPresenter(anchorProvider: { (anchor.bounds, anchor) }, popoverFactory: { popover })
+        presenter.configure(statusItem: statusItem, contentBuilder: { _ in NSViewController() }, didDismiss: {})
+
+        presenter.present(selectedPresetID: nil)
+        XCTAssertTrue(button.isHighlighted)
+
+        presenter.popoverDidClose(Notification(name: NSPopover.didCloseNotification, object: popover))
+        XCTAssertFalse(button.isHighlighted)
+    }
+}
+
+/// Opening the panel while the status item is hidden.
+final class HiddenStatusItemTests: XCTestCase {
+    @MainActor
+    func testStatusItemOnScreenIsReachable() {
+        let screen = StatusItemReachability.Screen(frame: NSRect(x: 0, y: 0, width: 1920, height: 1080))
+        XCTAssertTrue(StatusItemReachability.isReachable(
+            isVisible: true,
+            buttonFrame: NSRect(x: 1500, y: 1056, width: 30, height: 24),
+            screens: [screen]
+        ))
+    }
+
+    @MainActor
+    func testHiddenOrOffScreenStatusItemIsNotReachable() {
+        let screen = StatusItemReachability.Screen(frame: NSRect(x: 0, y: 0, width: 1920, height: 1080))
+        let onScreen = NSRect(x: 1500, y: 1056, width: 30, height: 24)
+
+        XCTAssertFalse(StatusItemReachability.isReachable(isVisible: false, buttonFrame: onScreen, screens: [screen]))
+        XCTAssertFalse(StatusItemReachability.isReachable(isVisible: true, buttonFrame: .zero, screens: [screen]))
+        XCTAssertFalse(StatusItemReachability.isReachable(
+            isVisible: true,
+            buttonFrame: NSRect(x: -40, y: 1056, width: 30, height: 24),
+            screens: [screen]
+        ))
+        XCTAssertFalse(StatusItemReachability.isReachable(isVisible: true, buttonFrame: onScreen, screens: []))
+        XCTAssertFalse(StatusItemReachability.isReachable(
+            isVisible: true,
+            buttonFrame: NSRect(x: 1500, y: 1300, width: 30, height: 24),
+            screens: [screen]
+        ))
+    }
+
+    /// An automatically hidden menu bar sits just above the screen's top edge, and the item in
+    /// it is still one pointer move away.
+    @MainActor
+    func testStatusItemInAnAutomaticallyHiddenMenuBarIsReachable() {
+        let screen = StatusItemReachability.Screen(frame: NSRect(x: 0, y: 0, width: 1920, height: 1080))
+
+        XCTAssertTrue(StatusItemReachability.isReachable(
+            isVisible: true,
+            buttonFrame: NSRect(x: 1500, y: 1080, width: 30, height: 24),
+            screens: [screen]
+        ))
+    }
+
+    @MainActor
+    func testStatusItemBehindTheCameraHousingIsNotReachable() {
+        let screen = StatusItemReachability.Screen(
+            frame: NSRect(x: 0, y: 0, width: 1512, height: 982),
+            cameraHousing: NSRect(x: 660, y: 950, width: 192, height: 32)
+        )
+
+        XCTAssertFalse(StatusItemReachability.isReachable(
+            isVisible: true,
+            buttonFrame: NSRect(x: 740, y: 952, width: 30, height: 24),
+            screens: [screen]
+        ))
+        XCTAssertTrue(StatusItemReachability.isReachable(
+            isVisible: true,
+            buttonFrame: NSRect(x: 900, y: 952, width: 30, height: 24),
+            screens: [screen]
+        ))
+    }
+
+    @MainActor
+    func testStatusItemWithoutAWindowIsNotReachable() {
+        XCTAssertFalse(StatusItemReachability.isReachable(nil))
+    }
+
+    @MainActor
+    func testOpeningWhileTheStatusItemIsHiddenOpensSettingsInstead() {
+        for path in [MenuBarPanelPresentationPath.menuBarExtra, .publicPopover] {
+            let coordinator = MenuBarPanelCoordinator()
+            var presentations = 0
+            var settingsOpened = 0
+            var activations = 0
+            coordinator.configureExternalPresentation(present: { _ in presentations += 1 }, dismiss: {})
+            coordinator.configureHiddenStatusItemFallback(
+                isStatusItemReachable: { false },
+                openSettings: { settingsOpened += 1 }
+            )
+
+            coordinator.openPanel(presentationPath: path, activateApp: { activations += 1 })
+            coordinator.openPreset(id: UUID(), presentationPath: path, activateApp: { activations += 1 })
+
+            XCTAssertEqual(settingsOpened, 2, "\(path)")
+            XCTAssertEqual(presentations, 0, "\(path)")
+            XCTAssertEqual(activations, 0, "\(path)")
+            XCTAssertFalse(coordinator.isPresented, "\(path)")
+            XCTAssertFalse(coordinator.isExternalPresentationActive, "\(path)")
+            XCTAssertNil(coordinator.requestedPresetID, "\(path)")
+        }
+    }
+
+    @MainActor
+    func testOpeningWhileTheStatusItemIsVisibleOpensThePanel() {
+        let coordinator = MenuBarPanelCoordinator()
+        var presentations: [UUID?] = []
+        var settingsOpened = 0
+        coordinator.configureExternalPresentation(present: { presentations.append($0) }, dismiss: {})
+        coordinator.configureHiddenStatusItemFallback(
+            isStatusItemReachable: { true },
+            openSettings: { settingsOpened += 1 }
+        )
+
+        coordinator.openPanel(presentationPath: .publicPopover, activateApp: {})
+
+        XCTAssertEqual(presentations, [nil])
+        XCTAssertEqual(settingsOpened, 0)
+    }
+}
+
+extension MenuBarPanelTests {
+    func testAutoTemperatureBadgeAdaptsToContrastAndTransparencySettings() throws {
+        let sourceURL = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Dimmerly/Views/MenuBarDisplayControls.swift")
+        let source = try String(contentsOf: sourceURL, encoding: .utf8)
+
+        // The translucent tint drops out, and the outline thickens, for Reduce Transparency
+        // and Increase Contrast.
+        XCTAssertTrue(source.contains("reduceTransparency || contrast == .increased ? 0 : 0.16"))
+        XCTAssertTrue(source.contains("contrast == .increased ? 1.5 : 0.75"))
     }
 }

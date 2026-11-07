@@ -97,6 +97,8 @@ protocol PresetEntityIndexingClient: AnyObject {
     func index(_ entities: [PresetEntity]) async throws
 }
 
+// Safety: Core Spotlight hands over a non-Sendable acknowledgement handler that it expects
+// to be called exactly once from any thread; the box is immutable and only ever calls it.
 private final class SearchableIndexAcknowledgement: @unchecked Sendable {
     private let handler: () -> Void
 
@@ -140,7 +142,9 @@ final class CSSearchablePresetEntityIndexingClient: NSObject, PresetEntityIndexi
             do {
                 try await self?.reindexAll()
             } catch {
-                presetEntityIndexLogger.error("Failed to recover all preset entities: \(error.localizedDescription)")
+                presetEntityIndexLogger.error(
+                    "Failed to recover all preset entities: \(error.localizedDescription, privacy: .private)"
+                )
             }
         }
     }
@@ -156,7 +160,9 @@ final class CSSearchablePresetEntityIndexingClient: NSObject, PresetEntityIndexi
             do {
                 try await self?.reindex(identifiers: identifiers)
             } catch {
-                presetEntityIndexLogger.error("Failed to recover preset entities: \(error.localizedDescription)")
+                presetEntityIndexLogger.error(
+                    "Failed to recover preset entities: \(error.localizedDescription, privacy: .private)"
+                )
             }
         }
     }
@@ -256,7 +262,9 @@ final class AppEntityIndexingService {
                 } catch is CancellationError {
                     return
                 } catch {
-                    presetEntityIndexLogger.error("Failed to index presets: \(error.localizedDescription)")
+                    presetEntityIndexLogger.error(
+                        "Failed to index presets: \(error.localizedDescription, privacy: .private)"
+                    )
                 }
             }
         }

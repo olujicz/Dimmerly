@@ -464,6 +464,7 @@
 
             /// dlsym handle for searching all loaded images (RTLD_DEFAULT = -2).
             /// The C macro `RTLD_DEFAULT` isn't importable in Swift.
+            /// Safety: an immutable sentinel value that is never dereferenced, only passed to dlsym.
             private nonisolated(unsafe) static let dlDefault = UnsafeMutableRawPointer(bitPattern: -2)
 
             private static let avDeviceCreate: (
@@ -1099,7 +1100,9 @@
                         sleep: sleep
                     )
                     guard lastWriteResult.succeeded else {
-                        logger.debug("DDC write 0x\(vcpHex, privacy: .public) failed: \(lastWriteResult.last)")
+                        logger.debug(
+                            "DDC write 0x\(vcpHex, privacy: .public) failed: \(lastWriteResult.last, privacy: .public)"
+                        )
                         continue
                     }
 
@@ -1115,7 +1118,12 @@
                         register: DDCAppleSiliconReadContract.dataAddress
                     )
                     guard r == KERN_SUCCESS else {
-                        logger.debug("DDC read 0x\(vcpHex, privacy: .public) attempt \(attempt + 1) failed: \(r)")
+                        logger.debug(
+                            """
+                            DDC read 0x\(vcpHex, privacy: .public) attempt \(attempt + 1, privacy: .public) \
+                            failed: \(r, privacy: .public)
+                            """
+                        )
                         continue
                     }
 

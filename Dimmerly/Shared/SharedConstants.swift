@@ -80,8 +80,8 @@ enum SharedConstants {
                 // failure that `UserDefaults(suiteName:)` may not even care about.
                 sharedConstantsLogger.error(
                     """
-                    Could not create app-group container at \(url.path, privacy: .public): \
-                    \(error.localizedDescription, privacy: .public)
+                    Could not create app-group container at \(url.path, privacy: .private): \
+                    \(error.localizedDescription, privacy: .private)
                     """
                 )
             }
@@ -111,6 +111,10 @@ enum SharedConstants {
 
     /// The main app serializes consumption on MainActor and removes each request before
     /// applying it. Retried notifications therefore cannot apply an action twice.
+    ///
+    /// A request the app can't read (for example one written by a different extension version)
+    /// is acknowledged as failed, so the extension reports it instead of waiting out its
+    /// deadline. An expired request gets no acknowledgement: its extension has stopped waiting.
     static func consumeWidgetActionRequest(
         _ id: UUID,
         from defaults: UserDefaults? = sharedDefaults,
@@ -121,8 +125,12 @@ enum SharedConstants {
         guard let data = defaults?.data(forKey: key) else { return nil }
         defaults?.removeObject(forKey: key)
         guard let request = try? JSONDecoder().decode(WidgetActionRequest.self, from: data),
-              request.id == id, request.expiresAt > now
-        else { return nil }
+              request.id == id
+        else {
+            acknowledgeWidgetAction(id, succeeded: false, in: defaults)
+            return nil
+        }
+        guard request.expiresAt > now else { return nil }
         return request
     }
 

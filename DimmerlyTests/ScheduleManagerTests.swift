@@ -569,7 +569,14 @@ final class ScheduleManagerTests: XCTestCase {
 
         _ = ScheduleManager(defaults: testDefaults)
 
-        XCTAssertEqual(testDefaults.data(forKey: ScheduleManager.schedulesBackupKey), earlierBackup)
+        let unreadable = testDefaults.object(forKey: ScheduleManager.schedulesBackupKey + "Unreadable") as? [Data]
+        XCTAssertEqual(unreadable, [earlierBackup])
+        let elements = try XCTUnwrap(
+            JSONSerialization.jsonObject(
+                with: XCTUnwrap(testDefaults.data(forKey: ScheduleManager.schedulesBackupKey))
+            ) as? [Any]
+        )
+        XCTAssertEqual(elements.count, 1, "The undecodable schedule must be backed up as well")
     }
 
     func testCleanScheduleLoadDoesNotWriteBackup() {

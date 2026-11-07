@@ -143,12 +143,13 @@ enum DisplayAction {
         /// This method:
         /// 1. Verifies pmset exists at /usr/bin/pmset
         /// 2. Spawns pmset process with "displaysleepnow" argument
-        /// 3. Waits for completion on a background queue (non-blocking)
+        /// 3. Waits for it to exit without blocking a thread, for at most `pmsetTimeout`
         /// 4. Returns success/failure based on exit code
         ///
         /// Error cases:
         /// - `.pmsetNotFound`: pmset binary doesn't exist or isn't executable
-        /// - `.pmsetFailed(status)`: pmset ran but returned non-zero exit code
+        /// - `.pmsetFailed(status)`: pmset ran but returned non-zero exit code, or was terminated
+        ///   because it timed out or the calling task was cancelled
         /// - `.unknownError(message)`: Process spawn failed (e.g., insufficient permissions)
         ///
         /// - Returns: Result indicating success or specific failure type
@@ -163,24 +164,51 @@ enum DisplayAction {
                 return .failure(.pmsetNotFound)
             }
 
-            return await withCheckedContinuation { continuation in
-                // Execute on background queue to avoid blocking the main thread
-                DispatchQueue.global(qos: .userInitiated).async {
-                    let process = Process()
-                    process.executableURL = URL(fileURLWithPath: pmsetPath)
-                    process.arguments = ["displaysleepnow"]
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: pmsetPath)
+            process.arguments = ["displaysleepnow"]
+            return await run(process, timeout: pmsetTimeout)
+        }
 
+        /// How long `pmset` may run before it is terminated. It normally exits at once.
+        static let pmsetTimeout = Duration.seconds(10)
+
+        /// Runs `process` and waits for it to exit without blocking a thread. The process is
+        /// terminated when `timeout` passes or the calling task is cancelled, which reports
+        /// `.pmsetFailed` with the termination status.
+        static func run(_ process: Process, timeout: Duration) async -> Result<Void, DisplayError> {
+            var timeoutTask: Task<Void, Error>?
+            defer { timeoutTask?.cancel() }
+
+            return await withTaskCancellationHandler {
+                await withCheckedContinuation { continuation in
+                    process.terminationHandler = { finished in
+                        let status = finished.terminationStatus
+                        let result: Result<Void, DisplayError> = status == 0
+                            ? .success(())
+                            : .failure(.pmsetFailed(status: status))
+                        continuation.resume(returning: result)
+                    }
                     do {
                         try process.run()
-                        process.waitUntilExit()
-                        if process.terminationStatus == 0 {
-                            continuation.resume(returning: .success(()))
-                        } else {
-                            continuation.resume(returning: .failure(.pmsetFailed(status: process.terminationStatus)))
+                        timeoutTask = Task {
+                            try await Task.sleep(for: timeout)
+                            if process.isRunning {
+                                process.terminate()
+                            }
+                        }
+                        // Cancellation that arrived before launch found nothing to terminate.
+                        if Task.isCancelled {
+                            process.terminate()
                         }
                     } catch {
+                        process.terminationHandler = nil
                         continuation.resume(returning: .failure(.unknownError(error.localizedDescription)))
                     }
+                }
+            } onCancel: {
+                if process.isRunning {
+                    process.terminate()
                 }
             }
         }

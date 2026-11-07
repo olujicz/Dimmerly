@@ -88,6 +88,34 @@ final class SharedConstantsTests: XCTestCase {
         )
     }
 
+    /// The extension waits for an answer until its deadline; a request the app can't read must
+    /// be answered with a failure right away rather than left unanswered.
+    func testConsumingAnUnreadableWidgetRequestAcknowledgesFailure() throws {
+        let unreadable = UUID()
+        defaults.set(Data([1, 2, 3]), forKey: "widgetActionRequest.\(unreadable.uuidString)")
+        let mismatched = UUID()
+        let other = WidgetActionRequest(command: .dimDisplays, expiresAt: Date().addingTimeInterval(5))
+        try defaults.set(JSONEncoder().encode(other), forKey: "widgetActionRequest.\(mismatched.uuidString)")
+
+        XCTAssertNil(SharedConstants.consumeWidgetActionRequest(unreadable, from: defaults))
+        XCTAssertNil(SharedConstants.consumeWidgetActionRequest(mismatched, from: defaults))
+
+        XCTAssertEqual(SharedConstants.widgetActionOutcome(unreadable, in: defaults), .failed)
+        XCTAssertEqual(SharedConstants.widgetActionOutcome(mismatched, in: defaults), .failed)
+        XCTAssertNil(defaults.data(forKey: "widgetActionRequest.\(unreadable.uuidString)"))
+    }
+
+    /// An expired request's extension has already stopped waiting, so an acknowledgement would
+    /// only be left behind.
+    func testConsumingAnExpiredWidgetRequestLeavesNoAcknowledgement() throws {
+        let now = Date()
+        let expired = WidgetActionRequest(command: .dimDisplays, expiresAt: now)
+        try SharedConstants.storeWidgetActionRequest(expired, in: defaults)
+
+        XCTAssertNil(SharedConstants.consumeWidgetActionRequest(expired.id, from: defaults, now: now))
+        XCTAssertNil(SharedConstants.widgetActionOutcome(expired.id, in: defaults))
+    }
+
     func testDiscardingStaleWidgetActionKeysWithoutSharedDefaultsIsANoOp() {
         SharedConstants.discardStaleWidgetActionKeys(in: nil)
     }

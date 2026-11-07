@@ -4,6 +4,7 @@
 //
 
 import AppKit
+import OSLog
 import SwiftUI
 
 // MARK: - Public popover presentation
@@ -65,7 +66,6 @@ final class MenuBarPanelPresenter: NSObject, NSPopoverDelegate {
 
         if let popover, popover.isShown {
             popover.contentViewController = contentBuilder(selectedPresetID)
-            popover.contentSize = contentSize(for: popover.contentViewController)
             return
         }
 
@@ -73,8 +73,9 @@ final class MenuBarPanelPresenter: NSObject, NSPopoverDelegate {
         popover.behavior = .transient
         popover.animates = true
         popover.delegate = self
+        // The popover takes its size from the controller's `preferredContentSize`, which
+        // `hostingController(for:)` keeps current. The panel caps its own scroll height.
         popover.contentViewController = contentBuilder(selectedPresetID)
-        popover.contentSize = contentSize(for: popover.contentViewController)
         self.popover = popover
         dismissalWasNotified = false
 
@@ -82,6 +83,9 @@ final class MenuBarPanelPresenter: NSObject, NSPopoverDelegate {
         // does not depend on MenuBarExtra's private target/action implementation.
         // The panel opens below the anchor whichever way its view's y-axis runs.
         popover.show(relativeTo: anchor.rect, of: anchor.view, preferredEdge: anchor.view.isFlipped ? .maxY : .minY)
+        // No expanded interface session runs for this popover, so the system doesn't
+        // highlight the status item the way it does when the item is clicked.
+        statusItem?.button?.highlight(true)
     }
 
     func dismiss() {
@@ -102,17 +106,6 @@ final class MenuBarPanelPresenter: NSObject, NSPopoverDelegate {
         finishDismissal(for: closedPopover)
     }
 
-    private func contentSize(for viewController: NSViewController?) -> NSSize {
-        guard let viewController else { return NSSize(width: 300, height: 480) }
-
-        viewController.view.layoutSubtreeIfNeeded()
-        let fittingSize = viewController.view.fittingSize
-        let height = fittingSize.height.isFinite && fittingSize.height > 0
-            ? min(max(fittingSize.height, 200), 640)
-            : 480
-        return NSSize(width: 300, height: height)
-    }
-
     private func presentationAnchor() -> (rect: NSRect, view: NSView)? {
         if let anchorProvider {
             return anchorProvider()
@@ -126,6 +119,7 @@ final class MenuBarPanelPresenter: NSObject, NSPopoverDelegate {
         guard self.popover === popover else { return }
         self.popover = nil
         anchorWindow.hide()
+        statusItem?.button?.highlight(false)
         notifyDismissalIfNeeded()
     }
 
@@ -175,6 +169,87 @@ final class StatusItemAnchorWindow {
         return window
     }
 }
+
+// MARK: - Status Item Reachability
+
+/// Whether people can see the status item, so a panel opened from it would show up.
+///
+/// The item can be hidden: on macOS 26 and later people can turn off "Allow in the Menu Bar"
+/// in System Settings > Menu Bar, and on a Mac with a camera housing items that don't fit
+/// beside the app's menus sit behind it. A panel anchored to a hidden item opens off screen
+/// or not at all, so callers open Settings instead.
+@MainActor
+enum StatusItemReachability {
+    /// A screen's frame and the part of its top edge the camera housing covers, if any.
+    struct Screen: Equatable {
+        var frame: NSRect
+        var cameraHousing: NSRect?
+
+        init(frame: NSRect, cameraHousing: NSRect? = nil) {
+            self.frame = frame
+            self.cameraHousing = cameraHousing
+        }
+
+        init(_ screen: NSScreen) {
+            frame = screen.frame
+            // The unobscured areas either side of the housing; their widths are the same
+            // whichever coordinate space AppKit reports them in.
+            if let left = screen.auxiliaryTopLeftArea, let right = screen.auxiliaryTopRightArea {
+                let minX = screen.frame.minX + left.width
+                let maxX = screen.frame.maxX - right.width
+                let height = max(left.height, right.height)
+                cameraHousing = maxX > minX
+                    ? NSRect(x: minX, y: screen.frame.maxY - height, width: maxX - minX, height: height)
+                    : nil
+            } else {
+                cameraHousing = nil
+            }
+        }
+    }
+
+    static func isReachable(_ statusItem: NSStatusItem?) -> Bool {
+        guard let statusItem, let button = statusItem.button, let window = button.window else {
+            return false
+        }
+        let buttonFrame = window.convertToScreen(button.convert(button.bounds, to: nil))
+        let reachable = isReachable(
+            isVisible: statusItem.isVisible && window.isVisible,
+            buttonFrame: buttonFrame,
+            screens: NSScreen.screens.map(Screen.init)
+        )
+        statusItemReachabilityLogger.debug(
+            """
+            Status item reachable: \(reachable), visible: \(statusItem.isVisible), \
+            window visible: \(window.isVisible), frame: \(String(describing: buttonFrame), privacy: .public)
+            """
+        )
+        return reachable
+    }
+
+    /// The item is reachable when it's shown, its centre is on a screen, and it isn't behind
+    /// that screen's camera housing. An automatically hidden menu bar (a setting, or a
+    /// full-screen Space) slides just above the top edge and comes back when the pointer
+    /// reaches it, so an item directly above a screen counts as on that screen.
+    static func isReachable(isVisible: Bool, buttonFrame: NSRect, screens: [Screen]) -> Bool {
+        guard isVisible, !buttonFrame.isEmpty else { return false }
+        let center = NSPoint(x: buttonFrame.midX, y: buttonFrame.midY)
+        let hiddenMenuBarAllowance = buttonFrame.height * 2
+        guard let screen = screens.first(where: { screen in
+            var frame = screen.frame
+            frame.size.height += hiddenMenuBarAllowance
+            return frame.contains(center)
+        }) else { return false }
+        if let cameraHousing = screen.cameraHousing, cameraHousing.contains(center) {
+            return false
+        }
+        return true
+    }
+}
+
+private let statusItemReachabilityLogger = Logger(
+    subsystem: "rs.in.olujic.dimmerly",
+    category: "StatusItemReachability"
+)
 
 // MARK: - Scroll Style
 
@@ -234,47 +309,6 @@ final class MenuBarPanelScrollStyleConfiguratorView: NSView {
     }
 }
 
-/// Configures the panel's host window using the public `NSView.window` path.
-/// This works for both SwiftUI's MenuBarExtra window and the fallback popover.
-final class MenuBarPanelWindowConfiguratorView: NSView {
-    private var hasConfiguredWindow = false
-
-    override func viewDidMoveToWindow() {
-        super.viewDidMoveToWindow()
-        scheduleConfigure()
-    }
-
-    override func viewDidMoveToSuperview() {
-        super.viewDidMoveToSuperview()
-        scheduleConfigure()
-    }
-
-    func scheduleConfigure(attemptsRemaining: Int = 8) {
-        guard !hasConfiguredWindow else { return }
-
-        guard let window else {
-            guard attemptsRemaining > 0 else { return }
-            DispatchQueue.main.async { [weak self] in
-                self?.scheduleConfigure(attemptsRemaining: attemptsRemaining - 1)
-            }
-            return
-        }
-
-        MenuBarPanelHostGlass.configureWindow(window)
-        hasConfiguredWindow = true
-    }
-}
-
-private struct MenuBarPanelWindowConfigurator: NSViewRepresentable {
-    func makeNSView(context _: Context) -> NSView {
-        MenuBarPanelWindowConfiguratorView()
-    }
-
-    func updateNSView(_ nsView: NSView, context _: Context) {
-        (nsView as? MenuBarPanelWindowConfiguratorView)?.scheduleConfigure()
-    }
-}
-
 private struct MenuBarPanelScrollStyleConfigurator: NSViewRepresentable {
     func makeNSView(context _: Context) -> NSView {
         MenuBarPanelScrollStyleConfiguratorView()
@@ -288,160 +322,5 @@ private struct MenuBarPanelScrollStyleConfigurator: NSViewRepresentable {
 extension View {
     func menuBarPanelScrollStyle() -> some View {
         background(MenuBarPanelScrollStyleConfigurator())
-    }
-
-    /// Applies the panel background for the running OS. See `MenuBarPanelBackground`.
-    ///
-    /// With `.systemGlass` the content is returned untouched: the `MenuBarExtra`
-    /// window's default container background and `NSPopover`'s own background are
-    /// already Liquid Glass, so drawing a material here would stack glass on glass.
-    @ViewBuilder
-    func menuBarPanelBackground(_ background: MenuBarPanelBackground = .current) -> some View {
-        switch background {
-        case .systemGlass:
-            self
-        case .visualEffectMaterial:
-            menuBarPanelHostGlass()
-                .menuBarPanelChrome()
-        }
-    }
-}
-
-private extension View {
-    /// Let `MenuBarExtra` draw the only rounded window chrome.
-    func menuBarPanelChrome() -> some View {
-        containerBackground(.clear, for: .window)
-    }
-}
-
-// MARK: - Host Glass Configuration
-
-/// Fallback glass window styling shared by the system MenuBarExtra and the public
-/// AppKit popover. Only used for `MenuBarPanelBackground.visualEffectMaterial`.
-@MainActor
-enum MenuBarPanelHostGlass {
-    static let glassIdentifier = NSUserInterfaceItemIdentifier("DimmerlyMenuBarPanelGlass")
-
-    /// One-time window setup: transparency and the rounded glass effect view.
-    static func configureWindow(_ window: NSWindow) {
-        guard let contentView = window.contentView else { return }
-
-        if MenuBarPanelGlassStyle.clearsHostWindowBackground {
-            window.isOpaque = false
-            window.backgroundColor = .clear
-        }
-
-        contentView.wantsLayer = true
-        contentView.layer?.backgroundColor = NSColor.clear.cgColor
-
-        clearContentBackgrounds(in: contentView)
-    }
-
-    /// Re-clears layer backgrounds that SwiftUI adds as the content view hierarchy changes
-    /// (hover highlights, expanding adjustments, etc.), so the glass effect stays visible.
-    static func refreshContentBackgrounds(in window: NSWindow) {
-        guard let contentView = window.contentView else { return }
-        clearContentBackgrounds(in: contentView)
-    }
-
-    private static func clearContentBackgrounds(in view: NSView) {
-        if MenuBarPanelGlassBackgroundPolicy.shouldClearLayerBackground(
-            for: view,
-            glassIdentifier: glassIdentifier
-        ) {
-            view.wantsLayer = true
-            view.layer?.backgroundColor = NSColor.clear.cgColor
-        }
-
-        guard MenuBarPanelGlassBackgroundPolicy.shouldVisitSubviews(
-            of: view,
-            glassIdentifier: glassIdentifier
-        ) else {
-            return
-        }
-
-        for subview in view.subviews {
-            clearContentBackgrounds(in: subview)
-        }
-    }
-}
-
-/// Backing view for `MenuBarPanelHostRefreshConfigurator`. Coalesces repeated
-/// `updateNSView` calls (SwiftUI fires one on every body re-evaluation — dozens per
-/// second while dragging a brightness slider) into at most one actual hierarchy walk
-/// per run-loop turn, instead of re-walking the full content view tree on every single call.
-///
-/// Internal (not `private`) so tests can exercise the coalescing behavior directly,
-/// matching `MenuBarPanelScrollStyleConfiguratorView`'s testing approach.
-final class MenuBarPanelHostRefreshConfiguratorView: NSView {
-    private var isRefreshScheduled = false
-
-    /// Number of times the hierarchy walk has actually run. Test-only observability into
-    /// the coalescing behavior; unused in production beyond incrementing.
-    private(set) var refreshCount = 0
-
-    func scheduleRefresh() {
-        guard !isRefreshScheduled else { return }
-        isRefreshScheduled = true
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            isRefreshScheduled = false
-            refreshCount += 1
-            guard let window else { return }
-            MenuBarPanelHostGlass.refreshContentBackgrounds(in: window)
-        }
-    }
-}
-
-/// Re-applies glass background clearing as SwiftUI's content view hierarchy changes.
-private struct MenuBarPanelHostRefreshConfigurator: NSViewRepresentable {
-    func makeNSView(context _: Context) -> NSView {
-        MenuBarPanelHostRefreshConfiguratorView()
-    }
-
-    func updateNSView(_ nsView: NSView, context _: Context) {
-        (nsView as? MenuBarPanelHostRefreshConfiguratorView)?.scheduleRefresh()
-    }
-}
-
-/// Vends the glass material as part of the SwiftUI content. AppKit does not support
-/// adding an `NSVisualEffectView` as a subview of `NSHostingController.view`, so the
-/// material is inserted through an `NSViewRepresentable` instead of being injected
-/// into the host window's content view.
-@MainActor
-enum MenuBarPanelGlassBackgroundView {
-    static func makeEffectView() -> NSVisualEffectView {
-        let effectView = NSVisualEffectView()
-        effectView.identifier = MenuBarPanelHostGlass.glassIdentifier
-        effectView.material = MenuBarPanelGlassStyle.windowMaterial
-        effectView.blendingMode = MenuBarPanelGlassStyle.blendingMode
-        effectView.state = MenuBarPanelGlassStyle.state
-        effectView.isEmphasized = true
-        effectView.wantsLayer = true
-        effectView.layer?.cornerRadius = MenuBarPanelGlassStyle.cornerRadius
-        effectView.layer?.cornerCurve = .continuous
-        effectView.layer?.masksToBounds = true
-        return effectView
-    }
-}
-
-private struct MenuBarPanelGlassBackground: NSViewRepresentable {
-    func makeNSView(context _: Context) -> NSVisualEffectView {
-        MenuBarPanelGlassBackgroundView.makeEffectView()
-    }
-
-    func updateNSView(_ nsView: NSVisualEffectView, context _: Context) {
-        nsView.material = MenuBarPanelGlassStyle.windowMaterial
-        nsView.blendingMode = MenuBarPanelGlassStyle.blendingMode
-        nsView.state = MenuBarPanelGlassStyle.state
-    }
-}
-
-private extension View {
-    /// Fallback material for macOS 15 through 25 (`.visualEffectMaterial`).
-    func menuBarPanelHostGlass() -> some View {
-        background(MenuBarPanelGlassBackground())
-            .background(MenuBarPanelWindowConfigurator())
-            .background(MenuBarPanelHostRefreshConfigurator())
     }
 }

@@ -7,42 +7,46 @@
 
     import CoreGraphics
     import Foundation
+    import Synchronization
 
     struct DDCSession: Equatable, Sendable {
         let generation: UInt64
     }
 
-    final class DDCSessionGate: @unchecked Sendable {
-        private let lock = NSLock()
-        private var generation: UInt64 = 0
-        private var enabled = false
+    final class DDCSessionGate: Sendable {
+        private struct State {
+            var generation: UInt64 = 0
+            var enabled = false
+        }
+
+        private let state = Mutex(State())
 
         @discardableResult
         func beginEnabledSession() -> DDCSession {
-            lock.withLock {
-                generation &+= 1
-                enabled = true
-                return DDCSession(generation: generation)
+            state.withLock { state in
+                state.generation &+= 1
+                state.enabled = true
+                return DDCSession(generation: state.generation)
             }
         }
 
         func capture() -> DDCSession? {
-            lock.withLock {
-                enabled ? DDCSession(generation: generation) : nil
+            state.withLock { state in
+                state.enabled ? DDCSession(generation: state.generation) : nil
             }
         }
 
         func isCurrent(_ session: DDCSession) -> Bool {
-            lock.withLock {
-                enabled && session.generation == generation
+            state.withLock { state in
+                state.enabled && session.generation == state.generation
             }
         }
 
         func invalidate(_ session: DDCSession) {
-            lock.withLock {
-                guard enabled, session.generation == generation else { return }
-                enabled = false
-                generation &+= 1
+            state.withLock { state in
+                guard state.enabled, session.generation == state.generation else { return }
+                state.enabled = false
+                state.generation &+= 1
             }
         }
     }
@@ -55,12 +59,11 @@
         let incarnation: UInt64
     }
 
-    final class DDCDisplayConnectionGate: @unchecked Sendable {
-        private let lock = NSLock()
-        private var incarnations: [CGDirectDisplayID: UInt64] = [:]
+    final class DDCDisplayConnectionGate: Sendable {
+        private let incarnations = Mutex<[CGDirectDisplayID: UInt64]>([:])
 
         func current(for displayID: CGDirectDisplayID) -> DDCDisplayConnectionToken {
-            lock.withLock {
+            incarnations.withLock { incarnations in
                 DDCDisplayConnectionToken(
                     displayID: displayID,
                     incarnation: incarnations[displayID] ?? 0
@@ -69,13 +72,13 @@
         }
 
         func advance(for displayID: CGDirectDisplayID) {
-            lock.withLock {
+            incarnations.withLock { incarnations in
                 incarnations[displayID] = (incarnations[displayID] ?? 0) &+ 1
             }
         }
 
         func isCurrent(_ token: DDCDisplayConnectionToken) -> Bool {
-            lock.withLock {
+            incarnations.withLock { incarnations in
                 (incarnations[token.displayID] ?? 0) == token.incarnation
             }
         }

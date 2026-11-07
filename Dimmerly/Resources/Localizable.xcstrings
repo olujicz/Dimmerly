@@ -3209,57 +3209,177 @@
       "comment" : "Idle timer stepper label: number of minutes",
       "localizations" : {
         "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%d Minuten"
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%d Minute"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%d Minuten"
+                }
+              }
+            }
           }
         },
         "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%d minutes"
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%d minute"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%d minutes"
+                }
+              }
+            }
           }
         },
         "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%d minutos"
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%d minutos"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%d minuto"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%d minutos"
+                }
+              }
+            }
           }
         },
         "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%d minutes"
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%d minutes"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%d minute"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%d minutes"
+                }
+              }
+            }
           }
         },
         "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%d minuti"
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%d minuti"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%d minuto"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%d minuti"
+                }
+              }
+            }
           }
         },
         "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%d 分"
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%d 分"
+                }
+              }
+            }
           }
         },
         "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%d분"
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%d분"
+                }
+              }
+            }
           }
         },
         "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%d minuten"
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%d minuut"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%d minuten"
+                }
+              }
+            }
           }
         },
         "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%d minutos"
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%d minutos"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%d minuto"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%d minutos"
+                }
+              }
+            }
           }
         },
         "sr" : {
@@ -3287,9 +3407,15 @@
           }
         },
         "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%d 分钟"
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%d 分钟"
+                }
+              }
+            }
           }
         }
       }
@@ -9697,69 +9823,213 @@
       "comment" : "Idle timer description",
       "localizations" : {
         "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Displays werden nach %d Minuten Inaktivität automatisch gedimmt."
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Displays werden nach %d Minute Inaktivität automatisch gedimmt."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Displays werden nach %d Minuten Inaktivität automatisch gedimmt."
+                }
+              }
+            }
           }
         },
         "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Displays will dim automatically after %d minutes of inactivity."
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Displays will dim automatically after %d minute of inactivity."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Displays will dim automatically after %d minutes of inactivity."
+                }
+              }
+            }
           }
         },
         "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Las pantallas se atenuarán automáticamente después de %d minutos de inactividad."
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Las pantallas se atenuarán automáticamente después de %d minutos de inactividad."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Las pantallas se atenuarán automáticamente después de %d minuto de inactividad."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Las pantallas se atenuarán automáticamente después de %d minutos de inactividad."
+                }
+              }
+            }
           }
         },
         "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Les écrans s’assombriront automatiquement après %d minutes d’inactivité."
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Les écrans s’assombriront automatiquement après %d minutes d’inactivité."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Les écrans s’assombriront automatiquement après %d minute d’inactivité."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Les écrans s’assombriront automatiquement après %d minutes d’inactivité."
+                }
+              }
+            }
           }
         },
         "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "I display si oscureranno automaticamente dopo %d minuti di inattività."
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "I display si oscureranno automaticamente dopo %d minuti di inattività."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "I display si oscureranno automaticamente dopo %d minuto di inattività."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "I display si oscureranno automaticamente dopo %d minuti di inattività."
+                }
+              }
+            }
           }
         },
         "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%d 分間操作がないと、ディスプレイが自動的に暗くなります。"
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%d 分間操作がないと、ディスプレイが自動的に暗くなります。"
+                }
+              }
+            }
           }
         },
         "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%d분 동안 활동이 없으면 디스플레이가 자동으로 어두워집니다."
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%d분 동안 활동이 없으면 디스플레이가 자동으로 어두워집니다."
+                }
+              }
+            }
           }
         },
         "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Beeldschermen worden automatisch gedimd na %d minuten inactiviteit."
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Beeldschermen worden automatisch gedimd na %d minuut inactiviteit."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Beeldschermen worden automatisch gedimd na %d minuten inactiviteit."
+                }
+              }
+            }
           }
         },
         "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "As telas serão escurecidas automaticamente após %d minutos de inatividade."
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "As telas serão escurecidas automaticamente após %d minutos de inatividade."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "As telas serão escurecidas automaticamente após %d minuto de inatividade."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "As telas serão escurecidas automaticamente após %d minutos de inatividade."
+                }
+              }
+            }
           }
         },
         "sr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ekrani će se automatski zatamniti nakon %d minuta neaktivnosti."
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Ekrani će se automatski zatamniti nakon %d minuta neaktivnosti."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Ekrani će se automatski zatamniti nakon %d minuta neaktivnosti."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Ekrani će se automatski zatamniti nakon %d minuta neaktivnosti."
+                }
+              }
+            }
           }
         },
         "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "显示器将在 %d 分钟无操作后自动调暗。"
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "显示器将在 %d 分钟无操作后自动调暗。"
+                }
+              }
+            }
           }
         }
       }
@@ -21679,76 +21949,6 @@
         }
       }
     },
-    "1 minute" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 Minute"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 minute"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 minuto"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 minute"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 minuto"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 分"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1분"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 minuut"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 minuto"
-          }
-        },
-        "sr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 minut"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 分钟"
-          }
-        }
-      }
-    },
     "Accessibility permission is required to suppress wake input safely." : {
       "localizations" : {
         "de" : {
@@ -23775,76 +23975,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "显示器"
-          }
-        }
-      }
-    },
-    "Displays will dim automatically after 1 minute of inactivity." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bildschirme werden nach 1 Minute Inaktivität automatisch gedimmt."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Displays will dim automatically after 1 minute of inactivity."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Las pantallas se atenuarán automáticamente después de 1 minuto de inactividad."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Les écrans s’assombriront automatiquement après 1 minute d’inactivité."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gli schermi si oscureranno automaticamente dopo 1 minuto di inattività."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 分間操作がないと、ディスプレイが自動的に暗くなります。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1분 동안 활동이 없으면 디스플레이가 자동으로 어두워집니다."
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Schermen worden automatisch gedimd na 1 minuut inactiviteit."
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "As telas serão escurecidas automaticamente após 1 minuto de inatividade."
-          }
-        },
-        "sr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ekrani će se automatski zatamniti nakon 1 minuta neaktivnosti."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "显示器将在 1 分钟无操作后自动调暗。"
           }
         }
       }
@@ -28119,6 +28249,430 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@（%2$@）→ %3$@"
+          }
+        }
+      }
+    },
+    "Open Location Services Settings" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ortungsdienste-Einstellungen öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Location Services Settings"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir los ajustes de Localización"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir les réglages du Service de localisation"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri le impostazioni di Localizzazione"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "位置情報サービスの設定を開く"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "위치 서비스 설정 열기"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open instellingen voor Locatievoorzieningen"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir os ajustes de Serviços de Localização"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otvori podešavanja usluga lokacije"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开定位服务设置"
+          }
+        }
+      }
+    },
+    "Open Location Services in System Settings" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ortungsdienste in den Systemeinstellungen öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Location Services in System Settings"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir Localización en Ajustes del Sistema"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir Service de localisation dans Réglages Système"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri Localizzazione in Impostazioni di Sistema"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "システム設定で位置情報サービスを開く"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "시스템 설정에서 위치 서비스 열기"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Locatievoorzieningen in Systeeminstellingen"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir Serviços de Localização nos Ajustes do Sistema"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otvori usluge lokacije u Sistemskim podešavanjima"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在“系统设置”中打开定位服务"
+          }
+        }
+      }
+    },
+    "Location Services is turned off. Turn it on in System Settings > Privacy & Security > Location Services, or enter a location manually." : {
+      "comment" : "Settings: Location Services is off for the whole Mac; names the System Settings path",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Ortungsdienste sind deaktiviert. Aktiviere sie in Systemeinstellungen > Datenschutz & Sicherheit > Ortungsdienste oder gib einen Standort manuell ein."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Location Services is turned off. Turn it on in System Settings > Privacy & Security > Location Services, or enter a location manually."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Localización está desactivada. Actívala en Ajustes del Sistema > Privacidad y seguridad > Localización, o introduce una ubicación manualmente."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le Service de localisation est désactivé. Activez-le dans Réglages Système > Confidentialité et sécurité > Service de localisation, ou saisissez un lieu manuellement."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Localizzazione è disattivata. Attivala in Impostazioni di Sistema > Privacy e sicurezza > Localizzazione, oppure inserisci una posizione manualmente."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "位置情報サービスがオフになっています。システム設定 > プライバシーとセキュリティ > 位置情報サービスでオンにするか、位置を手動で入力してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "위치 서비스가 꺼져 있습니다. 시스템 설정 > 개인정보 보호 및 보안 > 위치 서비스에서 켜거나 위치를 직접 입력하세요."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Locatievoorzieningen staat uit. Zet het aan in Systeeminstellingen > Privacy en beveiliging > Locatievoorzieningen, of voer handmatig een locatie in."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Os Serviços de Localização estão desativados. Ative-os em Ajustes do Sistema > Privacidade e Segurança > Serviços de Localização ou insira uma localização manualmente."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usluge lokacije su isključene. Uključi ih u Sistemska podešavanja > Privatnost i bezbednost > Usluge lokacije ili ručno unesi lokaciju."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "定位服务已关闭。请在“系统设置 > 隐私与安全性 > 定位服务”中打开，或手动输入位置。"
+          }
+        }
+      }
+    },
+    "Dimmerly doesn’t have access to your location. Allow it in System Settings > Privacy & Security > Location Services, or enter a location manually." : {
+      "comment" : "Settings: location access was turned down; names the System Settings path",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly hat keinen Zugriff auf deinen Standort. Erlaube ihn in Systemeinstellungen > Datenschutz & Sicherheit > Ortungsdienste oder gib einen Standort manuell ein."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly doesn’t have access to your location. Allow it in System Settings > Privacy & Security > Location Services, or enter a location manually."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly no tiene acceso a tu ubicación. Permítelo en Ajustes del Sistema > Privacidad y seguridad > Localización, o introduce una ubicación manualmente."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly n’a pas accès à votre position. Autorisez-le dans Réglages Système > Confidentialité et sécurité > Service de localisation, ou saisissez un lieu manuellement."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly non ha accesso alla tua posizione. Consentilo in Impostazioni di Sistema > Privacy e sicurezza > Localizzazione, oppure inserisci una posizione manualmente."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly は位置情報にアクセスできません。システム設定 > プライバシーとセキュリティ > 位置情報サービスで許可するか、位置を手動で入力してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly가 위치에 접근할 수 없습니다. 시스템 설정 > 개인정보 보호 및 보안 > 위치 서비스에서 허용하거나 위치를 직접 입력하세요."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly heeft geen toegang tot je locatie. Sta het toe in Systeeminstellingen > Privacy en beveiliging > Locatievoorzieningen, of voer handmatig een locatie in."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Dimmerly não tem acesso à sua localização. Permita em Ajustes do Sistema > Privacidade e Segurança > Serviços de Localização ou insira uma localização manualmente."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly nema pristup tvojoj lokaciji. Dozvoli ga u Sistemska podešavanja > Privatnost i bezbednost > Usluge lokacije ili ručno unesi lokaciju."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly 无法访问你的位置。请在“系统设置 > 隐私与安全性 > 定位服务”中允许访问，或手动输入位置。"
+          }
+        }
+      }
+    },
+    "Location access is restricted on this Mac. Enter a location manually." : {
+      "comment" : "Settings: location access is blocked by a policy the person can't change",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Standortzugriff ist auf diesem Mac eingeschränkt. Gib einen Standort manuell ein."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Location access is restricted on this Mac. Enter a location manually."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El acceso a la ubicación está restringido en este Mac. Introduce una ubicación manualmente."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’accès à la position est restreint sur ce Mac. Saisissez un lieu manuellement."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’accesso alla posizione è limitato su questo Mac. Inserisci una posizione manualmente."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このMacでは位置情報へのアクセスが制限されています。位置を手動で入力してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 Mac에서는 위치 접근이 제한되어 있습니다. 위치를 직접 입력하세요."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Locatietoegang is beperkt op deze Mac. Voer handmatig een locatie in."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O acesso à localização está restrito neste Mac. Insira uma localização manualmente."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pristup lokaciji je ograničen na ovom Mac računaru. Ručno unesi lokaciju."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此 Mac 上的位置访问受到限制。请手动输入位置。"
+          }
+        }
+      }
+    },
+    "%dK, automatic" : {
+      "comment" : "Accessibility value: warmth in Kelvin while Auto Warmth is setting it",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%dK, automatisch"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%dK, automatic"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%dK, automático"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%dK, automatique"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%dK, automatico"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%dK、自動"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%dK, 자동"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%dK, automatisch"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%dK, automático"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%dK, automatski"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%dK，自动"
           }
         }
       }

@@ -160,6 +160,19 @@ struct DimmerlyApp: App {
                     panelPresenter.dismiss()
                 }
             )
+            menuBarPanelCoordinator.configureSystemPanelSession { [weak statusItem] in
+                #if compiler(>=6.4)
+                    if #available(macOS 27.0, *), let session = statusItem?.expandedInterfaceSession {
+                        session.cancel()
+                        return true
+                    }
+                #endif
+                return false
+            }
+            menuBarPanelCoordinator.configureHiddenStatusItemFallback(
+                isStatusItemReachable: { [weak statusItem] in StatusItemReachability.isReachable(statusItem) },
+                openSettings: openSettingsWindow
+            )
             statusItemQuickActions.configure(
                 statusItem: statusItem,
                 settings: settings,
@@ -364,12 +377,14 @@ final class AppServices {
     }
 
     /// Blanking cannot outlive the app, so the dim toggle must not keep showing it as on.
+    /// Display values changed in the last moments before quitting are saved right away.
     private func observeTermination() {
         _ = NotificationCenter.default.addObserver(
             forName: NSApplication.willTerminateNotification,
             object: nil, queue: .main
-        ) { _ in
+        ) { [brightnessManager] _ in
             MainActor.assumeIsolated {
+                brightnessManager.flushPendingPersistence()
                 ControlCenterStatePublisher.live.publishDimState(false)
             }
         }
@@ -476,6 +491,13 @@ final class DimmerlyAppDelegate: NSObject, NSApplicationDelegate {
     func application(_: NSApplication, open urls: [URL]) {
         guard urls.contains(where: DimmerlyURL.opensPanel) else { return }
         MenuBarPanelCoordinator.shared.openPanel()
+    }
+
+    /// Opening Dimmerly again from Finder, Spotlight or Launchpad shows the panel, or Settings
+    /// while the status item is hidden, so the app can always be reached.
+    func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows _: Bool) -> Bool {
+        MenuBarPanelCoordinator.shared.openPanel()
+        return false
     }
 }
 

@@ -6,6 +6,7 @@
 //  PresetManager and ScheduleManager.
 //
 
+import CryptoKit
 import Foundation
 import OSLog
 
@@ -19,6 +20,11 @@ import OSLog
 /// elements, skipping ids that are already present) and removed from the backup, and the
 /// backup is deleted once nothing is left in it. Keeping only unrecovered elements means a
 /// decodable element the user deletes later is not brought back from the backup.
+///
+/// A payload that is unreadable as a whole cannot be split into elements, so it is kept as is
+/// in a separate list under `unreadableBackupKey` for manual recovery, next to any element
+/// backup. Earlier builds stored such a payload under `backupKey` itself; a load moves it to
+/// `unreadableBackupKey` so `backupKey` can hold elements again.
 struct JSONDefaultsArrayStore<Element: Codable & Identifiable> {
     let key: String
     let backupKey: String
@@ -29,6 +35,11 @@ struct JSONDefaultsArrayStore<Element: Codable & Identifiable> {
     /// The most elements a load may return after restoring from the backup. Backup elements
     /// that do not fit stay in the backup. `nil` means no limit.
     var maxCount: Int?
+
+    /// Holds every distinct payload that was unreadable as a whole, as an array of `Data`.
+    var unreadableBackupKey: String {
+        backupKey + "Unreadable"
+    }
 
     /// Returns every element that decodes, plus any backup elements that can now be restored.
     /// Undecodable elements are moved to the backup. When anything is restored, the combined
@@ -48,7 +59,7 @@ struct JSONDefaultsArrayStore<Element: Codable & Identifiable> {
                 }
             } catch {
                 logger.error(
-                    "Stored \(key, privacy: .public) is unreadable: \(error.localizedDescription, privacy: .public)"
+                    "Stored \(key, privacy: .public) is unreadable: \(error.localizedDescription, privacy: .private)"
                 )
                 backUpUnreadable(data)
                 return values
@@ -80,7 +91,7 @@ struct JSONDefaultsArrayStore<Element: Codable & Identifiable> {
             logger.error(
                 """
                 Failed to encode \(elementsDescription, privacy: .public): \
-                \(error.localizedDescription, privacy: .public)
+                \(error.localizedDescription, privacy: .private)
                 """
             )
             return false
@@ -92,18 +103,23 @@ struct JSONDefaultsArrayStore<Element: Codable & Identifiable> {
     /// Merges `undecodable` into the backup, restores every backup element this build can now
     /// decode, and leaves only the elements that are still missing from the list in the backup.
     private func restoringFromBackup(_ values: [Element], addingToBackup undecodable: [Data]) -> [Element] {
-        let storedBackup = defaults.data(forKey: backupKey)
+        var storedBackup = defaults.data(forKey: backupKey)
         var pending: [Data] = []
-        if let storedBackup {
+        if let backup = storedBackup {
             do {
-                pending = try Self.rawElements(of: storedBackup)
+                pending = try Self.rawElements(of: backup)
             } catch {
-                // A backup of a payload that was unreadable as a whole. Nothing in it can be
-                // restored element by element, so keep it untouched for manual recovery.
+                // An earlier build's backup of a payload that was unreadable as a whole. Move
+                // it to the list of unreadable payloads so this key can hold elements again.
+                guard backUpUnreadable(backup) else { return values }
+                defaults.removeObject(forKey: backupKey)
+                storedBackup = nil
                 logger.notice(
-                    "Keeping the unreadable backup of \(key, privacy: .public) in \(backupKey, privacy: .public)"
+                    """
+                    Moved the unreadable backup of \(key, privacy: .public) from \
+                    \(backupKey, privacy: .public) to \(unreadableBackupKey, privacy: .public)
+                    """
                 )
-                return values
             }
         }
         for element in undecodable where !pending.contains(element) {
@@ -142,8 +158,10 @@ struct JSONDefaultsArrayStore<Element: Codable & Identifiable> {
         }
 
         if remaining.isEmpty {
-            defaults.removeObject(forKey: backupKey)
-            logger.notice("Removed \(backupKey, privacy: .public); nothing is left to restore")
+            if storedBackup != nil {
+                defaults.removeObject(forKey: backupKey)
+                logger.notice("Removed \(backupKey, privacy: .public); nothing is left to restore")
+            }
         } else {
             let backup = Self.arrayData(of: remaining)
             if backup != storedBackup {
@@ -159,14 +177,37 @@ struct JSONDefaultsArrayStore<Element: Codable & Identifiable> {
         return result
     }
 
-    /// Copies a payload that is unreadable as a whole to the backup, unless a backup exists.
-    private func backUpUnreadable(_ data: Data) {
-        guard defaults.data(forKey: backupKey) == nil else {
-            logger.notice("Keeping the existing backup of \(key, privacy: .public) in \(backupKey, privacy: .public)")
-            return
+    /// Adds a payload that is unreadable as a whole to the list under `unreadableBackupKey`,
+    /// unless an identical payload is already there. If that key holds a value this build
+    /// doesn't recognize, the value is left alone and the payload goes to a key of its own.
+    @discardableResult
+    private func backUpUnreadable(_ data: Data) -> Bool {
+        let stored = defaults.object(forKey: unreadableBackupKey)
+        guard stored == nil || stored is [Data] else {
+            // Leave the unexpected value alone, but never let it cost this payload.
+            // Named after the payload, so loading the same payload again adds nothing.
+            let digest = SHA256.hash(data: data).prefix(8).map { String(format: "%02x", $0) }.joined()
+            let fallbackKey = "\(unreadableBackupKey).\(digest)"
+            defaults.set(data, forKey: fallbackKey)
+            logger.error(
+                """
+                Unexpected value in \(unreadableBackupKey, privacy: .public); backed up the unreadable \
+                \(key, privacy: .public) to \(fallbackKey, privacy: .public) instead
+                """
+            )
+            return true
         }
-        defaults.set(data, forKey: backupKey)
-        logger.notice("Backed up the original \(key, privacy: .public) to \(backupKey, privacy: .public)")
+        var payloads = stored as? [Data] ?? []
+        guard !payloads.contains(data) else { return true }
+        payloads.append(data)
+        defaults.set(payloads, forKey: unreadableBackupKey)
+        logger.notice(
+            """
+            Backed up the unreadable \(key, privacy: .public) to \(unreadableBackupKey, privacy: .public) \
+            (\(payloads.count, privacy: .public) payloads kept)
+            """
+        )
+        return true
     }
 
     /// Splits a JSON array into the JSON data of each element, with sorted keys so equal

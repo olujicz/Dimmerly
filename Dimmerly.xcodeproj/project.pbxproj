@@ -32,6 +32,7 @@
 		BA0000000000000000000003 /* MenuBarPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0000000000000000000004 /* MenuBarPanel.swift */; };
 		BI0000000000000000000011 /* BlankingInputMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BI0000000000000000000001 /* BlankingInputMonitor.swift */; };
 		BO0000000000000000000011 /* BrightnessManagerTests+DisplayOutput.swift in Sources */ = {isa = PBXBuildFile; fileRef = BO0000000000000000000001 /* BrightnessManagerTests+DisplayOutput.swift */; };
+		BP0000000000000000000011 /* BrightnessManagerTests+Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = BP0000000000000000000001 /* BrightnessManagerTests+Persistence.swift */; };
 		BS0000000000000000000011 /* BlankingSystemControllers.swift in Sources */ = {isa = PBXBuildFile; fileRef = BS0000000000000000000001 /* BlankingSystemControllers.swift */; };
 		C1B2C3D4E5F6A7B8C9D0E1F1 /* DimmerlyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B2C3D4E5F6A7B8C9D0E1F1 /* DimmerlyApp.swift */; };
 		C1B2C3D4E5F6A7B8C9D0E1F2 /* DisplayController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B2C3D4E5F6A7B8C9D0E1F2 /* DisplayController.swift */; };
@@ -172,6 +173,7 @@
 		BA0000000000000000000004 /* MenuBarPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPanel.swift; sourceTree = "<group>"; };
 		BI0000000000000000000001 /* BlankingInputMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlankingInputMonitor.swift; sourceTree = "<group>"; };
 		BO0000000000000000000001 /* BrightnessManagerTests+DisplayOutput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BrightnessManagerTests+DisplayOutput.swift"; sourceTree = "<group>"; };
+		BP0000000000000000000001 /* BrightnessManagerTests+Persistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BrightnessManagerTests+Persistence.swift"; sourceTree = "<group>"; };
 		BS0000000000000000000001 /* BlankingSystemControllers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlankingSystemControllers.swift; sourceTree = "<group>"; };
 		C3F49B65767256F001CAD0B6 /* JSONDefaultsArrayStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONDefaultsArrayStore.swift; sourceTree = "<group>"; };
 		C50F163FD03D0874576E9962 /* KeyboardShortcutRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutRecorder.swift; sourceTree = "<group>"; };
@@ -474,6 +476,7 @@
 				DM00000000000000000002 /* DemoTimelineTests.swift */,
 				UT00000000000000000010 /* BrightnessManagerTests.swift */,
 				BO0000000000000000000001 /* BrightnessManagerTests+DisplayOutput.swift */,
+				BP0000000000000000000001 /* BrightnessManagerTests+Persistence.swift */,
 				SF0000000000000000000001 /* HardwareBrightnessManagerTests+Polling.swift */,
 				SG0000000000000000000001 /* ManualCoordinateTextTests.swift */,
 				SH0000000000000000000001 /* PresetShortcutCaptureViewTests.swift */,
@@ -748,6 +751,7 @@
 				NF0000000000000000001A /* BrightnessPresetTests.swift in Sources */,
 				UT00000000000000000001 /* BrightnessManagerTests.swift in Sources */,
 				BO0000000000000000000011 /* BrightnessManagerTests+DisplayOutput.swift in Sources */,
+				BP0000000000000000000011 /* BrightnessManagerTests+Persistence.swift in Sources */,
 				SF0000000000000000000011 /* HardwareBrightnessManagerTests+Polling.swift in Sources */,
 				SG0000000000000000000011 /* ManualCoordinateTextTests.swift in Sources */,
 				SH0000000000000000000011 /* PresetShortcutCaptureViewTests.swift in Sources */,

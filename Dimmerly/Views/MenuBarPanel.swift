@@ -45,6 +45,9 @@ final class MenuBarPanelCoordinator {
 
     private var presentExternal: (@MainActor (UUID?) -> Void)?
     private var dismissExternal: (@MainActor () -> Void)?
+    private var isStatusItemReachable: (@MainActor () -> Bool)?
+    private var openSettings: (@MainActor () -> Void)?
+    private var endSystemPanelSession: (@MainActor () -> Bool)?
 
     func configureExternalPresentation(
         present: @escaping @MainActor (UUID?) -> Void,
@@ -60,10 +63,31 @@ final class MenuBarPanelCoordinator {
         }
     }
 
+    /// Opens Settings instead of the panel while the status item is hidden, since a panel
+    /// anchored to it would open off screen or not at all. See `StatusItemReachability`.
+    func configureHiddenStatusItemFallback(
+        isStatusItemReachable: @escaping @MainActor () -> Bool,
+        openSettings: @escaping @MainActor () -> Void
+    ) {
+        self.isStatusItemReachable = isStatusItemReachable
+        self.openSettings = openSettings
+    }
+
+    /// Closes the `MenuBarExtra` window through the status item's expanded interface session
+    /// on macOS 27 when one is open. Returns `false` when there is no session to end.
+    ///
+    /// Clearing `isPresented` makes MenuBarExtraAccess close the window by sending
+    /// `performClick` to the status item button. AppKit asks apps that close an expanded
+    /// interface from one of their own actions to cancel the session instead, and MenuBarExtraAccess
+    /// clears `isPresented` itself once the window resigns key.
+    func configureSystemPanelSession(end: @escaping @MainActor () -> Bool) {
+        endSystemPanelSession = end
+    }
+
     func openPreset(
         id: UUID,
         presentationPath: MenuBarPanelPresentationPath = .current,
-        activateApp: @escaping @MainActor () -> Void = { NSApp.activate(ignoringOtherApps: true) }
+        activateApp: @escaping @MainActor () -> Void = { NSApp.activate() }
     ) {
         open(presetID: id, presentationPath: presentationPath, activateApp: activateApp)
     }
@@ -71,7 +95,7 @@ final class MenuBarPanelCoordinator {
     /// Opens the panel without selecting a preset, for example from the widget background.
     func openPanel(
         presentationPath: MenuBarPanelPresentationPath = .current,
-        activateApp: @escaping @MainActor () -> Void = { NSApp.activate(ignoringOtherApps: true) }
+        activateApp: @escaping @MainActor () -> Void = { NSApp.activate() }
     ) {
         open(presetID: nil, presentationPath: presentationPath, activateApp: activateApp)
     }
@@ -81,6 +105,11 @@ final class MenuBarPanelCoordinator {
         presentationPath: MenuBarPanelPresentationPath,
         activateApp: @MainActor () -> Void
     ) {
+        if let openSettings, isStatusItemReachable?() == false {
+            openSettings()
+            return
+        }
+
         requestedPresetID = presetID
         activateApp()
 
@@ -95,7 +124,9 @@ final class MenuBarPanelCoordinator {
 
     func dismiss() {
         let wasExternallyPresented = isExternalPresentationActive
-        isPresented = false
+        if !isPresented || endSystemPanelSession?() != true {
+            isPresented = false
+        }
         isExternalPresentationActive = false
         requestedPresetID = nil
 
@@ -126,78 +157,14 @@ enum MenuBarDisplayAction {
     }
 }
 
-/// Where the panel's translucent background comes from.
-enum MenuBarPanelBackground: Equatable {
-    /// macOS 26 and later: the host draws native Liquid Glass. The `MenuBarExtra`
-    /// window keeps its default container background and `NSPopover` draws its own
-    /// glass, so the panel adds no material, window tweaks, or background clearing.
-    case systemGlass
-    /// macOS 15 through 25: the panel clears the host window and draws its own
-    /// rounded `.menu` `NSVisualEffectView`, styled by `MenuBarPanelGlassStyle`.
-    case visualEffectMaterial
-
-    static var current: Self {
-        resolve(supportsNativeGlass: supportsNativeGlass)
-    }
-
-    static func resolve(supportsNativeGlass: Bool) -> Self {
-        supportsNativeGlass ? .systemGlass : .visualEffectMaterial
-    }
-
-    /// Native glass needs both the macOS 26 SDK (Swift 6.2) and a macOS 26 runtime.
-    /// An app built with an older SDK runs without Liquid Glass even on macOS 26.
-    private static var supportsNativeGlass: Bool {
-        #if compiler(>=6.2)
-            if #available(macOS 26.0, *) {
-                return true
-            }
-        #endif
-        return false
-    }
-}
-
-/// Styling for the `.visualEffectMaterial` fallback background.
+/// Styling shared by the panel's sections.
+///
+/// The panel draws no background of its own on any macOS version: the `MenuBarExtra`
+/// window and `NSPopover` supply the system material (Liquid Glass on macOS 26 and later,
+/// the menu material before that), including its Increase Contrast and Reduce
+/// Transparency variants.
 enum MenuBarPanelGlassStyle {
-    static let windowMaterial: NSVisualEffectView.Material = .menu
-    static let blendingMode: NSVisualEffectView.BlendingMode = .behindWindow
-    static let state: NSVisualEffectView.State = .active
-    static let clearsHostWindowBackground = true
-    static let cornerRadius: CGFloat = 22
     static let separatorOpacity = 0.55
-}
-
-@MainActor
-enum MenuBarPanelGlassBackgroundPolicy {
-    static func shouldClearLayerBackground(
-        for view: NSView,
-        glassIdentifier: NSUserInterfaceItemIdentifier
-    ) -> Bool {
-        guard view.identifier != glassIdentifier else { return false }
-        guard !isProtectedControl(view) else { return false }
-
-        return isContainerView(view)
-    }
-
-    static func shouldVisitSubviews(
-        of view: NSView,
-        glassIdentifier: NSUserInterfaceItemIdentifier
-    ) -> Bool {
-        guard view.identifier != glassIdentifier else { return false }
-        return !isProtectedControl(view)
-    }
-
-    private static func isContainerView(_ view: NSView) -> Bool {
-        view is NSClipView
-            || type(of: view) == NSView.self
-            || view.subviews.isEmpty == false
-    }
-
-    private static func isProtectedControl(_ view: NSView) -> Bool {
-        view is NSVisualEffectView
-            || view is NSControl
-            || view is NSScrollView
-            || view.accessibilityRole() == .slider
-    }
 }
 
 @MainActor
@@ -273,7 +240,6 @@ struct MenuBarPanel: View {
             }
         }
         .frame(width: 300)
-        .menuBarPanelBackground()
     }
 
     private func scrollToSelectedPreset(using proxy: ScrollViewProxy) {
@@ -287,8 +253,7 @@ struct MenuBarPanel: View {
     // MARK: - Sliders
 
     private var panelDivider: some View {
-        Divider()
-            .opacity(MenuBarPanelGlassStyle.separatorOpacity)
+        PanelDivider()
     }
 
     /// The rows live in their own view so slider-driven changes to `brightnessManager.displays`
@@ -438,6 +403,17 @@ private struct MenuBarDisplaySliders: View {
     }
 }
 
+/// A section separator softened to sit on the panel's glass. Increase Contrast restores the
+/// system's full-strength separator.
+private struct PanelDivider: View {
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    var body: some View {
+        Divider()
+            .opacity(contrast == .increased ? 1 : MenuBarPanelGlassStyle.separatorOpacity)
+    }
+}
+
 /// Auto Warmth switch and its next-transition status line.
 private struct MenuBarAutoWarmthToggle: View {
     @Environment(AppSettings.self) private var settings
@@ -446,25 +422,27 @@ private struct MenuBarAutoWarmthToggle: View {
     var body: some View {
         @Bindable var settings = settings
         return VStack(spacing: 2) {
-            HStack {
-                Image(systemName: "sun.horizon")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-                    .frame(width: 14)
-                Text("Auto Warmth")
-                    .font(.callout)
-                Spacer()
-                Toggle("", isOn: $settings.autoColorTempEnabled)
-                    .toggleStyle(.switch)
-                    .controlSize(.small)
-                    .labelsHidden()
-                    .accessibilityLabel(Text("Auto Warmth"))
+            // One labelled switch, so VoiceOver reads "Auto Warmth" once. The label's
+            // Spacer keeps the switch at the trailing edge.
+            Toggle(isOn: $settings.autoColorTempEnabled) {
+                HStack {
+                    Image(systemName: "sun.horizon")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                        .frame(width: 14)
+                        .accessibilityHidden(true)
+                    Text("Auto Warmth")
+                        .font(.callout)
+                    Spacer()
+                }
             }
+            .toggleStyle(.switch)
+            .controlSize(.small)
 
             if settings.autoColorTempEnabled {
                 HStack {
                     autoWarmthStatusText
-                        .font(.caption2)
+                        .font(.caption)
                         .foregroundStyle(.secondary)
                     Spacer()
                 }

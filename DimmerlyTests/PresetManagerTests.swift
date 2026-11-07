@@ -569,7 +569,12 @@ final class PresetManagerTests: XCTestCase {
 
         _ = reloadedManager()
 
-        XCTAssertEqual(testDefaults.data(forKey: PresetManager.backupKey), earlierBackup)
+        let unreadable = testDefaults.object(forKey: PresetManager.backupKey + "Unreadable") as? [Data]
+        XCTAssertEqual(unreadable, [earlierBackup])
+        let elements = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: XCTUnwrap(testDefaults.data(forKey: PresetManager.backupKey))) as? [Any]
+        )
+        XCTAssertEqual(elements.count, 1, "The undecodable preset must be backed up as well")
     }
 
     func testCleanLoadDoesNotWriteBackup() {
@@ -589,7 +594,7 @@ final class PresetManagerTests: XCTestCase {
         let reloaded = reloadedManager()
 
         XCTAssertTrue(reloaded.presets.isEmpty)
-        XCTAssertEqual(testDefaults.data(forKey: PresetManager.backupKey), raw)
+        XCTAssertEqual(testDefaults.object(forKey: PresetManager.backupKey + "Unreadable") as? [Data], [raw])
     }
 
     // MARK: - defaultPresets static values

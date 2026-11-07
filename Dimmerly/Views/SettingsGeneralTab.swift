@@ -84,6 +84,9 @@ struct GeneralSettingsTab: View {
 
     // MARK: - Menu Bar Icon Picker
 
+    /// Icon buttons rather than a segmented Picker, which would draw the custom menu bar
+    /// asset at segment size and lose the 32 pt preview. The row is exposed as one labelled
+    /// group of choices, each saying whether it's the selected one.
     private var menuBarIconPicker: some View {
         LabeledContent("Menu Bar Icon") {
             HStack(spacing: 8) {
@@ -112,6 +115,8 @@ struct GeneralSettingsTab: View {
                     .accessibilityAddTraits(isSelected ? .isSelected : [])
                 }
             }
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel(Text("Menu Bar Icon"))
             .animation(
                 reduceMotion ? nil : .spring(response: 0.2, dampingFraction: 0.8),
                 value: settings.menuBarIconRaw
