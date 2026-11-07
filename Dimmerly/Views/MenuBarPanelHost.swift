@@ -65,7 +65,6 @@ final class MenuBarPanelPresenter: NSObject, NSPopoverDelegate {
 
         if let popover, popover.isShown {
             popover.contentViewController = contentBuilder(selectedPresetID)
-            popover.contentSize = contentSize(for: popover.contentViewController)
             return
         }
 
@@ -73,8 +72,9 @@ final class MenuBarPanelPresenter: NSObject, NSPopoverDelegate {
         popover.behavior = .transient
         popover.animates = true
         popover.delegate = self
+        // The popover takes its size from the controller's `preferredContentSize`, which
+        // `hostingController(for:)` keeps current. The panel caps its own scroll height.
         popover.contentViewController = contentBuilder(selectedPresetID)
-        popover.contentSize = contentSize(for: popover.contentViewController)
         self.popover = popover
         dismissalWasNotified = false
 
@@ -82,6 +82,9 @@ final class MenuBarPanelPresenter: NSObject, NSPopoverDelegate {
         // does not depend on MenuBarExtra's private target/action implementation.
         // The panel opens below the anchor whichever way its view's y-axis runs.
         popover.show(relativeTo: anchor.rect, of: anchor.view, preferredEdge: anchor.view.isFlipped ? .maxY : .minY)
+        // No expanded interface session runs for this popover, so the system doesn't
+        // highlight the status item the way it does when the item is clicked.
+        statusItem?.button?.highlight(true)
     }
 
     func dismiss() {
@@ -102,17 +105,6 @@ final class MenuBarPanelPresenter: NSObject, NSPopoverDelegate {
         finishDismissal(for: closedPopover)
     }
 
-    private func contentSize(for viewController: NSViewController?) -> NSSize {
-        guard let viewController else { return NSSize(width: 300, height: 480) }
-
-        viewController.view.layoutSubtreeIfNeeded()
-        let fittingSize = viewController.view.fittingSize
-        let height = fittingSize.height.isFinite && fittingSize.height > 0
-            ? min(max(fittingSize.height, 200), 640)
-            : 480
-        return NSSize(width: 300, height: height)
-    }
-
     private func presentationAnchor() -> (rect: NSRect, view: NSView)? {
         if let anchorProvider {
             return anchorProvider()
@@ -126,6 +118,7 @@ final class MenuBarPanelPresenter: NSObject, NSPopoverDelegate {
         guard self.popover === popover else { return }
         self.popover = nil
         anchorWindow.hide()
+        statusItem?.button?.highlight(false)
         notifyDismissalIfNeeded()
     }
 

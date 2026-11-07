@@ -1182,3 +1182,57 @@ final class MenuBarPanelHostingTests: XCTestCase {
         XCTAssertEqual(controller.preferredContentSize.height, 260, accuracy: 0.5)
     }
 }
+
+/// Popover presentation of the panel on macOS 27.
+final class MenuBarPanelPresenterTests: XCTestCase {
+    /// The popover follows the hosting controller's `preferredContentSize`; nothing sizes it by hand.
+    @MainActor
+    func testPresenterSizesThePopoverFromThePanelsPreferredContentSize() {
+        let window = NSWindow(
+            contentRect: NSRect(x: 200, y: 200, width: 200, height: 100),
+            styleMask: [.borderless], backing: .buffered, defer: false
+        )
+        window.isReleasedWhenClosed = false
+        let button = NSButton(frame: NSRect(x: 80, y: 40, width: 40, height: 24))
+        window.contentView?.addSubview(button)
+        window.orderFrontRegardless()
+        defer { window.orderOut(nil) }
+        let popover = NSPopover()
+        popover.animates = false
+        let presenter = MenuBarPanelPresenter(anchorProvider: { (button.bounds, button) }, popoverFactory: { popover })
+        defer { presenter.dismiss() }
+        presenter.configure(
+            statusItem: nil,
+            contentBuilder: { _ in
+                MenuBarPanelPresenter.hostingController(for: Color.clear.frame(width: 300, height: 260))
+            },
+            didDismiss: {}
+        )
+
+        presenter.present(selectedPresetID: nil)
+        RunLoop.main.run(until: Date().addingTimeInterval(0.1))
+
+        XCTAssertTrue(popover.isShown)
+        XCTAssertEqual(popover.contentSize.width, 300, accuracy: 0.5)
+        XCTAssertEqual(popover.contentSize.height, 260, accuracy: 0.5)
+    }
+
+    /// On macOS 27 no expanded interface session runs for the popover, so the presenter
+    /// highlights the status item itself while the panel is open.
+    @MainActor
+    func testPresenterHighlightsTheStatusItemWhileThePanelIsOpen() throws {
+        let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        defer { NSStatusBar.system.removeStatusItem(statusItem) }
+        let button = try XCTUnwrap(statusItem.button)
+        let anchor = NSButton(frame: NSRect(x: 0, y: 0, width: 40, height: 24))
+        let popover = PopoverSpy()
+        let presenter = MenuBarPanelPresenter(anchorProvider: { (anchor.bounds, anchor) }, popoverFactory: { popover })
+        presenter.configure(statusItem: statusItem, contentBuilder: { _ in NSViewController() }, didDismiss: {})
+
+        presenter.present(selectedPresetID: nil)
+        XCTAssertTrue(button.isHighlighted)
+
+        presenter.popoverDidClose(Notification(name: NSPopover.didCloseNotification, object: popover))
+        XCTAssertFalse(button.isHighlighted)
+    }
+}
