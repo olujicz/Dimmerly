@@ -464,6 +464,7 @@
 
             /// dlsym handle for searching all loaded images (RTLD_DEFAULT = -2).
             /// The C macro `RTLD_DEFAULT` isn't importable in Swift.
+            /// Safety: an immutable sentinel value that is never dereferenced, only passed to dlsym.
             private nonisolated(unsafe) static let dlDefault = UnsafeMutableRawPointer(bitPattern: -2)
 
             private static let avDeviceCreate: (

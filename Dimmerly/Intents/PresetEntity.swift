@@ -97,6 +97,8 @@ protocol PresetEntityIndexingClient: AnyObject {
     func index(_ entities: [PresetEntity]) async throws
 }
 
+// Safety: Core Spotlight hands over a non-Sendable acknowledgement handler that it expects
+// to be called exactly once from any thread; the box is immutable and only ever calls it.
 private final class SearchableIndexAcknowledgement: @unchecked Sendable {
     private let handler: () -> Void
 

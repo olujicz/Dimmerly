@@ -20,6 +20,8 @@ import CoreGraphics
     /// a private framework, which keeps the build clean and fails gracefully at runtime
     /// if the framework is unavailable on a future macOS version.
     private enum DisplayServicesAPI {
+        // Safety: an immutable dlopen handle, set once by the lazy static initializer and only
+        // read afterwards; dlsym is thread-safe.
         private nonisolated(unsafe) static let handle: UnsafeMutableRawPointer? = dlopen(
             "/System/Library/PrivateFrameworks/DisplayServices.framework/DisplayServices",
             RTLD_LAZY

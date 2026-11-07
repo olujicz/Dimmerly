@@ -6,6 +6,7 @@
 //
 
 import AppKit
+import Synchronization
 #if !APPSTORE
     import ApplicationServices
 #endif
@@ -185,13 +186,12 @@ protocol BlankingInputMonitoring: AnyObject {
         }
     }
 
-    final class EventTapContext: @unchecked Sendable {
+    final class EventTapContext: Sendable {
         private let policy: BlankingInputPolicy
         private let onWake: @MainActor () -> Void
         private let onSuppressedInput: @MainActor () -> Void
         private let onFailure: @MainActor (BlankingInputMonitorError) -> Void
-        private let lock = NSLock()
-        private var hasSignalledFailure = false
+        private let hasSignalledFailure = Mutex(false)
 
         init(
             policy: BlankingInputPolicy,
@@ -226,10 +226,10 @@ protocol BlankingInputMonitoring: AnyObject {
         }
 
         private func signalFailureOnce(_ action: @escaping @MainActor () -> Void) {
-            lock.lock()
-            let shouldSignal = !hasSignalledFailure
-            hasSignalledFailure = true
-            lock.unlock()
+            let shouldSignal = hasSignalledFailure.withLock { signalled in
+                defer { signalled = true }
+                return !signalled
+            }
             guard shouldSignal else { return }
 
             DispatchQueue.main.async {

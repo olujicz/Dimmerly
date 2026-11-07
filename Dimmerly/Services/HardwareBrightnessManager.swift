@@ -26,6 +26,7 @@
 
     import CoreGraphics
     import Foundation
+    import Synchronization
 
     // MARK: - DDC Interface Protocol
 
@@ -249,38 +250,34 @@
             let nativeWorkSession: DDCSession?
         }
 
-        private final class DDCWriteTiming: @unchecked Sendable {
-            private let lock = NSLock()
-            private var lastWriteTime: [CGDirectDisplayID: Date] = [:]
+        private final class DDCWriteTiming: Sendable {
+            private let lastWriteTime = Mutex<[CGDirectDisplayID: Date]>([:])
 
             func waitUntilReady(for displayID: CGDirectDisplayID, minimumInterval: TimeInterval) {
                 while true {
-                    lock.lock()
-                    let now = Date()
-                    let remaining = lastWriteTime[displayID]
-                        .map { minimumInterval - now.timeIntervalSince($0) } ?? 0
-
-                    if remaining <= 0 {
-                        lastWriteTime[displayID] = now
-                        lock.unlock()
-                        return
+                    let remaining = lastWriteTime.withLock { lastWriteTime in
+                        let now = Date()
+                        let remaining = lastWriteTime[displayID]
+                            .map { minimumInterval - now.timeIntervalSince($0) } ?? 0
+                        if remaining <= 0 {
+                            lastWriteTime[displayID] = now
+                        }
+                        return remaining
                     }
 
-                    lock.unlock()
+                    if remaining <= 0 {
+                        return
+                    }
                     Thread.sleep(forTimeInterval: remaining)
                 }
             }
 
             func removeDisplay(_ displayID: CGDirectDisplayID) {
-                lock.lock()
-                lastWriteTime.removeValue(forKey: displayID)
-                lock.unlock()
+                _ = lastWriteTime.withLock { $0.removeValue(forKey: displayID) }
             }
 
             func reset() {
-                lock.withLock {
-                    lastWriteTime.removeAll()
-                }
+                lastWriteTime.withLock { $0.removeAll() }
             }
         }
 
