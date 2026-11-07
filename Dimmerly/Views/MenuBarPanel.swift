@@ -45,6 +45,8 @@ final class MenuBarPanelCoordinator {
 
     private var presentExternal: (@MainActor (UUID?) -> Void)?
     private var dismissExternal: (@MainActor () -> Void)?
+    private var isStatusItemReachable: (@MainActor () -> Bool)?
+    private var openSettings: (@MainActor () -> Void)?
 
     func configureExternalPresentation(
         present: @escaping @MainActor (UUID?) -> Void,
@@ -58,6 +60,16 @@ final class MenuBarPanelCoordinator {
         if isExternalPresentationActive {
             presentExternal?(requestedPresetID)
         }
+    }
+
+    /// Opens Settings instead of the panel while the status item is hidden, since a panel
+    /// anchored to it would open off screen or not at all. See `StatusItemReachability`.
+    func configureHiddenStatusItemFallback(
+        isStatusItemReachable: @escaping @MainActor () -> Bool,
+        openSettings: @escaping @MainActor () -> Void
+    ) {
+        self.isStatusItemReachable = isStatusItemReachable
+        self.openSettings = openSettings
     }
 
     func openPreset(
@@ -81,6 +93,11 @@ final class MenuBarPanelCoordinator {
         presentationPath: MenuBarPanelPresentationPath,
         activateApp: @MainActor () -> Void
     ) {
+        if let openSettings, isStatusItemReachable?() == false {
+            openSettings()
+            return
+        }
+
         requestedPresetID = presetID
         activateApp()
 

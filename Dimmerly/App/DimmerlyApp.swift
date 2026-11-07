@@ -160,6 +160,10 @@ struct DimmerlyApp: App {
                     panelPresenter.dismiss()
                 }
             )
+            menuBarPanelCoordinator.configureHiddenStatusItemFallback(
+                isStatusItemReachable: { [weak statusItem] in StatusItemReachability.isReachable(statusItem) },
+                openSettings: openSettingsWindow
+            )
             statusItemQuickActions.configure(
                 statusItem: statusItem,
                 settings: settings,
@@ -478,6 +482,13 @@ final class DimmerlyAppDelegate: NSObject, NSApplicationDelegate {
     func application(_: NSApplication, open urls: [URL]) {
         guard urls.contains(where: DimmerlyURL.opensPanel) else { return }
         MenuBarPanelCoordinator.shared.openPanel()
+    }
+
+    /// Opening Dimmerly again from Finder, Spotlight or Launchpad shows the panel, or Settings
+    /// while the status item is hidden, so the app can always be reached.
+    func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows _: Bool) -> Bool {
+        MenuBarPanelCoordinator.shared.openPanel()
+        return false
     }
 }
 

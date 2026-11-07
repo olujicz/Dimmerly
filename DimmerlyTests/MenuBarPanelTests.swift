@@ -1236,3 +1236,97 @@ final class MenuBarPanelPresenterTests: XCTestCase {
         XCTAssertFalse(button.isHighlighted)
     }
 }
+
+/// Opening the panel while the status item is hidden.
+final class HiddenStatusItemTests: XCTestCase {
+    @MainActor
+    func testStatusItemOnScreenIsReachable() {
+        let screen = StatusItemReachability.Screen(frame: NSRect(x: 0, y: 0, width: 1920, height: 1080))
+        XCTAssertTrue(StatusItemReachability.isReachable(
+            isVisible: true,
+            buttonFrame: NSRect(x: 1500, y: 1056, width: 30, height: 24),
+            screens: [screen]
+        ))
+    }
+
+    @MainActor
+    func testHiddenOrOffScreenStatusItemIsNotReachable() {
+        let screen = StatusItemReachability.Screen(frame: NSRect(x: 0, y: 0, width: 1920, height: 1080))
+        let onScreen = NSRect(x: 1500, y: 1056, width: 30, height: 24)
+
+        XCTAssertFalse(StatusItemReachability.isReachable(isVisible: false, buttonFrame: onScreen, screens: [screen]))
+        XCTAssertFalse(StatusItemReachability.isReachable(isVisible: true, buttonFrame: .zero, screens: [screen]))
+        XCTAssertFalse(StatusItemReachability.isReachable(
+            isVisible: true,
+            buttonFrame: NSRect(x: -40, y: 1056, width: 30, height: 24),
+            screens: [screen]
+        ))
+        XCTAssertFalse(StatusItemReachability.isReachable(isVisible: true, buttonFrame: onScreen, screens: []))
+    }
+
+    @MainActor
+    func testStatusItemBehindTheCameraHousingIsNotReachable() {
+        let screen = StatusItemReachability.Screen(
+            frame: NSRect(x: 0, y: 0, width: 1512, height: 982),
+            cameraHousing: NSRect(x: 660, y: 950, width: 192, height: 32)
+        )
+
+        XCTAssertFalse(StatusItemReachability.isReachable(
+            isVisible: true,
+            buttonFrame: NSRect(x: 740, y: 952, width: 30, height: 24),
+            screens: [screen]
+        ))
+        XCTAssertTrue(StatusItemReachability.isReachable(
+            isVisible: true,
+            buttonFrame: NSRect(x: 900, y: 952, width: 30, height: 24),
+            screens: [screen]
+        ))
+    }
+
+    @MainActor
+    func testStatusItemWithoutAWindowIsNotReachable() {
+        XCTAssertFalse(StatusItemReachability.isReachable(nil))
+    }
+
+    @MainActor
+    func testOpeningWhileTheStatusItemIsHiddenOpensSettingsInstead() {
+        for path in [MenuBarPanelPresentationPath.menuBarExtra, .publicPopover] {
+            let coordinator = MenuBarPanelCoordinator()
+            var presentations = 0
+            var settingsOpened = 0
+            var activations = 0
+            coordinator.configureExternalPresentation(present: { _ in presentations += 1 }, dismiss: {})
+            coordinator.configureHiddenStatusItemFallback(
+                isStatusItemReachable: { false },
+                openSettings: { settingsOpened += 1 }
+            )
+
+            coordinator.openPanel(presentationPath: path, activateApp: { activations += 1 })
+            coordinator.openPreset(id: UUID(), presentationPath: path, activateApp: { activations += 1 })
+
+            XCTAssertEqual(settingsOpened, 2, "\(path)")
+            XCTAssertEqual(presentations, 0, "\(path)")
+            XCTAssertEqual(activations, 0, "\(path)")
+            XCTAssertFalse(coordinator.isPresented, "\(path)")
+            XCTAssertFalse(coordinator.isExternalPresentationActive, "\(path)")
+            XCTAssertNil(coordinator.requestedPresetID, "\(path)")
+        }
+    }
+
+    @MainActor
+    func testOpeningWhileTheStatusItemIsVisibleOpensThePanel() {
+        let coordinator = MenuBarPanelCoordinator()
+        var presentations: [UUID?] = []
+        var settingsOpened = 0
+        coordinator.configureExternalPresentation(present: { presentations.append($0) }, dismiss: {})
+        coordinator.configureHiddenStatusItemFallback(
+            isStatusItemReachable: { true },
+            openSettings: { settingsOpened += 1 }
+        )
+
+        coordinator.openPanel(presentationPath: .publicPopover, activateApp: {})
+
+        XCTAssertEqual(presentations, [nil])
+        XCTAssertEqual(settingsOpened, 0)
+    }
+}

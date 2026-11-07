@@ -4,6 +4,7 @@
 //
 
 import AppKit
+import OSLog
 import SwiftUI
 
 // MARK: - Public popover presentation
@@ -168,6 +169,80 @@ final class StatusItemAnchorWindow {
         return window
     }
 }
+
+// MARK: - Status Item Reachability
+
+/// Whether people can see the status item, so a panel opened from it would show up.
+///
+/// The item can be hidden: on macOS 26 and later people can turn off "Allow in the Menu Bar"
+/// in System Settings > Menu Bar, and on a Mac with a camera housing items that don't fit
+/// beside the app's menus sit behind it. A panel anchored to a hidden item opens off screen
+/// or not at all, so callers open Settings instead.
+@MainActor
+enum StatusItemReachability {
+    /// A screen's frame and the part of its top edge the camera housing covers, if any.
+    struct Screen: Equatable {
+        var frame: NSRect
+        var cameraHousing: NSRect?
+
+        init(frame: NSRect, cameraHousing: NSRect? = nil) {
+            self.frame = frame
+            self.cameraHousing = cameraHousing
+        }
+
+        init(_ screen: NSScreen) {
+            frame = screen.frame
+            // The unobscured areas either side of the housing; their widths are the same
+            // whichever coordinate space AppKit reports them in.
+            if let left = screen.auxiliaryTopLeftArea, let right = screen.auxiliaryTopRightArea {
+                let minX = screen.frame.minX + left.width
+                let maxX = screen.frame.maxX - right.width
+                let height = max(left.height, right.height)
+                cameraHousing = maxX > minX
+                    ? NSRect(x: minX, y: screen.frame.maxY - height, width: maxX - minX, height: height)
+                    : nil
+            } else {
+                cameraHousing = nil
+            }
+        }
+    }
+
+    static func isReachable(_ statusItem: NSStatusItem?) -> Bool {
+        guard let statusItem, let button = statusItem.button, let window = button.window else {
+            return false
+        }
+        let buttonFrame = window.convertToScreen(button.convert(button.bounds, to: nil))
+        let reachable = isReachable(
+            isVisible: statusItem.isVisible && window.isVisible,
+            buttonFrame: buttonFrame,
+            screens: NSScreen.screens.map(Screen.init)
+        )
+        statusItemReachabilityLogger.debug(
+            """
+            Status item reachable: \(reachable), visible: \(statusItem.isVisible), \
+            window visible: \(window.isVisible), frame: \(String(describing: buttonFrame), privacy: .public)
+            """
+        )
+        return reachable
+    }
+
+    /// The item is reachable when it's shown, its centre is on a screen, and it isn't behind
+    /// that screen's camera housing.
+    static func isReachable(isVisible: Bool, buttonFrame: NSRect, screens: [Screen]) -> Bool {
+        guard isVisible, !buttonFrame.isEmpty else { return false }
+        let center = NSPoint(x: buttonFrame.midX, y: buttonFrame.midY)
+        guard let screen = screens.first(where: { $0.frame.contains(center) }) else { return false }
+        if let cameraHousing = screen.cameraHousing, cameraHousing.contains(center) {
+            return false
+        }
+        return true
+    }
+}
+
+private let statusItemReachabilityLogger = Logger(
+    subsystem: "rs.in.olujic.dimmerly",
+    category: "StatusItemReachability"
+)
 
 // MARK: - Scroll Style
 
