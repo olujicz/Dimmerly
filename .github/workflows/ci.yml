@@ -28,6 +28,12 @@ jobs:
       - name: Test Xcode Toolchain Gate
         run: bash .github/scripts/test-verify-xcode.sh
 
+      - name: Test Built Toolchain Gate
+        run: bash .github/scripts/test-verify-built-xcode.sh
+
+      - name: Test Notarization Gate
+        run: bash .github/scripts/test-notarize.sh
+
       - name: Test CI Scope Classifier
         run: .github/scripts/test-ci-scope.sh
 
@@ -122,7 +128,7 @@ jobs:
     if: needs.changes.outputs.full_ci == 'true'
     runs-on: xcode-27
     env:
-      DEVELOPER_DIR: /Applications/Xcode_27.0.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
     timeout-minutes: 30
     steps:
       - name: Checkout
@@ -142,7 +148,7 @@ jobs:
     if: needs.changes.outputs.full_ci == 'true'
     runs-on: xcode-27
     env:
-      DEVELOPER_DIR: /Applications/Xcode_27.0.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
     timeout-minutes: 30
     steps:
       - name: Checkout
