@@ -28,6 +28,80 @@ pass() {
     echo "ok: $*"
 }
 
+expected_app_group="${expected_team_id}.rs.in.olujic.dimmerly"
+scratch_dir="$(mktemp -d "${TMPDIR:-/tmp}/dimmerly-dmg-entitlements.XXXXXX")"
+trap 'rm -rf "$scratch_dir"' EXIT
+
+# Prints an entitlement value from the final signature, or nothing if it is absent.
+entitlement_value() {
+    local entitlements="$1"
+    local key="$2"
+    /usr/libexec/PlistBuddy -c "Print :$key" "$entitlements" 2>/dev/null || true
+}
+
+# Checks the final entitlements of one signed bundle.
+# Usage: check_entitlements <bundle> <label> <requires sandbox: yes|no>
+check_entitlements() {
+    local bundle="$1"
+    local label="$2"
+    local requires_sandbox="$3"
+    local entitlements
+    entitlements="$scratch_dir/$(basename "$bundle").entitlements.plist"
+
+    if ! codesign -d --entitlements - --xml "$bundle" > "$entitlements" 2>/dev/null ||
+       ! plutil -lint -s "$entitlements" >/dev/null 2>&1; then
+        fail "$label entitlements could not be read"
+        return
+    fi
+
+    if [[ -z "$(entitlement_value "$entitlements" com.apple.security.get-task-allow)" ]]; then
+        pass "$label has no get-task-allow entitlement"
+    else
+        fail "$label has the com.apple.security.get-task-allow entitlement"
+    fi
+
+    if entitlement_value "$entitlements" com.apple.security.application-groups \
+        | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' \
+        | grep -Fxq "$expected_app_group"; then
+        pass "$label has the $expected_app_group app group"
+    else
+        fail "$label is missing the $expected_app_group app group"
+    fi
+
+    if [[ "$requires_sandbox" == "yes" ]]; then
+        if [[ "$(entitlement_value "$entitlements" com.apple.security.app-sandbox)" == "true" ]]; then
+            pass "$label is sandboxed"
+        else
+            fail "$label is not sandboxed"
+        fi
+    fi
+}
+
+# Checks team, Hardened Runtime, and secure timestamp of one signed bundle.
+# Usage: check_signature <bundle> <label>
+check_signature() {
+    local bundle="$1"
+    local label="$2"
+    local signature
+    signature="$(codesign -dvvv "$bundle" 2>&1 || true)"
+
+    if grep -q "^TeamIdentifier=${expected_team_id}$" <<<"$signature"; then
+        pass "$label is signed by team $expected_team_id"
+    else
+        fail "$label is not signed by team $expected_team_id"
+    fi
+    if grep -Eq "^CodeDirectory .*flags=0x[0-9a-f]+\([^)]*runtime" <<<"$signature"; then
+        pass "$label has the Hardened Runtime enabled"
+    else
+        fail "$label does not have the Hardened Runtime enabled"
+    fi
+    if grep -q "^Timestamp=" <<<"$signature"; then
+        pass "$label signature has a secure timestamp"
+    else
+        fail "$label signature has no secure timestamp"
+    fi
+}
+
 if [[ ! -f "$dmg_path" ]]; then
     echo "DMG not found: $dmg_path" >&2
     exit 1
@@ -56,6 +130,7 @@ mount_point="$(mktemp -d "${TMPDIR:-/tmp}/dimmerly-dmg-verify.XXXXXX")"
 detach() {
     hdiutil detach "$mount_point" -quiet 2>/dev/null || hdiutil detach "$mount_point" -force -quiet 2>/dev/null || true
     rmdir "$mount_point" 2>/dev/null || true
+    rm -rf "$scratch_dir"
 }
 trap detach EXIT
 
@@ -123,6 +198,12 @@ if [[ -d "$app_path" ]]; then
         fail "minimum macOS is $minimum_macos, expected $expected_minimum_macos"
     fi
 
+    if toolchain="$(bash "$(dirname "${BASH_SOURCE[0]}")/../../.github/scripts/verify-built-xcode.sh" "$app_path" 2>&1)"; then
+        pass "$toolchain"
+    else
+        fail "$toolchain"
+    fi
+
     executable="$app_path/Contents/MacOS/$(plist_value CFBundleExecutable)"
     architectures="$(lipo -archs "$executable" 2>/dev/null || true)"
     if [[ " $architectures " == *" arm64 "* && " $architectures " == *" x86_64 "* ]]; then
@@ -137,22 +218,23 @@ if [[ -d "$app_path" ]]; then
         fail "app signature does not verify"
     fi
 
-    app_signature="$(codesign -dvvv "$app_path" 2>&1 || true)"
-    if grep -q "^TeamIdentifier=${expected_team_id}$" <<<"$app_signature"; then
-        pass "app is signed by team $expected_team_id"
+    check_signature "$app_path" "app"
+    check_entitlements "$app_path" "app" no
+
+    extensions=()
+    while IFS= read -r -d '' extension; do
+        extensions+=("$extension")
+    done < <(find "$app_path/Contents/PlugIns" -mindepth 1 -maxdepth 1 -name '*.appex' -print0 2>/dev/null)
+    if (( ${#extensions[@]} > 0 )); then
+        pass "app contains ${#extensions[@]} app extension(s)"
     else
-        fail "app is not signed by team $expected_team_id"
+        fail "app contains no app extensions in Contents/PlugIns"
     fi
-    if grep -Eq "^CodeDirectory .*flags=0x[0-9a-f]+\([^)]*runtime" <<<"$app_signature"; then
-        pass "app has the Hardened Runtime enabled"
-    else
-        fail "app does not have the Hardened Runtime enabled"
-    fi
-    if grep -q "^Timestamp=" <<<"$app_signature"; then
-        pass "app signature has a secure timestamp"
-    else
-        fail "app signature has no secure timestamp"
-    fi
+    for extension in ${extensions[@]+"${extensions[@]}"}; do
+        extension_label="$(basename "$extension")"
+        check_signature "$extension" "$extension_label"
+        check_entitlements "$extension" "$extension_label" yes
+    done
 
     if xcrun stapler validate -q "$app_path" 2>/dev/null; then
         pass "app has a stapled notarization ticket"

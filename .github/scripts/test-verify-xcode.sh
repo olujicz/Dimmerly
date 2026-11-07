@@ -21,7 +21,7 @@ SH
 chmod +x "$fixture_dir/xcodebuild" "$fixture_dir/swift" "$fixture_dir/xcrun"
 
 export PATH="$fixture_dir:$PATH"
-export TEST_XCODE_VERSION=$'Xcode 27.0\nBuild version 27A266a'
+export TEST_XCODE_VERSION=$'Xcode 27.1\nBuild version 27A9275'
 export TEST_SWIFT_VERSION='Apple Swift version 6.4 (swiftlang-6.4.0)'
 export TEST_SDK_VERSION='27.0'
 
@@ -39,11 +39,11 @@ assert_gate() {
 }
 
 assert_gate 0 'released Xcode 27 toolchain is accepted'
-TEST_XCODE_VERSION=$'Xcode 27.0\nBuild version 27A5000b'
+TEST_XCODE_VERSION=$'Xcode 27.1\nBuild version 27A9269'
 assert_gate 1 'a different Xcode build is rejected'
 TEST_XCODE_VERSION=$'Xcode 26.6\nBuild version 17F113'
 assert_gate 1 'an older Xcode is rejected'
-TEST_XCODE_VERSION=$'Xcode 27.0\nBuild version 27A266a'
+TEST_XCODE_VERSION=$'Xcode 27.1\nBuild version 27A9275'
 TEST_SWIFT_VERSION='Apple Swift version 6.3 (swiftlang-6.3.0)'
 assert_gate 1 'a compiler that excludes macOS 27 code is rejected'
 TEST_SWIFT_VERSION='unrecognized compiler output'

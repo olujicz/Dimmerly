@@ -4,7 +4,7 @@ This guide is for developers and contributors building Dimmerly from source.
 
 ## Prerequisites
 
-- Xcode 27.0 (released build `27A266a`) with the macOS 27 SDK
+- Xcode 27 (CI pins released 27.1, build `27A9275`) with the macOS 27 SDK
 - Swift 6.4 or later
 - An Apple silicon Mac running a supported macOS version for Xcode 27
 - The built app continues to support macOS 15.0 or later
@@ -48,6 +48,7 @@ just setup          # Configure pre-commit hooks (SwiftFormat, SwiftLint, Gitlea
 just build          # Build debug
 just build-release  # Build release
 just build-appstore # Build App Store scheme
+just archive-appstore <version> <build> # Archive the App Store edition and check its Xcode, version and build
 just test           # Run both distribution test suites
 just test-direct    # Run direct-distribution tests
 just test-appstore  # Run App Store tests
@@ -86,10 +87,10 @@ GitHub Actions runs on every push and pull request to `main`:
 - Workflow lint: `actionlint`
 - Format: SwiftFormat check with the pinned 0.64.4 release
 - Lint: SwiftLint with `--strict`
-- Test: Both direct-distribution (`Debug`) and App Store (`Debug-AppStore`) suites on GitHub's `xcode-27` runner with released Xcode 27.0 (`27A266a`)
-- Build: App Store scheme smoke build on the same pinned Xcode 27.0 toolchain with signing disabled
+- Test: Both direct-distribution (`Debug`) and App Store (`Debug-AppStore`) suites on GitHub's `xcode-27` runner with released Xcode 27.1 (`27A9275`)
+- Build: App Store scheme smoke build on the same pinned Xcode 27.1 toolchain with signing disabled
 
-Gitleaks and the scope classifier always run. The Xcode jobs explicitly select the released Xcode 27.0 installation and verify its build number, Swift compiler, and macOS SDK with `.github/scripts/verify-xcode.sh`. The Release workflow uses the same toolchain. When every changed path is a Markdown file, a file under `documentation/` or `images/`, or the root `LICENSE`, the macOS workflow-lint, format, lint, test, and build jobs are skipped. Any other path, a mixed change, or an indeterminate diff runs the full CI suite. Superseded runs for the same branch or pull request are cancelled automatically.
+Gitleaks and the scope classifier always run. The Xcode jobs explicitly select the released Xcode 27.1 installation and verify its build number, Swift compiler, and macOS SDK with `.github/scripts/verify-xcode.sh`. The Release workflow uses the same toolchain. When every changed path is a Markdown file, a file under `documentation/` or `images/`, or the root `LICENSE`, the macOS workflow-lint, format, lint, test, and build jobs are skipped. Any other path, a mixed change, or an indeterminate diff runs the full CI suite. Superseded runs for the same branch or pull request are cancelled automatically.
 
 CI and Release install SwiftFormat with `.github/scripts/install-swiftformat.sh`, which downloads the pinned release and verifies its checksum. Runner Homebrew versions drifted from developer machines, so the two disagreed about formatting. To upgrade, change the version and checksum in that script and `--minversion` in `.swiftformat` together, then run `just format`.
 

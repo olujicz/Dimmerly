@@ -45,7 +45,7 @@ Feature suggestions are welcome! Please:
 ### Prerequisites
 
 - An Apple silicon Mac running a supported macOS version for Xcode 27
-- Released Xcode 27.0 (`27A266a`) with the macOS 27 SDK
+- Released Xcode 27 with the macOS 27 SDK (CI pins 27.1, `27A9275`)
 - Swift 6.4 or later
 - Optional: [just](https://github.com/casey/just) command runner
 - Optional: [SwiftLint](https://github.com/realm/SwiftLint) and [SwiftFormat](https://github.com/nicklockwood/SwiftFormat) 0.64.4 (the version CI uses)

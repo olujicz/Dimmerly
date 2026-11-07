@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Keep the selected Xcode path in CI and Release aligned with this released build.
-expected_xcode=$'Xcode 27.0\nBuild version 27A266a'
+# Keep the selected Xcode path in CI and Release aligned with the released build in xcode-pin.sh.
+# shellcheck source-path=SCRIPTDIR source=xcode-pin.sh
+source "$(dirname "${BASH_SOURCE[0]}")/xcode-pin.sh"
+expected_xcode="Xcode $pinned_xcode_version"$'\n'"Build version $pinned_xcode_build"
 actual_xcode="$(xcodebuild -version)"
 if [[ "$actual_xcode" != "$expected_xcode" ]]; then
     printf 'Expected released %s; got:\n%s\n' "$expected_xcode" "$actual_xcode" >&2
