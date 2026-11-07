@@ -150,6 +150,7 @@ After stapling, the workflow runs `verify-dmg.sh`. It fails the release if any o
 - the volume contains only `Dimmerly.app`, the `Applications` shortcut, and the layout files
 - the app version and build match the release
 - `LSMinimumSystemVersion` matches the app target's `MACOSX_DEPLOYMENT_TARGET`
+- the app was built with Xcode 27 and a macOS 27 SDK (`DTXcodeBuild`, `DTSDKName`, major version from `.github/scripts/xcode-pin.sh`)
 - the app is universal (`arm64` and `x86_64`)
 - the app passes strict signature verification, is signed by the release team, has the Hardened Runtime and a secure timestamp, and has a stapled ticket
 - every app extension in `Contents/PlugIns` is signed by the release team with the Hardened Runtime and a secure timestamp, and at least one extension (the widget) is present
@@ -175,20 +176,31 @@ candidate procedure below.
 
 Use the manual workflow first to prove signing, notarization, and packaging before creating a public tag. Run it from the release-prep commit after it is on `main`:
 
-The Release workflow uses GitHub's `xcode-27` Apple silicon runner and explicitly selects released Xcode 27.0 (`27A266a`) for both the quality gate and signed DMG build. The archive uses manual signing with the imported Developer ID Application identity so clean runners do not create disposable Apple Development certificates. Keep these settings aligned with `.github/workflows/release.yml` when upgrading the release environment.
+The Release workflow uses GitHub's `xcode-27` Apple silicon runner and explicitly selects released Xcode 27.1 (`27A9275`), the image's default, for both the quality gate and signed DMG build. The archive uses manual signing with the imported Developer ID Application identity so clean runners do not create disposable Apple Development certificates. Keep these settings aligned with `.github/workflows/release.yml` when upgrading the release environment.
 
 ### Shared CI And Release Toolchain
 
 | Workflow | Runner | Xcode |
 | --- | --- | --- |
-| CI `test` and `build-appstore` | `xcode-27` | 27.0 (`27A266a`, released) |
-| Release quality gate and DMG build | `xcode-27` | 27.0 (`27A266a`, released) |
+| CI `test` and `build-appstore` | `xcode-27` | 27.1 (`27A9275`, released) |
+| Release quality gate and DMG build | `xcode-27` | 27.1 (`27A9275`, released) |
+| App Store archive | local Mac | any released Xcode 27, checked by `verify-built-xcode.sh` |
 
 The CI `workflow-lint`, `format` and `lint` jobs also run on `xcode-27`, but they only install and run linters, so they don't depend on the Xcode pin. They moved there from `macos-26` in November 2026, after that pool repeatedly left them queued until they timed out.
 
-The runner image remains a GitHub public preview, but the selected Xcode is a released toolchain, not a beta. CI sets `DEVELOPER_DIR` and Release selects `/Applications/Xcode_27.0.app/Contents/Developer`. The Release quality gate runs both direct-distribution and App Store test suites and the App Store smoke build. Both workflows invoke `.github/scripts/verify-xcode.sh`, which rejects any other Xcode version or build, an unrecognized or older Swift compiler, and a macOS SDK older than 27.0. The scope job tests this gate on every CI run. Both workflows install SwiftFormat 0.64.4 with `.github/scripts/install-swiftformat.sh`, which verifies the release checksum. Keep that script and `--minversion` in `.swiftformat` in step.
+The runner image remains a GitHub public preview, but the selected Xcode is a released toolchain, not a beta. CI sets `DEVELOPER_DIR` and Release selects `/Applications/Xcode_27.1.app/Contents/Developer`. The Release quality gate runs both direct-distribution and App Store test suites and the App Store smoke build. Both workflows invoke `.github/scripts/verify-xcode.sh`, which rejects any Xcode version or build other than the pin in `.github/scripts/xcode-pin.sh`, an unrecognized or older Swift compiler, and a macOS SDK older than 27.0. The scope job tests this gate and the built-app gate (`test-verify-built-xcode.sh`) on every CI run. Both workflows install SwiftFormat 0.64.4 with `.github/scripts/install-swiftformat.sh`, which verifies the release checksum. Keep that script and `--minversion` in `.swiftformat` in step.
 
-Apple lists [Xcode 27 build 27A266a as released on September 14, 2026](https://developer.apple.com/news/releases/). GitHub documents the installed toolchains in its [Xcode 27 runner manifest](https://github.com/actions/runner-images/blob/main/images/macos/xcode-27-arm64-Readme.md). Before changing the pin, verify the replacement is a released Xcode build and update the workflows, gate, tests, and this runbook together.
+Apple lists [Xcode 27.1 build 27A9275 as released on October 15, 2026](https://developer.apple.com/news/releases/). It still builds against the macOS 27.0 SDK. GitHub documents the installed toolchains in its [Xcode 27 runner manifest](https://github.com/actions/runner-images/blob/main/images/macos/xcode-27-arm64-Readme.md). Before changing the pin, verify the replacement is a released Xcode build and update the workflows, gate, tests, and this runbook together.
+
+As of runner image `20261026.0314.1`, Xcode 27.2 is installed only as the release candidate (`27B48`, `Xcode_27.2_Release_Candidate.app`), not the released `27B52`, so the pin stays at 27.1. Move it once the manifest lists the released 27.2 build; CI then uses the same macOS 27.2 SDK as a local 27.2 archive.
+
+Both editions must come from Xcode 27 with a macOS 27 SDK. The DMG is built in CI with the exact pin, while the App Store archive is built locally with the current Xcode 27 point release, for example 27.2 (`27B52`). One point release apart is accepted; a different major Xcode is not. `verify-dmg.sh` and `.github/scripts/verify-built-xcode.sh` read `DTXcodeBuild` and `DTSDKName` from the app and reject any other major version. Archive the App Store edition with:
+
+```bash
+just archive-appstore <version> <build>
+```
+
+The recipe archives with the selected Xcode and then runs `verify-built-xcode.sh` on the archive. Don't upload an archive that fails it. When the pin moves, update `xcode-pin.sh`, the `DEVELOPER_DIR` and `xcode-select` paths in the workflows, the gate tests, and this runbook together.
 
 Swift 6.4 includes the code behind `#if compiler(>=6.4)`: macOS 27 intent execution targets and preset reindexing, plus display-control `appEntityIdentifier` wiring. Runtime availability checks still apply: macOS 27 behavior requires macOS 27, while display-control targeting requires macOS 15.4 or later. The app's deployment target remains macOS 15.0.
 

@@ -198,6 +198,12 @@ if [[ -d "$app_path" ]]; then
         fail "minimum macOS is $minimum_macos, expected $expected_minimum_macos"
     fi
 
+    if toolchain="$(bash "$(dirname "${BASH_SOURCE[0]}")/../../.github/scripts/verify-built-xcode.sh" "$app_path" 2>&1)"; then
+        pass "$toolchain"
+    else
+        fail "$toolchain"
+    fi
+
     executable="$app_path/Contents/MacOS/$(plist_value CFBundleExecutable)"
     architectures="$(lipo -archs "$executable" 2>/dev/null || true)"
     if [[ " $architectures " == *" arm64 "* && " $architectures " == *" x86_64 "* ]]; then

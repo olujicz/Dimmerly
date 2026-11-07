@@ -20,6 +20,11 @@ build:
 build-release:
     xcodebuild -project {{project}} -scheme {{scheme}} -configuration Release -destination '{{destination}}' -derivedDataPath {{build_dir}} build
 
+# Archive the App Store edition and check it was built with the required major Xcode
+archive-appstore version build:
+    xcodebuild archive -project {{project}} -scheme '{{appstore_scheme}}' -configuration Release-AppStore -destination 'generic/platform=macOS' -archivePath build/appstore-{{version}}-{{build}}/Dimmerly.xcarchive -allowProvisioningUpdates
+    bash .github/scripts/verify-built-xcode.sh build/appstore-{{version}}-{{build}}/Dimmerly.xcarchive
+
 # Build the App Store scheme
 build-appstore:
     xcodebuild -quiet -project {{project}} -scheme '{{appstore_scheme}}' -destination '{{destination}}' build
