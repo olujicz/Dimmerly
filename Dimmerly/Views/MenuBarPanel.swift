@@ -47,6 +47,7 @@ final class MenuBarPanelCoordinator {
     private var dismissExternal: (@MainActor () -> Void)?
     private var isStatusItemReachable: (@MainActor () -> Bool)?
     private var openSettings: (@MainActor () -> Void)?
+    private var endSystemPanelSession: (@MainActor () -> Bool)?
 
     func configureExternalPresentation(
         present: @escaping @MainActor (UUID?) -> Void,
@@ -70,6 +71,17 @@ final class MenuBarPanelCoordinator {
     ) {
         self.isStatusItemReachable = isStatusItemReachable
         self.openSettings = openSettings
+    }
+
+    /// Closes the `MenuBarExtra` window through the status item's expanded interface session
+    /// on macOS 27 when one is open. Returns `false` when there is no session to end.
+    ///
+    /// Clearing `isPresented` makes MenuBarExtraAccess close the window by sending
+    /// `performClick` to the status item button. AppKit asks apps that close an expanded
+    /// interface from one of their own actions to cancel the session instead, and MenuBarExtraAccess
+    /// clears `isPresented` itself once the window resigns key.
+    func configureSystemPanelSession(end: @escaping @MainActor () -> Bool) {
+        endSystemPanelSession = end
     }
 
     func openPreset(
@@ -112,7 +124,9 @@ final class MenuBarPanelCoordinator {
 
     func dismiss() {
         let wasExternallyPresented = isExternalPresentationActive
-        isPresented = false
+        if !isPresented || endSystemPanelSession?() != true {
+            isPresented = false
+        }
         isExternalPresentationActive = false
         requestedPresetID = nil
 

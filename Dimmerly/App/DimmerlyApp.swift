@@ -160,6 +160,15 @@ struct DimmerlyApp: App {
                     panelPresenter.dismiss()
                 }
             )
+            menuBarPanelCoordinator.configureSystemPanelSession { [weak statusItem] in
+                #if compiler(>=6.4)
+                    if #available(macOS 27.0, *), let session = statusItem?.expandedInterfaceSession {
+                        session.cancel()
+                        return true
+                    }
+                #endif
+                return false
+            }
             menuBarPanelCoordinator.configureHiddenStatusItemFallback(
                 isStatusItemReachable: { [weak statusItem] in StatusItemReachability.isReachable(statusItem) },
                 openSettings: openSettingsWindow

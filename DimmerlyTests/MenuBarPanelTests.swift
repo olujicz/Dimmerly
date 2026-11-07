@@ -167,6 +167,51 @@ final class MenuBarPanelTests: XCTestCase {
         XCTAssertNil(coordinator.requestedPresetID)
     }
 
+    /// On macOS 27 the open `MenuBarExtra` window closes through its expanded interface
+    /// session, so the binding is left for MenuBarExtraAccess to clear and it sends no click.
+    @MainActor
+    func testDismissEndsTheSystemPanelSessionInsteadOfClearingTheBinding() {
+        let coordinator = MenuBarPanelCoordinator()
+        var endedSessions = 0
+        coordinator.configureSystemPanelSession {
+            endedSessions += 1
+            return true
+        }
+        coordinator.openPreset(id: UUID(), presentationPath: .menuBarExtra, activateApp: {})
+
+        coordinator.dismiss()
+
+        XCTAssertEqual(endedSessions, 1)
+        XCTAssertTrue(coordinator.isPresented)
+        XCTAssertNil(coordinator.requestedPresetID)
+    }
+
+    @MainActor
+    func testDismissClearsTheBindingWithoutASystemPanelSession() {
+        let coordinator = MenuBarPanelCoordinator()
+        coordinator.configureSystemPanelSession { false }
+        coordinator.openPreset(id: UUID(), presentationPath: .menuBarExtra, activateApp: {})
+
+        coordinator.dismiss()
+
+        XCTAssertFalse(coordinator.isPresented)
+    }
+
+    @MainActor
+    func testDismissLeavesTheSystemPanelSessionAloneWhileTheWindowIsClosed() {
+        let coordinator = MenuBarPanelCoordinator()
+        var endedSessions = 0
+        coordinator.configureSystemPanelSession {
+            endedSessions += 1
+            return true
+        }
+
+        coordinator.dismiss()
+
+        XCTAssertEqual(endedSessions, 0)
+        XCTAssertFalse(coordinator.isPresented)
+    }
+
     @MainActor
     func testPublicPopoverPresentationDoesNotUseMenuBarExtraBinding() {
         let coordinator = MenuBarPanelCoordinator()
