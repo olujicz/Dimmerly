@@ -60,6 +60,9 @@ struct KeyboardShortcutRecorder: View {
                         onConflictDetected: { message in
                             conflictMessage = message
                             isRecording = false
+                            // The message appears below the button, away from VoiceOver's
+                            // cursor, so read it out as well.
+                            AccessibilityNotification.Announcement(message).post()
                         }
                     )
                     // Matches PresetShortcutRecorderButton's overlay: only eligible for

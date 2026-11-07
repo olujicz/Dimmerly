@@ -260,24 +260,48 @@ struct SettingsView: View {
         return 600
     }
 
-    enum Tab: Hashable {
+    enum Tab: String, Hashable {
         case general, displays, schedule, shortcuts, about
 
-        /// The tab Settings opens on. Screenshot runs open on the staged tab, Displays by default.
-        static var initial: Tab {
+        /// Where the last pane shown is kept, so Settings reopens on it.
+        static let storageKey = "dimmerlySettingsTab"
+
+        /// A pane forced by a screenshot run, which opens on its staged tab (Displays by
+        /// default) and leaves the person's saved pane alone.
+        static var stagedOverride: Tab? {
             #if DEBUG
                 if ScreenshotStage.scene == .settings {
                     return ScreenshotStage.settingsTab
                 }
             #endif
-            return .general
+            return nil
+        }
+
+        /// The tab Settings opens on before any pane has been saved.
+        static var initial: Tab {
+            stagedOverride ?? .general
         }
     }
 
-    @State private var selectedTab = Tab.initial
+    @AppStorage(Tab.storageKey) private var savedTab = Tab.general
+    @State private var stagedTab = Tab.stagedOverride
+
+    /// Reads and writes the saved pane, or the staged one during a screenshot run.
+    private var selectedTab: Binding<Tab> {
+        Binding(
+            get: { stagedTab ?? savedTab },
+            set: { tab in
+                if stagedTab != nil {
+                    stagedTab = tab
+                } else {
+                    savedTab = tab
+                }
+            }
+        )
+    }
 
     var body: some View {
-        TabView(selection: $selectedTab) {
+        TabView(selection: selectedTab) {
             GeneralSettingsTab()
                 .settingsPaneFrame()
                 .tabItem { Label("General", systemImage: "gearshape") }
