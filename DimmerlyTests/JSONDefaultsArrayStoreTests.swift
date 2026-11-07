@@ -197,6 +197,21 @@ final class JSONDefaultsArrayStoreTests: XCTestCase {
         XCTAssertEqual(unreadableBackups(), [first, second])
     }
 
+    func testUnreadablePayloadIsKeptWhenTheUnreadableListHoldsAnUnexpectedValue() {
+        defaults.set("unexpected", forKey: "itemsBackupUnreadable")
+        let raw = Data("not json".utf8)
+        defaults.set(raw, forKey: "items")
+
+        XCTAssertEqual(store.load(), [])
+        XCTAssertEqual(store.load(), [])
+        XCTAssertTrue(store.save([Item(name: "b", level: 1)]))
+
+        XCTAssertEqual(defaults.string(forKey: "itemsBackupUnreadable"), "unexpected")
+        let fallbacks = defaults.dictionaryRepresentation().filter { $0.key.hasPrefix("itemsBackupUnreadable.") }
+        XCTAssertEqual(fallbacks.count, 1, "Loading the same payload twice must keep one copy")
+        XCTAssertEqual(fallbacks.first?.value as? Data, raw)
+    }
+
     func testFailedEncodeLeavesStoredDataUnchanged() {
         let items = [Item(name: "a", level: 0.5)]
         XCTAssertTrue(store.save(items))

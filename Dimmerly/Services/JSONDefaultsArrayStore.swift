@@ -6,6 +6,7 @@
 //  PresetManager and ScheduleManager.
 //
 
+import CryptoKit
 import Foundation
 import OSLog
 
@@ -177,14 +178,24 @@ struct JSONDefaultsArrayStore<Element: Codable & Identifiable> {
     }
 
     /// Adds a payload that is unreadable as a whole to the list under `unreadableBackupKey`,
-    /// unless an identical payload is already there. Returns `false`, changing nothing, if
-    /// that key holds a value this build does not recognize.
+    /// unless an identical payload is already there. If that key holds a value this build
+    /// doesn't recognize, the value is left alone and the payload goes to a key of its own.
     @discardableResult
     private func backUpUnreadable(_ data: Data) -> Bool {
         let stored = defaults.object(forKey: unreadableBackupKey)
         guard stored == nil || stored is [Data] else {
-            logger.error("Unexpected value in \(unreadableBackupKey, privacy: .public); leaving it unchanged")
-            return false
+            // Leave the unexpected value alone, but never let it cost this payload.
+            // Named after the payload, so loading the same payload again adds nothing.
+            let digest = SHA256.hash(data: data).prefix(8).map { String(format: "%02x", $0) }.joined()
+            let fallbackKey = "\(unreadableBackupKey).\(digest)"
+            defaults.set(data, forKey: fallbackKey)
+            logger.error(
+                """
+                Unexpected value in \(unreadableBackupKey, privacy: .public); backed up the unreadable \
+                \(key, privacy: .public) to \(fallbackKey, privacy: .public) instead
+                """
+            )
+            return true
         }
         var payloads = stored as? [Data] ?? []
         guard !payloads.contains(data) else { return true }
