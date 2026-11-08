@@ -66,7 +66,8 @@ There are two kinds of key:
     `min` and at `maxX` for value `max`.
   - The values were measured from the dark region captures, whose white thumbs
     stand out from the glass. Light and dark share the layout.
-    - External brightness is on row 104.75 and warmth on row 123.25.
+    - External Display is the first row and answers DDC/CI, so it shows the
+      cable badge. Its brightness is on row 54.75 and warmth on row 73.25.
     - Both tracks run from 59.75 to 265.25 pt: brightness maps 0.1–1 and warmth
       maps 0–1.
 
