@@ -231,6 +231,11 @@ capture_when_ready() {
     return 1
 }
 
+# Prints an image's pixel width and height, for example "1040x2226".
+pixel_size() {
+    sips -g pixelWidth -g pixelHeight "$1" | awk '/pixelWidth/ {w = $2} /pixelHeight/ {h = $2} END {print w "x" h}'
+}
+
 refresh() {
     local variant='app-store' output='' skip_build='' appearance=''
     while [[ $# -gt 0 ]]; do
@@ -295,6 +300,15 @@ refresh() {
     capture --pid "$staged_pid" --mode settings --output "$inputs/settings-mask.png"
     stop_staged
     trap - EXIT INT TERM
+
+    # A pane taller than the screen (the direct-download Displays tab with Hardware Control,
+    # on a 1080-point display) leaves the region capture cut off at the screen's edge. The
+    # window capture holds the whole pane, so it stands in for both.
+    if [[ "$(pixel_size "$inputs/settings.png")" != "$(pixel_size "$inputs/settings-mask.png")" ]]; then
+        echo 'Displays settings is taller than the screen, so the full window capture is used.'
+        echo 'Check its title bar for a screen-sharing badge.'
+        cp -- "$inputs/settings-mask.png" "$inputs/settings.png"
+    fi
 
     echo 'Composing...'
     run_compose --variant "$variant" --menu "$inputs/menu.png" --settings "$inputs/settings.png" \

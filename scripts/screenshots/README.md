@@ -52,6 +52,17 @@ user's state:
 - The staged content is one generic "External Display" at 75% and the Full,
   Evening and Night presets on Control–Option–1 to 3. Edit the values in
   `ScreenshotStage` to change it.
+- On the direct-download Displays tab, that display answers DDC/CI from memory
+  (`ScreenshotStage.StagedDDCInterface`) like a typical monitor, so Hardware
+  Control lists brightness, contrast, volume and input. No DDC traffic reaches
+  a real monitor; every other scene finds none.
+
+The direct-download Displays pane is taller than a 1080-point screen. When the
+region capture comes back cut off at the screen's edge, `refresh` uses the full
+window capture instead and says so; check its title bar for a screen-sharing
+badge. The website shows both appearances: `images/image2.png` (dark, also in
+the README) and `images/image2-light.png`, taken with `--appearance dark` and
+`--appearance light`.
 
 Release builds don't contain the stage. Your own running Dimmerly can stay open.
 The capture selects the staged process by its PID.

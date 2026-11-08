@@ -8,6 +8,8 @@
     --ink: #171717;
     --muted: #686761;
     --line: #d4d0c8;
+    /* The edge shadow that says a table scrolls sideways. */
+    --scroll-shadow: rgb(0 0 0 / 22%);
     --blue: #1672e8;
     --blue-dark: #0d5fc8;
     --button-text: #fff;
@@ -16,15 +18,20 @@
     --console-ink: #f7f7f5;
     --console-text: #d8e8ff;
     --console-line: #42464d;
+    /* Quieter text on the graphite card: facts to check, not reasons to act. */
+    --console-muted: color-mix(in srgb, var(--console-text) 75%, var(--console));
     --panel-shadow: rgb(23 23 23 / 16%);
+    /* Header and footer share one width on every page, so the logo and
+       navigation never move between pages. Only the main column changes. */
+    --site: 1160px;
     --container: 820px;
+    --gutter: 48px;
     /* About 75 characters a line in the system font. The ch unit measures the
        wide digit zero in SF, so it overshoots. */
     --measure: 35rem;
 }
 
 .page-home { --container: 1160px; }
-.page-doc { --container: 720px; }
 
 @media (prefers-color-scheme: dark) {
     :root {
@@ -32,6 +39,7 @@
         --ink: #f2f0ea;
         --muted: #aaa8a1;
         --line: #373832;
+        --scroll-shadow: rgb(255 255 255 / 20%);
         --blue: #6daaff;
         --blue-dark: #91c0ff;
         --button-text: #0b1726;
@@ -117,10 +125,16 @@ figcaption { text-wrap: pretty; }
     white-space: nowrap;
 }
 
+/* Keeps a hyphenated word on one line, e.g. "multi-display". */
+.nowrap { white-space: nowrap; }
+
 .container {
-    width: min(var(--container), calc(100% - 48px));
+    width: min(var(--container), calc(100% - var(--gutter)));
     margin: 0 auto;
 }
+
+.site-header,
+.footer { --container: var(--site); }
 
 /* Header and navigation */
 
@@ -203,10 +217,22 @@ figcaption { text-wrap: pretty; }
     border-top: 1px solid var(--line);
 }
 
+/* Two short groups instead of one long row: the guides, then everything
+   else. Each wraps on its own. */
+.footer > span { line-height: 32px; }
+
 .footer-links {
     display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+}
+
+.footer-group {
+    display: flex;
     flex-wrap: wrap;
-    gap: 20px;
+    justify-content: flex-end;
+    gap: 0 20px;
 }
 
 /* Shared controls */
@@ -310,7 +336,6 @@ figcaption { text-wrap: pretty; }
 .hero-description {
     max-width: 34rem;
     margin: 0;
-    color: var(--muted);
     font-size: 1.06rem;
 }
 
@@ -343,7 +368,7 @@ figcaption { text-wrap: pretty; }
    each screen dims the way software dimming does, with a dark layer over the
    lit picture. The panel component itself (.mini-*) is shared with the 404
    page. */
-.stage-section { padding-bottom: 104px; }
+.stage-section { padding-bottom: 64px; }
 
 .stage {
     position: relative;
@@ -453,9 +478,10 @@ figcaption { text-wrap: pretty; }
 }
 
 .stage-caption {
-    margin-top: 18px;
+    max-width: var(--measure);
+    margin: 18px auto 0;
     color: var(--muted);
-    font-size: 13px;
+    font-size: 0.875rem;
     text-align: center;
     text-wrap: balance;
 }
@@ -465,7 +491,9 @@ figcaption { text-wrap: pretty; }
    rather than run off the edge. */
 @media (min-width: 1000px) {
     .stage {
-        --panel-width: 280px;
+        /* Room for "External Display", its cable icon, and the Backlight
+           label on one line beside the value. */
+        --panel-width: 292px;
         --panel-left: min(calc(86.33% - var(--panel-width) / 2), calc(100% - var(--panel-width) - 8px));
     }
 
@@ -491,27 +519,55 @@ figcaption { text-wrap: pretty; }
     .stage-desk { background: #1e232b; }
 }
 
-/* The demo loop. It is a 1280x800 scene with its own captions, so it takes the
-   full container width; narrower, the panel's text in it gets too small. The
-   frame's background matches each video's backdrop, so nothing flashes before
-   the poster loads, and its border holds the darker page edge in dark mode. */
-.demo { padding-bottom: 104px; }
+/* The demo recording, behind a disclosure under the hero desk. It is a
+   1280x800 scene with its own captions, so it opens at the full container
+   width; narrower, the panel's text in it gets too small. The frame's
+   background matches each video's backdrop, so nothing flashes before the
+   poster loads, and its border holds the darker page edge in dark mode. */
+.demo { margin-top: 30px; }
 
-.demo-heading {
-    display: grid;
-    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
-    gap: 18px 56px;
-    align-items: end;
-    margin-bottom: 36px;
+.demo summary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: fit-content;
+    min-height: 44px;
+    margin: 0 auto;
+    padding: 0 18px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    color: var(--ink);
+    font-size: 0.92rem;
+    font-weight: 600;
+    list-style: none;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 
-.demo-heading p {
-    max-width: 30rem;
-    margin: 0;
+.demo summary::-webkit-details-marker { display: none; }
+
+.demo summary:hover {
+    border-color: var(--blue);
+    background: color-mix(in srgb, var(--blue) 7%, transparent);
+}
+
+.demo-play {
+    width: 14px;
+    height: 14px;
+    fill: var(--blue-dark);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Open, the triangle points down at the recording, like a disclosure. */
+.demo[open] .demo-play { transform: rotate(90deg); }
+
+.demo-length {
     color: var(--muted);
+    font-weight: 500;
 }
 
-.demo-figure { margin: 0; }
+.demo[open] .demo-frame { margin-top: 24px; }
 
 .demo-frame {
     position: relative;
@@ -547,11 +603,11 @@ figcaption { text-wrap: pretty; }
 
 .demo-toggle:hover { background: rgb(255 255 255 / 92%); }
 
-.demo-figure figcaption {
+.demo-description {
     max-width: 720px;
     margin: 18px auto 0;
     color: var(--muted);
-    font-size: 13px;
+    font-size: 0.875rem;
     text-align: center;
     text-wrap: balance;
 }
@@ -568,13 +624,14 @@ figcaption { text-wrap: pretty; }
     .demo-toggle:hover { background: rgb(23 26 31 / 88%); }
 }
 
-/* images/image2.png is a 1040-pixel 2x capture of the whole Displays pane. It
-   is shown at up to 440 points, so Retina screens scale it down, never up. The
-   pane is tall, so the text beside it stays in view while it scrolls past. */
+/* images/image2-light.png and image2.png are 1040-pixel 2x captures of the
+   whole Displays pane, light and dark, from scripts/screenshots.sh. They are
+   shown at up to 440 points, so Retina screens scale them down, never up. The
+   window is tall, so the copy beside it stays in view while it scrolls past. */
 .settings-showcase {
     display: grid;
-    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
-    gap: 64px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 440px);
+    gap: 80px;
     align-items: start;
     padding-top: 76px;
     padding-bottom: 76px;
@@ -584,7 +641,7 @@ figcaption { text-wrap: pretty; }
 .settings-copy {
     position: sticky;
     top: 40px;
-    padding-top: 40px;
+    max-width: 30rem;
 }
 
 .settings-copy p {
@@ -596,18 +653,24 @@ figcaption { text-wrap: pretty; }
 
 .settings-screenshot {
     display: block;
-    width: min(100%, 440px);
+    width: 100%;
     height: auto;
-    margin-inline: auto;
     filter: drop-shadow(0 18px 26px var(--panel-shadow));
 }
 
 .settings-figure figcaption {
     margin-top: 18px;
     color: var(--muted);
-    font-size: 13px;
+    font-size: 0.875rem;
     text-align: center;
     text-wrap: balance;
+}
+
+@media (min-width: 701px) and (max-width: 860px) {
+    .settings-showcase {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
+        gap: 48px;
+    }
 }
 
 @media (max-width: 700px) {
@@ -618,9 +681,12 @@ figcaption { text-wrap: pretty; }
         padding-bottom: 48px;
     }
 
-    .settings-copy {
-        position: static;
-        padding-top: 0;
+    /* Stacked above the window, the copy scrolls away with the page. */
+    .settings-copy { position: static; }
+
+    .settings-figure {
+        width: min(100%, 440px);
+        margin-inline: auto;
     }
 }
 
@@ -665,21 +731,68 @@ figcaption { text-wrap: pretty; }
 .install .requirement,
 .install .download-status { color: var(--console-text); }
 
-.install .text-link { color: var(--console-ink); }
-
-.install .code-block {
-    max-width: none;
-    margin-top: 28px;
+/* Quieter than the notes: a fact to check, not a reason to download. */
+.install-version {
+    margin: 12px 0 0;
+    color: var(--console-muted);
+    font-size: 0.84rem;
 }
 
-.install .code-block pre {
-    padding: 18px 0 0;
+/* On a phone, site.js turns the DMG button into this link beside "Send to
+   your Mac". On the dark card it needs an underline to read as a link. */
+.install .text-link {
+    color: var(--console-ink);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+    text-underline-offset: 4px;
+}
+
+/* Homebrew, the second way in, folded away below the button so the card
+   leads with one choice. The commands and the update note open together. */
+.install-brew {
+    margin-top: 28px;
     border-top: 1px solid var(--console-line);
+}
+
+.install-brew summary {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding-top: 8px;
+    color: var(--console-ink);
+    font-size: 0.92rem;
+    font-weight: 650;
+    list-style: none;
+    cursor: pointer;
+}
+
+.install-brew summary::-webkit-details-marker { display: none; }
+
+.install-brew summary::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: rotate(-45deg);
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.install-brew[open] summary::before { transform: rotate(45deg); }
+
+.install-brew[open] .code-block { margin-top: 4px; }
+
+.install .code-block { max-width: none; }
+
+.install .code-block pre {
+    padding: 10px 96px 0 0;
     background: transparent;
 }
 
 .install .copy-button {
-    top: 14px;
+    top: 6px;
     right: 0;
 }
 
@@ -696,6 +809,7 @@ figcaption { text-wrap: pretty; }
 }
 
 .steps {
+    max-width: var(--measure);
     margin: 0;
     padding: 0;
     counter-reset: step;
@@ -728,13 +842,15 @@ figcaption { text-wrap: pretty; }
     font-variant-numeric: tabular-nums;
 }
 
-.steps strong,
-.install-updates strong {
+.steps strong {
     display: block;
     color: var(--console-ink);
     font-weight: 650;
 }
 
+.install-note a,
+.install-version a,
+.install-updates a,
 .install-steps a {
     color: var(--console-ink);
     text-decoration-thickness: 1px;
@@ -747,8 +863,11 @@ figcaption { text-wrap: pretty; }
     width: 1.05em;
     height: 1.05em;
     vertical-align: -0.16em;
-    color: var(--console-ink);
 }
+
+/* On the dark install card the icon matches the bright step titles; on the
+   support page it takes the text colour. */
+.install .menu-icon { color: var(--console-ink); }
 
 .menu-icon circle { fill: currentColor; }
 
@@ -760,11 +879,19 @@ figcaption { text-wrap: pretty; }
 }
 
 .install-updates {
+    margin: 12px 0 0;
+    color: var(--console-text);
+    font-size: 0.88rem;
+}
+
+/* What the app and the site collect, closing the steps. */
+.install-privacy {
+    max-width: var(--measure);
     margin: 24px 0 0;
     padding-top: 20px;
     border-top: 1px solid var(--console-line);
-    color: var(--console-text);
-    font-size: 0.9rem;
+    color: var(--console-muted);
+    font-size: 0.86rem;
 }
 
 .install code {
@@ -781,10 +908,16 @@ figcaption { text-wrap: pretty; }
     display: grid;
     grid-template-columns: repeat(12, 1fr);
     gap: 24px;
-    padding: 112px 0 120px;
+    padding: 72px 0 96px;
 }
 
-.benefits-heading { grid-column: 1 / span 4; }
+/* The heading stays beside the list while it scrolls past. */
+.benefits-heading {
+    grid-column: 1 / span 4;
+    position: sticky;
+    top: 40px;
+    align-self: start;
+}
 
 .benefits-heading p {
     max-width: 300px;
@@ -799,9 +932,10 @@ figcaption { text-wrap: pretty; }
 
 .benefit {
     display: grid;
-    grid-template-columns: minmax(150px, 0.75fr) minmax(220px, 1.25fr);
-    gap: 20px 32px;
-    padding: 25px 0;
+    grid-template-columns: minmax(0, 1fr) 252px;
+    gap: 20px 40px;
+    align-items: center;
+    padding: 32px 0;
     border-bottom: 1px solid var(--line);
 }
 
@@ -809,38 +943,77 @@ figcaption { text-wrap: pretty; }
 .benefit p { margin: 0; }
 
 .benefit h3 {
-    font-size: 1rem;
-    line-height: 1.45;
+    font-size: 1.05rem;
+    line-height: 1.4;
 }
 
 .benefit p {
+    margin-top: 8px;
     color: var(--muted);
-    font-size: 0.92rem;
+    font-size: 0.94rem;
 }
 
-.guides {
+/* A piece of the menu bar panel beside each benefit, redrawn with example
+   values. Smaller than the hero's working panel and never interactive. The
+   doubled class outranks the shared .mini-panel rules further down. */
+.mini-panel.benefit-sample {
+    margin: 0;
+    padding: 8px 0;
+    box-shadow: 0 12px 30px var(--panel-shadow);
+    font-size: 0.84rem;
+}
+
+.benefit-sample .mini-row {
+    min-height: 30px;
+    padding: 0 14px;
+}
+
+.benefit-sample .mini-heading { margin: 4px 14px 4px; }
+
+.benefit-sample .mini-preset {
+    min-height: 28px;
+    margin: 0 6px;
+    padding: 0 8px;
+    cursor: default;
+}
+
+.benefit-sample .is-applied .mini-check { visibility: visible; }
+
+/* A still slider: the filled part of the track, without a thumb. */
+.mini-meter {
+    height: 5px;
+    margin: 2px 14px 10px;
+    border-radius: 3px;
+    background: linear-gradient(to right, var(--blue) calc(var(--fill) * 100%), var(--mini-track) 0);
+}
+
+/* Reading for later, after the download card: the heading and its summary
+   share a row, and the four guides run across. */
+.guides { padding: 0 0 96px; }
+
+.guides-heading {
     display: grid;
-    grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
-    gap: 40px;
-    padding: 0 0 112px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 18px 56px;
+    align-items: end;
+    margin-bottom: 40px;
 }
 
 .guides-heading p {
-    max-width: 330px;
-    margin: 18px 0 0;
+    max-width: var(--measure);
+    margin: 0;
     color: var(--muted);
 }
 
 .guide-list {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 16px;
 }
 
 .guide-card {
     display: flex;
     flex-direction: column;
-    min-height: 240px;
     padding: 24px;
     border: 1px solid var(--line);
     color: var(--ink);
@@ -872,38 +1045,6 @@ figcaption { text-wrap: pretty; }
     color: var(--blue-dark);
     font-size: 0.88rem;
     font-weight: 650;
-}
-
-.trust {
-    display: grid;
-    grid-template-columns: 1fr 2fr auto;
-    gap: 32px;
-    align-items: start;
-    margin-bottom: 76px;
-    padding: 40px 0;
-    border-top: 1px solid var(--line);
-    border-bottom: 1px solid var(--line);
-}
-
-.page-home .trust h2 { font-size: clamp(1.5rem, 2.8vw, 2.2rem); }
-
-.trust p {
-    max-width: var(--measure);
-    margin: 0;
-    color: var(--muted);
-    font-size: 0.95rem;
-}
-
-.trust .trust-version {
-    margin-top: 12px;
-    color: var(--ink);
-}
-
-.trust-links {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
 }
 
 /* Guide pages */
@@ -938,13 +1079,15 @@ figcaption { text-wrap: pretty; }
     text-decoration: underline;
 }
 
-.page-guide h1 {
+/* Guides, support, privacy, and the 404 share one heading scale. */
+.page-guide h1,
+.page-doc h1 {
     max-width: 760px;
     margin: 0;
-    font-size: clamp(2.25rem, 5vw, 3.6rem);
+    font-size: clamp(2.25rem, 5vw, 3.4rem);
     font-weight: 720;
     line-height: 1.05;
-    letter-spacing: -0.035em;
+    letter-spacing: -0.032em;
 }
 
 .lead {
@@ -954,19 +1097,20 @@ figcaption { text-wrap: pretty; }
     font-size: clamp(1.08rem, 2vw, 1.28rem);
 }
 
+/* A strip of facts between two rules, not a row of boxes: the guide cards
+   are boxes, and these aren't links. */
 .guide-summary {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 1px;
     margin-top: 48px;
-    border: 1px solid var(--line);
-    background: var(--line);
+    border-block: 1px solid var(--line);
 }
 
-.summary-item {
-    min-height: 116px;
-    padding: 20px;
-    background: var(--paper);
+.summary-item { padding: 20px 20px 20px 0; }
+
+.summary-item + .summary-item {
+    padding-left: 20px;
+    border-left: 1px solid var(--line);
 }
 
 .summary-item span,
@@ -995,14 +1139,16 @@ figcaption { text-wrap: pretty; }
     background: linear-gradient(var(--line), var(--line)) top left / min(100%, var(--measure)) 1px no-repeat;
 }
 
-.guide-section h2 {
+.guide-section h2,
+.page-doc h2 {
     margin: 0 0 16px;
-    font-size: clamp(1.75rem, 3.5vw, 2.45rem);
-    line-height: 1.1;
-    letter-spacing: -0.035em;
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    line-height: 1.15;
+    letter-spacing: -0.028em;
 }
 
-.guide-section h3 {
+.guide-section h3,
+.page-doc h3 {
     margin: 30px 0 8px;
     font-size: 1.08rem;
     line-height: 1.35;
@@ -1041,13 +1187,13 @@ figcaption { text-wrap: pretty; }
    Safari, which doesn't focus scroll containers on its own. */
 .comparison-wrap {
     overflow-x: auto;
-    margin-top: 24px;
+    margin: 24px 0 22px;
     /* A shadow at the right edge while there is more table to scroll to.
        The paper-coloured cover scrolls with the content and hides the shadow
        once the end is reached. */
     background:
         linear-gradient(to left, var(--paper) 30%, transparent) right / 32px 100% no-repeat local,
-        radial-gradient(farthest-side at 100% 50%, rgb(0 0 0 / 22%), transparent) right / 14px 100% no-repeat scroll;
+        radial-gradient(farthest-side at 100% 50%, var(--scroll-shadow), transparent) right / 14px 100% no-repeat scroll;
 }
 
 .comparison {
@@ -1095,6 +1241,122 @@ figcaption { text-wrap: pretty; }
     background: color-mix(in srgb, var(--blue) 7%, var(--paper));
 }
 
+/* Guides: display rows redrawn from the menu bar panel, so the reader sees
+   the cable icon the text talks about. */
+.ui-sample {
+    max-width: 360px;
+    margin: 26px 0 30px;
+}
+
+.ui-sample .mini-panel {
+    margin: 0;
+    padding: 6px 0;
+    box-shadow: 0 12px 30px var(--panel-shadow);
+}
+
+.ui-sample .mini-name { gap: 6px; }
+
+.ui-sample .mini-name > svg:first-child {
+    width: 12px;
+    height: 12px;
+    color: var(--mini-panel-muted);
+}
+
+/* The cable icon after a display's name: under hardware control. */
+.mini-panel .ui-badge {
+    width: 15px;
+    height: 15px;
+    margin-left: 2px;
+    color: var(--mini-panel-muted);
+}
+
+/* The website's own label beside the cable icon, which the app shows
+   without words: what the slider turns down. */
+.mini-tag {
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--blue) 13%, transparent);
+    color: var(--blue-dark);
+    font-size: 0.72rem;
+    font-weight: 650;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+/* A labelled row keeps the name, icon, and label on one line. */
+.mini-row:has(.mini-tag) .mini-name {
+    gap: 5px;
+    white-space: nowrap;
+}
+
+.mini-row:has(.mini-tag) .ui-badge { margin-left: 0; }
+
+.stage .mini-tag {
+    padding: 2px 6px;
+    font-size: 0.7rem;
+}
+
+/* Outlined rather than filled, so the muted text keeps its contrast on the
+   panel itself. */
+.mini-tag.is-software {
+    background: transparent;
+    box-shadow: inset 0 0 0 1px var(--mini-panel-line);
+    color: var(--mini-panel-muted);
+}
+
+.ui-trail {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.ui-sample .ui-moon {
+    width: 13px;
+    height: 13px;
+    color: var(--mini-panel-muted);
+}
+
+.ui-sample figcaption {
+    margin-top: 14px;
+    color: var(--muted);
+    font-size: 0.88rem;
+    line-height: 1.5;
+}
+
+/* The status icons from Settings › Displays › Hardware Control. */
+.status-line {
+    display: flex;
+    gap: 9px;
+    align-items: flex-start;
+}
+
+.status-icon {
+    width: 16px;
+    height: 16px;
+    flex: none;
+    margin-top: 0.15em;
+    fill: none;
+    stroke: var(--muted);
+    stroke-width: 1.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.status-icon.is-ok circle {
+    fill: #28a745;
+    stroke: none;
+}
+
+.status-icon.is-ok path {
+    stroke: #fff;
+    stroke-width: 1.7;
+}
+
+@media (prefers-color-scheme: dark) {
+    .status-icon.is-ok circle { fill: #30d158; }
+    .status-icon.is-ok path { stroke: #0b1a10; }
+}
+
 .guide-actions {
     display: flex;
     flex-wrap: wrap;
@@ -1114,39 +1376,24 @@ figcaption { text-wrap: pretty; }
 
 .page-doc main {
     flex: 1;
-    padding: 8px 0 24px;
+    padding: 70px 0 24px;
 }
 
-.page-doc h1 {
-    margin: 40px 0 8px;
-    font-size: clamp(2rem, 4vw, 2.6rem);
-    font-weight: 720;
-    line-height: 1.05;
-    letter-spacing: -0.03em;
-}
-
-.tagline,
-.last-updated {
-    margin: 0 0 36px;
+.page-doc .tagline,
+.page-doc .last-updated {
+    max-width: 680px;
+    margin: 20px 0 40px;
     color: var(--muted);
 }
 
-.tagline { font-size: 1.05rem; }
+.tagline { font-size: clamp(1.08rem, 2vw, 1.28rem); }
 
 .last-updated { font-size: 0.9rem; }
 
-.page-doc h2 {
-    margin: 40px 0 12px;
-    font-size: 1.35rem;
-    font-weight: 650;
-    letter-spacing: -0.012em;
-}
+.page-doc h2 { margin-top: 64px; }
 
-.page-doc h3 {
-    margin: 26px 0 8px;
-    font-size: 1.02rem;
-    font-weight: 650;
-}
+/* The support index sits right under the build box, so it needs less room. */
+.page-doc nav h2 { margin-top: 48px; }
 
 .page-doc p,
 .page-doc li {
@@ -1162,6 +1409,7 @@ figcaption { text-wrap: pretty; }
 }
 
 .contact-box {
+    max-width: calc(var(--measure) + 50px);
     margin-top: 24px;
     padding: 20px 24px;
     border: 1px solid var(--line);
@@ -1197,24 +1445,72 @@ figcaption { text-wrap: pretty; }
 }
 
 /* Support page: which build you have, and where each answer is. */
-.page-doc .support-index {
-    columns: 2 240px;
-    column-gap: 32px;
+.build-list {
+    display: grid;
+    gap: 10px;
+    margin: 14px 0 0;
+}
+
+.build-list dt { font-weight: 650; }
+
+.build-list dd {
+    margin: 0;
+    color: var(--muted);
+}
+
+/* The answers in three small groups, so no list is longer than three. */
+.support-index {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px 32px;
+    max-width: 760px;
+}
+
+.page-doc .support-index-title {
+    margin: 0 0 4px;
+    color: var(--muted);
+    font-size: 0.84rem;
+    font-weight: 650;
+}
+
+.page-doc .support-index ul {
     margin: 0;
     padding-left: 0;
     list-style: none;
 }
 
-.page-doc .support-index li {
-    margin: 0 0 6px;
-    break-inside: avoid;
+.page-doc .support-index li { margin: 0; }
+
+/* Tall enough to tap: 36px rows instead of a 19px line of text. */
+.page-doc main .support-index a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    text-decoration-line: none;
 }
 
-.page-doc main .support-index a { text-decoration-line: none; }
 .page-doc main .support-index a:hover { text-decoration-line: underline; }
 
+.page-doc :not(pre) > code,
+.guide-section :not(pre) > code {
+    padding: 0.1em 0.3em;
+    border-radius: 4px;
+    background: var(--panel);
+    font: 0.88em ui-monospace, SFMono-Regular, Menlo, monospace;
+    overflow-wrap: anywhere;
+}
+
+.guide-section h2[id],
 .page-doc h2[id],
-.page-doc h3[id] { scroll-margin-top: 24px; }
+.page-doc h3[id],
+.page-doc h3 span[id] { scroll-margin-top: 24px; }
+
+/* Shown by site.js only while the app table is wider than its box. */
+.scroll-hint {
+    margin: 0 0 10px;
+    color: var(--muted);
+    font-size: 0.84rem;
+}
 
 /* 404 page: a copy of the app's menu bar panel. Its slider sets --level on
    <main>, and the illustrated screen dims the way software dimming does, with
@@ -1222,9 +1518,11 @@ figcaption { text-wrap: pretty; }
 
 .page-404 { --container: 960px; }
 
-/* The panel copy shared by the home page hero and the 404 page. */
+/* The panel copy shared by the home page hero, the 404 page, and the
+   redrawn display rows in the guides. */
 .page-404,
-.page-home {
+.page-home,
+.page-guide {
     --mini-panel: #f7f6f3;
     --mini-panel-line: rgb(23 23 23 / 10%);
     --mini-panel-ink: #1d1d1f;
@@ -1236,7 +1534,8 @@ figcaption { text-wrap: pretty; }
 
 @media (prefers-color-scheme: dark) {
     .page-404,
-    .page-home {
+    .page-home,
+    .page-guide {
         --mini-panel: #30343b;
         --mini-panel-line: rgb(255 255 255 / 10%);
         --mini-panel-ink: #f2f2f4;
@@ -1255,7 +1554,6 @@ figcaption { text-wrap: pretty; }
     padding-top: 24px;
 }
 
-.page-404 h1 { margin-top: 40px; }
 .page-404 .tagline { max-width: 440px; margin-bottom: 40px; }
 
 .lost-display {
@@ -1555,18 +1853,6 @@ figcaption { text-wrap: pretty; }
 
 .page-404 main .mini-panel .mini-button:hover { background: var(--blue-dark); }
 
-
-.page-404 .mini-footer {
-    display: flex;
-    justify-content: space-between;
-}
-
-.page-404 main .mini-footer a {
-    justify-content: flex-start;
-    gap: 8px;
-    color: var(--mini-panel-muted);
-}
-
 /* Touch screens have no Control-Option shortcuts to press, and fingers need
    bigger targets than the app's pointer-sized rows. */
 @media (hover: none) {
@@ -1574,6 +1860,19 @@ figcaption { text-wrap: pretty; }
 }
 
 @media (pointer: coarse) {
+    .footer a { min-height: 44px; }
+
+    /* Text links and the copy button sit on a line of their own, so they get
+       a full touch target. Links inside sentences don't. */
+    .text-link {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        padding-block: 0;
+    }
+
+    .copy-button { min-height: 44px; }
+
     .mini-slider input { height: 44px; }
     .mini-preset,
     .page-404 main .mini-panel a { min-height: 44px; }
@@ -1602,15 +1901,17 @@ figcaption { text-wrap: pretty; }
 
 /* Responsive */
 
+@media (max-width: 1080px) {
+    .guide-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 @media (max-width: 860px) {
-    .hero,
-    .demo-heading { grid-template-columns: minmax(0, 1fr); }
+    .hero { grid-template-columns: minmax(0, 1fr); }
     .benefits-heading { grid-column: 1 / span 5; }
     .benefit-list { grid-column: 6 / -1; }
-    .benefit { grid-template-columns: 1fr; gap: 6px; }
-    .guides { grid-template-columns: 1fr 2fr; }
-    .trust { grid-template-columns: 1fr 2fr; }
-    .trust-links { grid-column: 2; }
+    .benefit { grid-template-columns: 1fr; gap: 18px; }
+    .mini-panel.benefit-sample { width: min(100%, 280px); }
+    .guides-heading { grid-template-columns: minmax(0, 1fr); }
 
     .install { grid-template-columns: minmax(0, 1fr); }
 
@@ -1622,7 +1923,12 @@ figcaption { text-wrap: pretty; }
 }
 
 @media (max-width: 700px) {
-    .container { width: min(100% - 32px, var(--container)); }
+    :root { --gutter: 32px; }
+
+    /* At phone width the recording's panel text is a few pixels tall. The hero
+       above is a working panel, so the recording and its disclosure step aside
+       (site.js doesn't load or play it here). */
+    .demo { display: none; }
 
     /* Stacking the header gives the navigation the full width, so every link
        fits on one row instead of wrapping a lone item to the right. */
@@ -1639,58 +1945,80 @@ figcaption { text-wrap: pretty; }
     }
 
     .hero { padding: 44px 0 32px; }
-    .stage-section { padding-bottom: 72px; }
+    .stage-section { padding-bottom: 48px; }
+
+    /* A little less space around the panel, so more of it shares the
+       screen with the desk. The presets stay a list, as in the app. */
+    .stage-hint { margin-top: 16px; }
+    .stage .mini-panel { margin-top: 12px; }
     .stage-desk { border-radius: 12px; }
-    .demo { padding-bottom: 72px; }
-    .demo-frame { border-radius: 12px; }
-
-    .demo-toggle {
-        right: 10px;
-        bottom: 10px;
-        min-width: 64px;
-        padding: 5px 12px;
-        font-size: 12px;
-    }
-
     .install {
         gap: 28px;
         margin-bottom: 56px;
         padding: 28px 22px;
-        border-radius: 14px;
+        /* The same step down as the desk above it. */
+        border-radius: 12px;
     }
 
     .install-steps { padding-top: 28px; }
 
-    /* Room under the copy button so it never sits on the first command. */
-    .install .code-block pre { padding-top: 56px; }
+    /* Room under the copy button, at its 44px touch height, so it never sits
+       on the first command. */
+    .install .code-block pre { padding: 56px 0 0; }
 
     .benefits {
         display: block;
-        padding: 84px 0;
+        padding: 56px 0 64px;
     }
 
-    .benefits-heading { margin-bottom: 38px; }
-
-    .guides {
-        display: block;
-        padding-bottom: 84px;
+    .benefits-heading {
+        position: static;
+        margin-bottom: 28px;
     }
 
-    .guides-heading { margin-bottom: 38px; }
+    /* The working panel sits just above on a phone, so the redrawn pieces
+       would repeat it and push the download further down. */
+    .mini-panel.benefit-sample { display: none; }
+
+    .guides { padding: 0 0 64px; }
+    .guides-heading { margin-bottom: 28px; }
     .guide-list { grid-template-columns: 1fr; }
 
-    .trust {
-        grid-template-columns: 1fr;
-        gap: 16px;
-    }
-
-    .trust-links { grid-column: 1; }
     .footer { flex-direction: column; }
 
-    .guide-main { padding-top: 52px; }
+    .footer-links { align-items: flex-start; }
+    .footer-group { justify-content: flex-start; }
+
+    .guide-main,
+    .page-doc main { padding-top: 52px; }
     .guide-summary { grid-template-columns: 1fr; }
-    .summary-item { min-height: auto; }
+
+    .summary-item + .summary-item {
+        padding-left: 0;
+        border-top: 1px solid var(--line);
+        border-left: 0;
+    }
     .guide-section { padding-top: 52px; }
+
+    /* Two- and three-column tables fit a phone, so they wrap instead of
+       scrolling sideways. */
+    .comparison { min-width: 0; }
+
+    .comparison th,
+    .comparison td { padding: 12px; }
+
+    /* The app table still scrolls, but with a narrower sticky label column
+       about two apps fit beside it instead of one and a half. */
+    .comparison-apps {
+        min-width: 600px;
+        font-size: 0.84rem;
+    }
+
+    .comparison-apps th:first-child,
+    .comparison-apps td:first-child { width: 7.5rem; }
+
+    .comparison-apps th,
+    .comparison-apps td { padding: 10px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

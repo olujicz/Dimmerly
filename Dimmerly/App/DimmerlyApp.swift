@@ -873,31 +873,68 @@ final class StatusItemQuickActions: NSObject {
         }
 
         #if !APPSTORE
-            /// Hardware control that finds no monitors and sends no DDC traffic.
+            /// Hardware control that sends no DDC traffic. In a staged run the staged external
+            /// displays answer like a typical DDC/CI monitor, from memory: the panel shows their
+            /// cable badge and Hardware Control lists what they accept. Outside a staged run (in
+            /// tests) it finds no monitors.
             static func makeHardwareBrightnessManager() -> HardwareBrightnessManager {
-                HardwareBrightnessManager(
+                let answers = isActive
+                let externalIDs = answers ? stagedExternalDisplayIDs : []
+                let manager = HardwareBrightnessManager(
                     forTesting: true,
-                    ddcInterface: NoDDCInterface(),
-                    connectedExternalDisplayIDsProvider: { [] },
+                    ddcInterface: StagedDDCInterface(answeringDisplayIDs: Set(externalIDs)),
+                    connectedExternalDisplayIDsProvider: { externalIDs },
                     displayRefreshHandler: {},
                     hardwareBrightnessReadHandler: { _, _ in }
                 )
+                if answers {
+                    manager.enable()
+                    manager.probeAllDisplays()
+                }
+                return manager
             }
 
-            private struct NoDDCInterface: DDCInterface {
-                func read(vcp _: VCPCode, for _: CGDirectDisplayID) -> DDCReadResult? {
-                    nil
+            /// The made-up IDs `makeBrightnessManager` gives the staged external displays.
+            static var stagedExternalDisplayIDs: [CGDirectDisplayID] {
+                displays.enumerated().compactMap { index, display in
+                    display.isBuiltIn ? nil : displayID + CGDirectDisplayID(index)
+                }
+            }
+
+            /// Answers DDC/CI from memory for the staged displays it is given and stays silent for
+            /// any other ID, so nothing can reach a real monitor.
+            struct StagedDDCInterface: DDCInterface {
+                let answeringDisplayIDs: Set<CGDirectDisplayID>
+
+                /// What a typical DDC/CI monitor reports: brightness and contrast at mid-range,
+                /// speakers on and unmuted, the first DisplayPort input selected.
+                static let values: [VCPCode: UInt16] = [
+                    .brightness: 75,
+                    .contrast: 50,
+                    .volume: 30,
+                    .audioMute: 2,
+                    .inputSource: 0x0F,
+                ]
+
+                func read(vcp: VCPCode, for displayID: CGDirectDisplayID) -> DDCReadResult? {
+                    guard answeringDisplayIDs.contains(displayID), let value = Self.values[vcp] else { return nil }
+                    return DDCReadResult(currentValue: value, maxValue: vcp == .inputSource ? 0xFF : 100)
                 }
 
-                func write(vcp _: VCPCode, value _: UInt16, for _: CGDirectDisplayID) -> Bool {
-                    false
+                func write(vcp: VCPCode, value _: UInt16, for displayID: CGDirectDisplayID) -> Bool {
+                    answeringDisplayIDs.contains(displayID) && Self.values[vcp] != nil
                 }
 
                 func probeCapabilities(
                     for displayID: CGDirectDisplayID,
-                    skippingBrightness _: Bool
+                    skippingBrightness: Bool
                 ) -> HardwareDisplayCapability {
-                    .notSupported(displayID: displayID)
+                    HardwareDisplayCapability.probe(
+                        displayID: displayID,
+                        skippingBrightness: skippingBrightness,
+                        read: read(vcp:for:),
+                        transportReachable: { _ in false }
+                    )
                 }
             }
         #endif

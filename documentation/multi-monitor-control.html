@@ -68,8 +68,8 @@
                 <li aria-current="page">Multiple monitors</li>
             </ol>
         </nav>
-        <h1>Control multiple monitors from one Mac menu bar panel.</h1>
-        <p class="lead">Dimmerly keeps each display&rsquo;s brightness, warmth, contrast, presets, and supported hardware controls in one place, so a multi-monitor desk does not require a trip through each monitor&rsquo;s buttons.</p>
+        <h1>Control multiple monitors from one Mac menu bar panel</h1>
+        <p class="lead">Dimmerly keeps each display&rsquo;s brightness, warmth, contrast, presets, and supported hardware controls in one place, so a multi-monitor desk doesn&rsquo;t require a trip through each monitor&rsquo;s buttons.</p>
 
         <div class="guide-summary" role="group" aria-label="Dimmerly multi-monitor overview">
             <div class="summary-item">
@@ -100,8 +100,8 @@
         <section class="guide-section" aria-labelledby="independent-title">
             <h2 id="independent-title">Tune each display for the work in front of you</h2>
             <p>Use different brightness and warmth values for a built-in display, an external monitor, or a second screen across your desk. Each change applies only to the display you select.</p>
-            <p>For compatible external monitors in the direct-download build, DDC/CI can expose hardware brightness and additional controls such as contrast, volume, mute, or input source. When a display does not support hardware control, Dimmerly uses software dimming for that display.</p>
-            <p>See the <a href="external-monitor-brightness.html">external monitor brightness guide</a> for DDC/CI setup and connection troubleshooting.</p>
+            <p>For compatible external monitors in the direct-download build, DDC/CI can expose hardware brightness and additional controls such as contrast, volume, mute, or input source. When a display doesn&rsquo;t support hardware control, Dimmerly uses software dimming for that display.</p>
+            <p>See the <a href="external-monitor-brightness.html">external monitors guide</a> for DDC/CI setup and connection troubleshooting.</p>
         </section>
 
         <section class="guide-section" aria-labelledby="presets-title">
@@ -111,16 +111,16 @@
             <p>Starting with Dimmerly 1.2.0, you can find a saved preset by name in Spotlight. The <strong>Open Brightness Preset</strong> Shortcuts action opens it in the menu bar panel; use <strong>Apply Brightness Preset</strong> to apply its saved display settings. Individual menu bar display controls can also be targeted from Shortcuts and Spotlight on macOS 15.4 and later.</p>
             <p>Schedules can run at a fixed time, sunrise, sunset, or with an offset from sunrise or sunset. You can use your current location for the calculation or enter coordinates manually.</p>
             <div class="note">
-                <p><strong>Keep the setup local.</strong> Dimmerly stores presets and schedules on your Mac. The app does not sync them between Macs and does not use analytics or tracking.</p>
+                <p><strong>Keep the setup local.</strong> Dimmerly stores presets and schedules on your Mac. The app doesn&rsquo;t sync them between Macs and doesn&rsquo;t use analytics or tracking.</p>
             </div>
         </section>
 
         <section class="guide-section" aria-labelledby="connection-title">
             <h2 id="connection-title">Know the connection limitations</h2>
-            <p>Multi-monitor control depends on how each display is connected. If the hardware indicator is missing for an external display, common causes include:</p>
+            <p>Multi-monitor control depends on how each display is connected. If the cable icon is missing after an external display&rsquo;s name in the panel, common causes include:</p>
             <ul>
                 <li>DDC/CI is disabled in the monitor&rsquo;s on-screen menu.</li>
-                <li>A USB-C hub, dock, KVM, HDMI adapter, or DisplayLink adapter is not passing DDC/CI commands.</li>
+                <li>A USB-C hub, dock, KVM, HDMI adapter, or DisplayLink adapter isn&rsquo;t passing DDC/CI commands.</li>
                 <li>The display exposes only some DDC/CI features, such as brightness but not input switching or volume.</li>
                 <li>The display connection or mode limits the effect of software gamma dimming.</li>
             </ul>
@@ -132,7 +132,7 @@
             <p>Install Dimmerly, make one preset for focused work and another for the evening, then switch between them from the menu bar, a widget, or a schedule.</p>
             <div class="guide-actions">
                 <a class="button" href="https://github.com/olujicz/Dimmerly/releases/latest" data-analytics-event="download_direct">Download Dimmerly</a>
-                <a class="text-link" href="external-monitor-brightness.html">Learn about DDC/CI control <span aria-hidden="true">→</span></a>
+                <a class="text-link" href="external-monitor-brightness.html">External monitors guide <span aria-hidden="true">→</span></a>
             </div>
         </section>
     </main>
@@ -140,15 +140,20 @@
     <footer class="footer container">
         <span>Dimmerly · Open source under the MIT License</span>
         <div class="footer-links">
-            <a href="./">Home</a>
-            <a href="external-monitor-brightness.html">External monitor guide</a>
-            <a href="multi-monitor-control.html">Multi-monitor guide</a>
-            <a href="ddc-ci-not-working.html">DDC/CI troubleshooting</a>
-            <a href="compare-mac-display-apps.html">Compare apps</a>
-            <a href="support.html">Support</a>
-            <a href="privacy-policy.html">Privacy</a>
-            <a href="https://github.com/olujicz/Dimmerly/releases" data-analytics-event="view_releases">Releases</a>
-            <a href="https://github.com/olujicz/Dimmerly">Source</a>
+            <div class="footer-group">
+                <a href="guides.html">Guides</a>
+                <a href="external-monitor-brightness.html">External monitors</a>
+                <a href="multi-monitor-control.html">Multiple monitors</a>
+                <a href="ddc-ci-not-working.html">DDC/CI troubleshooting</a>
+                <a href="compare-mac-display-apps.html">Compare apps</a>
+            </div>
+            <div class="footer-group">
+                <a href="./">Home</a>
+                <a href="support.html">Support</a>
+                <a href="privacy-policy.html">Privacy</a>
+                <a href="https://github.com/olujicz/Dimmerly/releases" data-analytics-event="view_releases">Releases</a>
+                <a href="https://github.com/olujicz/Dimmerly">Source</a>
+            </div>
         </div>
     </footer>
     <!-- Cloudflare Web Analytics --><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "__CLOUDFLARE_WEB_ANALYTICS_TOKEN__"}'></script><!-- End Cloudflare Web Analytics -->

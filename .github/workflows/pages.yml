@@ -7,6 +7,7 @@ on:
       - "documentation/**"
       - "images/image1.png"
       - "images/image2.png"
+      - "images/image2-light.png"
       - "images/github-social-preview.jpg"
       - "images/demo/dimmerly-demo-light.mp4"
       - "images/demo/dimmerly-demo-dark.mp4"
@@ -59,7 +60,8 @@ jobs:
           cp documentation/robots.txt build/pages/robots.txt
           cp documentation/sitemap.xml build/pages/sitemap.xml
           cp images/image1.png build/pages/assets/dimmerly-menu.png
-          cp images/image2.png build/pages/assets/dimmerly-settings.png
+          cp images/image2-light.png build/pages/assets/dimmerly-settings-light.png
+          cp images/image2.png build/pages/assets/dimmerly-settings-dark.png
           cp images/github-social-preview.jpg build/pages/assets/dimmerly-social-preview.jpg
           cp images/demo/dimmerly-demo-light.mp4 build/pages/assets/dimmerly-demo-light.mp4
           cp images/demo/dimmerly-demo-dark.mp4 build/pages/assets/dimmerly-demo-dark.mp4
@@ -71,6 +73,32 @@ jobs:
           cp images/demo/dimmerly-desk-dark-2320.jpg build/pages/assets/dimmerly-desk-dark-2320.jpg
           cp IconComposerLayers/AppIcon-IconComposer/rendered/icon_128x128@2x.png build/pages/assets/dimmerly-icon.png
           touch build/pages/.nojekyll
+
+      # The home page's version line names the latest published release, the same
+      # one whose DMG the Download button fetches. The source keeps the current
+      # release for local previews; here the whole line is rewritten, and "What's
+      # new" points at that version's CHANGELOG.md entry.
+      - name: Show the latest release on the home page
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName)"
+          published="$(gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json publishedAt --jq .publishedAt)"
+          version="${tag#v}"
+          released="$(date -u -d "$published" '+%-d %B %Y')"
+          released_iso="$(date -u -d "$published" '+%F')"
+          changelog_date="$(sed -n "s/^## \[${version//./\\.}\] - \([0-9-]*\)$/\1/p" CHANGELOG.md)"
+          notes_url="https://github.com/$GITHUB_REPOSITORY/blob/main/CHANGELOG.md"
+          if [ -n "$changelog_date" ]; then
+            notes_url="$notes_url#${version//./}---$changelog_date"
+          else
+            echo "::warning::CHANGELOG.md has no entry for $version; What's new links to the top of it"
+          fi
+          line="<p id=\"whats-new\" class=\"install-version\">Version $version, released <time datetime=\"$released_iso\">$released</time>. <a href=\"$notes_url\" data-analytics-event=\"view_releases\">What’s new</a></p>"
+          test "$(grep -c '<p id="whats-new" .*</p>' build/pages/index.html)" -eq 1
+          sed -i "s|<p id=\"whats-new\" .*</p>|$line|" build/pages/index.html
+          grep -qF "$line" build/pages/index.html
 
       # The source links the download buttons to the latest release page. Here they
       # get the latest published release's DMG, so a click starts the download.
@@ -124,7 +152,8 @@ jobs:
           test -s build/pages/robots.txt
           test -s build/pages/sitemap.xml
           test -s build/pages/assets/dimmerly-menu.png
-          test -s build/pages/assets/dimmerly-settings.png
+          test -s build/pages/assets/dimmerly-settings-light.png
+          test -s build/pages/assets/dimmerly-settings-dark.png
           test -s build/pages/assets/dimmerly-social-preview.jpg
           test -s build/pages/assets/dimmerly-demo-light.mp4
           test -s build/pages/assets/dimmerly-demo-dark.mp4
