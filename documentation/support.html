@@ -63,7 +63,7 @@
                     "name": "What is the difference between the App Store and direct-download builds?",
                     "acceptedAnswer": {
                         "@type": "Answer",
-                        "text": "The App Store build runs in Apple's sandbox and dims and screen-blanks displays using gamma tables. The direct-download build can put displays to sleep using macOS system commands and includes DDC/CI hardware monitor control features when supported by your display and connection."
+                        "text": "The App Store build runs in Apple's sandbox, so it dims and blanks displays in software. The direct-download build can put displays to sleep using macOS system commands and includes DDC/CI hardware monitor control features when supported by your display and connection."
                     }
                 }
             ]
@@ -83,42 +83,75 @@
     </header>
 
     <main id="main" class="container">
-        <h1>Dimmerly Support</h1>
-        <p class="tagline">Per-display brightness, warmth, presets, and external monitor controls from the menu bar.</p>
+        <h1>Dimmerly support</h1>
+        <p class="tagline">Fixes for common problems, answers to frequent questions, and how to reach a person.</p>
 
         <div class="contact-box">
-            <p><strong>Which build do you have?</strong> If you downloaded Dimmerly from GitHub or installed it with Homebrew, you have the direct-download build. If you installed it from the Mac App Store, you have the App Store build. Only the direct-download build has a Hardware Control section in Settings &rsaquo; Displays. Where the answers below differ, they say which build they cover.</p>
+            <p><strong>Which build do you have?</strong> Where an answer below differs between them, each part names its build.</p>
+            <dl class="build-list">
+                <div>
+                    <dt>Direct-download build</dt>
+                    <dd>From GitHub Releases or Homebrew. Settings &rsaquo; Displays has a Hardware Control section.</dd>
+                </div>
+                <div>
+                    <dt>App Store build</dt>
+                    <dd>From the Mac App Store. Settings &rsaquo; Displays has no Hardware Control section.</dd>
+                </div>
+            </dl>
         </div>
 
         <nav aria-labelledby="on-this-page">
             <h2 id="on-this-page">On this page</h2>
-            <ul class="support-index">
-                <li><a href="#displays-dont-dim">Displays don&rsquo;t dim</a></li>
-                <li><a href="#keyboard-shortcut">Keyboard shortcut doesn&rsquo;t work</a></li>
-                <li><a href="#display-dimming-toggle">Display Dimming toggle turns off again</a></li>
-                <li><a href="#widget-action">Widget or Control Center action fails</a></li>
-                <li><a href="#brightness-slider">Brightness slider has no effect</a></li>
-                <li><a href="#menu-bar-icon">Menu bar icon not visible</a></li>
-                <li><a href="#faq">Frequently asked questions</a></li>
-                <li><a href="#contact">Contact</a></li>
-            </ul>
+            <div class="support-index">
+                <div>
+                    <h3 class="support-index-title">Displays</h3>
+                    <ul>
+                        <li><a href="#brightness">Brightness doesn&rsquo;t change</a></li>
+                        <li><a href="#display-dimming-toggle">Control Center&rsquo;s Display Dimming toggle turns off again</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="support-index-title">Menu bar and shortcuts</h3>
+                    <ul>
+                        <li><a href="#menu-bar-icon">Menu bar icon not visible</a></li>
+                        <li><a href="#keyboard-shortcut">Keyboard shortcut doesn&rsquo;t work</a></li>
+                        <li><a href="#widget-action">Widget or Control Center action doesn&rsquo;t complete</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="support-index-title">More</h3>
+                    <ul>
+                        <li><a href="#faq">Frequently asked questions</a></li>
+                        <li><a href="#remove">Remove Dimmerly</a></li>
+                        <li><a href="#contact">Contact</a></li>
+                    </ul>
+                </div>
+            </div>
         </nav>
 
         <h2 id="troubleshooting">Troubleshooting</h2>
 
-        <h3 id="displays-dont-dim">Displays don&rsquo;t dim</h3>
+        <h3 id="brightness"><span id="displays-dont-dim"></span><span id="brightness-slider"></span>Brightness doesn&rsquo;t change</h3>
         <ul>
-            <li>The App Store build uses software dimming and screen blanking. To wake dimmed displays, move the mouse, press a key, or press Escape, depending on your wake setting.</li>
-            <li>Some displays and display modes do not respond equally to software gamma changes. Try changing brightness, warmth, or contrast separately to confirm which controls affect your display.</li>
-            <li>In the direct-download build with DDC/CI enabled, check that your external display supports DDC/CI brightness control, and try connecting it directly to your Mac.</li>
-            <li>If a monitor that supports DDC/CI stops responding, unplug it from mains power for one to two minutes and reconnect it. The monitor&rsquo;s DDC/CI controller can lock up while the picture keeps working, and a standby press or an on-screen-menu reset does not clear it. Dimmerly re-probes the display automatically.</li>
-            <li>Run only one DDC/CI tool at a time. Two apps talking to the same monitor interleave each other&rsquo;s replies and can make a working monitor look broken.</li>
-            <li>Many USB-C to HDMI cables and adapters have a built-in converter chip that passes the picture but drops DDC/CI entirely. If hardware controls never appear through one, use a USB-C to DisplayPort cable or the Mac&rsquo;s HDMI port instead.</li>
+            <li>Some displays, HDR modes, and color profiles respond less to software dimming. Change brightness, warmth, and contrast one at a time to see which of them affect the display.</li>
+            <li><strong>App Store build:</strong> Dimmerly dims and blanks displays in software. To wake blanked displays, move the mouse, press a key, or press Escape, depending on your wake setting.</li>
+            <li><strong>Direct-download build:</strong> on an external monitor, the slider sets the monitor&rsquo;s own brightness over DDC/CI. If nothing happens, the commands aren&rsquo;t reaching the monitor. The <a href="ddc-ci-not-working.html">DDC/CI troubleshooting guide</a> shows where they stop: the monitor&rsquo;s own settings, docks and adapters, HDMI ports, or a monitor that stops answering until it&rsquo;s unplugged.</li>
+        </ul>
+
+        <h3 id="display-dimming-toggle">Control Center&rsquo;s Display Dimming toggle turns off again</h3>
+        <p>The toggle shows whether Dimmerly is blanking a display. In the direct-download build&rsquo;s Sleep &amp; Lock mode, macOS puts displays to sleep and wakes them on input; the toggle returns to off because Dimmerly has no blanking session to clear. Choose Dim Only in Settings &rsaquo; Displays if you want the toggle to stay on while displays are blanked.</p>
+
+        <h3 id="menu-bar-icon">Menu bar icon not visible</h3>
+        <ul>
+            <li>The icon is a small sun, <svg class="menu-icon" viewBox="0 0 36 36" role="img" aria-label="the sun icon"><circle cx="18" cy="18" r="6.4" /><path d="M18 3.4v4.2M28.3 7.7l-3 3M32.6 18h-4.2M28.3 28.3l-3-3M18 32.6v-4.2M7.7 28.3l3-3M3.4 18h4.2M7.7 7.7l3 3" /></svg>, near the clock. If you can&rsquo;t find it, open Dimmerly again from the Applications folder or Spotlight. If it&rsquo;s running but its icon is hidden, Dimmerly opens its Settings window instead, so you know it&rsquo;s there.</li>
+            <li>On a MacBook with a notch, icons that don&rsquo;t fit beside the notch are hidden. Hold &#8984; and drag Dimmerly&rsquo;s icon closer to the clock, so other icons are hidden first, or quit apps you don&rsquo;t need in the menu bar. A menu bar manager such as Bartender or Ice can also make room.</li>
+            <li>On macOS 26 and later, open System Settings &rsaquo; Menu Bar and check that Dimmerly is allowed in the menu bar.</li>
+            <li>If the icon is gone after you restart your Mac, Dimmerly isn&rsquo;t opening at login. Turn on Launch at login in Settings &rsaquo; General.</li>
         </ul>
 
         <h3 id="keyboard-shortcut">Keyboard shortcut doesn&rsquo;t work</h3>
-        <p>In the App Store build, global keyboard shortcuts do not need Accessibility permission. Use at least two modifiers, including Control or Command. Choose a different shortcut in Settings &rsaquo; Shortcuts if the shortcut is unavailable or conflicts with another app.</p>
-        <p>For the direct-download build:</p>
+        <p><strong>App Store build:</strong> global keyboard shortcuts don&rsquo;t need Accessibility permission. Use at least two modifiers, including Control or Command. If the shortcut is unavailable or conflicts with another app, choose a different one in Settings &rsaquo; Shortcuts.</p>
+        <p><strong>Direct-download build:</strong></p>
         <ol>
             <li>Open System Settings &rsaquo; Privacy &amp; Security &rsaquo; Accessibility.</li>
             <li>Make sure Dimmerly is listed and enabled.</li>
@@ -126,48 +159,38 @@
             <li>If the shortcut still doesn&rsquo;t work, try changing it in Settings &rsaquo; Shortcuts to avoid conflicts with other apps.</li>
         </ol>
 
-        <h3 id="display-dimming-toggle">Control Center&rsquo;s Display Dimming toggle turns off again</h3>
-        <p>The toggle shows whether Dimmerly is blanking a display. In the direct-download build&rsquo;s Sleep &amp; Lock mode, macOS puts displays to sleep and wakes them on input; the toggle returns to off because Dimmerly has no blanking session to clear. Choose Dim Only in Settings &rsaquo; Displays if you want the toggle to stay on while displays are blanked.</p>
-
-        <h3 id="widget-action">A widget or Control Center action does not complete</h3>
+        <h3 id="widget-action">Widget or Control Center action doesn&rsquo;t complete</h3>
         <p>Dimmerly opens when needed and waits for the app to acknowledge the action. If an error appears, open Dimmerly, check the selected preset still exists, and try again. On macOS 26 and later, add Dimmerly&rsquo;s Dim Displays, Display Dimming, Auto Warmth, and Apply Preset controls in Control Center; Apply Preset asks you to choose a saved preset.</p>
 
-        <h3 id="brightness-slider">Brightness slider has no effect</h3>
-        <ul>
-            <li>The App Store build uses software brightness through gamma tables. Some displays, HDR modes, or color profiles may limit the visible effect.</li>
-            <li>The direct-download build can use DDC/CI hardware brightness for supported external monitors. Some USB-C hubs, docks, DisplayLink adapters, TVs, or monitor settings may block DDC/CI.</li>
-        </ul>
-
-        <h3 id="menu-bar-icon">Menu bar icon not visible</h3>
-        <ul>
-            <li>If your menu bar is crowded, macOS may hide some icons. Try removing other menu bar items or using a tool like Bartender.</li>
-            <li>Restart Dimmerly from Applications.</li>
-        </ul>
-
         <div class="doc-actions">
-            <a class="text-link" href="external-monitor-brightness.html">External monitor and DDC/CI guide <span aria-hidden="true">→</span></a>
-            <a class="text-link" href="ddc-ci-not-working.html">DDC/CI troubleshooting guide <span aria-hidden="true">→</span></a>
-            <a class="text-link" href="multi-monitor-control.html">Multi-monitor setup guide <span aria-hidden="true">→</span></a>
+            <a class="text-link" href="guides.html">All guides <span aria-hidden="true">→</span></a>
         </div>
 
-        <h2 id="faq">Frequently Asked Questions</h2>
+        <h2 id="faq">Frequently asked questions</h2>
 
-        <h3>Does Dimmerly work with built-in displays?</h3>
+        <h3 id="built-in-displays">Does Dimmerly work with built-in displays?</h3>
         <p>Dimmerly shows connected displays, including the built-in display where supported. The App Store build uses software dimming. The direct-download build may use additional hardware brightness controls where macOS and the display support them.</p>
 
-        <h3>How many presets can I save?</h3>
+        <h3 id="presets">How many presets can I save?</h3>
         <p>You can save up to 10 presets. Each preset can have its own keyboard shortcut.</p>
 
-        <h3>Does the Dimmerly app collect any data?</h3>
-        <p>No. The Dimmerly app does not collect or transmit personal data, and it does not use analytics or tracking. The app does not send data to developer-operated servers. Settings are stored locally on your Mac. This website uses privacy-focused, aggregated Cloudflare Web Analytics. If you choose &ldquo;Use Current Location&rdquo; for sunrise/sunset schedules, macOS Location Services may use Apple-provided location infrastructure. See our <a href="privacy-policy.html">Privacy Policy</a>.</p>
+        <h3 id="data">Does the Dimmerly app collect any data?</h3>
+        <p>No. The Dimmerly app does not collect or transmit personal data, and it does not use analytics or tracking. The app does not send data to developer-operated servers. Settings are stored locally on your Mac. This website uses privacy-focused, aggregated Cloudflare Web Analytics. If you choose &ldquo;Use Current Location&rdquo; for sunrise/sunset schedules, macOS Location Services may use Apple-provided location infrastructure. See the <a href="privacy-policy.html">privacy policy</a>.</p>
 
-        <h3>What&rsquo;s the difference between the App Store and direct-download builds?</h3>
-        <p>The App Store build runs in Apple&rsquo;s sandbox and dims and screen-blanks displays using gamma tables. The direct-download build can put displays to sleep using macOS system commands and includes DDC/CI hardware monitor control features when supported by your display and connection. Feature differences are documented in the README and release notes.</p>
+        <h3 id="builds">What&rsquo;s the difference between the App Store and direct-download builds?</h3>
+        <p>The App Store build runs in Apple&rsquo;s sandbox, so it dims and blanks displays in software. The direct-download build can put displays to sleep using macOS system commands and includes DDC/CI hardware monitor control features when supported by your display and connection. The <a href="external-monitor-brightness.html#versions-title">external monitors guide</a> compares the two builds side by side.</p>
+
+        <h2 id="remove">Remove Dimmerly</h2>
+        <ol>
+            <li>Open the panel and choose Quit Dimmerly, or press &#8984;Q while the panel is open.</li>
+            <li>Drag Dimmerly from the Applications folder to the Trash. If you installed it with Homebrew, run <code>brew uninstall --zap --cask dimmerly</code> instead, which also deletes its settings.</li>
+            <li>Without Homebrew, presets and settings stay on your Mac until you delete them: <code>~/Library/Preferences/rs.in.olujic.dimmerly.plist</code>, and the folders whose names contain <code>rs.in.olujic.dimmerly</code> in <code>~/Library/Containers</code> and <code>~/Library/Group Containers</code>.</li>
+        </ol>
 
         <h2 id="contact">Contact</h2>
 
         <div class="contact-box">
-            <p>For private support or privacy questions, use <span data-email-support></span><noscript>private email support by enabling JavaScript</noscript>.</p>
+            <p>For private support or privacy questions, use <span data-email-support></span><noscript>email support (the address needs JavaScript to appear)</noscript>.</p>
             <p>For questions, or to share how your monitor works with Dimmerly, post in <a href="https://github.com/olujicz/Dimmerly/discussions">GitHub Discussions</a>.</p>
             <p>For public bug reports and feature requests, open an issue on <a href="https://github.com/olujicz/Dimmerly/issues">GitHub Issues</a>. Please keep personal information out of public issues.</p>
             <p>When reporting a bug, please include:</p>
@@ -183,15 +206,20 @@
     <footer class="footer container">
         <span>Dimmerly · Open source under the MIT License</span>
         <div class="footer-links">
-            <a href="./">Home</a>
-            <a href="external-monitor-brightness.html">External monitor guide</a>
-            <a href="multi-monitor-control.html">Multi-monitor guide</a>
-            <a href="ddc-ci-not-working.html">DDC/CI troubleshooting</a>
-            <a href="compare-mac-display-apps.html">Compare apps</a>
-            <a href="support.html">Support</a>
-            <a href="privacy-policy.html">Privacy</a>
-            <a href="https://github.com/olujicz/Dimmerly/releases" data-analytics-event="view_releases">Releases</a>
-            <a href="https://github.com/olujicz/Dimmerly">Source</a>
+            <div class="footer-group">
+                <a href="guides.html">Guides</a>
+                <a href="external-monitor-brightness.html">External monitors</a>
+                <a href="multi-monitor-control.html">Multiple monitors</a>
+                <a href="ddc-ci-not-working.html">DDC/CI troubleshooting</a>
+                <a href="compare-mac-display-apps.html">Compare apps</a>
+            </div>
+            <div class="footer-group">
+                <a href="./">Home</a>
+                <a href="support.html">Support</a>
+                <a href="privacy-policy.html">Privacy</a>
+                <a href="https://github.com/olujicz/Dimmerly/releases" data-analytics-event="view_releases">Releases</a>
+                <a href="https://github.com/olujicz/Dimmerly">Source</a>
+            </div>
         </div>
     </footer>
     <script src="site.js" defer></script>

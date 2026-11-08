@@ -64,6 +64,8 @@ function sliderFill(slider) {
 
 // Create private contact controls without a plain-text address in the markup.
 // This deters basic email crawlers; the address remains recoverable from code.
+// A click opens the email app and also shows the address, because without a
+// mail account set up the mailto link does nothing visible.
 (function () {
     "use strict";
 
@@ -73,27 +75,33 @@ function sliderFill(slider) {
         button.className = "text-link email-support-button";
         button.textContent = "Email support";
         button.title = "Opens your email app";
+        var shown = document.createElement("span");
+        shown.setAttribute("role", "status");
         button.addEventListener("click", function () {
             var address = String.fromCharCode(
                 115, 117, 112, 112, 111, 114, 116, 64, 111, 108, 117, 106,
                 105, 99, 46, 105, 110, 46, 114, 115
             );
+            shown.textContent = " (" + address + ")";
             window.location.href = "mailto:" + address;
         });
         container.appendChild(button);
+        container.appendChild(shown);
     });
 })();
 
-// Sets up the demo loop. The markup alone shows a poster with native controls
-// and never plays by itself; here the light or dark version is chosen to match
-// the page, the native controls give way to one Pause/Play button (moving
-// content longer than five seconds needs a visible way to stop it), and the
-// loop plays unless the visitor asks for reduced motion.
+// Sets up the demo loop behind its disclosure. The markup alone shows a poster
+// with native controls and never plays by itself; here the light or dark
+// version is chosen to match the page, the native controls give way to one
+// Pause/Play button (moving content longer than five seconds needs a visible
+// way to stop it), and opening the disclosure starts the loop unless the
+// visitor asks for reduced motion. Closing it pauses the loop.
 (function () {
     "use strict";
 
     var video = document.querySelector(".demo-video");
-    if (!video || !window.matchMedia) {
+    var disclosure = video && video.closest("details");
+    if (!video || !disclosure || !window.matchMedia) {
         return;
     }
 
@@ -154,13 +162,27 @@ function sliderFill(slider) {
     // fetching the light video.
     video.controls = false;
     useVariant();
-    video.preload = "metadata";
     video.parentNode.appendChild(button);
     showState();
 
-    if (!reducedMotion.matches) {
-        play();
+    // Nothing is fetched until the disclosure opens. At phone width the CSS
+    // hides the disclosure, so the recording isn't fetched there at all.
+    var narrow = window.matchMedia("(max-width: 700px)");
+
+    function start() {
+        video.preload = "metadata";
+        if (!reducedMotion.matches) {
+            play();
+        }
     }
+
+    disclosure.addEventListener("toggle", function () {
+        if (disclosure.open && !narrow.matches) {
+            start();
+        } else {
+            video.pause();
+        }
+    });
 
     function onChange(query, handler) {
         if (query.addEventListener) {
@@ -171,6 +193,11 @@ function sliderFill(slider) {
     }
 
     onChange(dark, useVariant);
+    onChange(narrow, function () {
+        if (narrow.matches) {
+            video.pause();
+        }
+    });
     onChange(reducedMotion, function () {
         if (reducedMotion.matches) {
             video.pause();
@@ -322,6 +349,12 @@ function sliderFill(slider) {
         select(null);
     });
 
+    // Reaching the panel by keyboard counts as touching it, so the values
+    // don't start gliding under the visitor's focus.
+    desk.querySelector(".mini-panel").addEventListener("focusin", function () {
+        touched = true;
+    });
+
     Array.prototype.forEach.call(presets, function (button) {
         button.disabled = false;
         button.addEventListener("click", function () {
@@ -419,4 +452,27 @@ function sliderFill(slider) {
             }
         });
     });
+})();
+
+// Compare page: the app table is wider than a phone, and the edge shadow alone
+// is easy to miss. The hint above it shows only while the table overflows.
+(function () {
+    "use strict";
+
+    var hint = document.querySelector(".scroll-hint");
+    var wrap = hint && hint.nextElementSibling;
+    if (!wrap || !wrap.classList.contains("comparison-wrap")) {
+        return;
+    }
+
+    function update() {
+        hint.hidden = wrap.scrollWidth <= wrap.clientWidth + 1;
+    }
+
+    update();
+    if (window.ResizeObserver) {
+        new ResizeObserver(update).observe(wrap);
+    } else {
+        window.addEventListener("resize", update);
+    }
 })();

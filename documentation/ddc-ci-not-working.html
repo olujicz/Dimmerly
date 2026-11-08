@@ -65,7 +65,7 @@
         <nav class="breadcrumb" aria-label="Breadcrumb">
             <ol>
                 <li><a href="guides.html">Guides</a></li>
-                <li aria-current="page">Troubleshooting</li>
+                <li aria-current="page">DDC/CI troubleshooting</li>
             </ol>
         </nav>
         <h1>External monitor brightness not working on your Mac?</h1>
@@ -89,7 +89,20 @@
         <section class="guide-section" aria-labelledby="status-title">
             <h2 id="status-title">1. See what Dimmerly found</h2>
             <p>Open Dimmerly from the menu bar. A display under hardware control shows a small cable icon next to its name. No icon means Dimmerly is dimming that display in software, which darkens the picture but leaves the backlight as it was.</p>
-            <p>For the reason, open <strong>Settings &rsaquo; Displays</strong> and look at the <strong>Hardware Control</strong> section. Each monitor gets a status line:</p>
+            <figure class="ui-sample">
+                <div class="mini-panel" aria-hidden="true">
+                <div class="mini-row">
+                    <span class="mini-name"><svg viewBox="0 0 16 16"><path d="M6.5 4.5 10 8l-3.5 3.5" /></svg>Monitor on DisplayPort<svg class="ui-badge" viewBox="0 0 16 16"><path d="M1 8h4" /><rect x="5" y="5" width="5.5" height="6" rx="1.2" /><path d="M10.5 6.6H14M10.5 9.4H14" /></svg></span>
+                    <span class="ui-trail"><span class="mini-value">70%</span><svg class="ui-moon" viewBox="0 0 16 16"><path d="M12.8 9.7A5.2 5.2 0 1 1 6.3 3.2a4.2 4.2 0 0 0 6.5 6.5Z" /></svg></span>
+                </div>
+                <div class="mini-row">
+                    <span class="mini-name"><svg viewBox="0 0 16 16"><path d="M6.5 4.5 10 8l-3.5 3.5" /></svg>Monitor through a dock</span>
+                    <span class="ui-trail"><span class="mini-value">70%</span><svg class="ui-moon" viewBox="0 0 16 16"><path d="M12.8 9.7A5.2 5.2 0 1 1 6.3 3.2a4.2 4.2 0 0 0 6.5 6.5Z" /></svg></span>
+                </div>
+                </div>
+                <figcaption>Two display rows from the Dimmerly panel, redrawn. The cable icon after the first name means Dimmerly sets that monitor&rsquo;s backlight over DDC/CI. The second row has none, so that monitor is dimmed in software.</figcaption>
+            </figure>
+            <p>For the reason, open <strong>Settings &rsaquo; Displays</strong> and look at the <strong>Hardware Control</strong> section. Each monitor gets a status line, with the same icon as in the app:</p>
             <div class="comparison-wrap" tabindex="0" role="region" aria-label="Hardware Control status messages">
                 <table class="comparison">
                     <thead>
@@ -100,20 +113,20 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td>Hardware controls: Brightness, Contrast&hellip;</td>
+                            <td><span class="status-line"><svg class="status-icon is-ok" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" /><path d="M5.2 8.2 7.2 10.2 10.9 5.9" /></svg><span>Hardware controls: Brightness, Contrast&hellip;</span></span></td>
                             <td>DDC/CI works. The list shows what this monitor accepts.</td>
                         </tr>
                         <tr>
-                            <td>Hardware brightness unavailable</td>
+                            <td><span class="status-line"><svg class="status-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" /><path d="M8 4.6v4.2M8 11.1v.3" /></svg><span>Hardware brightness unavailable</span></span></td>
                             <td>The monitor answers but won&rsquo;t take brightness commands. Other listed controls still work.</td>
                         </tr>
                         <tr>
-                            <td>No DDC/CI reply. Unplug the monitor from power for a minute.</td>
-                            <td>The commands reach the monitor, but its DDC/CI controller doesn&rsquo;t answer. Go to step 4.</td>
+                            <td><span class="status-line"><svg class="status-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 1.8v3M10 1.8v3" /><path d="M4 4.8h8v2.4a4 4 0 0 1-8 0Z" /><path d="M8 11.2v3" /></svg><span>No DDC/CI reply. Unplug the monitor from power for a minute.</span></span></td>
+                            <td>The commands reach the monitor, but its DDC/CI controller doesn&rsquo;t answer. Go to <a href="#lockup-title">step 4</a>.</td>
                         </tr>
                         <tr>
-                            <td>Uses software brightness</td>
-                            <td>The commands never reach the monitor. Start with steps 2 and 3.</td>
+                            <td><span class="status-line"><svg class="status-icon" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="3" width="9.5" height="7" rx="1" /><path d="M4 13h4.5" /><rect x="12.3" y="5.5" width="2.5" height="7.5" rx="0.6" /></svg><span>Uses software brightness</span></span></td>
+                            <td>The commands never reach the monitor. Start with steps <a href="#monitor-title">2</a> and <a href="#connection-title">3</a>.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -159,7 +172,7 @@
             <p>Every report helps the next person with the same monitor. Open a <a href="https://github.com/olujicz/Dimmerly/issues/new?template=monitor_compatibility.yml">monitor compatibility issue</a> with the monitor model, the Mac, and every cable, adapter, or dock in between.</p>
             <div class="guide-actions">
                 <a class="button" href="https://github.com/olujicz/Dimmerly/releases/latest" data-analytics-event="download_direct">Download Dimmerly</a>
-                <a class="text-link" href="external-monitor-brightness.html">How hardware and software brightness differ <span aria-hidden="true">→</span></a>
+                <a class="text-link" href="external-monitor-brightness.html">External monitors guide <span aria-hidden="true">→</span></a>
             </div>
         </section>
     </main>
@@ -167,15 +180,20 @@
     <footer class="footer container">
         <span>Dimmerly · Open source under the MIT License</span>
         <div class="footer-links">
-            <a href="./">Home</a>
-            <a href="external-monitor-brightness.html">External monitor guide</a>
-            <a href="multi-monitor-control.html">Multi-monitor guide</a>
-            <a href="ddc-ci-not-working.html">DDC/CI troubleshooting</a>
-            <a href="compare-mac-display-apps.html">Compare apps</a>
-            <a href="support.html">Support</a>
-            <a href="privacy-policy.html">Privacy</a>
-            <a href="https://github.com/olujicz/Dimmerly/releases" data-analytics-event="view_releases">Releases</a>
-            <a href="https://github.com/olujicz/Dimmerly">Source</a>
+            <div class="footer-group">
+                <a href="guides.html">Guides</a>
+                <a href="external-monitor-brightness.html">External monitors</a>
+                <a href="multi-monitor-control.html">Multiple monitors</a>
+                <a href="ddc-ci-not-working.html">DDC/CI troubleshooting</a>
+                <a href="compare-mac-display-apps.html">Compare apps</a>
+            </div>
+            <div class="footer-group">
+                <a href="./">Home</a>
+                <a href="support.html">Support</a>
+                <a href="privacy-policy.html">Privacy</a>
+                <a href="https://github.com/olujicz/Dimmerly/releases" data-analytics-event="view_releases">Releases</a>
+                <a href="https://github.com/olujicz/Dimmerly">Source</a>
+            </div>
         </div>
     </footer>
     <script src="site.js" defer></script>
