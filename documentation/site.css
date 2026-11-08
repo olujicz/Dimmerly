@@ -1930,32 +1930,10 @@ figcaption { text-wrap: pretty; }
     .hero { padding: 44px 0 32px; }
     .stage-section { padding-bottom: 48px; }
 
-    /* A shorter panel, so a phone shows the desk and the sliders together:
-       the presets become one row of chips, the applied one filled. */
+    /* A little less space around the panel, so more of it shares the
+       screen with the desk. The presets stay a list, as in the app. */
     .stage-hint { margin-top: 16px; }
     .stage .mini-panel { margin-top: 12px; }
-    .stage .mini-section { padding: 8px 12px 10px; }
-    .stage .mini-heading { margin: 0 2px 6px; }
-
-    .stage .mini-presets {
-        display: flex;
-        gap: 6px;
-    }
-
-    .stage .mini-presets li { flex: 1; }
-
-    .stage .mini-preset {
-        justify-content: center;
-        border-radius: 999px;
-        background: var(--mini-hover);
-    }
-
-    .stage .mini-preset[aria-pressed="true"]:not(:disabled) {
-        background: var(--blue);
-        color: var(--button-text);
-    }
-
-    .stage .mini-check { display: none; }
     .stage-desk { border-radius: 12px; }
     .install {
         gap: 28px;
