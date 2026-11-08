@@ -585,6 +585,26 @@ final class ScreenshotStageTests: XCTestCase {
             XCTAssertTrue(hardware.capabilities.isEmpty)
             await hardware.disable()
         }
+
+        /// A staged run's external display answers DDC/CI from memory, for staged IDs only.
+        func testStagedDDCAnswersOnlyForStagedDisplays() {
+            let staged = ScreenshotStage.displayID
+            XCTAssertEqual(ScreenshotStage.stagedExternalDisplayIDs, [staged])
+            let ddc = ScreenshotStage.StagedDDCInterface(answeringDisplayIDs: [staged])
+
+            let capability = ddc.probeCapabilities(for: staged, skippingBrightness: false)
+            XCTAssertTrue(capability.supportsDDC)
+            XCTAssertEqual(
+                ddcFeatureLabels(for: capability),
+                ["Brightness", "Contrast", "Volume", "Input"].formatted(.list(type: .and))
+            )
+
+            for realID in BrightnessManager.activeDisplayIDs() {
+                XCTAssertFalse(ddc.probeCapabilities(for: realID, skippingBrightness: false).supportsDDC)
+                XCTAssertNil(ddc.read(vcp: .brightness, for: realID))
+                XCTAssertFalse(ddc.write(vcp: .brightness, value: 10, for: realID))
+            }
+        }
     #endif
 
     /// Every app-wide manager that holds state or reaches hardware must be replaced in a
