@@ -7,6 +7,7 @@ on:
       - "documentation/**"
       - "images/image1.png"
       - "images/image2.png"
+      - "images/image2-light.png"
       - "images/github-social-preview.jpg"
       - "images/demo/dimmerly-demo-light.mp4"
       - "images/demo/dimmerly-demo-dark.mp4"
@@ -59,7 +60,8 @@ jobs:
           cp documentation/robots.txt build/pages/robots.txt
           cp documentation/sitemap.xml build/pages/sitemap.xml
           cp images/image1.png build/pages/assets/dimmerly-menu.png
-          cp images/image2.png build/pages/assets/dimmerly-settings.png
+          cp images/image2-light.png build/pages/assets/dimmerly-settings-light.png
+          cp images/image2.png build/pages/assets/dimmerly-settings-dark.png
           cp images/github-social-preview.jpg build/pages/assets/dimmerly-social-preview.jpg
           cp images/demo/dimmerly-demo-light.mp4 build/pages/assets/dimmerly-demo-light.mp4
           cp images/demo/dimmerly-demo-dark.mp4 build/pages/assets/dimmerly-demo-dark.mp4
@@ -150,7 +152,8 @@ jobs:
           test -s build/pages/robots.txt
           test -s build/pages/sitemap.xml
           test -s build/pages/assets/dimmerly-menu.png
-          test -s build/pages/assets/dimmerly-settings.png
+          test -s build/pages/assets/dimmerly-settings-light.png
+          test -s build/pages/assets/dimmerly-settings-dark.png
           test -s build/pages/assets/dimmerly-social-preview.jpg
           test -s build/pages/assets/dimmerly-demo-light.mp4
           test -s build/pages/assets/dimmerly-demo-dark.mp4

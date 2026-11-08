@@ -18,6 +18,8 @@
     --console-ink: #f7f7f5;
     --console-text: #d8e8ff;
     --console-line: #42464d;
+    /* Quieter text on the graphite card: facts to check, not reasons to act. */
+    --console-muted: color-mix(in srgb, var(--console-text) 75%, var(--console));
     --panel-shadow: rgb(23 23 23 / 16%);
     /* Header and footer share one width on every page, so the logo and
        navigation never move between pages. Only the main column changes. */
@@ -622,21 +624,25 @@ figcaption { text-wrap: pretty; }
     .demo-toggle:hover { background: rgb(23 26 31 / 88%); }
 }
 
-/* images/image2.png is a 1040-pixel 2x capture of the whole Displays pane. It
-   is shown at up to 440 points, so Retina screens scale it down, never up.
-   Only the top three sections show (Dimming, Idle Timer, Color Temperature,
-   the 1460 pixels the copy describes); the window fades out below them. */
+/* images/image2-light.png and image2.png are 1040-pixel 2x captures of the
+   whole Displays pane, light and dark, from scripts/screenshots.sh. They are
+   shown at up to 440 points, so Retina screens scale them down, never up. The
+   window is tall, so the copy beside it stays in view while it scrolls past. */
 .settings-showcase {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 440px);
     gap: 80px;
-    align-items: center;
+    align-items: start;
     padding-top: 76px;
     padding-bottom: 76px;
     border-top: 1px solid var(--line);
 }
 
-.settings-copy { max-width: 30rem; }
+.settings-copy {
+    position: sticky;
+    top: 40px;
+    max-width: 30rem;
+}
 
 .settings-copy p {
     color: var(--muted);
@@ -649,11 +655,7 @@ figcaption { text-wrap: pretty; }
     display: block;
     width: 100%;
     height: auto;
-    aspect-ratio: 1040 / 1460;
-    object-fit: cover;
-    object-position: top;
     filter: drop-shadow(0 18px 26px var(--panel-shadow));
-    mask-image: linear-gradient(to bottom, #000 78%, transparent);
 }
 
 .settings-figure figcaption {
@@ -678,6 +680,9 @@ figcaption { text-wrap: pretty; }
         padding-top: 48px;
         padding-bottom: 48px;
     }
+
+    /* Stacked above the window, the copy scrolls away with the page. */
+    .settings-copy { position: static; }
 
     .settings-figure {
         width: min(100%, 440px);
@@ -729,7 +734,7 @@ figcaption { text-wrap: pretty; }
 /* Quieter than the notes: a fact to check, not a reason to download. */
 .install-version {
     margin: 12px 0 0;
-    color: color-mix(in srgb, var(--console-text) 75%, var(--console));
+    color: var(--console-muted);
     font-size: 0.84rem;
 }
 
@@ -885,7 +890,7 @@ figcaption { text-wrap: pretty; }
     margin: 24px 0 0;
     padding-top: 20px;
     border-top: 1px solid var(--console-line);
-    color: color-mix(in srgb, var(--console-text) 75%, var(--console));
+    color: var(--console-muted);
     font-size: 0.86rem;
 }
 
@@ -1856,6 +1861,18 @@ figcaption { text-wrap: pretty; }
 
 @media (pointer: coarse) {
     .footer a { min-height: 44px; }
+
+    /* Text links and the copy button sit on a line of their own, so they get
+       a full touch target. Links inside sentences don't. */
+    .text-link {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        padding-block: 0;
+    }
+
+    .copy-button { min-height: 44px; }
+
     .mini-slider input { height: 44px; }
     .mini-preset,
     .page-404 main .mini-panel a { min-height: 44px; }
@@ -1939,13 +1956,15 @@ figcaption { text-wrap: pretty; }
         gap: 28px;
         margin-bottom: 56px;
         padding: 28px 22px;
-        border-radius: 14px;
+        /* The same step down as the desk above it. */
+        border-radius: 12px;
     }
 
     .install-steps { padding-top: 28px; }
 
-    /* Room under the copy button so it never sits on the first command. */
-    .install .code-block pre { padding: 48px 0 0; }
+    /* Room under the copy button, at its 44px touch height, so it never sits
+       on the first command. */
+    .install .code-block pre { padding: 56px 0 0; }
 
     .benefits {
         display: block;
