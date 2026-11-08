@@ -268,8 +268,10 @@ When final QA passes:
 6. Update and verify the Homebrew tap using the next section.
 7. Run the GitHub Pages workflow from `main` (Actions > GitHub Pages > Run
    workflow). The website's download buttons link straight to the latest
-   release's DMG, and the link is resolved when the site is built. Then check
-   that the home page's Download button fetches `Dimmerly-<version>.dmg`.
+   release's DMG, and the home page's version line names that release and
+   links its `CHANGELOG.md` entry; both are resolved when the site is built.
+   Then check that the home page's Download button fetches
+   `Dimmerly-<version>.dmg` and that the line under it shows the new version.
 8. Announce the release only after the public download, checksum, Homebrew
    tap, and website download are verified.
 
