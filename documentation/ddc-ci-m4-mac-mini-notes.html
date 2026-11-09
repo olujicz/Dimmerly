@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Notes from debugging DDC/CI on a Mac mini M4: what the built-in HDMI port forwards, why a USB-C to HDMI cable dropped it, how DisplayPort hides a missing reply, and the power cycle that fixed the monitor.">
+    <meta name="theme-color" content="#f3f1ec" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#151613" media="(prefers-color-scheme: dark)">
+    <title>DDC/CI on a Mac mini M4: HDMI, Adapters, and a Silent Monitor — Dimmerly</title>
+    <link rel="canonical" href="https://dimmerly.olujic.in.rs/ddc-ci-m4-mac-mini-notes.html">
+    <link rel="icon" href="assets/dimmerly-icon.png" type="image/png">
+    <link rel="apple-touch-icon" href="assets/dimmerly-icon.png">
+    <link rel="stylesheet" href="site.css">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="Dimmerly">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:title" content="DDC/CI on a Mac mini M4: HDMI, Adapters, and a Silent Monitor">
+    <meta property="og:description" content="What the M4 HDMI port forwards, why a USB-C to HDMI cable dropped DDC/CI, how DisplayPort hides a missing reply, and the power cycle that fixed the monitor.">
+    <meta property="og:url" content="https://dimmerly.olujic.in.rs/ddc-ci-m4-mac-mini-notes.html">
+    <meta property="og:image" content="https://dimmerly.olujic.in.rs/assets/dimmerly-social-preview.jpg">
+    <meta property="og:image:width" content="1280">
+    <meta property="og:image:height" content="640">
+    <meta property="og:image:type" content="image/jpeg">
+    <meta property="og:image:alt" content="Dimmerly app icon and menu bar display controls">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="DDC/CI on a Mac mini M4: HDMI, Adapters, and a Silent Monitor — Dimmerly">
+    <meta name="twitter:description" content="What the M4 HDMI port forwards, why a USB-C to HDMI cable dropped DDC/CI, how DisplayPort hides a missing reply, and the power cycle that fixed the monitor.">
+    <meta name="twitter:image" content="https://dimmerly.olujic.in.rs/assets/dimmerly-social-preview.jpg">
+    <meta name="twitter:image:alt" content="Dimmerly app icon and menu bar display controls">
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "TechArticle",
+            "headline": "DDC/CI on a Mac mini M4: HDMI, adapters, and a silent monitor",
+            "description": "What the M4 HDMI port forwards, why a USB-C to HDMI cable dropped DDC/CI, how DisplayPort hides a missing reply, and the power cycle that fixed the monitor.",
+            "url": "https://dimmerly.olujic.in.rs/ddc-ci-m4-mac-mini-notes.html",
+            "datePublished": "2026-11-09",
+            "inLanguage": "en",
+            "author": {
+                "@type": "Person",
+                "name": "Zoran Olujic"
+            },
+            "about": {
+                "@type": "SoftwareApplication",
+                "name": "Dimmerly",
+                "url": "https://dimmerly.olujic.in.rs/",
+                "applicationCategory": "DesktopEnhancementApplication",
+                "operatingSystem": "macOS 15 Sequoia or later"
+            }
+        }
+    </script>
+</head>
+<body class="page-guide">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header container">
+        <a class="brand" href="./" aria-label="Dimmerly home"><img class="brand-icon" src="assets/dimmerly-icon.png" width="28" height="28" alt="">Dimmerly</a>
+        <nav class="nav" aria-label="Primary navigation">
+            <a href="guides.html" aria-current="true">Guides</a>
+            <a href="support.html">Support</a>
+            <a href="./#download">Download</a>
+            <a href="https://github.com/olujicz/Dimmerly">Source</a>
+        </nav>
+    </header>
+
+    <main id="main" class="guide-main container">
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+            <ol>
+                <li><a href="guides.html">Guides</a></li>
+                <li aria-current="page">DDC/CI on a Mac mini M4</li>
+            </ol>
+        </nav>
+        <h1>DDC/CI on a Mac mini M4: HDMI, adapters, and a silent monitor</h1>
+        <p class="lead">My test Mac has one external monitor, and it ignored every DDC/CI command. <code>m1ddc</code> failed, and Dimmerly fell back to software dimming. On 29 October I went through the connection one piece at a time, mostly with read-only probes. These are the notes, in case your monitor is doing the same thing. If you just want your brightness slider back, start with the <a href="ddc-ci-not-working.html">DDC/CI troubleshooting guide</a>.</p>
+
+        <div class="guide-summary" role="group" aria-label="Summary of findings">
+            <div class="summary-item">
+                <span>The cause</span>
+                <strong>The monitor&rsquo;s DDC/CI controller had stopped answering</strong>
+            </div>
+            <div class="summary-item">
+                <span>The fix</span>
+                <strong>Unplugging the monitor from mains power for 1&ndash;2 minutes</strong>
+            </div>
+            <div class="summary-item">
+                <span>Not the cause</span>
+                <strong>The Mac or the cables</strong>
+            </div>
+        </div>
+
+        <section class="guide-section" aria-labelledby="setup-title">
+            <h2 id="setup-title">The setup</h2>
+            <ul>
+                <li>Mac mini M4 on macOS 27.2.</li>
+                <li>Philips 276E8V, a 4K 27-inch monitor from 2019, with HDMI and DisplayPort inputs.</li>
+                <li>Three ways to connect it: the Mac&rsquo;s built-in HDMI port, a USB-C to HDMI cable, and a USB-C to DisplayPort cable.</li>
+            </ul>
+            <p>DDC/CI is a small I&sup2;C bus inside the video cable. The monitor&rsquo;s DDC/CI controller listens at address <code>0x37</code>. On Apple Silicon, apps don&rsquo;t drive that bus themselves. They hand each request to the display coprocessor (DCP), which passes it on through whatever chip sits between the Mac and the monitor.</p>
+            <p>Every command-line tool gave the same answer at first:</p>
+            <div class="code-block" role="group" aria-label="m1ddc error output">
+                <pre><code>$ m1ddc display 1 get luminance
+DDC communication failure: (iokit/?) unknown subsystem error</code></pre>
+            </div>
+        </section>
+
+        <section class="guide-section" aria-labelledby="hdmi-title">
+            <h2 id="hdmi-title">1. The built-in HDMI port forwards I&sup2;C</h2>
+            <p>On M1 Macs and the entry-level M2 Mac mini, HDMI has a reputation for blocking DDC/CI. On this M4 the HDMI port goes through a Parade PS190 DisplayPort-to-HDMI converter, and macOS reports it as <code>AppleDCPPS190</code>. So I tested what gets through it.</p>
+            <p>Over the built-in port, the DCP read the monitor&rsquo;s EDID (the block that identifies the monitor) at <code>0x50</code>, its HDMI status registers (SCDC) at <code>0x54</code>, and its HDCP receiver at <code>0x3a</code>. Only the DDC/CI address stayed silent:</p>
+            <div class="comparison-wrap" tabindex="0" role="region" aria-label="I2C reads over the built-in HDMI port">
+                <table class="comparison">
+                    <thead>
+                        <tr>
+                            <th scope="col">Address</th>
+                            <th scope="col">What lives there</th>
+                            <th scope="col">Result</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code>0x50</code></td><td>EDID</td><td>Read correctly</td></tr>
+                        <tr><td><code>0x54</code></td><td>SCDC (HDMI status)</td><td>Read correctly</td></tr>
+                        <tr><td><code>0x3a</code></td><td>HDCP 1.4 receiver</td><td>Read correctly</td></tr>
+                        <tr><td><code>0x37</code></td><td>DDC/CI</td><td><code>0xe0114000</code></td></tr>
+                        <tr><td><code>0x49</code>, <code>0x59</code></td><td>Two devices I didn&rsquo;t identify</td><td>Answered</td></tr>
+                        <tr><td>106 unused addresses</td><td>Nothing</td><td><code>0xe0114000</code></td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <p>The DDC/CI address returned exactly what an empty address returns: nothing acknowledged it. On its own, that code can&rsquo;t say whether the monitor ignored <code>0x37</code> or the converter didn&rsquo;t pass it on. The cable in the next section returns the same code without forwarding DDC/CI at all. What settled it was the power cycle in section 5. The HDMI port carries the monitor&rsquo;s other I&sup2;C devices, but I haven&rsquo;t yet changed brightness through it (see the end of this page).</p>
+        </section>
+
+        <section class="guide-section" aria-labelledby="usbc-hdmi-title">
+            <h2 id="usbc-hdmi-title">2. A USB-C to HDMI cable that forwards only EDID</h2>
+            <p>The USB-C to HDMI cable contains its own converter, a MegaChips MCDP2900, which macOS reports as <code>AppleDCPMCDP2900</code>. DDC/CI apps use <code>0xB7</code> instead of <code>0x37</code> for the MegaChips HDMI bridge built into some M1 and M2 Macs (<code>AppleDCPMCDP29XX</code>), so I tried both addresses.</p>
+            <p>Through this cable only EDID answered, at <code>0x50</code> and its alias <code>0xD0</code>. A full scan of all 256 addresses found nothing else. The HDCP and SCDC devices that answered over the built-in port were gone, and both DDC/CI addresses returned the no-acknowledge code.</p>
+            <p>Later the same day, once the monitor was answering again, I tried the cable a second time. It still forwarded nothing at <code>0x37</code> or <code>0xB7</code>. The picture is fine through it, but it doesn&rsquo;t carry DDC/CI at all.</p>
+        </section>
+
+        <section class="guide-section" aria-labelledby="dp-title">
+            <h2 id="dp-title">3. On DisplayPort, a missing reply can look like success</h2>
+            <p>A USB-C to DisplayPort cable has no converter in the path. Over it, every address from <code>0x00</code> to <code>0xFF</code> returned success. Apart from the real EDID at <code>0x50</code>, the data was filler: the byte <code>0x5b</code> repeated.</p>
+            <p>On a native DisplayPort connection, an unanswered I&sup2;C request comes back as a success with bytes that aren&rsquo;t a reply, not as an error. <code>m1ddc</code> printed a brightness of <strong>91</strong>, which is <code>0x5b</code> read as a number. The brightness looked valid, but the monitor hadn&rsquo;t answered.</p>
+            <div class="note">
+                <p>If a DDC/CI tool reports the same odd value for every setting on DisplayPort, check whether it is <code>91</code> or <code>255</code> (<code>0x5b</code> or <code>0xff</code>). A real DDC/CI reply carries a checksum. Dimmerly rejects any reply whose checksum doesn&rsquo;t match, so filler bytes don&rsquo;t turn into a brightness value.</p>
+            </div>
+        </section>
+
+        <section class="guide-section" aria-labelledby="tried-title">
+            <h2 id="tried-title">4. What didn&rsquo;t revive it</h2>
+            <ul>
+                <li><strong>A DDC/CI setting in the on-screen menu.</strong> This monitor doesn&rsquo;t have one. The manual mentions DDC/CI only as a compatibility feature.</li>
+                <li><strong>Resetting the on-screen menu to factory defaults.</strong> The filler bytes changed from <code>0x5b</code> to <code>0xff</code>, so something in the monitor reset, but DDC/CI stayed silent.</li>
+                <li><strong>Switching the DisplayPort input from 1.1 to 1.2.</strong> The link went up from HBR to HBR2, and DDC/CI didn&rsquo;t change.</li>
+            </ul>
+        </section>
+
+        <section class="guide-section" aria-labelledby="fix-title">
+            <h2 id="fix-title">5. What fixed it: mains power</h2>
+            <p>I unplugged the monitor&rsquo;s power cable for one to two minutes and plugged it back in. Over the DisplayPort cable it answered: brightness 100 of 100, contrast 50, volume 80. <code>m1ddc</code> worked, and Dimmerly listed the monitor&rsquo;s hardware controls as Brightness, Contrast, Volume, and Input.</p>
+            <p>I&rsquo;m not the first to see this. Someone with the same model reported in <a href="https://github.com/rockowitz/ddcutil/issues/410">ddcutil issue #410</a> that it ignored DDC/CI until it was replugged and power-cycled, and then worked.</p>
+            <p>Dimmerly now suggests the power cycle itself. When the Mac reaches a monitor but the monitor never answers, <strong>Settings &rsaquo; Displays</strong> shows <em>No DDC/CI reply. Unplug the monitor from power for a minute.</em> I haven&rsquo;t seen it appear on a silent monitor yet, because this one recovered before the hint existed. The <a href="ddc-ci-not-working.html#lockup-title">DDC/CI troubleshooting guide</a> has the same step.</p>
+        </section>
+
+        <section class="guide-section" aria-labelledby="quirk-title">
+            <h2 id="quirk-title">6. Once awake, it ignores the first request</h2>
+            <p>The revived monitor had one more quirk. A single request followed by a read never returned a fresh answer. The read returned the previous reply with a damaged header (<code>6e 80 be</code>), and its checksum failed. Sending the identical request twice, 10 to 50 ms apart, and then reading worked every time:</p>
+            <div class="comparison-wrap" tabindex="0" role="region" aria-label="Request sequences and fresh replies">
+                <table class="comparison">
+                    <thead>
+                        <tr>
+                            <th scope="col">Sequence</th>
+                            <th scope="col">Fresh replies</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>One write, then read (waits of 50 or 150 ms, with or without a 10 ms pre-wait)</td><td>0 of 6, in each variant</td></tr>
+                        <tr><td>Two identical writes 10 ms apart, then read</td><td>6 of 6</td></tr>
+                        <tr><td>Two identical writes 50 ms apart, then read</td><td>6 of 6</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <p>The read offset and read length made no difference. <code>m1ddc</code> already sends each request twice, and so does Dimmerly, which is why both worked once the monitor was awake.</p>
+        </section>
+
+        <section class="guide-section" aria-labelledby="contention-title">
+            <h2 id="contention-title">7. Two DDC/CI tools at once make a working monitor look broken</h2>
+            <p>One of my test runs failed 18 times out of 18 on a monitor that was working. Dimmerly was running in the background and talking to the same monitor, and the two programs&rsquo; requests and replies got interleaved on the bus. With Dimmerly quit, the double-write requests worked every time.</p>
+            <p>If you test with <code>m1ddc</code> or a similar tool, quit MonitorControl, Lunar, BetterDisplay, and Dimmerly first, or you&rsquo;ll be measuring the collision.</p>
+        </section>
+
+        <section class="guide-section" aria-labelledby="summary-title">
+            <h2 id="summary-title">What I&rsquo;d check next time</h2>
+            <ol>
+                <li>If DDC/CI stopped working on a connection where it used to work, unplug the monitor from mains power for a minute before you buy a new cable.</li>
+                <li>Quit every other DDC/CI app before you test.</li>
+                <li>On DisplayPort, don&rsquo;t trust a success code. Check that the reply has a valid checksum.</li>
+                <li>If a USB-C to HDMI cable passes only EDID, a USB-C to DisplayPort cable is the simplest way around it.</li>
+            </ol>
+            <p>One thing I haven&rsquo;t checked yet: DDC/CI end to end over the built-in HDMI port with the revived monitor. The probes above show the port forwards I&sup2;C to the monitor, but I haven&rsquo;t changed brightness through it yet. I&rsquo;ll update this page when I do.</p>
+            <p>If you have a monitor, dock, or adapter that behaves differently, please open a <a href="https://github.com/olujicz/Dimmerly/issues/new?template=monitor_compatibility.yml">monitor compatibility report</a>.</p>
+            <div class="guide-actions">
+                <a class="button" href="https://github.com/olujicz/Dimmerly/releases/latest" data-analytics-event="download_direct">Download Dimmerly</a>
+                <a class="text-link" href="ddc-ci-not-working.html">DDC/CI troubleshooting guide <span aria-hidden="true">→</span></a>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer container">
+        <span>Dimmerly · Open source under the MIT License</span>
+        <div class="footer-links">
+            <div class="footer-group">
+                <a href="guides.html">Guides</a>
+                <a href="external-monitor-brightness.html">External monitors</a>
+                <a href="multi-monitor-control.html">Multiple monitors</a>
+                <a href="ddc-ci-not-working.html">DDC/CI troubleshooting</a>
+                <a href="compare-mac-display-apps.html">Compare apps</a>
+            </div>
+            <div class="footer-group">
+                <a href="./">Home</a>
+                <a href="support.html">Support</a>
+                <a href="privacy-policy.html">Privacy</a>
+                <a href="https://github.com/olujicz/Dimmerly/releases" data-analytics-event="view_releases">Releases</a>
+                <a href="https://github.com/olujicz/Dimmerly">Source</a>
+            </div>
+        </div>
+    </footer>
+    <script src="site.js" defer></script>
+    <!-- Cloudflare Web Analytics --><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "__CLOUDFLARE_WEB_ANALYTICS_TOKEN__"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>
