@@ -161,4 +161,10 @@ jobs:
         run: bash .github/scripts/verify-xcode.sh
 
       - name: Build App Store Scheme
-        run: xcodebuild build -project Dimmerly.xcodeproj -scheme "Dimmerly App Store" -configuration Debug-AppStore -destination 'platform=macOS' CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+        run: xcodebuild build -project Dimmerly.xcodeproj -scheme "Dimmerly App Store" -configuration Debug-AppStore -destination 'platform=macOS' -derivedDataPath build/appstore-ci CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+
+      - name: Test App Store Updater Gate
+        run: bash .github/scripts/test-verify-no-updater.sh
+
+      - name: Check App Store Build Has No Updater
+        run: bash .github/scripts/verify-no-updater.sh build/appstore-ci/Build/Products/Debug-AppStore/Dimmerly.app
