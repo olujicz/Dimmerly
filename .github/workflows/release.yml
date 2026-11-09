@@ -175,6 +175,7 @@ jobs:
           APPSTORE_CONNECT_API_KEY_ID: ${{ secrets.APPSTORE_CONNECT_API_KEY_ID }}
           APPSTORE_CONNECT_ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
           APPSTORE_CONNECT_API_KEY_BASE64: ${{ secrets.APPSTORE_CONNECT_API_KEY_BASE64 }}
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
         run: |
           set -euo pipefail
 
@@ -184,7 +185,8 @@ jobs:
             DEVELOPER_ID_CERTIFICATE_PASSWORD \
             APPSTORE_CONNECT_API_KEY_ID \
             APPSTORE_CONNECT_ISSUER_ID \
-            APPSTORE_CONNECT_API_KEY_BASE64
+            APPSTORE_CONNECT_API_KEY_BASE64 \
+            SPARKLE_ED_PRIVATE_KEY
           do
             if [[ -z "${!name}" ]]; then
               missing+=("$name")
@@ -367,6 +369,20 @@ jobs:
 
           shasum -a 256 "$DMG_PATH" | tee "$CHECKSUM_PATH"
 
+      # Made from the final stapled DMG, like the checksum. The private key reaches Sparkle's
+      # tools only on stdin; it is never written to disk or printed.
+      - name: Build signed appcast
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+
+          printf '%s\n' "$SPARKLE_ED_PRIVATE_KEY" \
+            | bash packaging/sparkle/build-appcast.sh "$DMG_PATH" "$RELEASE_VERSION" build/appcast.xml
+          printf '%s\n' "$SPARKLE_ED_PRIVATE_KEY" \
+            | Vendor/Sparkle/bin/sign_update --verify build/appcast.xml --ed-key-file -
+          bash packaging/sparkle/verify-appcast.sh build/appcast.xml "$DMG_PATH" "$RELEASE_VERSION" "$BUILD_NUMBER"
+
       - name: Upload signed DMG artifact
         uses: actions/upload-artifact@v7
         with:
@@ -374,6 +390,7 @@ jobs:
           path: |
             ${{ steps.release_version.outputs.dmg_path }}
             ${{ steps.release_version.outputs.checksum_path }}
+            build/appcast.xml
           if-no-files-found: error
 
       - name: Create draft GitHub release
@@ -385,3 +402,4 @@ jobs:
           files: |
             ${{ steps.release_version.outputs.dmg_path }}
             ${{ steps.release_version.outputs.checksum_path }}
+            build/appcast.xml

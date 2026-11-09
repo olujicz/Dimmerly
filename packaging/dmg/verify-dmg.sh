@@ -236,6 +236,47 @@ if [[ -d "$app_path" ]]; then
         check_entitlements "$extension" "$extension_label" yes
     done
 
+    # Sparkle, the direct download's updater: present, signed like the app, and configured
+    # from packaging/sparkle/SparkleInfo.plist.
+    sparkle_dir="$app_path/Contents/Frameworks/Sparkle.framework"
+    if [[ -d "$sparkle_dir" ]]; then
+        pass "app contains Sparkle.framework"
+        check_signature "$sparkle_dir" "Sparkle.framework"
+        check_signature "$sparkle_dir/Versions/B/Autoupdate" "Sparkle Autoupdate"
+        check_signature "$sparkle_dir/Versions/B/Updater.app" "Sparkle Updater.app"
+        while IFS= read -r -d '' xpc_service; do
+            check_signature "$xpc_service" "Sparkle $(basename "$xpc_service")"
+        done < <(find "$sparkle_dir/Versions/B/XPCServices" -mindepth 1 -maxdepth 1 -name '*.xpc' -print0 2>/dev/null)
+    else
+        fail "app does not contain Contents/Frameworks/Sparkle.framework"
+    fi
+
+    sparkle_settings="$(dirname "${BASH_SOURCE[0]}")/../sparkle/SparkleInfo.plist"
+    sparkle_keys="$(/usr/bin/python3 -I -c 'import plistlib, sys
+with open(sys.argv[1], "rb") as f:
+    print("\n".join(plistlib.load(f)))' "$sparkle_settings")"
+    while IFS= read -r key; do
+        [[ -n "$key" ]] || continue
+        expected_value="$(/usr/libexec/PlistBuddy -c "Print :$key" "$sparkle_settings" 2>/dev/null || true)"
+        actual_value="$(plist_value "$key")"
+        if [[ -n "$actual_value" && "$actual_value" == "$expected_value" ]]; then
+            pass "Info.plist $key matches packaging/sparkle/SparkleInfo.plist"
+        else
+            fail "Info.plist $key is '$actual_value', expected '$expected_value'"
+        fi
+    done <<<"$sparkle_keys"
+
+    # Off on purpose or left to the user (automatic checks are asked for on the second launch).
+    for key in SUEnableAutomaticChecks SUAutomaticallyUpdate SUAllowsAutomaticUpdates \
+        SUEnableSystemProfiling SUEnableInstallerLauncherService SUEnableDownloaderService \
+        SUScheduledCheckInterval; do
+        if [[ -z "$(plist_value "$key")" ]]; then
+            pass "Info.plist has no $key"
+        else
+            fail "Info.plist sets $key"
+        fi
+    done
+
     if xcrun stapler validate -q "$app_path" 2>/dev/null; then
         pass "app has a stapled notarization ticket"
     else
