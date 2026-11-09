@@ -5,7 +5,7 @@
 	<key>SUFeedURL</key>
 	<string>https://github.com/olujicz/Dimmerly/releases/latest/download/appcast.xml</string>
 	<key>SUPublicEDKey</key>
-	<string>PLACEHOLDER-REPLACED-IN-TASK-2</string>
+	<string>uBzS4JVdd77vvi/dEWfuqL03ASPBfn6K1SqNRrLplcs=</string>
 	<key>SURequireSignedFeed</key>
 	<true/>
 	<key>SUVerifyUpdateBeforeExtraction</key>
