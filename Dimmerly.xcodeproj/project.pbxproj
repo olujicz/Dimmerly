@@ -119,6 +119,7 @@
 		VS00000000000000000013 /* SettingsScheduleTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = VS00000000000000000003 /* SettingsScheduleTab.swift */; };
 		VS00000000000000000014 /* SettingsShortcutsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = VS00000000000000000004 /* SettingsShortcutsTab.swift */; };
 		VS00000000000000000015 /* SettingsAboutTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = VS00000000000000000005 /* SettingsAboutTab.swift */; };
+		SETUPDSECB10000000000000 /* SettingsUpdatesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = SETUPDSECF00000000000000 /* SettingsUpdatesSection.swift */; };
 		WW00000000000000000011 /* WorkspaceWakeMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = WW00000000000000000001 /* WorkspaceWakeMonitor.swift */; };
 /* End PBXBuildFile section */
 
@@ -277,6 +278,7 @@
 		VS00000000000000000003 /* SettingsScheduleTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScheduleTab.swift; sourceTree = "<group>"; };
 		VS00000000000000000004 /* SettingsShortcutsTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsShortcutsTab.swift; sourceTree = "<group>"; };
 		VS00000000000000000005 /* SettingsAboutTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsAboutTab.swift; sourceTree = "<group>"; };
+		SETUPDSECF00000000000000 /* SettingsUpdatesSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsUpdatesSection.swift; sourceTree = "<group>"; };
 		WW00000000000000000001 /* WorkspaceWakeMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceWakeMonitor.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -339,6 +341,7 @@
 				VS00000000000000000003 /* SettingsScheduleTab.swift */,
 				VS00000000000000000004 /* SettingsShortcutsTab.swift */,
 				VS00000000000000000005 /* SettingsAboutTab.swift */,
+				SETUPDSECF00000000000000 /* SettingsUpdatesSection.swift */,
 				76B136A03B60312AFD4F720E /* SettingsView.swift */,
 			);
 			path = Views;
@@ -746,6 +749,7 @@
 				VS00000000000000000013 /* SettingsScheduleTab.swift in Sources */,
 				VS00000000000000000014 /* SettingsShortcutsTab.swift in Sources */,
 				VS00000000000000000015 /* SettingsAboutTab.swift in Sources */,
+				SETUPDSECB10000000000000 /* SettingsUpdatesSection.swift in Sources */,
 				4418D8E7C90F85F1A0565B97 /* SettingsView.swift in Sources */,
 				BA0000000000000000000001 /* BrightnessManager.swift in Sources */,
 				CG0000000000000000000011 /* BrightnessManager+CoreGraphics.swift in Sources */,

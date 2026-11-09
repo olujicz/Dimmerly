@@ -720,4 +720,33 @@ final class AboutSettingsLinkTests: XCTestCase {
             )
         #endif
     }
+
+    func testSparkleIsCreditedOnlyInTheDirectBuild() {
+        let names = OpenSourceLicense.all.map(\.name)
+        #if APPSTORE
+            XCTAssertFalse(names.contains("Sparkle"))
+        #else
+            XCTAssertTrue(names.contains("Sparkle"))
+            let sparkle = OpenSourceLicense.all.first { $0.name == "Sparkle" }
+            XCTAssertEqual(sparkle?.type, "MIT")
+            XCTAssertTrue(sparkle?.text.contains("bsdiff") == true, "bundled third-party notices are included")
+        #endif
+    }
+
+    #if !APPSTORE
+        func testLastCheckedTextSaysNeverWithoutADate() {
+            XCTAssertEqual(SettingsUpdatesSection.lastCheckedText(nil, now: Date()), String(localized: "Never"))
+        }
+
+        func testLastCheckedTextIsRelative() {
+            let now = Date(timeIntervalSince1970: 1_800_000_000)
+            let formatter = RelativeDateTimeFormatter()
+            formatter.dateTimeStyle = .named
+
+            XCTAssertEqual(
+                SettingsUpdatesSection.lastCheckedText(now.addingTimeInterval(-7200), now: now),
+                formatter.localizedString(for: now.addingTimeInterval(-7200), relativeTo: now)
+            )
+        }
+    #endif
 }
