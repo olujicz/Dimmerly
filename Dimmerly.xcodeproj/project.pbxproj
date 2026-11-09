@@ -86,6 +86,7 @@
 		NT00000000000000000001 /* SolarCalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = NT00000000000000000010 /* SolarCalculatorTests.swift */; };
 		NT00000000000000000002 /* DimmingScheduleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = NT00000000000000000020 /* DimmingScheduleTests.swift */; };
 		NT00000000000000000003 /* ScheduleManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = NT00000000000000000030 /* ScheduleManagerTests.swift */; };
+		UPDCTRLTESTB100000000000 /* UpdaterControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = UPDCTRLTESTF000000000000 /* UpdaterControllerTests.swift */; };
 		PE00000000000000000011 /* PresetEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = PE00000000000000000001 /* PresetEntity.swift */; };
 		PRV00000000000000000002 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = PRV00000000000000000001 /* PrivacyInfo.xcprivacy */; };
 		PT00000000000000000011 /* PollingTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = PT00000000000000000001 /* PollingTimer.swift */; };
@@ -95,6 +96,7 @@
 		SC00000000000000000012 /* SolarCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC00000000000000000002 /* SolarCalculator.swift */; };
 		SC00000000000000000013 /* LocationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC00000000000000000003 /* LocationProvider.swift */; };
 		SC00000000000000000014 /* ScheduleManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC00000000000000000004 /* ScheduleManager.swift */; };
+		UPDCTRLB1000000000000000 /* UpdaterController.swift in Sources */ = {isa = PBXBuildFile; fileRef = UPDCTRLF0000000000000000 /* UpdaterController.swift */; };
 		SC00000000000000000015 /* ScheduleViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC00000000000000000005 /* ScheduleViews.swift */; };
 		SF0000000000000000000011 /* HardwareBrightnessManagerTests+Polling.swift in Sources */ = {isa = PBXBuildFile; fileRef = SF0000000000000000000001 /* HardwareBrightnessManagerTests+Polling.swift */; };
 		SG0000000000000000000011 /* ManualCoordinateTextTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SG0000000000000000000001 /* ManualCoordinateTextTests.swift */; };
@@ -240,6 +242,7 @@
 		NT00000000000000000010 /* SolarCalculatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolarCalculatorTests.swift; sourceTree = "<group>"; };
 		NT00000000000000000020 /* DimmingScheduleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DimmingScheduleTests.swift; sourceTree = "<group>"; };
 		NT00000000000000000030 /* ScheduleManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleManagerTests.swift; sourceTree = "<group>"; };
+		UPDCTRLTESTF000000000000 /* UpdaterControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdaterControllerTests.swift; sourceTree = "<group>"; };
 		PE00000000000000000001 /* PresetEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetEntity.swift; sourceTree = "<group>"; };
 		PRV00000000000000000001 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		PT00000000000000000001 /* PollingTimer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollingTimer.swift; sourceTree = "<group>"; };
@@ -249,6 +252,7 @@
 		SC00000000000000000002 /* SolarCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolarCalculator.swift; sourceTree = "<group>"; };
 		SC00000000000000000003 /* LocationProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationProvider.swift; sourceTree = "<group>"; };
 		SC00000000000000000004 /* ScheduleManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleManager.swift; sourceTree = "<group>"; };
+		UPDCTRLF0000000000000000 /* UpdaterController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdaterController.swift; sourceTree = "<group>"; };
 		SC00000000000000000005 /* ScheduleViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleViews.swift; sourceTree = "<group>"; };
 		SF0000000000000000000001 /* HardwareBrightnessManagerTests+Polling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HardwareBrightnessManagerTests+Polling.swift"; sourceTree = "<group>"; };
 		SG0000000000000000000001 /* ManualCoordinateTextTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualCoordinateTextTests.swift; sourceTree = "<group>"; };
@@ -455,6 +459,7 @@
 				NF00000000000000000002 /* PresetManager.swift */,
 				NF00000000000000000004 /* PresetShortcutManager.swift */,
 				SC00000000000000000004 /* ScheduleManager.swift */,
+				UPDCTRLF0000000000000000 /* UpdaterController.swift */,
 				E8A1B2C3D4E5F6A7B8C9D002 /* ScreenBlanker.swift */,
 				SC00000000000000000002 /* SolarCalculator.swift */,
 				GM00000000000000000001 /* GammaMath.swift */,
@@ -511,6 +516,7 @@
 				E2F0BAA221177547FC5C458C /* JSONDefaultsArrayStoreTests.swift */,
 				PT00000000000000000002 /* PollingTimerTests.swift */,
 				NT00000000000000000030 /* ScheduleManagerTests.swift */,
+				UPDCTRLTESTF000000000000 /* UpdaterControllerTests.swift */,
 				SB00000000000000000001 /* ScreenBlankerTests.swift */,
 				SH00000000000000000001 /* SharedConstantsTests.swift */,
 				CP00000000000000000002 /* ControlCenterControlTests.swift */,
@@ -765,6 +771,7 @@
 				DN00000000000000000011 /* DisplayNameResolver.swift in Sources */,
 				SC00000000000000000013 /* LocationProvider.swift in Sources */,
 				SC00000000000000000014 /* ScheduleManager.swift in Sources */,
+				UPDCTRLB1000000000000000 /* UpdaterController.swift in Sources */,
 				SC00000000000000000015 /* ScheduleViews.swift in Sources */,
 				CT00000000000000000011 /* ColorTemperatureManager.swift in Sources */,
 				CP00000000000000000011 /* ControlCenterStatePublisher.swift in Sources */,
@@ -805,6 +812,7 @@
 				NT00000000000000000001 /* SolarCalculatorTests.swift in Sources */,
 				NT00000000000000000002 /* DimmingScheduleTests.swift in Sources */,
 				NT00000000000000000003 /* ScheduleManagerTests.swift in Sources */,
+				UPDCTRLTESTB100000000000 /* UpdaterControllerTests.swift in Sources */,
 				PT00000000000000000012 /* PollingTimerTests.swift in Sources */,
 				DDADD6A8F394B61338B57630 /* JSONDefaultsArrayStoreTests.swift in Sources */,
 				DN00000000000000000012 /* DisplayNameResolverTests.swift in Sources */,
