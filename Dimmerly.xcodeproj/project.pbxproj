@@ -97,6 +97,7 @@
 		SC00000000000000000013 /* LocationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC00000000000000000003 /* LocationProvider.swift */; };
 		SC00000000000000000014 /* ScheduleManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC00000000000000000004 /* ScheduleManager.swift */; };
 		UPDCTRLB1000000000000000 /* UpdaterController.swift in Sources */ = {isa = PBXBuildFile; fileRef = UPDCTRLF0000000000000000 /* UpdaterController.swift */; };
+		SPKBRIDGEB10000000000000 /* SparkleUpdaterBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = SPKBRIDGEF00000000000000 /* SparkleUpdaterBridge.swift */; };
 		SC00000000000000000015 /* ScheduleViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC00000000000000000005 /* ScheduleViews.swift */; };
 		SF0000000000000000000011 /* HardwareBrightnessManagerTests+Polling.swift in Sources */ = {isa = PBXBuildFile; fileRef = SF0000000000000000000001 /* HardwareBrightnessManagerTests+Polling.swift */; };
 		SG0000000000000000000011 /* ManualCoordinateTextTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SG0000000000000000000001 /* ManualCoordinateTextTests.swift */; };
@@ -253,6 +254,7 @@
 		SC00000000000000000003 /* LocationProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationProvider.swift; sourceTree = "<group>"; };
 		SC00000000000000000004 /* ScheduleManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleManager.swift; sourceTree = "<group>"; };
 		UPDCTRLF0000000000000000 /* UpdaterController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdaterController.swift; sourceTree = "<group>"; };
+		SPKBRIDGEF00000000000000 /* SparkleUpdaterBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparkleUpdaterBridge.swift; sourceTree = "<group>"; };
 		SC00000000000000000005 /* ScheduleViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleViews.swift; sourceTree = "<group>"; };
 		SF0000000000000000000001 /* HardwareBrightnessManagerTests+Polling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HardwareBrightnessManagerTests+Polling.swift"; sourceTree = "<group>"; };
 		SG0000000000000000000001 /* ManualCoordinateTextTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualCoordinateTextTests.swift; sourceTree = "<group>"; };
@@ -460,6 +462,7 @@
 				NF00000000000000000004 /* PresetShortcutManager.swift */,
 				SC00000000000000000004 /* ScheduleManager.swift */,
 				UPDCTRLF0000000000000000 /* UpdaterController.swift */,
+				SPKBRIDGEF00000000000000 /* SparkleUpdaterBridge.swift */,
 				E8A1B2C3D4E5F6A7B8C9D002 /* ScreenBlanker.swift */,
 				SC00000000000000000002 /* SolarCalculator.swift */,
 				GM00000000000000000001 /* GammaMath.swift */,
@@ -772,6 +775,7 @@
 				SC00000000000000000013 /* LocationProvider.swift in Sources */,
 				SC00000000000000000014 /* ScheduleManager.swift in Sources */,
 				UPDCTRLB1000000000000000 /* UpdaterController.swift in Sources */,
+				SPKBRIDGEB10000000000000 /* SparkleUpdaterBridge.swift in Sources */,
 				SC00000000000000000015 /* ScheduleViews.swift in Sources */,
 				CT00000000000000000011 /* ColorTemperatureManager.swift in Sources */,
 				CP00000000000000000011 /* ControlCenterStatePublisher.swift in Sources */,
@@ -1400,6 +1404,10 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 15;
 				DEAD_CODE_STRIPPING = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Vendor/Sparkle",
+				);
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 1.4.2;
@@ -1418,6 +1426,10 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 15;
 				DEAD_CODE_STRIPPING = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Vendor/Sparkle",
+				);
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 1.4.2;

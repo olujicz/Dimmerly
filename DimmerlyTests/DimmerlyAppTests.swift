@@ -73,6 +73,14 @@ final class DimmerlyAppTests: XCTestCase {
         #endif
     }
 
+    #if !APPSTORE
+        /// Launch setup, which starts Sparkle, is skipped while the app hosts the tests, so
+        /// a test run never checks for updates or shows Sparkle's permission prompt.
+        func testUpdaterIsNotStartedWhileHostingTests() {
+            XCTAssertFalse(UpdaterController.shared.isStarted)
+        }
+    #endif
+
     func testQuickActionsMenuOrderMatchesHIGConventions() {
         let quickActions = StatusItemQuickActions()
 

@@ -75,6 +75,9 @@ struct DimmerlyApp: App {
     #if !APPSTORE
         /// Manager for DDC/CI hardware display control (direct distribution only)
         @State private var hardwareManager = HardwareBrightnessManager.shared
+
+        /// Sparkle update state (direct distribution only; the App Store updates the App Store edition)
+        @State private var updaterController = UpdaterController.shared
     #endif
 
     /// Coordinates programmatic menu panel presentation, including Spotlight preset selection.
@@ -199,6 +202,7 @@ struct DimmerlyApp: App {
                 .environment(colorTempManager)
             #if !APPSTORE
                 .environment(hardwareManager)
+                .environment(updaterController)
             #endif
         }
     }
@@ -213,6 +217,7 @@ struct DimmerlyApp: App {
             .environment(colorTempManager)
         #if !APPSTORE
             .environment(hardwareManager)
+            .environment(updaterController)
         #endif
             .environment(\.closeMenuBarPanel) { menuBarPanelCoordinator.dismiss() }
     }
@@ -335,6 +340,7 @@ final class AppServices {
         syncManagerStateFromSettings()
         #if !APPSTORE
             configureHardwareControl()
+            UpdaterController.shared.start()
         #endif
     }
 
