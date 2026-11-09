@@ -185,6 +185,10 @@ struct MenuBarPanel: View {
     @Environment(AppSettings.self) var settings
     @Environment(PresetManager.self) var presetManager
     @Environment(\.closeMenuBarPanel) private var closeMenuBarPanel
+    #if !APPSTORE
+        /// Optional so previews and tests that build the panel without an updater still render.
+        @Environment(UpdaterController.self) private var updater: UpdaterController?
+    #endif
 
     @State private var isSettingsHovered = false
     @State private var isQuitHovered = false
@@ -233,6 +237,16 @@ struct MenuBarPanel: View {
                     .padding(.vertical, 8)
 
                 panelDivider
+
+                #if !APPSTORE
+                    if let updater, MenuBarUpdateRow.isVisible(for: updater) {
+                        MenuBarUpdateRow(updater: updater)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 8)
+
+                        panelDivider
+                    }
+                #endif
 
                 footer
                     .padding(.horizontal, 20)

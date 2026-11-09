@@ -31,6 +31,7 @@
 		B384217D3A68010EA915DE22 /* JSONDefaultsArrayStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3F49B65767256F001CAD0B6 /* JSONDefaultsArrayStore.swift */; };
 		BA0000000000000000000001 /* BrightnessManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0000000000000000000002 /* BrightnessManager.swift */; };
 		BA0000000000000000000003 /* MenuBarPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0000000000000000000004 /* MenuBarPanel.swift */; };
+		UPDROWB10000000000000000 /* MenuBarUpdateRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = UPDROWF00000000000000000 /* MenuBarUpdateRow.swift */; };
 		BI0000000000000000000011 /* BlankingInputMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BI0000000000000000000001 /* BlankingInputMonitor.swift */; };
 		BO0000000000000000000011 /* BrightnessManagerTests+DisplayOutput.swift in Sources */ = {isa = PBXBuildFile; fileRef = BO0000000000000000000001 /* BrightnessManagerTests+DisplayOutput.swift */; };
 		BP0000000000000000000011 /* BrightnessManagerTests+Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = BP0000000000000000000001 /* BrightnessManagerTests+Persistence.swift */; };
@@ -188,6 +189,7 @@
 		B1B2C3D4E5F6A7B8C9D0E1F4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		BA0000000000000000000002 /* BrightnessManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrightnessManager.swift; sourceTree = "<group>"; };
 		BA0000000000000000000004 /* MenuBarPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPanel.swift; sourceTree = "<group>"; };
+		UPDROWF00000000000000000 /* MenuBarUpdateRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarUpdateRow.swift; sourceTree = "<group>"; };
 		BI0000000000000000000001 /* BlankingInputMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlankingInputMonitor.swift; sourceTree = "<group>"; };
 		BO0000000000000000000001 /* BrightnessManagerTests+DisplayOutput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BrightnessManagerTests+DisplayOutput.swift"; sourceTree = "<group>"; };
 		BP0000000000000000000001 /* BrightnessManagerTests+Persistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BrightnessManagerTests+Persistence.swift"; sourceTree = "<group>"; };
@@ -330,6 +332,7 @@
 				C50F163FD03D0874576E9962 /* KeyboardShortcutRecorder.swift */,
 				EX00000000000000000002 /* LocationPickerRow.swift */,
 				BA0000000000000000000004 /* MenuBarPanel.swift */,
+				UPDROWF00000000000000000 /* MenuBarUpdateRow.swift */,
 				VM00000000000000000001 /* MenuBarPanelHost.swift */,
 				VM00000000000000000002 /* MenuBarPresetControls.swift */,
 				VM00000000000000000003 /* MenuBarDisplayControls.swift */,
@@ -754,6 +757,7 @@
 				BA0000000000000000000001 /* BrightnessManager.swift in Sources */,
 				CG0000000000000000000011 /* BrightnessManager+CoreGraphics.swift in Sources */,
 				BA0000000000000000000003 /* MenuBarPanel.swift in Sources */,
+				UPDROWB10000000000000000 /* MenuBarUpdateRow.swift in Sources */,
 				VM00000000000000000011 /* MenuBarPanelHost.swift in Sources */,
 				VM00000000000000000012 /* MenuBarPresetControls.swift in Sources */,
 				VM00000000000000000013 /* MenuBarDisplayControls.swift in Sources */,

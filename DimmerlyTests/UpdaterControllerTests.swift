@@ -143,6 +143,19 @@
             XCTAssertEqual(controller.lastUpdateCheckDate, Date(timeIntervalSince1970: 1_800_000_000))
         }
 
+        func testPanelShowsTheUpdateRowOnlyWhileAReminderIsPending() {
+            let controller = UpdaterController(updater: FakeUpdater(), activateApp: {})
+
+            XCTAssertFalse(MenuBarUpdateRow.isVisible(for: nil))
+            XCTAssertFalse(MenuBarUpdateRow.isVisible(for: controller))
+
+            controller.scheduledUpdateWillShow(userInitiated: false, shownBySparkle: false)
+            XCTAssertTrue(MenuBarUpdateRow.isVisible(for: controller))
+
+            controller.updateSessionDidFinish()
+            XCTAssertFalse(MenuBarUpdateRow.isVisible(for: controller))
+        }
+
         func testCheckForUpdatesClearsReminder() {
             let controller = UpdaterController(updater: FakeUpdater(), activateApp: {})
             controller.scheduledUpdateWillShow(userInitiated: false, shownBySparkle: false)
