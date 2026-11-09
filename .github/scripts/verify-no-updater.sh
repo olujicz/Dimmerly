@@ -42,8 +42,11 @@ while IFS= read -r -d '' info_plist; do
     fi
 done < <(find "$bundle/Contents" -path '*/Contents/Info.plist' -print0)
 
+# Capture first: piping otool into grep -q would pass a binary otool can't read.
 for executable in "${executables[@]}"; do
-    if otool -L "$executable" | grep -q 'Sparkle.framework'; then
+    if ! libraries="$(otool -L "$executable" 2>&1)"; then
+        fail "could not read the load commands of ${executable#"$bundle"/}"
+    elif grep -q 'Sparkle.framework' <<<"$libraries"; then
         fail "${executable#"$bundle"/} links Sparkle"
     fi
 done

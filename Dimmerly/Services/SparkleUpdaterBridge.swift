@@ -22,7 +22,10 @@
         var onScheduledUpdateWillShow: (@MainActor (_ userInitiated: Bool, _ shownBySparkle: Bool) -> Void)?
         var onUserAttention: (@MainActor () -> Void)?
         var onSessionFinished: (@MainActor () -> Void)?
-        /// `canCheckForUpdates` or `lastUpdateCheckDate` changed.
+        /// `canCheckForUpdates` changed, or Sparkle changed one of its settings itself, e.g.
+        /// from the "Check for updates automatically?" prompt on the second launch. These are
+        /// the properties Sparkle documents as KVO-compliant; `lastUpdateCheckDate` isn't, so
+        /// it's re-read when a session ends and when Settings appears.
         var onStateChange: (@MainActor () -> Void)?
 
         // Implicitly unwrapped because the controller needs `self` as its delegates.
@@ -45,7 +48,16 @@
             }
             observations = [
                 standardController.updater.observe(\.canCheckForUpdates, options: [.new], changeHandler: notify),
-                standardController.updater.observe(\.lastUpdateCheckDate, options: [.new], changeHandler: notify),
+                standardController.updater.observe(
+                    \.automaticallyChecksForUpdates,
+                    options: [.new],
+                    changeHandler: notify
+                ),
+                standardController.updater.observe(
+                    \.automaticallyDownloadsUpdates,
+                    options: [.new],
+                    changeHandler: notify
+                ),
             ]
         }
 

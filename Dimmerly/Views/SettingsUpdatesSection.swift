@@ -52,6 +52,8 @@
                 } footer: {
                     Text(Self.privacyNote)
                 }
+                // Sparkle may have changed its settings or checked since Settings last showed.
+                .onAppear { updater.refresh() }
             }
         }
 

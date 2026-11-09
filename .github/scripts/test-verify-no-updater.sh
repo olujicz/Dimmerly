@@ -12,6 +12,10 @@ mkdir -p "$fixture_dir/bin"
 cat > "$fixture_dir/bin/otool" <<'SH'
 #!/usr/bin/env bash
 binary="${*: -1}"
+if [[ " ${TEST_UNREADABLE_BINARIES:-} " == *" $binary "* ]]; then
+    echo "otool: can't open file: $binary" >&2
+    exit 1
+fi
 printf '%s:\n\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0)\n' "$binary"
 if [[ " ${TEST_LINKED_BINARIES:-} " == *" $binary "* ]]; then
     printf '\t@rpath/Sparkle.framework/Versions/B/Sparkle (compatibility version 1.6.0)\n'
@@ -74,6 +78,11 @@ linked_extension="$fixture_dir/linked-extension/Dimmerly.app"
 make_app "$linked_extension"
 TEST_LINKED_BINARIES="$linked_extension/Contents/PlugIns/Widget.appex/Contents/MacOS/Widget" \
     assert_gate 1 'fails when an extension links Sparkle' "$linked_extension"
+
+unreadable="$fixture_dir/unreadable/Dimmerly.app"
+make_app "$unreadable"
+TEST_UNREADABLE_BINARIES="$unreadable/Contents/MacOS/Dimmerly" \
+    assert_gate 1 'fails when otool cannot read an executable' "$unreadable"
 
 archive="$fixture_dir/Dimmerly.xcarchive"
 make_app "$archive/Products/Applications/Dimmerly.app"
