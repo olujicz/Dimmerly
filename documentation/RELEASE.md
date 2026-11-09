@@ -167,7 +167,7 @@ The workflow notarizes the app zip and then the DMG with `.github/scripts/notari
 
 After the checksum, the workflow makes `appcast.xml` with `packaging/sparkle/build-appcast.sh`: Sparkle's `generate_appcast` on the final DMG, with this version's `CHANGELOG.md` section embedded as Markdown release notes, and the feed signed. It then checks the feed signature with `sign_update --verify` and the rest with `packaging/sparkle/verify-appcast.sh` (one item, version, build, download URL, length, minimum macOS, notes, and the DMG's signature against `SUPublicEDKey`). CI tests that script with `.github/scripts/test-verify-appcast.sh`.
 
-The App Store edition must not contain Sparkle (App Review guideline 2.4.5). `.github/scripts/verify-no-updater.sh` fails an App Store build or archive that contains `Sparkle.framework`, links it, or has `SU*` keys. CI, the Release quality gate, `just build-appstore` and `just archive-appstore` run it.
+The App Store edition must not contain Sparkle (App Review guideline 2.4.5). The target's last build phase, `packaging/sparkle/build-phase.sh`, fails any App Store build whose settings would link or embed Sparkle or whose `Info.plist` has `SU*` keys, including archives made with Xcode's Product > Archive. `.github/scripts/verify-no-updater.sh` re-checks the finished bundle (every Mach-O file, `Sparkle.framework`, `SU*` keys); CI, the Release quality gate, `just build-appstore` and `just archive-appstore` run it.
 
 To preview the layout locally, build a DMG from any exported or downloaded `Dimmerly.app`:
 

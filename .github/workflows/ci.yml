@@ -169,9 +169,6 @@ jobs:
       - name: Verify Released Xcode Toolchain
         run: bash .github/scripts/verify-xcode.sh
 
-      - name: Fetch Sparkle
-        run: bash packaging/sparkle/fetch-sparkle.sh
-
       - name: Build App Store Scheme
         run: xcodebuild build -project Dimmerly.xcodeproj -scheme "Dimmerly App Store" -configuration Debug-AppStore -destination 'platform=macOS' -derivedDataPath build/appstore-ci CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
 

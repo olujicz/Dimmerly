@@ -11,7 +11,7 @@ This guide is for developers and contributors building Dimmerly from source.
 - Optional: [just](https://github.com/casey/just)
 - Optional: [SwiftLint](https://github.com/realm/SwiftLint)
 - Optional: [SwiftFormat](https://github.com/nicklockwood/SwiftFormat) 0.64.4 (the version CI uses)
-- Network access for the first build: `just sparkle` (or `bash packaging/sparkle/fetch-sparkle.sh`) downloads the pinned [Sparkle](https://sparkle-project.org) release into `Vendor/Sparkle` and checks its SHA-256. Run it before building in Xcode; `just` recipes run it for you. The framework is never committed, and changing its version means editing `packaging/sparkle/sparkle-version.env` and the pin test together.
+- Network access for the first build: `just sparkle` (or `bash packaging/sparkle/fetch-sparkle.sh`) downloads the pinned [Sparkle](https://sparkle-project.org) release into `Vendor/Sparkle` and checks its SHA-256. The direct-download build (`Debug`/`Release`) needs it, so run it before building that in Xcode; the `just` recipes run it for you. The App Store edition doesn't use Sparkle and builds without it. The framework is never committed, and changing its version means editing `packaging/sparkle/sparkle-version.env` and the pin test together.
 - Required for commits: [Gitleaks](https://github.com/gitleaks/gitleaks) (`brew install gitleaks`)
 
 ## Build and Run
@@ -91,7 +91,7 @@ GitHub Actions runs on every push and pull request to `main`:
 - Lint: SwiftLint with `--strict`
 - Test: Both direct-distribution (`Debug`) and App Store (`Debug-AppStore`) suites on GitHub's `xcode-27` runner with released Xcode 27.1 (`27A9275`)
 - Build: App Store scheme smoke build on the same pinned Xcode 27.1 toolchain with signing disabled, then `.github/scripts/verify-no-updater.sh` checks it contains no part of Sparkle
-- Sparkle: the Xcode jobs fetch the pinned Sparkle release with `packaging/sparkle/fetch-sparkle.sh` first; the scope job tests that script and the changelog cutter, and the test job tests `verify-appcast.sh`
+- Sparkle: jobs that build the direct download fetch the pinned Sparkle release with `packaging/sparkle/fetch-sparkle.sh` first; the scope job tests that script and the changelog cutter, and the test job tests `verify-appcast.sh`
 
 Gitleaks and the scope classifier always run. The Xcode jobs explicitly select the released Xcode 27.1 installation and verify its build number, Swift compiler, and macOS SDK with `.github/scripts/verify-xcode.sh`. The Release workflow uses the same toolchain. When every changed path is a Markdown file, a file under `documentation/` or `images/`, or the root `LICENSE`, the macOS workflow-lint, format, lint, test, and build jobs are skipped. Any other path, a mixed change, or an indeterminate diff runs the full CI suite. Superseded runs for the same branch or pull request are cancelled automatically.
 
