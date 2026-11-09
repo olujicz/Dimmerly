@@ -154,6 +154,9 @@ jobs:
             exit 1
           fi
 
+          # The same section becomes the in-app update notes; fail now, not after notarization.
+          bash packaging/sparkle/changelog-section.sh "$RELEASE_VERSION" > /dev/null
+
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
             EXPECTED_TAG="v${RELEASE_VERSION}"
             if [[ "${GITHUB_REF_NAME}" != "$EXPECTED_TAG" ]]; then

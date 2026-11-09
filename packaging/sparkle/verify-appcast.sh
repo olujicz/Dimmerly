@@ -8,6 +8,9 @@
 # for this version; the DMG's length; a minimum macOS version; embedded Markdown notes;
 # and the enclosure's EdDSA signature against the public key. The feed signature is
 # checked separately with `sign_update --verify`, which needs the private key.
+#
+# ED25519_TOOL can name a compiled packaging/sparkle/ed25519.swift; otherwise it's run
+# with `xcrun swift`, which compiles it on every call. The tests compile it once.
 set -euo pipefail
 
 if [[ $# -lt 4 || $# -gt 5 ]]; then
@@ -68,28 +71,22 @@ field() {
     awk -F '\t' -v name="$1" '$1 == name { print $2; exit }' <<<"$fields"
 }
 
-if [[ "$(field items)" == 1 ]]; then pass "one item"; else fail "expected one item, found $(field items)"; fi
-if [[ "$(field version)" == "$build" ]]; then
-    pass "sparkle:version is $build"
-else
-    fail "sparkle:version is '$(field version)', expected $build"
-fi
-if [[ "$(field short_version)" == "$version" ]]; then
-    pass "sparkle:shortVersionString is $version"
-else
-    fail "sparkle:shortVersionString is '$(field short_version)', expected $version"
-fi
-if [[ "$(field url)" == "$expected_url" ]]; then
-    pass "enclosure URL is $expected_url"
-else
-    fail "enclosure URL is '$(field url)', expected $expected_url"
-fi
-dmg_length="$(stat -f%z "$dmg")"
-if [[ "$(field length)" == "$dmg_length" ]]; then
-    pass "enclosure length matches the DMG ($dmg_length bytes)"
-else
-    fail "enclosure length is '$(field length)', the DMG is $dmg_length bytes"
-fi
+# Usage: check_equal <field> <expected value> <label>
+check_equal() {
+    local actual
+    actual="$(field "$1")"
+    if [[ "$actual" == "$2" ]]; then
+        pass "$3 is $2"
+    else
+        fail "$3 is '$actual', expected $2"
+    fi
+}
+
+check_equal items 1 "number of items"
+check_equal version "$build" "sparkle:version"
+check_equal short_version "$version" "sparkle:shortVersionString"
+check_equal url "$expected_url" "enclosure URL"
+check_equal length "$(stat -f%z "$dmg")" "enclosure length (the DMG's size)"
 if [[ -n "$(field minimum_system)" ]]; then
     pass "sparkle:minimumSystemVersion is $(field minimum_system)"
 else
@@ -101,9 +98,13 @@ else
     fail "release notes are not embedded as Markdown (format '$(field notes_format)', $(field notes_length) characters)"
 fi
 
+if [[ -n "${ED25519_TOOL:-}" ]]; then
+    ed25519=("$ED25519_TOOL")
+else
+    ed25519=(xcrun swift "$script_dir/ed25519.swift")
+fi
 signature="$(field signature)"
-if [[ -n "$signature" ]] &&
-    xcrun swift "$script_dir/ed25519.swift" verify "$public_key" "$signature" "$dmg" >/dev/null 2>&1; then
+if [[ -n "$signature" ]] && "${ed25519[@]}" verify "$public_key" "$signature" "$dmg" >/dev/null 2>&1; then
     pass "enclosure signature matches the DMG and the app's public key"
 else
     fail "enclosure signature does not match the DMG and the app's public key"

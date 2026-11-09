@@ -21,29 +21,21 @@ if [[ ! "$version" =~ ^[0-9]+(\.[0-9]+)*$ ]]; then
     exit 1
 fi
 
-found=0
-section="$(awk -v heading="## [$version]" '
+# awk exits 1 when the heading isn't there. Blank lines before the body are skipped, and
+# command substitution drops the ones after it.
+if ! section="$(awk -v heading="## [$version]" '
     index($0, "## [") == 1 {
-        if (in_section) exit
-        if (index($0, heading) == 1) {
-            rest = substr($0, length(heading) + 1)
-            if (rest == "" || substr(rest, 1, 1) == " ") { in_section = 1; print "\001found"; next }
-        }
+        if (found) exit
+        rest = substr($0, length(heading) + 1)
+        if (index($0, heading) == 1 && (rest == "" || substr(rest, 1, 1) == " ")) { found = 1; next }
     }
-    in_section { print }
-' "$changelog")"
-
-if [[ "$section" == $'\001found'* ]]; then
-    found=1
-    section="${section#$'\001found'}"
-fi
-if [[ "$found" -ne 1 ]]; then
+    found && !started && /^[[:space:]]*$/ { next }
+    found { started = 1; print }
+    END { exit !found }
+' "$changelog")"; then
     echo "CHANGELOG has no section for $version" >&2
     exit 1
 fi
-
-# Trim leading and trailing blank lines.
-section="$(printf '%s\n' "$section" | sed -e '/./,$!d' | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}')"
 if [[ -z "${section//[[:space:]]/}" ]]; then
     echo "The CHANGELOG section for $version is empty" >&2
     exit 1

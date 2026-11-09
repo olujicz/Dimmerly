@@ -16,9 +16,13 @@ dmg="$fixture_dir/Dimmerly-$version.dmg"
 head -c 4096 /dev/urandom > "$dmg"
 length="$(stat -f%z "$dmg")"
 
+# Compile the signature helper once instead of once per call.
+xcrun swiftc -O "$sparkle_dir/ed25519.swift" -o "$fixture_dir/ed25519"
+export ED25519_TOOL="$fixture_dir/ed25519"
+
 # One ephemeral key signs the fixture; another stands in for a stranger's key.
-read -r public_key signature < <(xcrun swift "$sparkle_dir/ed25519.swift" test-sign "$dmg")
-read -r other_public_key _ < <(xcrun swift "$sparkle_dir/ed25519.swift" test-sign "$dmg")
+read -r public_key signature < <("$ED25519_TOOL" test-sign "$dmg")
+read -r other_public_key _ < <("$ED25519_TOOL" test-sign "$dmg")
 
 # Writes an appcast to $1. Fields can be overridden through the environment.
 write_appcast() {
@@ -50,8 +54,8 @@ assert_verifier() {
     local expected="$1"
     local description="$2"
     local key="${3:-$public_key}"
-    local appcast="$fixture_dir/appcast.xml"
-    write_appcast "$appcast"
+    local appcast="${APPCAST:-$fixture_dir/appcast.xml}"
+    [[ -n "${APPCAST:-}" ]] || write_appcast "$appcast"
     local actual=0
     bash "$verifier" "$appcast" "$dmg" "$version" "$build" "$key" > "$fixture_dir/output" 2>&1 || actual=$?
     if [[ "$actual" != "$expected" ]]; then
@@ -82,7 +86,4 @@ assert_verifier 1 'fails on a tampered DMG'
 cp "$fixture_dir/original.dmg" "$dmg"
 
 printf 'not xml' > "$fixture_dir/broken.xml"
-actual=0
-bash "$verifier" "$fixture_dir/broken.xml" "$dmg" "$version" "$build" "$public_key" > /dev/null 2>&1 || actual=$?
-[[ "$actual" == 1 ]] || { echo "FAIL: unreadable XML (expected exit 1, got $actual)" >&2; exit 1; }
-printf 'PASS: fails on unreadable XML\n'
+APPCAST="$fixture_dir/broken.xml" assert_verifier 1 'fails on unreadable XML'

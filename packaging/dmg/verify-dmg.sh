@@ -251,31 +251,26 @@ if [[ -d "$app_path" ]]; then
         fail "app does not contain Contents/Frameworks/Sparkle.framework"
     fi
 
+    # The app's SU* keys must be exactly the ones in packaging/sparkle/SparkleInfo.plist, with
+    # the same values. Any other Sparkle setting (automatic checks, automatic install, system
+    # profiling, ...) is off on purpose or left to the user, so an extra key fails too.
     sparkle_settings="$(dirname "${BASH_SOURCE[0]}")/../sparkle/SparkleInfo.plist"
-    sparkle_keys="$(/usr/bin/python3 -I -c 'import plistlib, sys
+    while IFS=$'\t' read -r verdict message; do
+        if [[ "$verdict" == ok ]]; then pass "$message"; else fail "$message"; fi
+    done < <(/usr/bin/python3 -I -c 'import plistlib, sys
 with open(sys.argv[1], "rb") as f:
-    print("\n".join(plistlib.load(f)))' "$sparkle_settings")"
-    while IFS= read -r key; do
-        [[ -n "$key" ]] || continue
-        expected_value="$(/usr/libexec/PlistBuddy -c "Print :$key" "$sparkle_settings" 2>/dev/null || true)"
-        actual_value="$(plist_value "$key")"
-        if [[ -n "$actual_value" && "$actual_value" == "$expected_value" ]]; then
-            pass "Info.plist $key matches packaging/sparkle/SparkleInfo.plist"
-        else
-            fail "Info.plist $key is '$actual_value', expected '$expected_value'"
-        fi
-    done <<<"$sparkle_keys"
-
-    # Off on purpose or left to the user (automatic checks are asked for on the second launch).
-    for key in SUEnableAutomaticChecks SUAutomaticallyUpdate SUAllowsAutomaticUpdates \
-        SUEnableSystemProfiling SUEnableInstallerLauncherService SUEnableDownloaderService \
-        SUScheduledCheckInterval; do
-        if [[ -z "$(plist_value "$key")" ]]; then
-            pass "Info.plist has no $key"
-        else
-            fail "Info.plist sets $key"
-        fi
-    done
+    expected = plistlib.load(f)
+with open(sys.argv[2], "rb") as f:
+    actual = {key: value for key, value in plistlib.load(f).items() if key.startswith("SU")}
+for key in sorted(expected.keys() | actual.keys()):
+    if key not in actual:
+        print(f"fail\tInfo.plist is missing {key}")
+    elif key not in expected:
+        print(f"fail\tInfo.plist sets {key}, which SparkleInfo.plist does not")
+    elif actual[key] != expected[key]:
+        print(f"fail\tInfo.plist {key} is {actual[key]!r}, expected {expected[key]!r}")
+    else:
+        print(f"ok\tInfo.plist {key} matches packaging/sparkle/SparkleInfo.plist")' "$sparkle_settings" "$info_plist")
 
     if xcrun stapler validate -q "$app_path" 2>/dev/null; then
         pass "app has a stapled notarization ticket"

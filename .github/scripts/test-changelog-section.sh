@@ -59,6 +59,14 @@ run_cutter() {
     fi
 }
 
+# Runs the cutter and expects it to fail.
+expect_failure() {
+    local description="$1"
+    shift
+    run_cutter 1 "$description" "$@"
+    printf 'PASS: %s\n' "$description"
+}
+
 expect_output() {
     local expected="$1"
     local description="$2"
@@ -69,13 +77,9 @@ expect_output() {
     printf 'PASS: %s\n' "$description"
 }
 
+# The expected text also has & < > and quotes, which must come through unchanged.
 run_cutter 0 'prints the section body' 1.5.1 "$changelog"
-expect_output "$expected_151" 'prints the section body and stops at the next version'
-
-run_cutter 0 'keeps markdown verbatim' 1.5.1 "$changelog"
-grep -Fq 'Brightness & warmth stay <in range> after "waking" the display.' "$fixture_dir/output" ||
-    { echo 'FAIL: markdown with & < > characters was changed' >&2; exit 1; }
-printf 'PASS: keeps markdown with & < > characters verbatim\n'
+expect_output "$expected_151" 'prints the section body verbatim and stops at the next version'
 
 run_cutter 0 'does not match 1.5.10 when asked for 1.5.1' 1.5.10 "$changelog"
 expect_output '### Fixed
@@ -85,14 +89,7 @@ run_cutter 0 'the last section ends at the end of the file' 1.4.2 "$changelog"
 expect_output '### Fixed
 - The panel grows with its content.' 'the last section ends at the end of the file'
 
-run_cutter 1 'fails when the version is missing' 9.9.9 "$changelog"
-printf 'PASS: fails when the version is missing\n'
-
-run_cutter 1 'fails when the section is empty' 1.5.0 "$changelog"
-printf 'PASS: fails when the section is empty\n'
-
-run_cutter 1 'ignores [Unreleased]' Unreleased "$changelog"
-printf 'PASS: ignores [Unreleased]\n'
-
-run_cutter 1 'a version with regex characters does not match loosely' '1.5.' "$changelog"
-printf 'PASS: a version with regex characters does not match loosely\n'
+expect_failure 'fails when the version is missing' 9.9.9 "$changelog"
+expect_failure 'fails when the section is empty' 1.5.0 "$changelog"
+expect_failure 'ignores [Unreleased]' Unreleased "$changelog"
+expect_failure 'a version with regex characters does not match loosely' '1.5.' "$changelog"
