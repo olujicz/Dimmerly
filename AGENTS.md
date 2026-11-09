@@ -42,6 +42,9 @@ Releases, DMG assets, notarization, and signing.
   requirements.
 - When the release process changes, update both the workflow and
   `documentation/RELEASE.md`.
+- Never print, log or write `SPARKLE_ED_PRIVATE_KEY` to a file; Sparkle's
+  tools read it from stdin. The App Store edition must not contain Sparkle;
+  keep `.github/scripts/verify-no-updater.sh` passing.
 
 ## Public Website
 

@@ -91,6 +91,16 @@ Download the latest signed and notarized DMG from
 This is the recommended build when you want DDC/CI hardware controls and display
 sleep.
 
+### Updating
+
+From version 1.5.0, the direct-download build updates itself: choose Check for
+Updates… in Settings > About or in the menu bar icon's right-click menu, or let
+it check automatically. Homebrew installs can use the same in-app updater or a
+plain `brew upgrade`. Homebrew compares the version of the installed app, so it
+leaves an app that already updated itself alone. Don't use
+`brew upgrade --greedy` for Dimmerly. It ignores the installed app's version and
+can put back an older release when the Homebrew tap hasn't caught up yet.
+
 ### App Store build
 
 The repository also includes a sandboxed App Store configuration. See
@@ -207,6 +217,11 @@ Spotlight on macOS 15.4 and later.
 ## Privacy
 
 Dimmerly does not collect analytics, usage data, crash reports, or personal data.
+
+From version 1.5.0, the direct-download build can check GitHub for updates. It
+asks before checking automatically, and you can turn checks off in
+Settings > About. A check downloads a small file from GitHub and sends no system
+profile. The App Store build is updated by the App Store.
 
 Settings are stored locally with UserDefaults. If you use current location for
 sunrise and sunset schedules, macOS Location Services provides the coordinate

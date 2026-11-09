@@ -134,3 +134,6 @@ tools/
 paseo.json
 
 __pycache__/
+
+# Sparkle release fetched by packaging/sparkle/fetch-sparkle.sh (never committed)
+Vendor/

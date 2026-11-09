@@ -39,6 +39,9 @@ jobs:
       - name: Verify Released Xcode Toolchain
         run: bash .github/scripts/verify-xcode.sh
 
+      - name: Fetch Sparkle
+        run: bash packaging/sparkle/fetch-sparkle.sh
+
       - name: Install Tooling
         run: |
           bash .github/scripts/install-swiftformat.sh
@@ -57,7 +60,13 @@ jobs:
         run: xcodebuild test -project Dimmerly.xcodeproj -scheme "Dimmerly App Store" -configuration Debug-AppStore -destination 'platform=macOS' CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
 
       - name: Build App Store Scheme
-        run: xcodebuild build -project Dimmerly.xcodeproj -scheme "Dimmerly App Store" -configuration Debug-AppStore -destination 'platform=macOS' CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+        run: xcodebuild build -project Dimmerly.xcodeproj -scheme "Dimmerly App Store" -configuration Debug-AppStore -destination 'platform=macOS' -derivedDataPath build/appstore-ci CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+
+      - name: Test App Store Updater Gate
+        run: bash .github/scripts/test-verify-no-updater.sh
+
+      - name: Check App Store Build Has No Updater
+        run: bash .github/scripts/verify-no-updater.sh build/appstore-ci/Build/Products/Debug-AppStore/Dimmerly.app
 
   signed-dmg:
     name: Signed DMG
@@ -83,6 +92,9 @@ jobs:
 
       - name: Verify Released Xcode Toolchain
         run: bash .github/scripts/verify-xcode.sh
+
+      - name: Fetch Sparkle
+        run: bash packaging/sparkle/fetch-sparkle.sh
 
       - name: Resolve release version
         id: release_version
@@ -142,6 +154,9 @@ jobs:
             exit 1
           fi
 
+          # The same section becomes the in-app update notes; fail now, not after notarization.
+          bash packaging/sparkle/changelog-section.sh "$RELEASE_VERSION" > /dev/null
+
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
             EXPECTED_TAG="v${RELEASE_VERSION}"
             if [[ "${GITHUB_REF_NAME}" != "$EXPECTED_TAG" ]]; then
@@ -163,6 +178,7 @@ jobs:
           APPSTORE_CONNECT_API_KEY_ID: ${{ secrets.APPSTORE_CONNECT_API_KEY_ID }}
           APPSTORE_CONNECT_ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
           APPSTORE_CONNECT_API_KEY_BASE64: ${{ secrets.APPSTORE_CONNECT_API_KEY_BASE64 }}
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
         run: |
           set -euo pipefail
 
@@ -172,7 +188,8 @@ jobs:
             DEVELOPER_ID_CERTIFICATE_PASSWORD \
             APPSTORE_CONNECT_API_KEY_ID \
             APPSTORE_CONNECT_ISSUER_ID \
-            APPSTORE_CONNECT_API_KEY_BASE64
+            APPSTORE_CONNECT_API_KEY_BASE64 \
+            SPARKLE_ED_PRIVATE_KEY
           do
             if [[ -z "${!name}" ]]; then
               missing+=("$name")
@@ -355,6 +372,20 @@ jobs:
 
           shasum -a 256 "$DMG_PATH" | tee "$CHECKSUM_PATH"
 
+      # Made from the final stapled DMG, like the checksum. The private key reaches Sparkle's
+      # tools only on stdin; it is never written to disk or printed.
+      - name: Build signed appcast
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+
+          printf '%s\n' "$SPARKLE_ED_PRIVATE_KEY" \
+            | bash packaging/sparkle/build-appcast.sh "$DMG_PATH" "$RELEASE_VERSION" build/appcast.xml
+          printf '%s\n' "$SPARKLE_ED_PRIVATE_KEY" \
+            | Vendor/Sparkle/bin/sign_update --verify build/appcast.xml --ed-key-file -
+          bash packaging/sparkle/verify-appcast.sh build/appcast.xml "$DMG_PATH" "$RELEASE_VERSION" "$BUILD_NUMBER"
+
       - name: Upload signed DMG artifact
         uses: actions/upload-artifact@v7
         with:
@@ -362,6 +393,7 @@ jobs:
           path: |
             ${{ steps.release_version.outputs.dmg_path }}
             ${{ steps.release_version.outputs.checksum_path }}
+            build/appcast.xml
           if-no-files-found: error
 
       - name: Create draft GitHub release
@@ -373,3 +405,4 @@ jobs:
           files: |
             ${{ steps.release_version.outputs.dmg_path }}
             ${{ steps.release_version.outputs.checksum_path }}
+            build/appcast.xml

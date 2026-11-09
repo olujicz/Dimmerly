@@ -12,18 +12,24 @@ swiftlint_config := ".swiftlint.yml"
 default:
     @just --list
 
+# Install the pinned Sparkle release into Vendor/Sparkle (checksum-checked; no-op when current).
+# Only the direct-download build needs it; the App Store recipes don't.
+sparkle:
+    bash packaging/sparkle/fetch-sparkle.sh
+
 # Build the app (debug)
-build:
+build: sparkle
     xcodebuild -project {{project}} -scheme {{scheme}} -configuration Debug -destination '{{destination}}' -derivedDataPath {{build_dir}} build
 
 # Build the app (release)
-build-release:
+build-release: sparkle
     xcodebuild -project {{project}} -scheme {{scheme}} -configuration Release -destination '{{destination}}' -derivedDataPath {{build_dir}} build
 
 # Archive the App Store edition and check it was built with the required major Xcode
 archive-appstore version build:
     xcodebuild archive -project {{project}} -scheme '{{appstore_scheme}}' -configuration Release-AppStore -destination 'generic/platform=macOS' -archivePath build/appstore-{{version}}-{{build}}/Dimmerly.xcarchive -allowProvisioningUpdates
     bash .github/scripts/verify-built-xcode.sh build/appstore-{{version}}-{{build}}/Dimmerly.xcarchive
+    bash .github/scripts/verify-no-updater.sh build/appstore-{{version}}-{{build}}/Dimmerly.xcarchive
     @info=build/appstore-{{version}}-{{build}}/Dimmerly.xcarchive/Products/Applications/Dimmerly.app/Contents/Info.plist; \
         v="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$info")"; \
         b="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$info")"; \
@@ -32,15 +38,16 @@ archive-appstore version build:
         fi; \
         echo "Archived app is $v ($b)"
 
-# Build the App Store scheme
+# Build the App Store scheme and check it contains no part of the updater
 build-appstore:
-    xcodebuild -quiet -project {{project}} -scheme '{{appstore_scheme}}' -destination '{{destination}}' build
+    xcodebuild -quiet -project {{project}} -scheme '{{appstore_scheme}}' -configuration Debug-AppStore -destination '{{destination}}' -derivedDataPath {{build_dir}}/appstore build
+    bash .github/scripts/verify-no-updater.sh {{build_dir}}/appstore/Build/Products/Debug-AppStore/Dimmerly.app
 
 # Run tests for both distributions (each suite launches its app host)
 test: test-direct test-appstore
 
 # Run direct-distribution tests
-test-direct:
+test-direct: sparkle
     xcodebuild -quiet -project {{project}} -scheme {{scheme}} -configuration Debug -destination '{{destination}}' -derivedDataPath {{build_dir}} test
 
 # Run App Store tests, including the sandboxed shortcut managers

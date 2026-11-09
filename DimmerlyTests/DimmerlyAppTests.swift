@@ -38,6 +38,21 @@ final class DimmerlyAppTests: XCTestCase {
         XCTAssertFalse(resolvedPackage.contains("\"version\" : \"1.3.1\""))
     }
 
+    /// Sparkle is vendored, not a Swift package, so Dependabot never proposes a version.
+    /// Moving the pin, or its checksum, should be a reviewed change that fails this test.
+    func testSparkleIsPinnedToTheReviewedRelease() throws {
+        let repositoryURL = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let pinURL = repositoryURL.appendingPathComponent("packaging/sparkle/sparkle-version.env")
+        let pin = try String(contentsOf: pinURL, encoding: .utf8)
+
+        XCTAssertTrue(pin.contains("SPARKLE_VERSION=2.10.1\n"))
+        XCTAssertTrue(pin.contains(
+            "SPARKLE_SHA256=1a856d2a9edb8e628de88121d7be04cf0e2167f8641650b78fca00b14244cf27\n"
+        ))
+    }
+
     func testTurnOffTitleReflectsPreventScreenLockSetting() throws {
         // Isolated suite so this test doesn't read or overwrite the developer's real
         // preventScreenLock setting in UserDefaults.standard.
@@ -58,6 +73,14 @@ final class DimmerlyAppTests: XCTestCase {
         #endif
     }
 
+    #if !APPSTORE
+        /// Launch setup, which starts Sparkle, is skipped while the app hosts the tests, so
+        /// a test run never checks for updates or shows Sparkle's permission prompt.
+        func testUpdaterIsNotStartedWhileHostingTests() {
+            XCTAssertFalse(UpdaterController.shared.isStarted)
+        }
+    #endif
+
     func testQuickActionsMenuOrderMatchesHIGConventions() {
         let quickActions = StatusItemQuickActions()
 
@@ -65,14 +88,15 @@ final class DimmerlyAppTests: XCTestCase {
 
         // Action items first (most-used first), a separator, then Quit last —
         // matches Apple HIG guidance for grouping and destructive/exit actions.
-        XCTAssertEqual(menu.items.map(\.title), [
-            "Turn Displays Off",
-            "Settings…",
-            "",
-            "Quit Dimmerly",
-        ])
-        XCTAssertTrue(menu.items[2].isSeparatorItem)
-        XCTAssertEqual(menu.items[3].keyEquivalent, "q")
+        // The App Store edition is updated by the App Store, so it has no update item.
+        var expectedTitles = ["Turn Displays Off", "Settings…"]
+        #if !APPSTORE
+            expectedTitles.append("Check for Updates…")
+        #endif
+        expectedTitles += ["", "Quit Dimmerly"]
+        XCTAssertEqual(menu.items.map(\.title), expectedTitles)
+        XCTAssertTrue(menu.items[menu.items.count - 2].isSeparatorItem)
+        XCTAssertEqual(menu.items.last?.keyEquivalent, "q")
     }
 
     func testQuickActionsMenuItemsTargetTheirHandlers() {
@@ -80,10 +104,38 @@ final class DimmerlyAppTests: XCTestCase {
 
         let menu = quickActions.makeQuickActionsMenu(turnOffTitle: "Turn Displays Off")
 
-        XCTAssertTrue(menu.items[0].target === quickActions)
-        XCTAssertTrue(menu.items[1].target === quickActions)
-        XCTAssertTrue(menu.items[3].target === NSApp)
+        // Every item but the separator and Quit is handled by the quick actions object.
+        for item in menu.items.dropLast(2) {
+            XCTAssertTrue(item.target === quickActions, item.title)
+        }
+        XCTAssertTrue(menu.items.last?.target === NSApp)
     }
+
+    #if !APPSTORE
+        func testCheckForUpdatesItemFollowsCanCheckForUpdates() throws {
+            @MainActor final class UpdatesStub {
+                var canCheck = false
+                var checks = 0
+            }
+            let stub = UpdatesStub()
+            let quickActions = StatusItemQuickActions()
+            quickActions.configureUpdates(
+                checkForUpdates: { stub.checks += 1 },
+                canCheckForUpdates: { stub.canCheck }
+            )
+            let menu = quickActions.makeQuickActionsMenu(turnOffTitle: "Turn Displays Off")
+            let item = try XCTUnwrap(menu.items.first { $0.title == "Check for Updates…" })
+
+            XCTAssertFalse(quickActions.validateMenuItem(item))
+
+            stub.canCheck = true
+            XCTAssertTrue(quickActions.validateMenuItem(item))
+
+            let action = try XCTUnwrap(item.action)
+            XCTAssertTrue(NSApp.sendAction(action, to: item.target, from: item))
+            XCTAssertEqual(stub.checks, 1)
+        }
+    #endif
 
     func testQuickActionsSelectTheContextMenuPresentationOnMacOS27() {
         if #available(macOS 27.0, *) {
@@ -654,4 +706,33 @@ final class AboutSettingsLinkTests: XCTestCase {
             )
         #endif
     }
+
+    func testSparkleIsCreditedOnlyInTheDirectBuild() {
+        let names = OpenSourceLicense.all.map(\.name)
+        #if APPSTORE
+            XCTAssertFalse(names.contains("Sparkle"))
+        #else
+            XCTAssertTrue(names.contains("Sparkle"))
+            let sparkle = OpenSourceLicense.all.first { $0.name == "Sparkle" }
+            XCTAssertEqual(sparkle?.type, "MIT")
+            XCTAssertTrue(sparkle?.text.contains("bsdiff") == true, "bundled third-party notices are included")
+        #endif
+    }
+
+    #if !APPSTORE
+        func testLastCheckedTextSaysNeverWithoutADate() {
+            XCTAssertEqual(SettingsUpdatesSection.lastCheckedText(nil, now: Date()), String(localized: "Never"))
+        }
+
+        func testLastCheckedTextDescribesADate() {
+            let now = Date(timeIntervalSince1970: 1_800_000_000)
+
+            let text = SettingsUpdatesSection.lastCheckedText(now.addingTimeInterval(-7200), now: now)
+
+            XCTAssertFalse(text.isEmpty)
+            XCTAssertNotEqual(text, SettingsUpdatesSection.lastCheckedText(nil, now: now))
+            let threeDaysAgo = now.addingTimeInterval(-86400 * 3)
+            XCTAssertNotEqual(text, SettingsUpdatesSection.lastCheckedText(threeDaysAgo, now: now))
+        }
+    #endif
 }

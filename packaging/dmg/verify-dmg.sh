@@ -236,6 +236,42 @@ if [[ -d "$app_path" ]]; then
         check_entitlements "$extension" "$extension_label" yes
     done
 
+    # Sparkle, the direct download's updater: present, signed like the app, and configured
+    # from packaging/sparkle/SparkleInfo.plist.
+    sparkle_dir="$app_path/Contents/Frameworks/Sparkle.framework"
+    if [[ -d "$sparkle_dir" ]]; then
+        pass "app contains Sparkle.framework"
+        check_signature "$sparkle_dir" "Sparkle.framework"
+        check_signature "$sparkle_dir/Versions/B/Autoupdate" "Sparkle Autoupdate"
+        check_signature "$sparkle_dir/Versions/B/Updater.app" "Sparkle Updater.app"
+        while IFS= read -r -d '' xpc_service; do
+            check_signature "$xpc_service" "Sparkle $(basename "$xpc_service")"
+        done < <(find "$sparkle_dir/Versions/B/XPCServices" -mindepth 1 -maxdepth 1 -name '*.xpc' -print0 2>/dev/null)
+    else
+        fail "app does not contain Contents/Frameworks/Sparkle.framework"
+    fi
+
+    # The app's SU* keys must be exactly the ones in packaging/sparkle/SparkleInfo.plist, with
+    # the same values. Any other Sparkle setting (automatic checks, automatic install, system
+    # profiling, ...) is off on purpose or left to the user, so an extra key fails too.
+    sparkle_settings="$(dirname "${BASH_SOURCE[0]}")/../sparkle/SparkleInfo.plist"
+    while IFS=$'\t' read -r verdict message; do
+        if [[ "$verdict" == ok ]]; then pass "$message"; else fail "$message"; fi
+    done < <(/usr/bin/python3 -I -c 'import plistlib, sys
+with open(sys.argv[1], "rb") as f:
+    expected = plistlib.load(f)
+with open(sys.argv[2], "rb") as f:
+    actual = {key: value for key, value in plistlib.load(f).items() if key.startswith("SU")}
+for key in sorted(expected.keys() | actual.keys()):
+    if key not in actual:
+        print(f"fail\tInfo.plist is missing {key}")
+    elif key not in expected:
+        print(f"fail\tInfo.plist sets {key}, which SparkleInfo.plist does not")
+    elif actual[key] != expected[key]:
+        print(f"fail\tInfo.plist {key} is {actual[key]!r}, expected {expected[key]!r}")
+    else:
+        print(f"ok\tInfo.plist {key} matches packaging/sparkle/SparkleInfo.plist")' "$sparkle_settings" "$info_plist")
+
     if xcrun stapler validate -q "$app_path" 2>/dev/null; then
         pass "app has a stapled notarization ticket"
     else

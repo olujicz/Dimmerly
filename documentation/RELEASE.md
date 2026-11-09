@@ -76,10 +76,15 @@ Configure these repository or environment secrets before running `.github/workfl
 | `APPSTORE_CONNECT_API_KEY_ID` | App Store Connect API key ID. |
 | `APPSTORE_CONNECT_ISSUER_ID` | App Store Connect issuer ID. |
 | `APPSTORE_CONNECT_API_KEY_BASE64` | Base64-encoded `AuthKey_<KEY_ID>.p8` contents. |
+| `SPARKLE_ED_PRIVATE_KEY` | Sparkle's EdDSA private key, exported with `Vendor/Sparkle/bin/generate_keys --account dimmerly -x <file>`. Signs each update and the appcast. |
 
 The App Store Connect API key must have access to certificates, identifiers, and profiles so Xcode can resolve signing assets during `-allowProvisioningUpdates`.
 
 The Apple Developer Team ID is checked into the Xcode project, `ExportOptions-DeveloperID.plist`, and release workflow as `MN5C3DH647`. Update all three places together if the signing team changes.
+
+The Sparkle key's public half is `SUPublicEDKey` in `packaging/sparkle/SparkleInfo.plist`, and every direct-download build carries it. Keep the exported private key in the maintainer's password manager as well as in the secret.
+
+Losing the key doesn't strand installed copies, but they don't recover right away. A release signed with a new key reaches them only if its DMG is signed with the same Developer ID certificate (ours is), and its feed is still rejected at first, because the app requires a feed signed with the old key. Sparkle shows the update only once 20 days have passed since that first failure without a feed it could verify (`SUSignedFeedFailureExpirationInterval`, left at its default), and then without release notes. Until then, ask users to download the new version by hand from GitHub Releases or the website. Never change the Sparkle key and the Developer ID certificate in the same release, and read Sparkle's key rotation notes before changing either. The workflow passes the key to Sparkle's tools on stdin only; never write it to a file in CI or print it.
 
 Create base64 values with:
 
@@ -154,9 +159,15 @@ After stapling, the workflow runs `verify-dmg.sh`. It fails the release if any o
 - the app is universal (`arm64` and `x86_64`)
 - the app passes strict signature verification, is signed by the release team, has the Hardened Runtime and a secure timestamp, and has a stapled ticket
 - every app extension in `Contents/PlugIns` is signed by the release team with the Hardened Runtime and a secure timestamp, and at least one extension (the widget) is present
+- `Contents/Frameworks/Sparkle.framework` is present, and the framework, `Autoupdate`, `Updater.app` and each XPC service are signed by the release team with the Hardened Runtime and a secure timestamp
+- the updater keys in the app's `Info.plist` match `packaging/sparkle/SparkleInfo.plist`, and none of `SUEnableAutomaticChecks`, `SUAutomaticallyUpdate`, `SUAllowsAutomaticUpdates`, `SUEnableSystemProfiling`, `SUEnableInstallerLauncherService`, `SUEnableDownloaderService` or `SUScheduledCheckInterval` is set
 - the final entitlements of the app and each extension (`codesign -d --entitlements - --xml`) contain no `com.apple.security.get-task-allow` and include the `<team ID>.rs.in.olujic.dimmerly` app group, and each extension is sandboxed
 
 The workflow notarizes the app zip and then the DMG with `.github/scripts/notarize.sh`. It submits with `--output-format json`, keeps the submission ID, and always fetches `xcrun notarytool log` for it, also when the submission is Accepted. It prints the log status and any issues, and fails unless the status is Accepted and the log lists no issues at all; a warning fails the release too. Both logs are uploaded as the `Dimmerly-<version>-notary-logs` artifact, also when a later step fails. The logs contain no credentials. CI tests this gate with `.github/scripts/test-notarize.sh` and a stand-in `notarytool`.
+
+After the checksum, the workflow makes `appcast.xml` with `packaging/sparkle/build-appcast.sh`: Sparkle's `generate_appcast` on the final DMG, with this version's `CHANGELOG.md` section embedded as Markdown release notes, and the feed signed. It then checks the feed signature with `sign_update --verify` and the rest with `packaging/sparkle/verify-appcast.sh` (one item, version, build, download URL, length, minimum macOS, notes, and the DMG's signature against `SUPublicEDKey`). CI tests that script with `.github/scripts/test-verify-appcast.sh`.
+
+The App Store edition must not contain Sparkle (App Review guideline 2.4.5). The target's last build phase, `packaging/sparkle/build-phase.sh`, fails any App Store build whose settings would link or embed Sparkle or whose `Info.plist` has `SU*` keys, including archives made with Xcode's Product > Archive. `.github/scripts/verify-no-updater.sh` re-checks the finished bundle (every Mach-O file, `Sparkle.framework`, `SU*` keys); CI, the Release quality gate, `just build-appstore` and `just archive-appstore` run it.
 
 To preview the layout locally, build a DMG from any exported or downloaded `Dimmerly.app`:
 
@@ -240,9 +251,10 @@ The tag starts the `Release` workflow. The workflow creates a draft GitHub Relea
 
 - `Dimmerly-<version>.dmg`
 - `Dimmerly-<version>.dmg.sha256`
+- `appcast.xml`, the in-app update feed for this version
 - generated release notes
 
-The draft must remain unpublished until final QA is complete.
+The appcast's release notes are this version's `CHANGELOG.md` section, and users read them in the update window, so finish the changelog before tagging. The draft must remain unpublished until final QA is complete. Publishing it is what offers the update in the app: the feed URL, `https://github.com/olujicz/Dimmerly/releases/latest/download/appcast.xml`, follows GitHub's latest release, which never includes drafts or pre-releases.
 
 ## Final QA
 
@@ -255,6 +267,7 @@ was waived. Also verify:
 - the installer window layout is intact, with black, readable labels, in both light and dark mode
 - the app reports the intended version in Finder and system metadata
 - no quarantine, signing, or notarization warnings appear on first launch
+- `bash packaging/sparkle/verify-appcast.sh appcast.xml Dimmerly-<version>.dmg <version> <build>` passes on the downloaded files, and the notes inside `appcast.xml` read well as update notes
 
 ## Publish
 
@@ -265,14 +278,16 @@ When final QA passes:
 3. Confirm the DMG and checksum assets are attached.
 4. Publish the release.
 5. Verify the public release page downloads the same checksum.
-6. Update and verify the Homebrew tap using the next section.
-7. Run the GitHub Pages workflow from `main` (Actions > GitHub Pages > Run
+6. Check that the update feed now offers this version:
+   `curl -fsSL https://github.com/olujicz/Dimmerly/releases/latest/download/appcast.xml | grep shortVersionString`
+7. Update and verify the Homebrew tap using the next section, the same day.
+8. Run the GitHub Pages workflow from `main` (Actions > GitHub Pages > Run
    workflow). The website's download buttons link straight to the latest
    release's DMG, and the home page's version line names that release and
    links its `CHANGELOG.md` entry; both are resolved when the site is built.
    Then check that the home page's Download button fetches
    `Dimmerly-<version>.dmg` and that the line under it shows the new version.
-8. Announce the release only after the public download, checksum, Homebrew
+9. Announce the release only after the public download, checksum, Homebrew
    tap, and website download are verified.
 
 ## Homebrew Tap Update
@@ -280,6 +295,8 @@ When final QA passes:
 After the GitHub Release is published, update the public Homebrew cask so
 `brew install --cask dimmerly` installs the new version before the release is
 broadly announced.
+
+The cask declares `auto_updates true` because the app updates itself; keep it. A plain `brew upgrade` checks the installed app's own version, so it leaves an app that Sparkle already updated alone. `brew upgrade --greedy` doesn't: it reinstalls whatever the tap names, which is an older version if the tap is behind. Update the tap the same day the release is published.
 
 The tap lives in:
 
@@ -333,7 +350,7 @@ brew info --cask olujicz/dimmerly/dimmerly
 
 If a release is published with a blocking issue:
 
-1. Mark the release as pre-release or add a warning to the release notes.
+1. Mark the release as pre-release or add a warning to the release notes. Marking it pre-release also takes it out of the in-app update feed, which then offers the previous release again. Sparkle never downgrades, so people who already installed the bad build stay on it until the fixed version is published; ship the patch quickly.
 2. Remove the DMG asset only if the build is unsafe to distribute.
 3. Re-link the previous stable release in the notes.
 4. Run the GitHub Pages workflow from `main`, so the website's download
@@ -343,6 +360,8 @@ If a release is published with a blocking issue:
 5. Create a patch version and follow this runbook from the pre-release checklist.
 
 Do not retag a published version. Use a new patch version so users and GitHub release assets remain auditable.
+
+Build a patch from a commit newer than the current latest release. GitHub picks the latest release by the date of its commit, so a release built from an older commit doesn't become the latest one and isn't offered as an update.
 
 ## Hotfix Process
 

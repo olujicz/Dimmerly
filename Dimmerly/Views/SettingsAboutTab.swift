@@ -67,6 +67,10 @@ struct AboutSettingsTab: View {
                 #endif
             }
 
+            #if !APPSTORE
+                SettingsUpdatesSection()
+            #endif
+
             Section {
                 ForEach(OpenSourceLicense.all) { license in
                     Button {
@@ -97,7 +101,14 @@ struct OpenSourceLicense: Identifiable {
     let copyright: String
     let text: String
 
-    static let all: [OpenSourceLicense] = [
+    // Sparkle ships only in the direct-download build, so only that build credits it.
+    #if APPSTORE
+        static let all = common
+    #else
+        static let all = common + [sparkle]
+    #endif
+
+    private static let common: [OpenSourceLicense] = [
         OpenSourceLicense(
             name: "MenuBarExtraAccess",
             type: "MIT",

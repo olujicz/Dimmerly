@@ -7,6 +7,9 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+### Added
+- The direct download now updates itself. Choose Check for Updates… in Settings > About or in the menu bar icon's right-click menu, or let Dimmerly check automatically; it asks before it does. A check downloads a small file from GitHub and sends no system profile. If you're on 1.4.2 or earlier, download this version once by hand. The App Store edition still updates through the App Store.
+
 ### Changed
 - Settings explains why your current location isn't available: Location Services is off, or Dimmerly's access is denied or restricted. It links to System Settings > Privacy & Security > Location Services instead of opening System Settings without saying why.
 - The menu bar panel is easier to read with Increase Contrast or Reduce Transparency, with stronger separators, slider ticks and badges. Small status text is a little larger. The hardware brightness warning in Settings is a plain line with a warning icon instead of a tinted box.
