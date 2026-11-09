@@ -88,14 +88,26 @@ final class DimmerlyAppTests: XCTestCase {
 
         // Action items first (most-used first), a separator, then Quit last —
         // matches Apple HIG guidance for grouping and destructive/exit actions.
-        XCTAssertEqual(menu.items.map(\.title), [
-            "Turn Displays Off",
-            "Settings…",
-            "",
-            "Quit Dimmerly",
-        ])
-        XCTAssertTrue(menu.items[2].isSeparatorItem)
-        XCTAssertEqual(menu.items[3].keyEquivalent, "q")
+        #if APPSTORE
+            XCTAssertEqual(menu.items.map(\.title), [
+                "Turn Displays Off",
+                "Settings…",
+                "",
+                "Quit Dimmerly",
+            ])
+            XCTAssertTrue(menu.items[2].isSeparatorItem)
+            XCTAssertEqual(menu.items[3].keyEquivalent, "q")
+        #else
+            XCTAssertEqual(menu.items.map(\.title), [
+                "Turn Displays Off",
+                "Settings…",
+                "Check for Updates…",
+                "",
+                "Quit Dimmerly",
+            ])
+            XCTAssertTrue(menu.items[3].isSeparatorItem)
+            XCTAssertEqual(menu.items[4].keyEquivalent, "q")
+        #endif
     }
 
     func testQuickActionsMenuItemsTargetTheirHandlers() {
@@ -105,8 +117,39 @@ final class DimmerlyAppTests: XCTestCase {
 
         XCTAssertTrue(menu.items[0].target === quickActions)
         XCTAssertTrue(menu.items[1].target === quickActions)
-        XCTAssertTrue(menu.items[3].target === NSApp)
+        #if APPSTORE
+            XCTAssertTrue(menu.items[3].target === NSApp)
+        #else
+            XCTAssertTrue(menu.items[2].target === quickActions)
+            XCTAssertTrue(menu.items[4].target === NSApp)
+        #endif
     }
+
+    #if !APPSTORE
+        func testCheckForUpdatesItemFollowsCanCheckForUpdates() throws {
+            @MainActor final class UpdatesStub {
+                var canCheck = false
+                var checks = 0
+            }
+            let stub = UpdatesStub()
+            let quickActions = StatusItemQuickActions()
+            quickActions.configureUpdates(
+                checkForUpdates: { stub.checks += 1 },
+                canCheckForUpdates: { stub.canCheck }
+            )
+            let menu = quickActions.makeQuickActionsMenu(turnOffTitle: "Turn Displays Off")
+            let item = try XCTUnwrap(menu.items.first { $0.title == "Check for Updates…" })
+
+            XCTAssertFalse(quickActions.validateMenuItem(item))
+
+            stub.canCheck = true
+            XCTAssertTrue(quickActions.validateMenuItem(item))
+
+            let action = try XCTUnwrap(item.action)
+            XCTAssertTrue(NSApp.sendAction(action, to: item.target, from: item))
+            XCTAssertEqual(stub.checks, 1)
+        }
+    #endif
 
     func testQuickActionsSelectTheContextMenuPresentationOnMacOS27() {
         if #available(macOS 27.0, *) {

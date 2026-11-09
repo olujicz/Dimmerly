@@ -182,6 +182,12 @@ struct DimmerlyApp: App {
                 performSleep: { DisplayAction.performSleep(settings: settings) },
                 openSettings: openSettingsWindow
             )
+            #if !APPSTORE
+                statusItemQuickActions.configureUpdates(
+                    checkForUpdates: { updaterController.checkForUpdates() },
+                    canCheckForUpdates: { updaterController.canCheckForUpdates }
+                )
+            #endif
             statusItemAccessibility.attach(to: statusItem)
             #if DEBUG
                 ScreenshotStage.statusItemDidAttach(openSettings: openSettingsWindow)
@@ -577,6 +583,8 @@ final class StatusItemQuickActions: NSObject {
     private var settings: AppSettings?
     private var performSleep: (() -> Void)?
     private var openSettings: (() -> Void)?
+    private var checkForUpdates: (@MainActor () -> Void)?
+    private var canCheckForUpdates: (@MainActor () -> Bool)?
 
     func configure(
         statusItem: NSStatusItem,
@@ -614,6 +622,16 @@ final class StatusItemQuickActions: NSObject {
             showQuickActionsMenu(for: event, in: currentButton)
             return nil
         }
+    }
+
+    /// Wires "Check for Updates…" (direct-download build only). Separate from `configure()`
+    /// so the item can be tested without a live `NSStatusItem`.
+    func configureUpdates(
+        checkForUpdates: @escaping @MainActor () -> Void,
+        canCheckForUpdates: @escaping @MainActor () -> Bool
+    ) {
+        self.checkForUpdates = checkForUpdates
+        self.canCheckForUpdates = canCheckForUpdates
     }
 
     private func showQuickActionsMenu(for event: NSEvent, in button: NSStatusBarButton) {
@@ -666,6 +684,20 @@ final class StatusItemQuickActions: NSObject {
         settingsItem.target = self
         menu.addItem(settingsItem)
 
+        // The App Store edition is updated by the App Store (App Review guideline 2.4.5).
+        #if !APPSTORE
+            let updatesItem = NSMenuItem(
+                title: String(
+                    localized: "Check for Updates…",
+                    comment: "Quick actions menu: check for a newer version of Dimmerly"
+                ),
+                action: #selector(handleCheckForUpdates),
+                keyEquivalent: ""
+            )
+            updatesItem.target = self
+            menu.addItem(updatesItem)
+        #endif
+
         menu.addItem(.separator())
 
         let quitItem = NSMenuItem(
@@ -689,6 +721,20 @@ final class StatusItemQuickActions: NSObject {
 
     @objc private func handleOpenSettings() {
         openSettings?()
+    }
+
+    @objc private func handleCheckForUpdates() {
+        checkForUpdates?()
+    }
+}
+
+extension StatusItemQuickActions: NSMenuItemValidation {
+    /// "Check for Updates…" is disabled while Sparkle can't start a check, e.g. during one.
+    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        if menuItem.action == #selector(handleCheckForUpdates) {
+            return canCheckForUpdates?() ?? true
+        }
+        return true
     }
 }
 
