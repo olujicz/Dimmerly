@@ -34,6 +34,9 @@ jobs:
       - name: Test Notarization Gate
         run: bash .github/scripts/test-notarize.sh
 
+      - name: Test Sparkle Fetch
+        run: bash .github/scripts/test-fetch-sparkle.sh
+
       - name: Test CI Scope Classifier
         run: .github/scripts/test-ci-scope.sh
 

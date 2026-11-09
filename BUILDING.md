@@ -11,6 +11,7 @@ This guide is for developers and contributors building Dimmerly from source.
 - Optional: [just](https://github.com/casey/just)
 - Optional: [SwiftLint](https://github.com/realm/SwiftLint)
 - Optional: [SwiftFormat](https://github.com/nicklockwood/SwiftFormat) 0.64.4 (the version CI uses)
+- Network access for the first build: `just sparkle` (or `bash packaging/sparkle/fetch-sparkle.sh`) downloads the pinned [Sparkle](https://sparkle-project.org) release into `Vendor/Sparkle` and checks its SHA-256. Run it before building in Xcode; `just` recipes run it for you. The framework is never committed, and changing its version means editing `packaging/sparkle/sparkle-version.env` and the pin test together.
 - Required for commits: [Gitleaks](https://github.com/gitleaks/gitleaks) (`brew install gitleaks`)
 
 ## Build and Run
@@ -45,6 +46,7 @@ A [Justfile](Justfile) provides shortcuts for common tasks:
 
 ```bash
 just setup          # Configure pre-commit hooks (SwiftFormat, SwiftLint, Gitleaks)
+just sparkle        # Fetch the pinned Sparkle release into Vendor/Sparkle
 just build          # Build debug
 just build-release  # Build release
 just build-appstore # Build App Store scheme

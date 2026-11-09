@@ -38,6 +38,21 @@ final class DimmerlyAppTests: XCTestCase {
         XCTAssertFalse(resolvedPackage.contains("\"version\" : \"1.3.1\""))
     }
 
+    /// Sparkle is vendored, not a Swift package, so Dependabot never proposes a version.
+    /// Moving the pin, or its checksum, should be a reviewed change that fails this test.
+    func testSparkleIsPinnedToTheReviewedRelease() throws {
+        let repositoryURL = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let pinURL = repositoryURL.appendingPathComponent("packaging/sparkle/sparkle-version.env")
+        let pin = try String(contentsOf: pinURL, encoding: .utf8)
+
+        XCTAssertTrue(pin.contains("SPARKLE_VERSION=2.10.1\n"))
+        XCTAssertTrue(pin.contains(
+            "SPARKLE_SHA256=1a856d2a9edb8e628de88121d7be04cf0e2167f8641650b78fca00b14244cf27\n"
+        ))
+    }
+
     func testTurnOffTitleReflectsPreventScreenLockSetting() throws {
         // Isolated suite so this test doesn't read or overwrite the developer's real
         // preventScreenLock setting in UserDefaults.standard.

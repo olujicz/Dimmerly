@@ -12,16 +12,20 @@ swiftlint_config := ".swiftlint.yml"
 default:
     @just --list
 
+# Install the pinned Sparkle release into Vendor/Sparkle (checksum-checked; no-op when current)
+sparkle:
+    bash packaging/sparkle/fetch-sparkle.sh
+
 # Build the app (debug)
-build:
+build: sparkle
     xcodebuild -project {{project}} -scheme {{scheme}} -configuration Debug -destination '{{destination}}' -derivedDataPath {{build_dir}} build
 
 # Build the app (release)
-build-release:
+build-release: sparkle
     xcodebuild -project {{project}} -scheme {{scheme}} -configuration Release -destination '{{destination}}' -derivedDataPath {{build_dir}} build
 
 # Archive the App Store edition and check it was built with the required major Xcode
-archive-appstore version build:
+archive-appstore version build: sparkle
     xcodebuild archive -project {{project}} -scheme '{{appstore_scheme}}' -configuration Release-AppStore -destination 'generic/platform=macOS' -archivePath build/appstore-{{version}}-{{build}}/Dimmerly.xcarchive -allowProvisioningUpdates
     bash .github/scripts/verify-built-xcode.sh build/appstore-{{version}}-{{build}}/Dimmerly.xcarchive
     @info=build/appstore-{{version}}-{{build}}/Dimmerly.xcarchive/Products/Applications/Dimmerly.app/Contents/Info.plist; \
@@ -33,18 +37,18 @@ archive-appstore version build:
         echo "Archived app is $v ($b)"
 
 # Build the App Store scheme
-build-appstore:
+build-appstore: sparkle
     xcodebuild -quiet -project {{project}} -scheme '{{appstore_scheme}}' -destination '{{destination}}' build
 
 # Run tests for both distributions (each suite launches its app host)
 test: test-direct test-appstore
 
 # Run direct-distribution tests
-test-direct:
+test-direct: sparkle
     xcodebuild -quiet -project {{project}} -scheme {{scheme}} -configuration Debug -destination '{{destination}}' -derivedDataPath {{build_dir}} test
 
 # Run App Store tests, including the sandboxed shortcut managers
-test-appstore:
+test-appstore: sparkle
     xcodebuild -quiet -project {{project}} -scheme '{{appstore_scheme}}' -configuration Debug-AppStore -destination '{{destination}}' -derivedDataPath {{build_dir}}/appstore test
 
 # Run all project quality checks
