@@ -37,6 +37,9 @@ jobs:
       - name: Test Sparkle Fetch
         run: bash .github/scripts/test-fetch-sparkle.sh
 
+      - name: Test Changelog Release Notes
+        run: bash .github/scripts/test-changelog-section.sh
+
       - name: Test CI Scope Classifier
         run: .github/scripts/test-ci-scope.sh
 
