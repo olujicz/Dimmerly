@@ -143,6 +143,9 @@ jobs:
       - name: Verify Released Xcode Toolchain
         run: bash .github/scripts/verify-xcode.sh
 
+      - name: Test Appcast Verification
+        run: bash .github/scripts/test-verify-appcast.sh
+
       - name: Run Direct Distribution Tests
         run: xcodebuild test -project Dimmerly.xcodeproj -scheme Dimmerly -configuration Debug -destination 'platform=macOS' CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
 
