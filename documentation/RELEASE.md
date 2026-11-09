@@ -82,7 +82,9 @@ The App Store Connect API key must have access to certificates, identifiers, and
 
 The Apple Developer Team ID is checked into the Xcode project, `ExportOptions-DeveloperID.plist`, and release workflow as `MN5C3DH647`. Update all three places together if the signing team changes.
 
-The Sparkle key's public half is `SUPublicEDKey` in `packaging/sparkle/SparkleInfo.plist`, and every direct-download build carries it. Keep the exported private key in the maintainer's password manager as well as in the secret. If it's lost, installed copies can still accept a new key, but only through an update that is a Developer ID-signed DMG (ours is) and that keeps the same Developer ID certificate. Never change the Sparkle key and the Developer ID certificate in the same release. The workflow passes the key to Sparkle's tools on stdin only; never write it to a file in CI or print it.
+The Sparkle key's public half is `SUPublicEDKey` in `packaging/sparkle/SparkleInfo.plist`, and every direct-download build carries it. Keep the exported private key in the maintainer's password manager as well as in the secret.
+
+Losing the key doesn't strand installed copies, but they don't recover right away. A release signed with a new key reaches them only if its DMG is signed with the same Developer ID certificate (ours is), and its feed is still rejected at first, because the app requires a feed signed with the old key. Sparkle shows the update only once 20 days have passed since that first failure without a feed it could verify (`SUSignedFeedFailureExpirationInterval`, left at its default), and then without release notes. Until then, ask users to download the new version by hand from GitHub Releases or the website. Never change the Sparkle key and the Developer ID certificate in the same release, and read Sparkle's key rotation notes before changing either. The workflow passes the key to Sparkle's tools on stdin only; never write it to a file in CI or print it.
 
 Create base64 values with:
 

@@ -32,22 +32,41 @@ while IFS= read -r -d '' framework; do
     fail "bundle contains ${framework#"$bundle"/}"
 done < <(find "$bundle" -name 'Sparkle.framework' -print0)
 
-# Main executable and every app extension executable.
-executables=()
-while IFS= read -r -d '' info_plist; do
-    contents_dir="$(dirname "$info_plist")"
-    executable_name="$(plutil -extract CFBundleExecutable raw -o - "$info_plist" 2>/dev/null || true)"
-    if [[ -n "$executable_name" && -f "$contents_dir/MacOS/$executable_name" ]]; then
-        executables+=("$contents_dir/MacOS/$executable_name")
-    fi
-done < <(find "$bundle/Contents" -path '*/Contents/Info.plist' -print0)
+# The bundle must name a main executable that exists; otherwise there's nothing to check.
+main_executable="$(plutil -extract CFBundleExecutable raw -o - "$bundle/Contents/Info.plist" 2>/dev/null || true)"
+if [[ -z "$main_executable" ]]; then
+    fail "Info.plist names no CFBundleExecutable"
+elif [[ ! -f "$bundle/Contents/MacOS/$main_executable" ]]; then
+    fail "the main executable Contents/MacOS/$main_executable is missing"
+fi
+
+# Every Mach-O file in the bundle, found by its magic number, not just the executables
+# Info.plist names: Debug builds keep the app's code in Contents/MacOS/<name>.debug.dylib.
+# Symbolic links are skipped, so a framework's Versions/Current isn't read twice.
+macho_files=()
+while IFS= read -r -d '' macho_file; do
+    macho_files+=("$macho_file")
+done < <(/usr/bin/python3 -I -c 'import os, sys
+MAGIC = {b"\xfe\xed\xfa\xce", b"\xce\xfa\xed\xfe", b"\xfe\xed\xfa\xcf", b"\xcf\xfa\xed\xfe",
+         b"\xca\xfe\xba\xbe", b"\xbe\xba\xfe\xca"}
+for root, dirs, files in os.walk(sys.argv[1]):
+    for name in files:
+        path = os.path.join(root, name)
+        if os.path.islink(path):
+            continue
+        with open(path, "rb") as f:
+            if f.read(4) in MAGIC:
+                sys.stdout.write(path + "\0")' "$bundle")
+if (( ${#macho_files[@]} == 0 )); then
+    fail "found no Mach-O files to check in $bundle"
+fi
 
 # Capture first: piping otool into grep -q would pass a binary otool can't read.
-for executable in "${executables[@]}"; do
-    if ! libraries="$(otool -L "$executable" 2>&1)"; then
-        fail "could not read the load commands of ${executable#"$bundle"/}"
+for macho_file in ${macho_files[@]+"${macho_files[@]}"}; do
+    if ! libraries="$(otool -L "$macho_file" 2>&1)"; then
+        fail "could not read the load commands of ${macho_file#"$bundle"/}"
     elif grep -q 'Sparkle.framework' <<<"$libraries"; then
-        fail "${executable#"$bundle"/} links Sparkle"
+        fail "${macho_file#"$bundle"/} links Sparkle"
     fi
 done
 

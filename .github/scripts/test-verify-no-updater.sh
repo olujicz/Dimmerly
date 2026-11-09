@@ -24,12 +24,19 @@ SH
 chmod +x "$fixture_dir/bin/otool"
 export PATH="$fixture_dir/bin:$PATH"
 
-# Makes a minimal app bundle with a widget extension at $1.
+# Writes a stand-in Mach-O file: the 64-bit Mach-O magic number, then filler.
+make_macho() {
+    printf '\xcf\xfa\xed\xfe binary\n' > "$1"
+}
+
+# Makes a minimal app bundle with a widget extension and Xcode's Debug dylib at $1.
 make_app() {
     local app="$1"
-    mkdir -p "$app/Contents/MacOS" "$app/Contents/PlugIns/Widget.appex/Contents/MacOS"
-    printf 'binary\n' > "$app/Contents/MacOS/Dimmerly"
-    printf 'binary\n' > "$app/Contents/PlugIns/Widget.appex/Contents/MacOS/Widget"
+    mkdir -p "$app/Contents/MacOS" "$app/Contents/PlugIns/Widget.appex/Contents/MacOS" "$app/Contents/Resources"
+    make_macho "$app/Contents/MacOS/Dimmerly"
+    make_macho "$app/Contents/MacOS/Dimmerly.debug.dylib"
+    make_macho "$app/Contents/PlugIns/Widget.appex/Contents/MacOS/Widget"
+    printf 'not a binary\n' > "$app/Contents/Resources/notes.txt"
     plutil -create xml1 "$app/Contents/Info.plist"
     plutil -insert CFBundleExecutable -string Dimmerly "$app/Contents/Info.plist"
     plutil -create xml1 "$app/Contents/PlugIns/Widget.appex/Contents/Info.plist"
@@ -78,6 +85,21 @@ linked_extension="$fixture_dir/linked-extension/Dimmerly.app"
 make_app "$linked_extension"
 TEST_LINKED_BINARIES="$linked_extension/Contents/PlugIns/Widget.appex/Contents/MacOS/Widget" \
     assert_gate 1 'fails when an extension links Sparkle' "$linked_extension"
+
+debug_dylib="$fixture_dir/debug-dylib/Dimmerly.app"
+make_app "$debug_dylib"
+TEST_LINKED_BINARIES="$debug_dylib/Contents/MacOS/Dimmerly.debug.dylib" \
+    assert_gate 1 "fails when only Xcode's Debug dylib links Sparkle" "$debug_dylib"
+
+missing_executable="$fixture_dir/missing-executable/Dimmerly.app"
+make_app "$missing_executable"
+rm "$missing_executable/Contents/MacOS/Dimmerly"
+assert_gate 1 'fails when the main executable is missing' "$missing_executable"
+
+no_executable_key="$fixture_dir/no-executable-key/Dimmerly.app"
+make_app "$no_executable_key"
+plutil -remove CFBundleExecutable "$no_executable_key/Contents/Info.plist"
+assert_gate 1 'fails when Info.plist names no executable' "$no_executable_key"
 
 unreadable="$fixture_dir/unreadable/Dimmerly.app"
 make_app "$unreadable"
