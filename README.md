@@ -101,9 +101,6 @@ leaves an app that already updated itself alone. Don't use
 `brew upgrade --greedy` for Dimmerly. It ignores the installed app's version and
 can put back an older release when the Homebrew tap hasn't caught up yet.
 
-Versions before 1.5.0 can't update themselves. Download 1.5.0 or later once by
-hand, or run `brew upgrade --cask dimmerly`.
-
 ### App Store build
 
 The repository also includes a sandboxed App Store configuration. See
