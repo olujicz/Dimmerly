@@ -16,11 +16,6 @@
         @Environment(\.closeMenuBarPanel) private var closeMenuBarPanel
         @State private var isHovered = false
 
-        /// Whether the panel shows the row, and the divider under it.
-        static func isVisible(for updater: UpdaterController?) -> Bool {
-            updater?.isUpdateReminderPending == true
-        }
-
         var body: some View {
             HStack(spacing: 0) {
                 Button {

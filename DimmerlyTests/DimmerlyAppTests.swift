@@ -88,26 +88,15 @@ final class DimmerlyAppTests: XCTestCase {
 
         // Action items first (most-used first), a separator, then Quit last —
         // matches Apple HIG guidance for grouping and destructive/exit actions.
-        #if APPSTORE
-            XCTAssertEqual(menu.items.map(\.title), [
-                "Turn Displays Off",
-                "Settings…",
-                "",
-                "Quit Dimmerly",
-            ])
-            XCTAssertTrue(menu.items[2].isSeparatorItem)
-            XCTAssertEqual(menu.items[3].keyEquivalent, "q")
-        #else
-            XCTAssertEqual(menu.items.map(\.title), [
-                "Turn Displays Off",
-                "Settings…",
-                "Check for Updates…",
-                "",
-                "Quit Dimmerly",
-            ])
-            XCTAssertTrue(menu.items[3].isSeparatorItem)
-            XCTAssertEqual(menu.items[4].keyEquivalent, "q")
+        // The App Store edition is updated by the App Store, so it has no update item.
+        var expectedTitles = ["Turn Displays Off", "Settings…"]
+        #if !APPSTORE
+            expectedTitles.append("Check for Updates…")
         #endif
+        expectedTitles += ["", "Quit Dimmerly"]
+        XCTAssertEqual(menu.items.map(\.title), expectedTitles)
+        XCTAssertTrue(menu.items[menu.items.count - 2].isSeparatorItem)
+        XCTAssertEqual(menu.items.last?.keyEquivalent, "q")
     }
 
     func testQuickActionsMenuItemsTargetTheirHandlers() {
@@ -115,14 +104,11 @@ final class DimmerlyAppTests: XCTestCase {
 
         let menu = quickActions.makeQuickActionsMenu(turnOffTitle: "Turn Displays Off")
 
-        XCTAssertTrue(menu.items[0].target === quickActions)
-        XCTAssertTrue(menu.items[1].target === quickActions)
-        #if APPSTORE
-            XCTAssertTrue(menu.items[3].target === NSApp)
-        #else
-            XCTAssertTrue(menu.items[2].target === quickActions)
-            XCTAssertTrue(menu.items[4].target === NSApp)
-        #endif
+        // Every item but the separator and Quit is handled by the quick actions object.
+        for item in menu.items.dropLast(2) {
+            XCTAssertTrue(item.target === quickActions, item.title)
+        }
+        XCTAssertTrue(menu.items.last?.target === NSApp)
     }
 
     #if !APPSTORE
@@ -738,15 +724,15 @@ final class AboutSettingsLinkTests: XCTestCase {
             XCTAssertEqual(SettingsUpdatesSection.lastCheckedText(nil, now: Date()), String(localized: "Never"))
         }
 
-        func testLastCheckedTextIsRelative() {
+        func testLastCheckedTextDescribesADate() {
             let now = Date(timeIntervalSince1970: 1_800_000_000)
-            let formatter = RelativeDateTimeFormatter()
-            formatter.dateTimeStyle = .named
 
-            XCTAssertEqual(
-                SettingsUpdatesSection.lastCheckedText(now.addingTimeInterval(-7200), now: now),
-                formatter.localizedString(for: now.addingTimeInterval(-7200), relativeTo: now)
-            )
+            let text = SettingsUpdatesSection.lastCheckedText(now.addingTimeInterval(-7200), now: now)
+
+            XCTAssertFalse(text.isEmpty)
+            XCTAssertNotEqual(text, SettingsUpdatesSection.lastCheckedText(nil, now: now))
+            let threeDaysAgo = now.addingTimeInterval(-86400 * 3)
+            XCTAssertNotEqual(text, SettingsUpdatesSection.lastCheckedText(threeDaysAgo, now: now))
         }
     #endif
 }

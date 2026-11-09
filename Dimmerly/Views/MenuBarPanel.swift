@@ -239,7 +239,7 @@ struct MenuBarPanel: View {
                 panelDivider
 
                 #if !APPSTORE
-                    if let updater, MenuBarUpdateRow.isVisible(for: updater) {
+                    if let updater, updater.isUpdateReminderPending {
                         MenuBarUpdateRow(updater: updater)
                             .padding(.horizontal, 20)
                             .padding(.vertical, 8)

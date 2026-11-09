@@ -101,14 +101,12 @@ struct OpenSourceLicense: Identifiable {
     let copyright: String
     let text: String
 
-    /// Sparkle ships only in the direct-download build, so only that build credits it.
-    static var all: [OpenSourceLicense] {
-        #if APPSTORE
-            common
-        #else
-            common + [sparkle]
-        #endif
-    }
+    // Sparkle ships only in the direct-download build, so only that build credits it.
+    #if APPSTORE
+        static let all = common
+    #else
+        static let all = common + [sparkle]
+    #endif
 
     private static let common: [OpenSourceLicense] = [
         OpenSourceLicense(

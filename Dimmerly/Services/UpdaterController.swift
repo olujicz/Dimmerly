@@ -39,9 +39,9 @@
         private let activateApp: @MainActor () -> Void
 
         private(set) var isStarted = false
-        private(set) var canCheckForUpdates: Bool
-        private(set) var automaticallyChecksForUpdates: Bool
-        private(set) var automaticallyDownloadsUpdates: Bool
+        private(set) var canCheckForUpdates = false
+        private(set) var automaticallyChecksForUpdates = false
+        private(set) var automaticallyDownloadsUpdates = false
         private(set) var lastUpdateCheckDate: Date?
         /// A background check found an update that Sparkle didn't show in a window, so the
         /// panel shows a gentle reminder instead of interrupting what the user is doing.
@@ -50,10 +50,7 @@
         init(updater: SoftwareUpdating, activateApp: @escaping @MainActor () -> Void = { NSApp.activate() }) {
             self.updater = updater
             self.activateApp = activateApp
-            canCheckForUpdates = updater.canCheckForUpdates
-            automaticallyChecksForUpdates = updater.automaticallyChecksForUpdates
-            automaticallyDownloadsUpdates = updater.automaticallyDownloadsUpdates
-            lastUpdateCheckDate = updater.lastUpdateCheckDate
+            refresh()
         }
 
         /// Starts Sparkle's scheduler. Later calls do nothing.

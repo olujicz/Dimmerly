@@ -17,16 +17,8 @@
 
     @MainActor
     final class SparkleUpdaterBridge: NSObject, SoftwareUpdating {
-        /// Called before Sparkle shows an update: whether the user asked for the check, and
-        /// whether Sparkle shows it in a window itself.
-        var onScheduledUpdateWillShow: (@MainActor (_ userInitiated: Bool, _ shownBySparkle: Bool) -> Void)?
-        var onUserAttention: (@MainActor () -> Void)?
-        var onSessionFinished: (@MainActor () -> Void)?
-        /// `canCheckForUpdates` changed, or Sparkle changed one of its settings itself, e.g.
-        /// from the "Check for updates automatically?" prompt on the second launch. These are
-        /// the properties Sparkle documents as KVO-compliant; `lastUpdateCheckDate` isn't, so
-        /// it's re-read when a session ends and when Settings appears.
-        var onStateChange: (@MainActor () -> Void)?
+        /// Receives Sparkle's events. Weak: the controller owns this bridge.
+        weak var controller: UpdaterController?
 
         // Implicitly unwrapped because the controller needs `self` as its delegates.
         private var standardController: SPUStandardUpdaterController!
@@ -43,21 +35,18 @@
                 updaterDelegate: self,
                 userDriverDelegate: self
             )
+            // `canCheckForUpdates` changes during a check, and Sparkle changes its two settings
+            // itself, e.g. from the "Check for updates automatically?" prompt on the second
+            // launch. These are the properties Sparkle documents as KVO-compliant;
+            // `lastUpdateCheckDate` isn't, so it's re-read when a session ends and when
+            // Settings appears.
             let notify: @Sendable (SPUUpdater, Any) -> Void = { [weak self] _, _ in
-                MainActor.assumeIsolated { self?.onStateChange?() }
+                MainActor.assumeIsolated { self?.controller?.refresh() }
             }
             observations = [
-                standardController.updater.observe(\.canCheckForUpdates, options: [.new], changeHandler: notify),
-                standardController.updater.observe(
-                    \.automaticallyChecksForUpdates,
-                    options: [.new],
-                    changeHandler: notify
-                ),
-                standardController.updater.observe(
-                    \.automaticallyDownloadsUpdates,
-                    options: [.new],
-                    changeHandler: notify
-                ),
+                updater.observe(\.canCheckForUpdates, options: [.new], changeHandler: notify),
+                updater.observe(\.automaticallyChecksForUpdates, options: [.new], changeHandler: notify),
+                updater.observe(\.automaticallyDownloadsUpdates, options: [.new], changeHandler: notify),
             ]
         }
 
@@ -127,16 +116,16 @@
         ) {
             let userInitiated = state.userInitiated
             MainActor.assumeIsolated {
-                onScheduledUpdateWillShow?(userInitiated, handleShowingUpdate)
+                controller?.scheduledUpdateWillShow(userInitiated: userInitiated, shownBySparkle: handleShowingUpdate)
             }
         }
 
         nonisolated func standardUserDriverDidReceiveUserAttention(forUpdate _: SUAppcastItem) {
-            MainActor.assumeIsolated { onUserAttention?() }
+            MainActor.assumeIsolated { controller?.userAttendedToUpdate() }
         }
 
         nonisolated func standardUserDriverWillFinishUpdateSession() {
-            MainActor.assumeIsolated { onSessionFinished?() }
+            MainActor.assumeIsolated { controller?.updateSessionDidFinish() }
         }
     }
 
@@ -148,12 +137,7 @@
         static let shared: UpdaterController = {
             let bridge = SparkleUpdaterBridge()
             let controller = UpdaterController(updater: bridge)
-            bridge.onScheduledUpdateWillShow = { [weak controller] userInitiated, shownBySparkle in
-                controller?.scheduledUpdateWillShow(userInitiated: userInitiated, shownBySparkle: shownBySparkle)
-            }
-            bridge.onUserAttention = { [weak controller] in controller?.userAttendedToUpdate() }
-            bridge.onSessionFinished = { [weak controller] in controller?.updateSessionDidFinish() }
-            bridge.onStateChange = { [weak controller] in controller?.refresh() }
+            bridge.controller = controller
             return controller
         }()
     }
