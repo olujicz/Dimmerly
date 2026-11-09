@@ -39,6 +39,9 @@ jobs:
       - name: Verify Released Xcode Toolchain
         run: bash .github/scripts/verify-xcode.sh
 
+      - name: Fetch Sparkle
+        run: bash packaging/sparkle/fetch-sparkle.sh
+
       - name: Install Tooling
         run: |
           bash .github/scripts/install-swiftformat.sh
@@ -89,6 +92,9 @@ jobs:
 
       - name: Verify Released Xcode Toolchain
         run: bash .github/scripts/verify-xcode.sh
+
+      - name: Fetch Sparkle
+        run: bash packaging/sparkle/fetch-sparkle.sh
 
       - name: Resolve release version
         id: release_version
