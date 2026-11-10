@@ -10,7 +10,7 @@ This guide is for developers and contributors building Dimmerly from source.
 - The built app continues to support macOS 15.0 or later
 - Optional: [just](https://github.com/casey/just)
 - Optional: [SwiftLint](https://github.com/realm/SwiftLint)
-- Optional: [SwiftFormat](https://github.com/nicklockwood/SwiftFormat) 0.64.4 (the version CI uses)
+- Optional: [SwiftFormat](https://github.com/nicklockwood/SwiftFormat) 0.64.6 (the version CI uses)
 - Network access for the first build: `just sparkle` (or `bash packaging/sparkle/fetch-sparkle.sh`) downloads the pinned [Sparkle](https://sparkle-project.org) release into `Vendor/Sparkle` and checks its SHA-256. The direct-download build (`Debug`/`Release`) needs it, so run it before building that in Xcode; the `just` recipes run it for you. The App Store edition doesn't use Sparkle and builds without it. The framework is never committed, and changing its version means editing `packaging/sparkle/sparkle-version.env` and the pin test together.
 - Required for commits: [Gitleaks](https://github.com/gitleaks/gitleaks) (`brew install gitleaks`)
 
@@ -87,7 +87,7 @@ GitHub Actions runs on every push and pull request to `main`:
 - Secrets: Gitleaks scans repository history
 - Scope: A lightweight Ubuntu job tests the toolchain gate and classifies the changed paths
 - Workflow lint: `actionlint`
-- Format: SwiftFormat check with the pinned 0.64.4 release
+- Format: SwiftFormat check with the pinned 0.64.6 release
 - Lint: SwiftLint with `--strict`
 - Test: Both direct-distribution (`Debug`) and App Store (`Debug-AppStore`) suites on GitHub's `xcode-27` runner with released Xcode 27.1 (`27A9275`)
 - Build: App Store scheme smoke build on the same pinned Xcode 27.1 toolchain with signing disabled, then `.github/scripts/verify-no-updater.sh` checks it contains no part of Sparkle
