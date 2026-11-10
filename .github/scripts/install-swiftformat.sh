@@ -6,8 +6,8 @@ set -euo pipefail
 # from developer machines and made formatting checks disagree. Keep `version` in step with
 # `--minversion` in `.swiftformat`, and take `sha256` from the release's `swiftformat.zip`
 # asset digest.
-version="0.64.4"
-sha256="bb42fbfb0b9d5f1b8b83db3147087220ea414916fce8c5cf71abaea5ad5a3175"
+version="0.64.6"
+sha256="70e6b2057647fb1c54d620ebbb6649274de56534c57f91f67461a129ebaaba3e"
 
 dest="${RUNNER_TEMP:-$(mktemp -d)}/swiftformat-$version"
 mkdir -p "$dest"
