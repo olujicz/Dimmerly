@@ -23,13 +23,19 @@ git clone https://github.com/olujicz/Dimmerly.git
 cd Dimmerly
 ```
 
-2. Open the project:
+2. Fetch Sparkle for the direct-download scheme (skip for the App Store scheme):
+
+```bash
+bash packaging/sparkle/fetch-sparkle.sh
+```
+
+3. Open the project:
 
 ```bash
 open Dimmerly.xcodeproj
 ```
 
-3. In Xcode, select the desired scheme and press `⌘R`.
+4. In Xcode, select the desired scheme and press `⌘R`.
 
 ## Build Configurations
 

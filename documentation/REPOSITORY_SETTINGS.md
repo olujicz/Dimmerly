@@ -8,6 +8,8 @@ Protect `main` with:
 
 - Require pull request before merging.
 - Require status checks to pass before merging:
+  - `changes`
+  - `gitleaks`
   - `workflow-lint`
   - `format`
   - `lint`

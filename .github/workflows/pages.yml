@@ -13,6 +13,10 @@ on:
       - "images/demo/dimmerly-demo-dark.mp4"
       - "images/demo/dimmerly-demo-light-poster.jpg"
       - "images/demo/dimmerly-demo-dark-poster.jpg"
+      - "images/demo/dimmerly-desk-light-1280.jpg"
+      - "images/demo/dimmerly-desk-light-2320.jpg"
+      - "images/demo/dimmerly-desk-dark-1280.jpg"
+      - "images/demo/dimmerly-desk-dark-2320.jpg"
       - "IconComposerLayers/AppIcon-IconComposer/rendered/icon_128x128@2x.png"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
