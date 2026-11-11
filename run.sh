@@ -1,12 +1,16 @@
 #!/bin/bash
 set -euo pipefail
 
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$repo_root"
+
 if [ "${1:-}" = "appstore" ]; then
     SCHEME="Dimmerly App Store"
     CONFIG="Debug-AppStore"
 else
     SCHEME="Dimmerly"
     CONFIG="Debug"
+    bash packaging/sparkle/fetch-sparkle.sh
 fi
 
 echo "Building $SCHEME ($CONFIG)..."

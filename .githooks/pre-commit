@@ -44,18 +44,23 @@ if [ -n "$staged_swift" ] && command -v swiftlint &>/dev/null; then
     lint_output=""
     lint_failed=0
     while IFS= read -r file; do
-        result=$(swiftlint lint --quiet --strict "$file" 2>/dev/null || true)
+        if result=$(swiftlint lint --quiet --strict "$file" 2>&1); then
+            :
+        else
+            lint_failed=1
+        fi
         if [ -n "$result" ]; then
             lint_output+="$result"$'\n'
-            lint_failed=1
         fi
     done <<< "$staged_swift"
 
+    if [ -n "$lint_output" ]; then
+        printf "%s" "$lint_output"
+    fi
     if [ "$lint_failed" -eq 0 ]; then
         check_passed "SwiftLint"
     else
         check_failed "SwiftLint"
-        printf "%s" "$lint_output"
     fi
 elif [ -z "$staged_swift" ]; then
     :

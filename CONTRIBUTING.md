@@ -49,6 +49,7 @@ Feature suggestions are welcome! Please:
 - Swift 6.4 or later
 - Optional: [just](https://github.com/casey/just) command runner
 - Optional: [SwiftLint](https://github.com/realm/SwiftLint) and [SwiftFormat](https://github.com/nicklockwood/SwiftFormat) 0.64.6 (the version CI uses)
+- Required for commits: [Gitleaks](https://github.com/gitleaks/gitleaks) (`brew install gitleaks`)
 
 ### Building from Source
 
@@ -58,12 +59,18 @@ Feature suggestions are welcome! Please:
    cd dimmerly
    ```
 
-2. Open the project:
+2. Fetch the pinned Sparkle framework for the direct-download scheme:
+   ```bash
+   bash packaging/sparkle/fetch-sparkle.sh
+   ```
+   The App Store scheme does not need Sparkle. Command-line builds through `just` fetch it automatically.
+
+3. Open the project:
    ```bash
    open Dimmerly.xcodeproj
    ```
 
-3. Build and run:
+4. Build and run:
    - Select the Dimmerly scheme
    - Press ⌘R to build and run
    - Or use `just run` from the command line

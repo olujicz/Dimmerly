@@ -43,6 +43,9 @@ jobs:
       - name: Test CI Scope Classifier
         run: .github/scripts/test-ci-scope.sh
 
+      - name: Test Pre-commit Hook
+        run: bash .github/scripts/test-pre-commit.sh
+
       - name: Determine CI Scope
         id: scope
         env:
