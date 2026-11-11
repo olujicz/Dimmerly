@@ -584,6 +584,30 @@ final class DimmerlyAppTests: XCTestCase {
 /// The debug-only screenshot stage behind `scripts/screenshots.sh refresh`.
 @MainActor
 final class ScreenshotStageTests: XCTestCase {
+    func testLaunchScenesExpandControlsAndApplyEveningOnlyToStagedDisplays() throws {
+        XCTAssertTrue(ScreenshotStage.Scene.launchMenu.isLaunch)
+        XCTAssertTrue(ScreenshotStage.Scene.launchEvening.isLaunch)
+        XCTAssertTrue(ScreenshotStage.Scene.launchSchedule.isLaunch)
+        XCTAssertFalse(ScreenshotStage.Scene.menu.isLaunch)
+        XCTAssertTrue(ScreenshotStage.launchDisplays.allSatisfy { $0.expanded == true })
+        let brightness = ScreenshotStage.makeBrightnessManager(displays: ScreenshotStage.launchDisplays)
+        let presets = ScreenshotStage.makePresetManager(presets: ScreenshotStage.launchPresets)
+        let standardBefore = UserDefaults.standard.data(forKey: PresetManager.persistenceKey)
+        let id = try XCTUnwrap(ScreenshotStage.applyLaunchPreset(
+            scene: .launchEvening, brightnessManager: brightness, presetManager: presets
+        ))
+        XCTAssertEqual(presets.preset(withID: id)?.name, "Evening")
+        XCTAssertEqual(brightness.displays.first?.brightness, 0.65)
+        XCTAssertEqual(brightness.displays.first?.warmth, 0.55)
+        XCTAssertNotNil(brightness.applyGammaHook)
+        brightness.refreshDisplays()
+        XCTAssertEqual(brightness.displays.map(\.id), [ScreenshotStage.displayID])
+        XCTAssertEqual(UserDefaults.standard.data(forKey: PresetManager.persistenceKey), standardBefore)
+        XCTAssertNil(ScreenshotStage.applyLaunchPreset(
+            scene: .launchMenu, brightnessManager: brightness, presetManager: presets
+        ))
+    }
+
     override func tearDown() {
         // The suite is throwaway; don't leave a test run's copy on the developer's Mac.
         UserDefaults().removePersistentDomain(forName: ScreenshotStage.defaultsSuiteName)

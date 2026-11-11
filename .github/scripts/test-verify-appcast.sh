@@ -14,6 +14,8 @@ build=16
 prefix="https://github.com/olujicz/Dimmerly/releases/download/v$version/"
 dmg="$fixture_dir/Dimmerly-$version.dmg"
 head -c 4096 /dev/urandom > "$dmg"
+# The tamper check below writes zero here; make sure that always changes signed bytes.
+printf '\001' | dd of="$dmg" bs=1 seek=100 count=1 conv=notrunc 2>/dev/null
 length="$(stat -f%z "$dmg")"
 
 # Compile the signature helper once instead of once per call.

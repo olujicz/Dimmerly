@@ -30,7 +30,8 @@ enum CaptureWindows {
                 index += 2
             }
             guard let pidText = values["--pid"], let processID = pid_t(pidText), processID > 0,
-                  let mode = values["--mode"], ["menu", "settings-region", "settings", "record"].contains(mode),
+                  let mode = values["--mode"],
+                  ["menu", "settings-region", "settings", "record", "menu-desktop", "settings-desktop"].contains(mode),
                   let outputPath = values["--output"], !outputPath.isEmpty,
                   (mode == "record") == (values["--values"] != nil),
                   [nil, "required"].contains(values["--backdrop"])
@@ -61,6 +62,9 @@ enum CaptureWindows {
     static func main() async {
         var statusURL: URL?
         let arguments = CommandLine.arguments
+        if await handleLifecycle(arguments: arguments) {
+            return
+        }
         if arguments.count == 3, arguments[1] == "--preflight" {
             let status = preflightStatus()
             try? writeStatus(status, to: URL(fileURLWithPath: arguments[2]))
@@ -94,7 +98,7 @@ enum CaptureWindows {
                 FileHandle.standardError.write(Data("Recorded \(summary.capturedFrames) frames\n".utf8))
                 return
             }
-            if options.mode == "settings-region" {
+            if options.mode == "settings-region" || options.mode == "settings-desktop" {
                 // Activation can be refused while another app is finishing its own, so retry.
                 for _ in 0 ..< 5 where !application.isActive {
                     application.activate(options: [.activateAllWindows])
@@ -111,7 +115,7 @@ enum CaptureWindows {
             let candidates = content.windows.filter {
                 guard $0.owningApplication?.processID == options.processID else { return false }
                 let size = $0.frame.size
-                if options.mode == "menu" {
+                if options.mode == "menu" || options.mode == "menu-desktop" {
                     return isMenuPanel(size)
                 }
                 // Settings has a title; the staged app's untitled backdrop window behind it doesn't.
@@ -144,9 +148,50 @@ enum CaptureWindows {
         }
     }
 
+    @MainActor
+    private static func handleLifecycle(arguments: [String]) async -> Bool {
+        guard arguments.count == 7, ["--pause-apps", "--resume-apps"].contains(arguments[1]),
+              arguments[3] == "--staged-app", arguments[5] == "--status"
+        else { return false }
+        let manifest = URL(fileURLWithPath: arguments[2])
+        let stagedApp = URL(fileURLWithPath: arguments[4])
+        let status = URL(fileURLWithPath: arguments[6])
+        do {
+            _ = NSApplication.shared
+            if arguments[1] == "--pause-apps" {
+                try await RunningApplications.pause(manifest: manifest, stagedApp: stagedApp)
+                try writeStatus("ok", to: status)
+            } else {
+                let warnings = try await RunningApplications.resume(manifest: manifest, stagedApp: stagedApp)
+                try writeStatus((["ok"] + warnings).joined(separator: "\n"), to: status)
+            }
+        } catch {
+            try? writeStatus(error.localizedDescription, to: status)
+            exit(1)
+        }
+        return true
+    }
+
     /// Captures `window` the way its mode needs.
     private static func captureStill(of window: SCWindow, options: Options) async throws -> CGImage {
         switch options.mode {
+        case "menu-desktop", "settings-desktop":
+            let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+            guard let display = content.displays.first(where: { $0.frame.contains(window.frame) }) else {
+                throw CaptureLayout.LayoutError()
+            }
+            // Capture the actual desktop, including the actual system menu bar. The stage's
+            // plain backdrop covers ordinary windows; no menu bar or app UI is composited.
+            let region = try CaptureLayout.desktopRegion(window: window.frame, display: display.frame)
+            guard content.windows.contains(where: {
+                $0.owningApplication?.processID == options.processID &&
+                    $0.windowID != window.windowID && $0.frame.contains(region)
+            }) else {
+                throw CaptureError("The desktop backdrop isn't ready yet.")
+            }
+            // The stage has appeared, but SwiftUI and the preset transition still need to settle.
+            try await Task.sleep(for: .milliseconds(500))
+            return try await SCScreenshotManager.captureImage(in: region)
         case "menu":
             // See `PanelRegion`: a window-only capture of the popover is too small and its
             // material has nothing behind it.

@@ -69,6 +69,11 @@ screenshots:
 screenshots-github:
     scripts/screenshots.sh refresh --variant github --appearance dark
 
+# Capture three launch scenes with the real menu bar, in light and dark appearances
+[positional-arguments]
+screenshots-launch *args:
+    scripts/screenshots.sh launch "$@"
+
 # Render the demo loop: staged app, panel recording, composite, exports (unlocked Mac, Screen Recording)
 demo:
     scripts/demo.sh render
