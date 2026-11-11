@@ -5,11 +5,13 @@ script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 repo_dir="$(cd -- "$script_dir/.." && pwd)"
 helper_app="$repo_dir/.build/DimmerlyScreenshotHelper.app"
 helper_id="rs.in.olujic.dimmerly.screenshot-helper"
-helper_sources=("$script_dir/screenshots/CaptureWindows.swift" "$script_dir/screenshots/RecordPanel.swift")
+helper_sources=("$script_dir/screenshots/CaptureWindows.swift" "$script_dir/screenshots/RecordPanel.swift"
+    "$script_dir/screenshots/CaptureLayout.swift" "$script_dir/screenshots/RunningApplications.swift")
 
 usage() {
     cat <<'HELP'
 Usage:
+  scripts/screenshots.sh launch [--appearance light|dark|both] [--output DIR] [--skip-build]
   scripts/screenshots.sh refresh [--variant app-store|github] [--appearance light|dark]
                                  [--output PATH] [--skip-build]
   scripts/screenshots.sh build-helper
@@ -33,6 +35,17 @@ build-helper compiles and signs the capture helper without launching it, using t
 valid Apple Development identity; set SIGNING_IDENTITY to a certificate fingerprint
 when several people's or teams' identities are installed. Screen Recording approval for
 DimmerlyScreenshotHelper is requested on the first capture.
+launch captures expanded controls, an applied Evening preset and Schedule settings
+with the real macOS menu bar, in both appearances by default. No composition. Files
+go to docs/launch/assets/menubar-{1,2,3}-{light,dark}.png, plus menubar-{1,2,3}.png
+(light controls, dark Evening, light Schedule). --output selects another directory.
+The staged app uses isolated debug data and does not adjust physical displays.
+Quitting the original app can temporarily clear its dimming/warmth until it reopens.
+Keep the Mac idle
+while it captures; inspect the real menu bar for private icons before sharing.
+Existing Dimmerly instances are gracefully closed first and reopened from their
+original app paths afterward, including when capture fails or is interrupted.
+
 capture launches the helper only; Dimmerly must already be running with the target
 window visible. settings-region avoids the sharing badge, but captures any visible
 occlusions. --backdrop required makes a menu capture fail until the staged app's backdrop
@@ -114,7 +127,7 @@ capture() {
         shift 2
     done
     [[ "$pid" =~ ^[1-9][0-9]*$ && -n "$output" ]] || { usage >&2; return 64; }
-    case "$mode" in menu|settings-region|settings) ;; *) usage >&2; return 64 ;; esac
+    case "$mode" in menu|settings-region|settings|menu-desktop|settings-desktop) ;; *) usage >&2; return 64 ;; esac
     [[ -z "$backdrop" || "$mode" == 'menu' ]] || { usage >&2; return 64; }
     # Setup failures return 2 so capture_when_ready stops instead of retrying them. Each step
     # is checked explicitly because set -e does not apply when capture runs in a condition.
@@ -328,6 +341,142 @@ refresh() {
     echo 'Inspect the result, then review it with git diff --stat before committing.'
 }
 
+launch_screenshots() {
+    local output="$repo_dir/docs/launch/assets" appearance='both' skip_build=''
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --output) [[ $# -ge 2 && -n "$2" ]] || return 64; output="$2"; shift 2 ;;
+            --appearance)
+                [[ $# -ge 2 ]] || return 64
+                case "$2" in light|dark|both) appearance="$2" ;; *) usage >&2; return 64 ;; esac
+                shift 2 ;;
+            --skip-build) skip_build=1; shift ;;
+            *) usage >&2; return 64 ;;
+        esac
+    done
+    local derived="$repo_dir/.build/screenshots/DerivedData"
+    local inputs="$repo_dir/.build/screenshots/launch"
+    local app="$derived/Build/Products/Debug/Dimmerly.app"
+    launch_staged_app="$app"
+    launch_capture_lock="$repo_dir/.build/screenshots/launch.lock"
+    launch_resume_manifest="$inputs/running-apps.json"
+    mkdir -p "$(dirname "$launch_capture_lock")"
+    acquire_launch_lock || return 1
+    trap 'cleanup_launch_capture $?' EXIT
+    trap 'exit 130' INT
+    trap 'exit 143' TERM
+    ensure_helper
+    check_screen_recording || return 1
+    if [[ -z "$skip_build" ]]; then
+        bash "$repo_dir/packaging/sparkle/fetch-sparkle.sh"
+        xcodebuild -quiet -project "$repo_dir/Dimmerly.xcodeproj" -scheme Dimmerly \
+            -configuration Debug -destination "platform=macOS,arch=$(uname -m)" \
+            -derivedDataPath "$derived" build
+    fi
+    [[ -x "$app/Contents/MacOS/Dimmerly" ]] || { echo 'Build missing; run without --skip-build.' >&2; return 1; }
+    mkdir -p "$inputs" "$output"
+    local status interrupted=''
+    # LaunchServices starts a detached helper. Don't let cleanup race that helper's quit
+    # requests or manifest write; finish the bounded close operation before honoring signals.
+    trap 'interrupted=130' INT
+    trap 'interrupted=143' TERM
+    # Recover a saved app path after a previous terminal crash before taking a new snapshot.
+    if [[ -f "$launch_resume_manifest" ]]; then
+        (trap '' INT TERM; restore_launch_apps) || return 1
+        [[ -z "$interrupted" ]] || return "$interrupted"
+    fi
+    echo 'Closing existing Dimmerly instances for capture (they will reopen afterward)...'
+    status="$(trap '' INT TERM; run_helper --pause-apps "$launch_resume_manifest" --staged-app "$launch_staged_app" --status)" || status='Helper failed to launch.'
+    trap 'exit 130' INT
+    trap 'exit 143' TERM
+    [[ -z "$interrupted" ]] || return "$interrupted"
+    [[ "$status" == ok ]] || { echo "Cannot close Dimmerly for capture: $status" >&2; return 1; }
+    local each number scene mode backdrop
+    local appearances=(light dark)
+    [[ "$appearance" == both ]] || appearances=("$appearance")
+    for each in "${appearances[@]}"; do
+        for number in 1 2 3; do
+            mode='menu-desktop'
+            backdrop='#CCD9E4'
+            [[ "$each" == light ]] || backdrop='#25313F'
+            case "$number" in
+                1) scene='launch-menu' ;;
+                2) scene='launch-evening'; [[ "$each" == light ]] && backdrop='#DED2C2' || backdrop='#3B302A' ;;
+                3) scene='launch-schedule'; mode='settings-desktop' ;;
+            esac
+            echo "Capturing $scene ($each)..."
+            launch_staged "$app" "$scene" "$each" "$backdrop"
+            capture_when_ready "$mode" "$inputs/menubar-$number-$each.png"
+            stop_staged
+        done
+    done
+    # Publish only after the whole requested set succeeded, preserving earlier captures on failure.
+    for each in "${appearances[@]}"; do
+        for number in 1 2 3; do
+            cp -- "$inputs/menubar-$number-$each.png" "$output/menubar-$number-$each.png"
+        done
+    done
+    if [[ "$appearance" == both ]]; then
+        cp -- "$output/menubar-1-light.png" "$output/menubar-1.png"
+        cp -- "$output/menubar-2-dark.png" "$output/menubar-2.png"
+        cp -- "$output/menubar-3-light.png" "$output/menubar-3.png"
+    fi
+    echo "Launch screenshots saved to $output"
+}
+
+acquire_launch_lock() {
+    local owner current_owner
+    if ! mkdir "$launch_capture_lock" 2>/dev/null; then
+        owner="$(cat "$launch_capture_lock/pid" 2>/dev/null || true)"
+        if [[ "$owner" =~ ^[1-9][0-9]*$ ]] && ! kill -0 "$owner" 2>/dev/null &&
+            mkdir "$launch_capture_lock/recovery" 2>/dev/null; then
+            # Recheck after taking the recovery marker: a different contender may have
+            # replaced the lock between our first read and acquiring the marker.
+            current_owner="$(cat "$launch_capture_lock/pid" 2>/dev/null || true)"
+            if [[ "$current_owner" == "$owner" ]] && ! kill -0 "$owner" 2>/dev/null; then
+                rm -- "$launch_capture_lock/pid"
+                rmdir "$launch_capture_lock/recovery" "$launch_capture_lock"
+                mkdir "$launch_capture_lock" 2>/dev/null || return 1
+                echo "Recovered capture lock from exited process $owner."
+            else
+                rmdir "$launch_capture_lock/recovery"
+                return 1
+            fi
+        else
+            echo "Launch capture lock is held by process ${owner:-unknown}: $launch_capture_lock" >&2
+            echo 'Wait for that capture; an unknown owner needs manual inspection before removing the lock.' >&2
+            return 1
+        fi
+    fi
+    printf '%s\n' "$$" > "$launch_capture_lock/pid"
+}
+
+restore_launch_apps() {
+    local status
+    status="$(run_helper --resume-apps "$launch_resume_manifest" --staged-app "$launch_staged_app" --status)" || status='Helper failed to launch.'
+    case "$status" in
+        ok) return 0 ;;
+        $'ok\n'*) printf '%s\n' "${status#*$'\n'}" >&2; return 0 ;;
+        *)
+            echo "Could not restore Dimmerly: $status" >&2
+            echo "Saved app locations are kept in $launch_resume_manifest. Finish closing the original app, then rerun launch." >&2
+            return 1 ;;
+    esac
+}
+
+cleanup_launch_capture() {
+    local result="$1"
+    trap '' INT TERM
+    stop_staged
+    if [[ -f "$launch_resume_manifest" ]]; then
+        echo 'Restoring the Dimmerly app that was running before capture...'
+        restore_launch_apps || result=1
+    fi
+    rm -- "$launch_capture_lock/pid"
+    rmdir "$launch_capture_lock"
+    exit "$result"
+}
+
 run_compose() {
     mkdir -p "$repo_dir/.build"
     xcrun swiftc "$script_dir/screenshots/ComposeScreenshots.swift" \
@@ -344,6 +493,7 @@ case "$command" in
     build-helper) [[ $# -eq 0 ]] || { usage >&2; exit 64; }; build_helper ;;
     capture) capture "$@" ;;
     refresh) refresh "$@" ;;
+    launch) launch_screenshots "$@" ;;
     compose) run_compose "$@" ;;
     help|--help|-h) usage ;;
     *) usage >&2; exit 64 ;;

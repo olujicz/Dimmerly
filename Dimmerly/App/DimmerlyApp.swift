@@ -754,6 +754,16 @@ extension StatusItemQuickActions: NSMenuItemValidation {
             case menu
             case settings
             case demo
+            case launchMenu = "launch-menu"
+            case launchEvening = "launch-evening"
+            case launchSchedule = "launch-schedule"
+
+            var isLaunch: Bool {
+                switch self {
+                case .launchMenu, .launchEvening, .launchSchedule: true
+                default: false
+                }
+            }
         }
 
         nonisolated static let environmentKey = "DIMMERLY_SCREENSHOT"
@@ -829,12 +839,21 @@ extension StatusItemQuickActions: NSMenuItemValidation {
             DemoStoryboard.Preset(name: "Night", brightness: 0.35),
         ]
 
+        nonisolated static let launchDisplays = [
+            DemoStoryboard.Display(name: "External Display", brightness: 0.75, expanded: true),
+        ]
+        nonisolated static let launchPresets = [
+            DemoStoryboard.Preset(name: "Full", brightness: 1.0, warmth: 0),
+            DemoStoryboard.Preset(name: "Evening", brightness: 0.65, warmth: 0.55),
+            DemoStoryboard.Preset(name: "Night", brightness: 0.35, warmth: 0.75),
+        ]
+
         nonisolated static var displays: [DemoStoryboard.Display] {
-            storyboard?.displays ?? screenshotDisplays
+            storyboard?.displays ?? (scene?.isLaunch == true ? launchDisplays : screenshotDisplays)
         }
 
         nonisolated static var presets: [DemoStoryboard.Preset] {
-            storyboard?.presets ?? screenshotPresets
+            storyboard?.presets ?? (scene?.isLaunch == true ? launchPresets : screenshotPresets)
         }
 
         /// San Francisco, for sunrise and sunset. A storyboard can name another place.
@@ -854,16 +873,17 @@ extension StatusItemQuickActions: NSMenuItemValidation {
 
         /// The Settings tab a `settings` run opens on: `DIMMERLY_SCREENSHOT_SETTINGS_TAB=displays`
         /// (the default) or `schedule`.
-        nonisolated static let settingsTab: SettingsView.Tab = switch ProcessInfo.processInfo
-            .environment[settingsTabEnvironmentKey]
-        {
-        case nil, "", "displays":
-            .displays
-        case "schedule":
-            .schedule
-        case let value?:
-            fail("\(settingsTabEnvironmentKey) must be displays or schedule, not \(value).")
-        }
+        nonisolated static let settingsTab: SettingsView.Tab = {
+            if scene == .launchSchedule {
+                return .schedule
+            }
+            return switch ProcessInfo.processInfo.environment[settingsTabEnvironmentKey] {
+            case nil, "", "displays": .displays
+            case "schedule": .schedule
+            case let value?:
+                fail("\(settingsTabEnvironmentKey) must be displays or schedule, not \(value).")
+            }
+        }()
 
         /// Display rows that open with their warmth and contrast sliders showing.
         nonisolated static var expandedDisplayNames: Set<String> {
@@ -879,7 +899,7 @@ extension StatusItemQuickActions: NSMenuItemValidation {
             let settings = AppSettings(defaults: defaults)
             // The Schedule tab lists schedules only while scheduling is on. Nothing runs them:
             // launch setup is skipped, and this is set before anything observes it.
-            if scene == .settings, settingsTab == .schedule {
+            if scene == .settings || scene == .launchSchedule, settingsTab == .schedule {
                 settings.scheduleEnabled = true
             }
             // The Displays tab shows inactivity dimming and automatic warmth switched on, with
@@ -1064,6 +1084,17 @@ extension StatusItemQuickActions: NSMenuItemValidation {
 
         private static var didPresent = false
 
+        /// Uses the same preset application as a click, on the isolated screenshot managers.
+        static func applyLaunchPreset(
+            scene: Scene?, brightnessManager: BrightnessManager, presetManager: PresetManager
+        ) -> UUID? {
+            guard scene == .launchEvening,
+                  let preset = presetManager.presets.first(where: { $0.name == "Evening" })
+            else { return nil }
+            presetManager.applyPreset(preset, to: brightnessManager)
+            return preset.id
+        }
+
         /// Shows the staged window once the status item exists. The capture script waits for
         /// the window itself, so this only has to show it.
         static func statusItemDidAttach(openSettings: @escaping () -> Void) {
@@ -1088,10 +1119,13 @@ extension StatusItemQuickActions: NSMenuItemValidation {
                     try? await Task.sleep(for: .milliseconds(20))
                 }
                 switch scene {
-                case .menu:
-                    MenuBarPanelPresenter.shared.present(selectedPresetID: nil)
+                case .menu, .launchMenu, .launchEvening:
+                    let presetID = applyLaunchPreset(
+                        scene: scene, brightnessManager: .shared, presetManager: .shared
+                    )
+                    MenuBarPanelPresenter.shared.present(selectedPresetID: presetID)
                     await showBackdropBehindPanel()
-                case .settings:
+                case .settings, .launchSchedule:
                     // `settingsWindowDidAttach` centers the window once SwiftUI creates it.
                     openSettings()
                 case .demo:
@@ -1155,7 +1189,9 @@ extension StatusItemQuickActions: NSMenuItemValidation {
             guard let panelWindow else { fail("The panel did not appear, so the backdrop has nowhere to go.") }
             let panelFrame = panelWindow.frame
             let window = NSWindow(
-                contentRect: panelFrame.insetBy(dx: -80, dy: -80),
+                contentRect: scene?.isLaunch == true
+                    ? (panelWindow.screen?.frame ?? panelFrame)
+                    : panelFrame.insetBy(dx: -80, dy: -80),
                 styleMask: .borderless,
                 backing: .buffered,
                 defer: false
@@ -1185,7 +1221,7 @@ extension StatusItemQuickActions: NSMenuItemValidation {
         /// Called by the Settings window itself, so only that window is moved, and only once
         /// it exists, however long the first launch takes.
         static func settingsWindowDidAttach(_ window: NSWindow) {
-            guard scene == .settings else { return }
+            guard scene == .settings || scene == .launchSchedule else { return }
             window.center()
             window.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
@@ -1203,7 +1239,9 @@ extension StatusItemQuickActions: NSMenuItemValidation {
                 fail("\(backdropEnvironmentKey) must be a #RRGGBB colour, not \(hex).")
             }
             let backdrop = NSWindow(
-                contentRect: window.frame.insetBy(dx: -80, dy: -80),
+                contentRect: scene?.isLaunch == true
+                    ? (window.screen?.frame ?? window.frame)
+                    : window.frame.insetBy(dx: -80, dy: -80),
                 styleMask: .borderless,
                 backing: .buffered,
                 defer: false

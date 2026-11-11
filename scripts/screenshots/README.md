@@ -13,6 +13,67 @@ Requires macOS 15.2 or later, Xcode command-line tools, and an Apple Development
 signing identity for the capture helper. Composition needs no signing or Screen
 Recording permission.
 
+## Launch screenshots with the real menu bar
+
+```sh
+just screenshots-launch
+just screenshots-launch --skip-build
+just screenshots-launch --appearance dark --output /tmp/dimmerly-launch
+```
+
+This builds the direct-download debug edition and captures three scenes in light
+and dark appearances: expanded external display controls, the applied warm Evening
+preset, and Schedule settings. The six native-resolution PNGs are saved to
+`docs/launch/assets/menubar-{1,2,3}-{light,dark}.png`. A full run also selects
+light controls, dark Evening, and light Schedule as `menubar-1.png` through
+`menubar-3.png`, ready for directory submissions. Raw captures stay in
+`.build/screenshots/launch/`. `--output` changes the destination; a single
+appearance run only updates its three appearance-specific files.
+
+These are actual screen regions including the real macOS menu bar, without
+composition or promotional text. A temporary plain backdrop covers other desktop
+windows inside the capture. The system menu bar remains real: inspect it for
+personal icons or status information before sharing. Leave the Mac idle while
+the six scenes are captured. Do not run the demo or other screenshot commands
+at the same time: they share the staging defaults suite and helper.
+
+The command reuses the helper's Screen Recording approval, needs an unlocked
+Mac with an awake display, and stops early with instructions when either is
+missing. After building, it remembers and gracefully quits existing Dimmerly
+instances so there is only one icon during capture. It reopens the exact original
+app paths on success, failure or interruption. It never force-quits an existing
+app. A recovery manifest under `.build/screenshots/launch/running-apps.json`
+survives a terminal crash; the next launch capture restores it before starting.
+Locks record the capture's PID; a later invocation recovers a lock only when its
+owner has exited. Staged builds left behind by a crash are closed without being
+saved for relaunch. Restoration waits for original processes to finish quitting,
+keeps recovery data on a shutdown timeout, and reports missing original app paths
+instead of blocking every later capture. Ctrl-C during the close step is deferred
+until that step finishes, then cleanup restores the original app before exiting.
+It never changes the system appearance or wallpaper and uses no-op display
+control with isolated settings. Quitting the original app can temporarily clear
+its live dimming or warmth until it reopens. Staged processes and temporary
+backdrops are closed on completion or interruption. The crop includes the screen's
+right edge so the clock is kept whole. An app window
+that cannot fit on one display fails instead of silently being cropped.
+
+The launch scenes are debug-only (`DIMMERLY_SCREENSHOT=launch-menu`,
+`launch-evening`, `launch-schedule`). Their fixtures live beside the existing
+`ScreenshotStage` fixtures. Schedule uses the same staged location and schedules
+as the existing capture path. The plain warm backdrop in the Evening image is
+a desktop colour, not a measurement of display colour temperature: actual gamma
+changes do not appear in screenshots, and staging never changes display gamma.
+
+Check crop geometry without screen access:
+
+```sh
+xcrun swiftc scripts/screenshots/CaptureLayout.swift scripts/screenshots/CaptureLayoutTests.swift -o /tmp/dimmerly-layout-tests
+/tmp/dimmerly-layout-tests
+bash scripts/screenshots/test-launch.sh
+xcrun swiftc -swift-version 6 -parse-as-library scripts/screenshots/RunningApplications.swift scripts/screenshots/RunningApplicationsTests.swift -o /tmp/dimmerly-running-app-tests
+/tmp/dimmerly-running-app-tests
+```
+
 ## One command
 
 ```sh

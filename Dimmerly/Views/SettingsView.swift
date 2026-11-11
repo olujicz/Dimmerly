@@ -270,7 +270,7 @@ struct SettingsView: View {
         /// default) and leaves the person's saved pane alone.
         static var stagedOverride: Tab? {
             #if DEBUG
-                if ScreenshotStage.scene == .settings {
+                if ScreenshotStage.scene == .settings || ScreenshotStage.scene == .launchSchedule {
                     return ScreenshotStage.settingsTab
                 }
             #endif
