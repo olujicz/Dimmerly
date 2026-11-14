@@ -350,7 +350,7 @@ brew info --cask olujicz/dimmerly/dimmerly
 
 If a release is published with a blocking issue:
 
-1. Mark the release as pre-release or add a warning to the release notes. Marking it pre-release also takes it out of the in-app update feed, which then offers the previous release again. Sparkle never downgrades, so people who already installed the bad build stay on it until the fixed version is published; ship the patch quickly.
+1. Mark the release as pre-release or add a warning to the release notes. Marking it pre-release also takes it out of the in-app update feed, which then serves the previous release's `appcast.xml`. Releases before 1.5.0 have none, so while 1.5.0 is the only release with a feed, withdrawing it makes update checks fail with an error instead of offering an older version. Sparkle never downgrades, so people who already installed the bad build stay on it until the fixed version is published; ship the patch quickly.
 2. Remove the DMG asset only if the build is unsafe to distribute.
 3. Re-link the previous stable release in the notes.
 4. Run the GitHub Pages workflow from `main`, so the website's download
