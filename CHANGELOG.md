@@ -7,6 +7,8 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-11-14
+
 ### Added
 - The direct download now updates itself. Choose Check for Updates… in Settings > About or in the menu bar icon's right-click menu, or let Dimmerly check automatically; it asks before it does. A check downloads a small file from GitHub and sends no system profile. If you're on 1.4.2 or earlier, download this version once by hand. The App Store edition still updates through the App Store.
 
