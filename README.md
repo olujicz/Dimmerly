@@ -89,9 +89,9 @@ sleep.
 
 ### Updating
 
-From version 1.5.0, the direct-download build updates itself: choose Check for
-Updates… in Settings > About or in the menu bar icon's right-click menu, or let
-it check automatically. Homebrew installs can use the same in-app updater or a
+The direct-download build updates itself: choose Check for Updates… in
+Settings > About or in the menu bar icon's right-click menu, or let it check
+automatically. Homebrew installs can use the same in-app updater or a
 plain `brew upgrade`. Homebrew compares the version of the installed app, so it
 leaves an app that already updated itself alone. Don't use
 `brew upgrade --greedy` for Dimmerly. It ignores the installed app's version and
@@ -214,10 +214,10 @@ Spotlight on macOS 15.4 and later.
 
 Dimmerly does not collect analytics, usage data, crash reports, or personal data.
 
-From version 1.5.0, the direct-download build can check GitHub for updates. It
-asks before checking automatically, and you can turn checks off in
-Settings > About. A check downloads a small file from GitHub and sends no system
-profile. The App Store build is updated by the App Store.
+The direct-download build can check GitHub for updates. It asks before checking
+automatically, and you can turn checks off in Settings > About. A check
+downloads a small file from GitHub and sends no system profile. The App Store
+build is updated by the App Store.
 
 Settings are stored locally with UserDefaults. If you use current location for
 sunrise and sunset schedules, macOS Location Services provides the coordinate
