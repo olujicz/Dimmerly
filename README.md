@@ -31,18 +31,14 @@ brew install --cask dimmerly
 
 ![Dimmerly menu bar panel on macOS](images/image1.png)
 
-## New in 1.4.2
+## New in 1.5.0
 
-- The menu bar panel grows with its content, so turning on Auto Warmth no longer hides Settings… and Quit Dimmerly
+- The direct download updates itself: choose Check for Updates… in Settings > About or the menu bar icon's right-click menu, or let Dimmerly check automatically after it asks. If you're on 1.4.2 or earlier, download 1.5.0 once by hand
+- A brightness, warmth or contrast change made just before quitting, logging out or updating is saved instead of lost
+- Opening Dimmerly while its menu bar icon is hidden opens Settings instead of doing nothing
+- The menu bar panel is easier to read with Increase Contrast or Reduce Transparency, and VoiceOver labels are clearer
 
-Also new since 1.4.1:
-
-- DDC/CI monitors keep the brightness they already have when Dimmerly starts or a monitor is plugged in, including levels below 10%
-- One unreadable preset or schedule no longer erases the rest
-- Keyboard shortcuts start working as soon as Accessibility access is granted
-- The menu bar panel asks before deleting or overwriting a preset or switching a monitor's input, and action names match everywhere
-
-See [the changelog](CHANGELOG.md#142---2026-11-05) for the full release notes.
+See [the changelog](CHANGELOG.md#150---2026-11-14) for the full release notes.
 
 ## Why Dimmerly?
 
