@@ -46,6 +46,9 @@ jobs:
       - name: Test Pre-commit Hook
         run: bash .github/scripts/test-pre-commit.sh
 
+      - name: Test Screenshot Launch Lifecycle
+        run: bash scripts/screenshots/test-launch.sh
+
       - name: Determine CI Scope
         id: scope
         env:

@@ -76,4 +76,23 @@ SIGNAL_DURING_PAUSE=1 bash "$scratch/fixture.sh" --appearance light > "$scratch/
 [[ "$signal_result" == 143 ]]
 [[ "$(tail -1 "$scratch/events")" == resume ]]
 [[ ! -e "$scratch/.build/screenshots/launch/running-apps.json" ]]
+# A staged copy left running from this checkout's .build blocks staging; other copies don't.
+cat > "$scratch/stale.sh" <<'STALE'
+source "$SCREENSHOT_SCRIPT"
+repo_dir="$FIXTURE_ROOT/repo with space"
+ps() {
+    echo "  101 /Applications/Dimmerly.app/Contents/MacOS/Dimmerly"
+    echo "  102 /other/checkout/.build/screenshots/DerivedData/Build/Products/Debug/Dimmerly.app/Contents/MacOS/Dimmerly"
+    [[ -z "${STALE_PID:-}" ]] || echo "  $STALE_PID $repo_dir/.build/screenshots/DerivedData/Build/Products/Debug/Dimmerly.app/Contents/MacOS/Dimmerly -AppleLocale en_US"
+}
+refuse_stale_staged
+STALE
+bash "$scratch/stale.sh" > "$scratch/log" 2>&1
+if STALE_PID=4242 bash "$scratch/stale.sh" > "$scratch/log" 2>&1; then
+    echo 'Expected a leftover staged copy to block staging' >&2
+    exit 1
+fi
+grep -q 'kill 4242' "$scratch/log"
+if grep -q -E '(^| )10[12] ' "$scratch/log"; then echo 'Only this checkout'"'"'s staged copy may be named' >&2; exit 1; fi
+
 echo 'Launch lifecycle checks passed'

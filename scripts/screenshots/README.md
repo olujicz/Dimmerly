@@ -74,6 +74,12 @@ xcrun swiftc -swift-version 6 -parse-as-library scripts/screenshots/RunningAppli
 /tmp/dimmerly-running-app-tests
 ```
 
+CI runs `test-launch.sh`. Staging (`refresh` and the demo captures) refuses to
+start while a Dimmerly launched from this checkout's `.build` is still running,
+for example one left behind by a run that was killed before it could stop its
+app. Stop it by the PID the message prints, not by bundle ID: the installed app
+shares it.
+
 ## One command
 
 ```sh

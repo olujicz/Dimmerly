@@ -131,6 +131,7 @@ demo_capture() {
     local record_status="$run_dir/record-status" app_pid recorder_pid
     rm -f -- "$record_status"
 
+    refuse_stale_staged || return 1
     echo "Playing the storyboard and recording the $appearance panel (about 20 seconds)..."
     local time_zone
     time_zone="$(plutil -extract timeZone raw -o - "$storyboard" 2>/dev/null || echo "$staged_time_zone")"

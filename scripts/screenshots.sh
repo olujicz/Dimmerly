@@ -205,10 +205,34 @@ staged_locale_args=(-AppleLocale en_US -AppleLanguages '(en)')
 # another). The app can't change its own, so it refuses to stage in any other.
 staged_time_zone='America/Los_Angeles'
 
+# Prints "PID command" for each Dimmerly started from this checkout's .build folder: a staged
+# copy left over from an earlier run that was killed before its traps could stop it.
+stale_staged_apps() {
+    local prefix="$repo_dir/.build/"
+    ps -axo pid=,command= | awk -v prefix="$prefix" '{
+        pid = $1; sub(/^[ \t]*[0-9]+[ \t]+/, "")
+        if (index($0, prefix) == 1 && index($0, "/Dimmerly.app/Contents/MacOS/Dimmerly") > 0) print pid " " $0
+    }'
+}
+
+# Refuses to stage while a leftover copy runs: it would fight the new one over the displays,
+# and the person has to choose when their displays change, so this doesn't stop it.
+refuse_stale_staged() {
+    local stale
+    stale="$(stale_staged_apps)"
+    [[ -n "$stale" ]] || return 0
+    echo 'A staged Dimmerly from an earlier run is still running:' >&2
+    echo "$stale" | cut -c1-200 >&2
+    echo 'Stop it by PID (it shares its bundle ID with the installed app), then run again:' >&2
+    echo "  kill $(echo "$stale" | awk '{print $1}' | tr '\n' ' ')" >&2
+    return 1
+}
+
 # Launches the staged debug app for one scene and records its PID in staged_pid. An optional
 # appearance (light or dark, empty to follow the system) and #RRGGBB backdrop colour follow.
 launch_staged() {
     local app="$1" scene="$2" appearance="${3:-}" backdrop="${4:-}"
+    refuse_stale_staged || return 1
     # Debug builds write coverage data to the working directory unless told otherwise.
     TZ="$staged_time_zone" DIMMERLY_SCREENSHOT="$scene" DIMMERLY_SCREENSHOT_APPEARANCE="$appearance" \
         DIMMERLY_SCREENSHOT_BACKDROP="$backdrop" LLVM_PROFILE_FILE="$repo_dir/.build/default.profraw" \
