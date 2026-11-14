@@ -565,12 +565,13 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = A1B2C3D4E5F6A7B8C9D0E1F7 /* Build configuration list for PBXNativeTarget "Dimmerly" */;
 			buildPhases = (
+				SP0000000000000000000005 /* Sparkle: merge Info.plist */,
 				A1B2C3D4E5F6A7B8C9D0E1FC /* Sources */,
 				A1B2C3D4E5F6A7B8C9D0E1FD /* Resources */,
 				A1B2C3D4E5F6A7B8C9D0E1FE /* Frameworks */,
 				4CFE3A182F3C8B1700E8C290 /* Embed Foundation Extensions */,
 				SP0000000000000000000003 /* Embed Frameworks */,
-				SP0000000000000000000004 /* Sparkle: direct build only */,
+				SP0000000000000000000004 /* Sparkle: check App Store build */,
 			);
 			buildRules = (
 			);
@@ -689,7 +690,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		SP0000000000000000000004 /* Sparkle: direct build only */ = {
+		SP0000000000000000000004 /* Sparkle: check App Store build */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -699,19 +700,39 @@
 			);
 			inputPaths = (
 				"$(SRCROOT)/packaging/sparkle/build-phase.sh",
-				"$(SRCROOT)/packaging/sparkle/SparkleInfo.plist",
 				"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)",
 			);
-			name = "Sparkle: direct build only";
+			name = "Sparkle: check App Store build";
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)",
 				"$(DERIVED_FILE_DIR)/sparkle-build-phase.stamp",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "/bin/bash \"$SRCROOT/packaging/sparkle/build-phase.sh\"\n";
+		};
+		SP0000000000000000000005 /* Sparkle: merge Info.plist */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/packaging/sparkle/merge-info-plist.sh",
+				"$(SRCROOT)/packaging/sparkle/SparkleInfo.plist",
+				"$(SRCROOT)/Dimmerly/Resources/Info.plist",
+			);
+			name = "Sparkle: merge Info.plist";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Info-Direct.plist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "/bin/bash \"$SRCROOT/packaging/sparkle/merge-info-plist.sh\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -1149,7 +1170,7 @@
 					"$(PROJECT_DIR)/Vendor/Sparkle",
 				);
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = Dimmerly/Resources/Info.plist;
+				INFOPLIST_FILE = "$(DERIVED_FILE_DIR)/Info-Direct.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -1181,7 +1202,7 @@
 					"$(PROJECT_DIR)/Vendor/Sparkle",
 				);
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = Dimmerly/Resources/Info.plist;
+				INFOPLIST_FILE = "$(DERIVED_FILE_DIR)/Info-Direct.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
