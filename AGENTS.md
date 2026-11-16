@@ -12,6 +12,13 @@ automated contributions.
   `just check` is the full gate.
 - Stop and ask the maintainer before any release, tag, publication, or
   default-branch push that was not requested.
+- After a branch is merged into the default branch, delete it locally and
+  remove its worktree. A branch is merged when
+  `git cherry origin/<default> <branch>` prints no `+` lines (for squashed or
+  combined commits, confirm with the tracker or `git log --grep`). GitHub
+  deletes PR head branches on merge; delete other remote branches only when
+  the maintainer asks. Branches kept for an owner gate stay pushed and are
+  named in the tracker.
 - Keep credentials, access tokens, and private data out of the repository.
 - Keep internal development notes in the gitignored `docs/` directory. Do not
   force-add them without explicit maintainer approval.
