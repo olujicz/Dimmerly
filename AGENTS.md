@@ -5,11 +5,13 @@ automated contributions.
 
 ## Development Workflow
 
-- Keep edits scoped to the requested change.
-- Prefer the project conventions and commands documented in `BUILDING.md`,
-  `CONTRIBUTING.md`, and `Justfile`.
-- Do not revert unrelated local changes.
-- Run the narrowest useful validation before submitting a change.
+- Keep edits scoped to the requested change and leave unrelated local changes
+  alone.
+- Follow the conventions and commands in `BUILDING.md`, `CONTRIBUTING.md`, and
+  `Justfile`. A change is done when the narrowest useful validation passes;
+  `just check` is the full gate.
+- Stop and ask the maintainer before any release, tag, publication, or
+  default-branch push that was not requested.
 - Keep credentials, access tokens, and private data out of the repository.
 - Keep internal development notes in the gitignored `docs/` directory. Do not
   force-add them without explicit maintainer approval.
@@ -50,6 +52,7 @@ Releases, DMG assets, notarization, and signing.
 
 - Website source lives in `documentation/` and is public-facing.
 - Keep the privacy policy aligned with website data collection.
-- Preserve the website deployment's secret-safe handling of analytics
-  configuration; never commit or print secret values.
+- Source HTML keeps the `__CLOUDFLARE_WEB_ANALYTICS_TOKEN__` placeholder; the
+  Pages workflow injects the token from a GitHub Actions secret. Never commit
+  or print the token value.
 - Do not put internal-only notes in `documentation/`.
