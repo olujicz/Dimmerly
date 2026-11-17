@@ -2024,3 +2024,39 @@ figcaption { text-wrap: pretty; }
 @media (prefers-reduced-motion: reduce) {
     *, ::before, ::after { transition-duration: 0.01ms !important; }
 }
+
+/* Mac App Store edition. Apple's badge artwork is used unmodified, with at
+   least a quarter of its height clear around it (the gap in the action rows). */
+.app-store-badge {
+    display: inline-flex;
+    border-radius: 8px;
+}
+
+.app-store-badge img {
+    display: block;
+    width: auto;
+    height: 48px;
+}
+
+.app-store-badge:focus-visible { outline-offset: 4px; }
+
+.install .edition {
+    margin-top: 28px;
+    padding-top: 22px;
+    border-top: 1px solid var(--console-line);
+}
+
+.install .edition h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    letter-spacing: -0.01em;
+}
+
+.install .edition .install-note { max-width: 460px; }
+
+.install-scope {
+    max-width: var(--measure);
+    margin: -8px 0 18px;
+    color: var(--console-text);
+    font-size: 0.9rem;
+}

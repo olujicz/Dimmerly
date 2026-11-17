@@ -5,8 +5,8 @@ volume, input source, presets, and schedules—with DDC/CI hardware control and
 software fallback.
 
 Dimmerly brings controls that are usually buried in the monitor OSD or split
-across System Settings into one native menu bar app. It is free and open source
-under the MIT License.
+across System Settings into one native menu bar app. The source and the direct
+download are free under the MIT License; the Mac App Store edition is paid.
 
 [![macOS 15.0+](https://img.shields.io/badge/macOS-15.0%2B-blue)](#requirements)
 [![Latest release](https://img.shields.io/github/v/release/olujicz/Dimmerly?display_name=tag&sort=semver)](https://github.com/olujicz/Dimmerly/releases/latest)
@@ -99,7 +99,10 @@ can put back an older release when the Homebrew tap hasn't caught up yet.
 
 ### App Store build
 
-The repository also includes a sandboxed App Store configuration. See
+Dimmerly is also sold on the
+[Mac App Store](https://apps.apple.com/app/dimmerly/id6759058022). Buying it
+supports development and the App Store keeps it updated. It is a separate,
+sandboxed edition, and its version can trail the direct download. See
 [Build Differences](#build-differences) for its capabilities.
 
 ### Build from source
