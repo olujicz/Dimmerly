@@ -150,6 +150,24 @@ final class ScreenBlanker {
                 self?.displayTopologyDidChange()
             }
         }
+        notificationCenter.addObserver(
+            forName: NSApplication.didResignActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.appDidResignActive()
+            }
+        }
+    }
+
+    /// Ends a session whose wake input can no longer be captured. In the App Store edition a
+    /// local event monitor only sees events while Dimmerly is active, so once another app takes
+    /// focus (Command-Tab, a notification, Mission Control) the overlay would stay black with no
+    /// way to wake it. A partial per-display session has no input capture to lose.
+    func appDidResignActive() {
+        guard inputMonitor.requiresActiveApp, state.isGlobal || state.recoveryArmed else { return }
+        dismiss(force: true)
     }
 
     func blank() {

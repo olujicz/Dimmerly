@@ -281,6 +281,79 @@ final class ScreenBlankerTests: XCTestCase {
         XCTAssertEqual(harness.cursor.unhideCount, 1)
     }
 
+    // MARK: - Focus loss while the wake input needs Dimmerly to be active
+
+    func testLosingFocusEndsGlobalBlankWhenWakeInputNeedsTheActiveApp() {
+        let harness = makeHarness()
+        harness.input.requiresActiveApp = true
+        harness.sut.blank()
+
+        harness.postAppResignedActive()
+
+        XCTAssertFalse(harness.sut.isBlanking)
+        XCTAssertEqual(harness.input.stopCount, 1)
+        XCTAssertEqual(harness.windows.removeAllCount, 1)
+        XCTAssertEqual(harness.gamma.restoredDisplayIDs, [7, 9])
+        XCTAssertEqual(harness.cursor.unhideCount, 1)
+        XCTAssertTrue(harness.failures.errors.isEmpty, "Losing focus is not an input-filtering failure")
+    }
+
+    func testLosingFocusEndsGlobalBlankWithinTheGracePeriod() {
+        let harness = makeHarness()
+        harness.input.requiresActiveApp = true
+        harness.sut.blank()
+        // No time has passed since the session started; a normal wake would be ignored here.
+        harness.postAppResignedActive()
+
+        XCTAssertFalse(harness.sut.isBlanking)
+    }
+
+    func testLosingFocusKeepsBlankingWhenWakeInputDoesNotNeedTheActiveApp() {
+        let harness = makeHarness()
+        harness.sut.blank()
+
+        harness.postAppResignedActive()
+
+        XCTAssertTrue(harness.sut.isBlanking)
+        XCTAssertEqual(harness.input.stopCount, 0)
+    }
+
+    func testLosingFocusEndsFullyCoveredPerDisplaySession() {
+        let harness = makeHarness()
+        harness.input.requiresActiveApp = true
+        harness.sut.blankDisplay(7)
+        harness.sut.blankDisplay(9)
+        XCTAssertEqual(harness.input.startPolicies.count, 1, "Recovery input is armed")
+
+        harness.postAppResignedActive()
+
+        XCTAssertFalse(harness.sut.isBlankingAnyDisplay)
+        XCTAssertFalse(harness.sut.isDisplayBlanked(7))
+        XCTAssertFalse(harness.sut.isDisplayBlanked(9))
+        XCTAssertEqual(harness.input.stopCount, 1)
+        XCTAssertEqual(harness.cursor.unhideCount, 1)
+    }
+
+    func testLosingFocusLeavesPartialPerDisplayBlankingAlone() {
+        let harness = makeHarness()
+        harness.input.requiresActiveApp = true
+        harness.sut.blankDisplay(7)
+
+        harness.postAppResignedActive()
+
+        XCTAssertTrue(harness.sut.isDisplayBlanked(7))
+    }
+
+    func testLosingFocusWhileIdleDoesNothing() {
+        let harness = makeHarness()
+        harness.input.requiresActiveApp = true
+
+        harness.postAppResignedActive()
+
+        XCTAssertEqual(harness.input.stopCount, 0)
+        XCTAssertTrue(harness.gamma.restoredDisplayIDs.isEmpty)
+    }
+
     // MARK: - Blanking while a display has no screen yet
 
     func testBlankSkipsDisplayWithoutScreenAndCoversItOnceItAppears() async {
@@ -823,6 +896,11 @@ private struct ScreenBlankerHarness {
             await Task.yield()
         }
     }
+
+    /// Delivers AppKit's notification that another app took focus.
+    func postAppResignedActive() {
+        notificationCenter.post(name: NSApplication.didResignActiveNotification, object: nil)
+    }
 }
 
 #if !APPSTORE
@@ -850,6 +928,7 @@ private final class FakeBlankingInputMonitor: BlankingInputMonitoring {
     var startPolicies: [BlankingInputPolicy] = []
     var startError: BlankingInputMonitorError?
     var stopCount = 0
+    var requiresActiveApp = false
     private var onWake: (@MainActor () -> Void)?
     private var onSuppressedInput: (@MainActor () -> Void)?
     private var onFailure: (@MainActor (BlankingInputMonitorError) -> Void)?

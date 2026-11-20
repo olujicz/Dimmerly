@@ -142,8 +142,17 @@ final class SystemBlankingWindowController: BlankingWindowControlling {
     }
 
     func removeWindow(for displayID: CGDirectDisplayID) {
-        windows.removeValue(forKey: displayID)?.orderOut(nil)
+        let removed = windows.removeValue(forKey: displayID)
+        let wasKey = removed?.isKeyWindow ?? false
+        removed?.orderOut(nil)
         wakeHints.removeValue(forKey: displayID)
+        #if APPSTORE
+            // Wake input is read through the key window. When the display holding it goes away,
+            // another overlay takes over so keys keep reaching the monitor.
+            if wasKey, let next = windows.values.first {
+                next.makeKeyAndOrderFront(nil)
+            }
+        #endif
     }
 
     func removeAllWindows() {
@@ -170,7 +179,11 @@ final class SystemBlankingWindowController: BlankingWindowControlling {
 
     func endBlankingSession() {
         #if APPSTORE
-            previouslyFrontmostApplication?.activate(options: [])
+            // Give focus back only if Dimmerly still has it. When the session ended because the
+            // user switched to another app, that app is the one they want.
+            if NSApp.isActive {
+                previouslyFrontmostApplication?.activate(options: [])
+            }
             previouslyFrontmostApplication = nil
         #endif
     }
