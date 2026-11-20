@@ -9,6 +9,9 @@
 import AppKit
 import MenuBarExtraAccess
 import SwiftUI
+#if APPSTORE
+    import StoreKit
+#endif
 
 /// How long after a request's deadline its acknowledgement may still be read. The extension
 /// checks once more right after its deadline passes, then removes its keys and stops reading.
@@ -90,6 +93,9 @@ struct DimmerlyApp: App {
     @State private var statusItemAccessibility = StatusItemAccessibility()
 
     @Environment(\.openSettings) private var openSettings
+    #if APPSTORE
+        @Environment(\.requestReview) private var requestReview
+    #endif
 
     /// Blanking state, observed so the Control Center dim toggle can follow it.
     @State private var screenBlanker = ScreenBlanker.shared
@@ -112,6 +118,7 @@ struct DimmerlyApp: App {
             .onChange(of: menuBarPanelCoordinator.isPresented) { _, isPresented in
                 if !isPresented {
                     menuBarPanelCoordinator.requestedPresetID = nil
+                    panelDidClose()
                 }
             }
             .onChange(of: settings.idleTimerEnabled) { _, _ in
@@ -153,6 +160,7 @@ struct DimmerlyApp: App {
                 },
                 didDismiss: {
                     menuBarPanelCoordinator.externalPresentationDidDismiss()
+                    panelDidClose()
                 }
             )
             menuBarPanelCoordinator.configureExternalPresentation(
@@ -231,6 +239,20 @@ struct DimmerlyApp: App {
     private func openSettingsWindow() {
         openSettings()
         NSApp.activate()
+    }
+
+    /// The App Store edition may ask for a rating once the panel is closed and nothing is happening.
+    private func panelDidClose() {
+        #if APPSTORE
+            RatingPrompt.panelDidClose(
+                isBusy: { [menuBarPanelCoordinator, screenBlanker] in
+                    menuBarPanelCoordinator.isPresented
+                        || menuBarPanelCoordinator.isExternalPresentationActive
+                        || screenBlanker.isBlankingAnyDisplay
+                },
+                request: { requestReview() }
+            )
+        #endif
     }
 }
 
@@ -329,6 +351,7 @@ final class AppServices {
     }
 
     private func performLaunchSetup() {
+        RatingPrompt.appLaunched()
         // Load saved shortcut before starting monitoring
         shortcutManager.updateShortcut(settings.keyboardShortcut)
         startGlobalShortcutMonitoring()
@@ -415,6 +438,7 @@ final class AppServices {
     private func configurePresetShortcuts() {
         presetShortcutManager.onPresetTriggered = { [presetManager, brightnessManager] presetID in
             presetManager.applyPreset(id: presetID, to: brightnessManager, animated: true)
+            RatingPrompt.presetApplied()
         }
     }
 

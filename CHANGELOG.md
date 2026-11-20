@@ -7,6 +7,11 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+## [1.5.1] - Unreleased
+
+### Added
+- The App Store edition asks for a rating at most once per version, and only after you have used Dimmerly for a week, applied presets on at least three days, and closed the menu bar panel. It never asks on first launch, while a display is blanked, or while the panel is open. Nothing about your use leaves your Mac. The direct download never asks.
+
 ## [1.5.0] - 2026-11-14
 
 ### Added
