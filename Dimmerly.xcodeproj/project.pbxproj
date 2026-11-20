@@ -75,6 +75,8 @@
 		NF00000000000000000011 /* BrightnessPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF00000000000000000001 /* BrightnessPreset.swift */; };
 		NF00000000000000000012 /* PresetManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF00000000000000000002 /* PresetManager.swift */; };
 		NF00000000000000000013 /* IdleTimerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF00000000000000000003 /* IdleTimerManager.swift */; };
+		RP00000000000000000012 /* RatingPrompt.swift in Sources */ = {isa = PBXBuildFile; fileRef = RP00000000000000000002 /* RatingPrompt.swift */; };
+		RP00000000000000000011 /* RatingPromptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = RP00000000000000000001 /* RatingPromptTests.swift */; };
 		NF00000000000000000014 /* PresetShortcutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF00000000000000000004 /* PresetShortcutManager.swift */; };
 		NF00000000000000000015 /* DisplayEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF00000000000000000005 /* DisplayEntity.swift */; };
 		NF00000000000000000016 /* SleepDisplaysIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF00000000000000000006 /* SleepDisplaysIntent.swift */; };
@@ -234,6 +236,8 @@
 		NF00000000000000000001 /* BrightnessPreset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrightnessPreset.swift; sourceTree = "<group>"; };
 		NF00000000000000000002 /* PresetManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetManager.swift; sourceTree = "<group>"; };
 		NF00000000000000000003 /* IdleTimerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleTimerManager.swift; sourceTree = "<group>"; };
+		RP00000000000000000002 /* RatingPrompt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RatingPrompt.swift; sourceTree = "<group>"; };
+		RP00000000000000000001 /* RatingPromptTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RatingPromptTests.swift; sourceTree = "<group>"; };
 		NF00000000000000000004 /* PresetShortcutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetShortcutManager.swift; sourceTree = "<group>"; };
 		NF00000000000000000005 /* DisplayEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayEntity.swift; sourceTree = "<group>"; };
 		NF00000000000000000006 /* SleepDisplaysIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepDisplaysIntent.swift; sourceTree = "<group>"; };
@@ -459,6 +463,7 @@
 				HW00000000000000000001 /* DDCController.swift */,
 				HW00000000000000000003 /* HardwareBrightnessManager.swift */,
 				NF00000000000000000003 /* IdleTimerManager.swift */,
+				RP00000000000000000002 /* RatingPrompt.swift */,
 				C3F49B65767256F001CAD0B6 /* JSONDefaultsArrayStore.swift */,
 				PT00000000000000000001 /* PollingTimer.swift */,
 				15EF8DD088138249EA3B9ED2 /* LaunchAtLoginManager.swift */,
@@ -531,6 +536,7 @@
 				CP00000000000000000002 /* ControlCenterControlTests.swift */,
 				NT00000000000000000010 /* SolarCalculatorTests.swift */,
 				IT00000000000000000001 /* IdleTimerManagerTests.swift */,
+				RP00000000000000000001 /* RatingPromptTests.swift */,
 				LP00000000000000000001 /* LocationProviderTests.swift */,
 			);
 			path = DimmerlyTests;
@@ -786,6 +792,7 @@
 				NF00000000000000000011 /* BrightnessPreset.swift in Sources */,
 				NF00000000000000000012 /* PresetManager.swift in Sources */,
 				NF00000000000000000013 /* IdleTimerManager.swift in Sources */,
+				RP00000000000000000012 /* RatingPrompt.swift in Sources */,
 				NF00000000000000000014 /* PresetShortcutManager.swift in Sources */,
 				NF00000000000000000015 /* DisplayEntity.swift in Sources */,
 				CR0000000000000000000011 /* ConnectedDisplayResolver.swift in Sources */,
@@ -857,6 +864,7 @@
 				SH00000000000000000011 /* SharedConstantsTests.swift in Sources */,
 				CP00000000000000000012 /* ControlCenterControlTests.swift in Sources */,
 				IT00000000000000000011 /* IdleTimerManagerTests.swift in Sources */,
+				RP00000000000000000011 /* RatingPromptTests.swift in Sources */,
 				LP00000000000000000011 /* LocationProviderTests.swift in Sources */,
 				FI0000000000000000000011 /* DisplayIntentTests.swift in Sources */,
 			);
@@ -886,7 +894,7 @@
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_ENTITLEMENTS = DimmerlyWidget/Resources/DimmerlyWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 16;
+				CURRENT_PROJECT_VERSION = 17;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
@@ -901,7 +909,7 @@
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.5.0;
+				MARKETING_VERSION = 1.5.1;
 				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.dimmerly.DimmerlyWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -923,7 +931,7 @@
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_ENTITLEMENTS = DimmerlyWidget/Resources/DimmerlyWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 16;
+				CURRENT_PROJECT_VERSION = 17;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
@@ -938,7 +946,7 @@
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.5.0;
+				MARKETING_VERSION = 1.5.1;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.dimmerly.DimmerlyWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -961,7 +969,7 @@
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_ENTITLEMENTS = DimmerlyWidget/Resources/DimmerlyWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 16;
+				CURRENT_PROJECT_VERSION = 17;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
@@ -976,7 +984,7 @@
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.5.0;
+				MARKETING_VERSION = 1.5.1;
 				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.dimmerly.DimmerlyWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -998,7 +1006,7 @@
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_ENTITLEMENTS = DimmerlyWidget/Resources/DimmerlyWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 16;
+				CURRENT_PROJECT_VERSION = 17;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
@@ -1013,7 +1021,7 @@
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.5.0;
+				MARKETING_VERSION = 1.5.1;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.dimmerly.DimmerlyWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1163,7 +1171,7 @@
 				CODE_SIGN_ENTITLEMENTS = Dimmerly/Resources/Dimmerly.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 16;
+				CURRENT_PROJECT_VERSION = 17;
 				DEAD_CODE_STRIPPING = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1175,7 +1183,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.5.0;
+				MARKETING_VERSION = 1.5.1;
 				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.dimmerly;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
@@ -1195,7 +1203,7 @@
 				CODE_SIGN_ENTITLEMENTS = Dimmerly/Resources/Dimmerly.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 16;
+				CURRENT_PROJECT_VERSION = 17;
 				DEAD_CODE_STRIPPING = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1207,7 +1215,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.5.0;
+				MARKETING_VERSION = 1.5.1;
 				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.dimmerly;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
@@ -1295,12 +1303,12 @@
 				CODE_SIGN_ENTITLEMENTS = Dimmerly/Resources/DimmerlyAppStore.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 16;
+				CURRENT_PROJECT_VERSION = 17;
 				DEAD_CODE_STRIPPING = YES;
 				EXCLUDED_SOURCE_FILE_NAMES = Sparkle.framework;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Dimmerly/Resources/Info.plist;
-				MARKETING_VERSION = 1.5.0;
+				MARKETING_VERSION = 1.5.1;
 				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.dimmerly;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -1313,11 +1321,11 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 16;
+				CURRENT_PROJECT_VERSION = 17;
 				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.5.0;
+				MARKETING_VERSION = 1.5.1;
 				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.DimmerlyTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG APPSTORE";
@@ -1394,12 +1402,12 @@
 				CODE_SIGN_ENTITLEMENTS = Dimmerly/Resources/DimmerlyAppStore.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 16;
+				CURRENT_PROJECT_VERSION = 17;
 				DEAD_CODE_STRIPPING = YES;
 				EXCLUDED_SOURCE_FILE_NAMES = Sparkle.framework;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Dimmerly/Resources/Info.plist;
-				MARKETING_VERSION = 1.5.0;
+				MARKETING_VERSION = 1.5.1;
 				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.dimmerly;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -1412,11 +1420,11 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 16;
+				CURRENT_PROJECT_VERSION = 17;
 				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.5.0;
+				MARKETING_VERSION = 1.5.1;
 				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.DimmerlyTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) APPSTORE";
@@ -1431,7 +1439,7 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 16;
+				CURRENT_PROJECT_VERSION = 17;
 				DEAD_CODE_STRIPPING = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1439,7 +1447,7 @@
 				);
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.5.0;
+				MARKETING_VERSION = 1.5.1;
 				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.DimmerlyTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -1453,7 +1461,7 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 16;
+				CURRENT_PROJECT_VERSION = 17;
 				DEAD_CODE_STRIPPING = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1461,7 +1469,7 @@
 				);
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.5.0;
+				MARKETING_VERSION = 1.5.1;
 				PRODUCT_BUNDLE_IDENTIFIER = rs.in.olujic.DimmerlyTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;

@@ -96,6 +96,7 @@ struct PresetsSectionView: View {
     private func presetRow(_ preset: BrightnessPreset, index: Int) -> some View {
         Button {
             presetManager.applyPreset(preset, to: brightnessManager, animated: true)
+            RatingPrompt.presetApplied()
             confirmApplied(preset)
         } label: {
             HStack {
