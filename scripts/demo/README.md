@@ -160,8 +160,8 @@ them in file-name order:
 1. `01-dim-and-warm-every-display.png`
 2. `02-each-screen-on-its-own.png`
 3. `03-warmer-in-the-evening.png`: Auto Warmth on, in a staged evening
-4. `04-presets-for-your-whole-desk.png`: Evening just applied, with its checkmark
-5. `05-presets-on-a-schedule.png`: the Schedule tab of Settings
+4. `04-presets-on-a-schedule.png`: the Schedule tab of Settings
+5. `05-presets-for-your-whole-desk.png`: Evening just applied, with its checkmark
 
 They are 2560x1600 and opaque, an accepted Mac App Store size. Don't add other
 images to that folder; it should match the listing exactly.
