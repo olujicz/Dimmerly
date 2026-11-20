@@ -63,4 +63,43 @@ extension BrightnessManagerTests {
         XCTAssertEqual(try XCTUnwrap(warmth[identity]), 0.42, accuracy: 0.0001)
         XCTAssertEqual(try XCTUnwrap(contrast[identity]), 0.6, accuracy: 0.0001)
     }
+
+    /// An edit made inside the debounce window, followed by the display being unplugged, must
+    /// still be saved, and found again when the display returns under a new numeric ID.
+    func testEditsMadeJustBeforeADisconnectSurviveAReconnectUnderANewID() throws {
+        let suiteName = "BrightnessManagerTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let manager = BrightnessManager(forTesting: true, defaults: defaults)
+        manager.applyGammaHook = { _, _, _, _ in }
+        manager.isBuiltInDisplayHook = { _ in false }
+        manager.displayIdentityHook = { id in id == 2 || id == 5 ? "unplugged" : "stays" }
+        manager.displays = [
+            ExternalDisplay(id: 2, name: "DELL S2723HC", brightness: 1.0, warmth: 0.0, contrast: 0.5),
+            ExternalDisplay(id: 3, name: "LG", brightness: 1.0, warmth: 0.0, contrast: 0.5),
+        ]
+
+        manager.setBrightness(for: 2, to: 0.6)
+        manager.setWarmth(for: 2, to: 0.3)
+        manager.setContrast(for: 2, to: 0.8)
+        XCTAssertNil(defaults.dictionary(forKey: "dimmerlyDisplayContrast"), "The write should still be debounced")
+
+        manager.activeDisplayIDsHook = { [3] }
+        manager.refreshDisplays()
+
+        let brightness = try XCTUnwrap(defaults.dictionary(forKey: "dimmerlyDisplayBrightness") as? [String: Double])
+        let warmth = try XCTUnwrap(defaults.dictionary(forKey: "dimmerlyDisplayWarmth") as? [String: Double])
+        let contrast = try XCTUnwrap(defaults.dictionary(forKey: "dimmerlyDisplayContrast") as? [String: Double])
+        XCTAssertEqual(try XCTUnwrap(brightness["unplugged"]), 0.6, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(warmth["unplugged"]), 0.3, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(contrast["unplugged"]), 0.8, accuracy: 0.0001)
+
+        manager.activeDisplayIDsHook = { [3, 5] }
+        manager.refreshDisplays()
+
+        let reconnected = try XCTUnwrap(manager.displays.first { $0.id == 5 })
+        XCTAssertEqual(reconnected.brightness, 0.6, accuracy: 0.0001)
+        XCTAssertEqual(reconnected.warmth, 0.3, accuracy: 0.0001)
+        XCTAssertEqual(reconnected.contrast, 0.8, accuracy: 0.0001)
+    }
 }

@@ -710,6 +710,14 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
             }
         }
 
+        // A display that disappears takes its unsaved edits with it: the debounced save only
+        // walks the displays that remain. Save the outgoing list first, under each display's
+        // stable identity, so the values are found again when it reconnects.
+        let remainingIDs = Set(newDisplays.map(\.id))
+        if displays.contains(where: { !remainingIDs.contains($0.id) }) {
+            persistAll()
+        }
+
         displays = newDisplays
         reapplyAfterRefresh(suppressingHardwareBrightnessWriteFor: displaysWithSuppressedBrightnessWrite)
     }
