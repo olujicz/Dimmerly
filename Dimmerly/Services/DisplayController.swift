@@ -99,11 +99,19 @@ enum DisplayAction {
     /// Configures ScreenBlanker from app settings and triggers blanking.
     @MainActor
     static func blankWithSettings(_ settings: AppSettings) {
-        ScreenBlanker.shared.ignoreMouseMovement = settings.ignoreMouseMovement
+        applyWakePolicy(from: settings, to: .shared)
         let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         ScreenBlanker.shared.useFadeTransition = settings.fadeTransition && !reduceMotion
-        ScreenBlanker.shared.requireEscapeToDismiss = settings.requireEscapeToDismiss
         ScreenBlanker.shared.blank()
+    }
+
+    /// Hands the blanker the user's wake preferences. Every way of blanking goes through this,
+    /// the global action and the per-display buttons alike, so a session wakes the way the
+    /// settings say even if no global blank has run since launch.
+    @MainActor
+    static func applyWakePolicy(from settings: AppSettings, to blanker: ScreenBlanker) {
+        blanker.ignoreMouseMovement = settings.ignoreMouseMovement
+        blanker.requireEscapeToDismiss = settings.requireEscapeToDismiss
     }
 }
 

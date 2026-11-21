@@ -14,6 +14,7 @@ Semantic Versioning.
 
 ### Fixed
 - A brightness, warmth or contrast change made just before a monitor is unplugged is saved with that monitor and is back when it reconnects, even under a different display ID.
+- The moon button beside each display wakes the way Settings says (Esc only, ignore mouse movement), including right after launch. Before, only the main dim action followed those settings.
 
 ## [1.5.0] - 2026-11-14
 

@@ -281,6 +281,41 @@ final class ScreenBlankerTests: XCTestCase {
         XCTAssertEqual(harness.cursor.unhideCount, 1)
     }
 
+    // MARK: - Wake preferences on the per-display path
+
+    func testPerDisplayBlankingFollowsSavedWakePreferencesAfterFreshLaunch() throws {
+        let suiteName = "ScreenBlankerTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        defaults.set(true, forKey: "dimmerlyRequireEscapeToDismiss")
+        defaults.set(true, forKey: "dimmerlyIgnoreMouseMovement")
+        // A new AppSettings and a new blanker: nothing has blanked globally since launch.
+        let settings = AppSettings(defaults: defaults)
+        let harness = makeHarness()
+        let manager = BrightnessManager(forTesting: true, defaults: defaults)
+
+        manager.toggleBlank(for: 7, blanker: harness.sut, settings: settings)
+        manager.toggleBlank(for: 9, blanker: harness.sut, settings: settings)
+
+        XCTAssertEqual(harness.input.startPolicies, [.escapeOnly])
+        XCTAssertTrue(harness.sut.requireEscapeToDismiss)
+        XCTAssertTrue(harness.sut.ignoreMouseMovement)
+    }
+
+    func testPerDisplayBlankingKeepsAnyInputWakeWhenPreferencesAreDefault() throws {
+        let suiteName = "ScreenBlankerTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let harness = makeHarness()
+        let manager = BrightnessManager(forTesting: true, defaults: defaults)
+
+        manager.toggleBlank(for: 7, blanker: harness.sut, settings: settings)
+        manager.toggleBlank(for: 9, blanker: harness.sut, settings: settings)
+
+        XCTAssertEqual(harness.input.startPolicies, [.anyInput(ignorePointerMovement: false)])
+    }
+
     // MARK: - Blanking while a display has no screen yet
 
     func testBlankSkipsDisplayWithoutScreenAndCoversItOnceItAppears() async {
