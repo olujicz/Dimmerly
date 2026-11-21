@@ -133,3 +133,44 @@ enum GammaMath {
         CGSetDisplayTransferByTable(displayID, 256, &red, &green, &blue)
     }
 }
+
+// MARK: - Display text
+
+extension GammaMath {
+    /// The colour temperature for a warmth value, written the way the reader's locale writes
+    /// it ("4,500 K", "4.500 K", "4 500 K"). Visible and spoken text share this one formatter;
+    /// the spoken form spells the unit out so VoiceOver says "kelvins" rather than a letter.
+    static func formattedKelvin(
+        forWarmth warmth: Double,
+        spelledOut: Bool = false,
+        locale: Locale = .autoupdatingCurrent
+    ) -> String {
+        Measurement(value: kelvinForWarmth(warmth), unit: UnitTemperature.kelvin).formatted(
+            .measurement(
+                width: spelledOut ? .wide : .abbreviated,
+                // The value is a colour temperature, not a weather reading: never convert it.
+                usage: .asProvided,
+                numberFormatStyle: .number.precision(.fractionLength(0))
+            )
+            .locale(locale)
+        )
+    }
+
+    /// What VoiceOver says for the warmth slider. While Auto Warmth sets the warmth it says so,
+    /// because the Auto badge beside the readout is hidden from VoiceOver.
+    static func spokenWarmth(
+        _ warmth: Double,
+        isAutomatic: Bool,
+        locale: Locale = .autoupdatingCurrent
+    ) -> String {
+        let kelvin = formattedKelvin(forWarmth: warmth, spelledOut: true, locale: locale)
+        guard isAutomatic else { return kelvin }
+        return String(
+            format: NSLocalizedString(
+                "%@, automatic",
+                comment: "Accessibility value: warmth in Kelvin while Auto Warmth is setting it"
+            ),
+            kelvin
+        )
+    }
+}

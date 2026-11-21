@@ -558,7 +558,7 @@ struct DisplayBrightnessRow: View {
                     }
 
                     HStack {
-                        Text(verbatim: "\(Int(GammaMath.kelvinForWarmth(warmthValue)))K")
+                        Text(verbatim: GammaMath.formattedKelvin(forWarmth: warmthValue))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .monospacedDigit()
@@ -793,23 +793,7 @@ struct DisplayBrightnessRow: View {
     /// The warmth slider's spoken value. While Auto Warmth sets the warmth, it says so: the
     /// Auto badge beside the Kelvin label is hidden from VoiceOver.
     private func warmthAccessibilityValue(for value: Double) -> String {
-        let kelvin = Int(GammaMath.kelvinForWarmth(value))
-        if isAutoColorTemp {
-            return String(
-                format: NSLocalizedString(
-                    "%dK, automatic",
-                    comment: "Accessibility value: warmth in Kelvin while Auto Warmth is setting it"
-                ),
-                kelvin
-            )
-        }
-        return String(
-            format: NSLocalizedString(
-                "%dK",
-                comment: "Accessibility value: warmth in Kelvin"
-            ),
-            kelvin
-        )
+        GammaMath.spokenWarmth(value, isAutomatic: isAutoColorTemp)
     }
 }
 
