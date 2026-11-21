@@ -28,6 +28,11 @@ protocol BlankingWindowControlling: AnyObject {
     /// Makes a surviving overlay the key window when none is. Does nothing without overlays or
     /// when one already is key.
     func promoteKeyOverlayIfNeeded()
+
+    /// Called when the mouse is pressed on a display's overlay. Only the App Store edition's
+    /// overlays report this: they are how a single dimmed display gets woken while another app is
+    /// active, a time the local event monitor is not listening.
+    var onOverlayMouseDown: ((CGDirectDisplayID) -> Void)? { get set }
 }
 
 extension BlankingWindowControlling {
@@ -87,8 +92,32 @@ enum BlankingWindowPresentation {
     }
 }
 
+/// The overlay's content view. It takes the click that activates Dimmerly instead of only
+/// activating the app, so one press on a dimmed display wakes it even when another app was
+/// frontmost.
+final class BlankingOverlayContentView: NSView {
+    var onMouseDown: (() -> Void)?
+
+    override func acceptsFirstMouse(for _: NSEvent?) -> Bool {
+        true
+    }
+
+    override func mouseDown(with _: NSEvent) {
+        onMouseDown?()
+    }
+
+    override func rightMouseDown(with _: NSEvent) {
+        onMouseDown?()
+    }
+
+    override func otherMouseDown(with _: NSEvent) {
+        onMouseDown?()
+    }
+}
+
 @MainActor
 final class SystemBlankingWindowController: BlankingWindowControlling {
+    var onOverlayMouseDown: ((CGDirectDisplayID) -> Void)?
     private var windows: [CGDirectDisplayID: NSWindow] = [:]
     private var wakeHints: [CGDirectDisplayID: NSTextField] = [:]
     private var wakeHintFadeTask: Task<Void, Never>?
@@ -143,6 +172,14 @@ final class SystemBlankingWindowController: BlankingWindowControlling {
         window.acceptsMouseMovedEvents = true
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.setFrame(screen.frame, display: true)
+
+        #if APPSTORE
+            let contentView = BlankingOverlayContentView()
+            contentView.onMouseDown = { [weak self] in
+                self?.onOverlayMouseDown?(displayID)
+            }
+            window.contentView = contentView
+        #endif
 
         if showsEscapeHint {
             wakeHints[displayID] = addWakeHint(to: window, screen: screen)

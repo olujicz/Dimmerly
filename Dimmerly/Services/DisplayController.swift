@@ -44,7 +44,8 @@ enum DisplayAction {
     /// User preferences applied to ScreenBlanker:
     /// - `ignoreMouseMovement`: Whether to ignore mouse movement (only wake on click/key)
     /// - `fadeTransition`: Whether to animate fade (respects Reduce Motion setting)
-    /// - `requireEscapeToDismiss`: Whether Escape key is required (vs any input)
+    /// - `requireEscapeToDismiss`: Whether Escape key is required (vs any input). The App Store
+    ///   edition always wakes on any input.
     ///
     /// - Parameter settings: Current app settings
     /// - Returns: `false` when blanking was chosen and nothing was blanked. Real display sleep
@@ -120,7 +121,7 @@ enum DisplayAction {
     @MainActor
     static func applyWakePolicy(from settings: AppSettings, to blanker: ScreenBlanker) {
         blanker.ignoreMouseMovement = settings.ignoreMouseMovement
-        blanker.requireEscapeToDismiss = settings.requireEscapeToDismiss
+        blanker.requireEscapeToDismiss = settings.wakesOnlyOnEscape
     }
 }
 
