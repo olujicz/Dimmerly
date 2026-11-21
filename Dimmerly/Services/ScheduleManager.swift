@@ -69,6 +69,13 @@ class ScheduleManager {
     /// triggers, so a schedule set for 10:00 still applies when the app starts at 10:01.
     private static let startupLookback: TimeInterval = 120
 
+    /// Longest span the first check after launch catches up when a persisted last-check time
+    /// exists, so a Mac shut down overnight still applies the morning trigger it missed.
+    private static let launchCatchUpLimit: TimeInterval = 24 * 60 * 60
+
+    /// UserDefaults key persisting the last schedule check time across launches.
+    static let lastCheckKey = "dimmerlyScheduleLastCheck"
+
     /// Cached enabled state to detect changes and avoid redundant timer restarts.
     private var lastEnabled: Bool?
 
@@ -155,6 +162,8 @@ class ScheduleManager {
     private func stopPolling() {
         pollingTimer.stop()
         lastCheckDate = nil
+        // Scheduling was turned off: do not replay triggers from the disabled period later.
+        defaults.removeObject(forKey: Self.lastCheckKey)
     }
 
     /// Checks all enabled schedules and fires any whose trigger time has been crossed.
@@ -186,32 +195,37 @@ class ScheduleManager {
         // Drop entries for deleted schedules and for days the startup look-back can no
         // longer reach. Yesterday's entry survives just past midnight so a relaunch then
         // does not re-fire a late-evening trigger.
-        let lookbackDayString = Self.dateString(for: now.addingTimeInterval(-Self.startupLookback))
+        let lookbackDayString = Self.dateString(for: now.addingTimeInterval(-Self.launchCatchUpLimit))
         let scheduleIDs = Set(schedules.map(\.id))
         firedToday = firedToday.filter { id, day in
             scheduleIDs.contains(id) && (day == todayString || day == lookbackDayString)
         }
         lastCheckDate = now
+        defaults.set(now.timeIntervalSince1970, forKey: Self.lastCheckKey)
     }
 
     /// Returns the previous check date for determining the time range to check.
     ///
     /// Fallback behavior:
     /// - If lastCheckDate exists and is valid, use it (normal case)
-    /// - Otherwise, use a 2-minute lookback window from now (first run or after stopPolling)
-    ///
-    /// The 2-minute lookback on startup allows firing schedules that should have triggered
-    /// in the last couple minutes (e.g., if the app was just launched at 10:01 but a
-    /// schedule was set for 10:00).
+    /// - Otherwise, if a last-check time was persisted by a previous run, use it, capped at 24 hours
+    ///   back, so triggers missed while the app was not running still apply once
+    /// - Otherwise, use a 2-minute lookback window from now (first ever run or after stopPolling)
     ///
     /// - Parameter now: Current date/time
     /// - Returns: Date representing the start of the check window
     private func effectivePreviousCheckDate(for now: Date) -> Date {
-        guard let lastCheckDate, lastCheckDate <= now else {
-            // First check or time went backwards: use 2-minute lookback
-            return now.addingTimeInterval(-Self.startupLookback)
+        if let lastCheckDate, lastCheckDate <= now {
+            return lastCheckDate
         }
-        return lastCheckDate
+        if lastCheckDate == nil, let persisted = defaults.object(forKey: Self.lastCheckKey) as? Double {
+            let persistedDate = Date(timeIntervalSince1970: persisted)
+            if persistedDate <= now {
+                return max(persistedDate, now.addingTimeInterval(-Self.launchCatchUpLimit))
+            }
+        }
+        // First check or time went backwards: use 2-minute lookback
+        return now.addingTimeInterval(-Self.startupLookback)
     }
 
     /// Builds the most recent schedule trigger crossed in `(previousCheck, now]` for each schedule,
@@ -367,11 +381,14 @@ class ScheduleManager {
 
     /// Toggles a schedule's enabled state.
     ///
-    /// When disabling a schedule, clears its "fired today" status so it can fire immediately
-    /// if re-enabled later the same day.
+    /// When disabling a schedule, clears its "fired today" status. When re-enabling one while
+    /// scheduling is active, applies its newest trigger already crossed today, so it takes
+    /// effect the same day instead of waiting for tomorrow.
     ///
-    /// - Parameter id: The schedule ID to toggle
-    func toggleSchedule(id: UUID) {
+    /// - Parameters:
+    ///   - id: The schedule ID to toggle
+    ///   - now: Current date/time (injectable for testing)
+    func toggleSchedule(id: UUID, now: Date = Date()) {
         guard let index = schedules.firstIndex(where: { $0.id == id }) else { return }
         schedules[index].isEnabled.toggle()
         // Clear fired status when disabling (allows re-firing if re-enabled today)
@@ -379,6 +396,20 @@ class ScheduleManager {
             firedToday.removeValue(forKey: id)
         }
         saveSchedules()
+        if schedules[index].isEnabled, lastEnabled == true {
+            fireNewestCrossedTriggerToday(of: schedules[index], now: now)
+        }
+    }
+
+    /// Applies the schedule's newest trigger in `[start of today, now]`, if any.
+    private func fireNewestCrossedTriggerToday(of schedule: DimmingSchedule, now: Date) {
+        let startOfDay = Calendar.current.startOfDay(for: now)
+        let candidates = fireCandidates(previousCheck: startOfDay.addingTimeInterval(-1), now: now)
+        guard let candidate = candidates.first(where: { $0.schedule.id == schedule.id }),
+              Self.dateString(for: candidate.triggerDate) == Self.dateString(for: now)
+        else { return }
+        firedToday[schedule.id] = candidate.dayString
+        onScheduleTriggered?(schedule.presetID)
     }
 
     // MARK: - Persistence
