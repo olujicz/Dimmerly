@@ -3651,10 +3651,6 @@
         }
       }
     },
-    "%dK" : {
-      "comment" : "Accessibility value: warmth in Kelvin",
-      "shouldTranslate" : false
-    },
     "⌘%@" : {
       "extractionState" : "stale",
       "shouldTranslate" : false
@@ -28748,73 +28744,73 @@
         }
       }
     },
-    "%dK, automatic" : {
+    "%@, automatic" : {
       "comment" : "Accessibility value: warmth in Kelvin while Auto Warmth is setting it",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%dK, automatisch"
+            "value" : "%@, automatisch"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%dK, automatic"
+            "value" : "%@, automatic"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%dK, automático"
+            "value" : "%@, automático"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%dK, automatique"
+            "value" : "%@, automatique"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%dK, automatico"
+            "value" : "%@, automatico"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%dK、自動"
+            "value" : "%@、自動"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%dK, 자동"
+            "value" : "%@, 자동"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%dK, automatisch"
+            "value" : "%@, automatisch"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%dK, automático"
+            "value" : "%@, automático"
           }
         },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%dK, automatski"
+            "value" : "%@, automatski"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%dK，自动"
+            "value" : "%@，自动"
           }
         }
       }

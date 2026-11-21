@@ -77,6 +77,7 @@
 		NF00000000000000000013 /* IdleTimerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF00000000000000000003 /* IdleTimerManager.swift */; };
 		RP00000000000000000012 /* RatingPrompt.swift in Sources */ = {isa = PBXBuildFile; fileRef = RP00000000000000000002 /* RatingPrompt.swift */; };
 		RP00000000000000000011 /* RatingPromptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = RP00000000000000000001 /* RatingPromptTests.swift */; };
+		KF00000000000000000011 /* KelvinFormattingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = KF00000000000000000001 /* KelvinFormattingTests.swift */; };
 		NF00000000000000000014 /* PresetShortcutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF00000000000000000004 /* PresetShortcutManager.swift */; };
 		NF00000000000000000015 /* DisplayEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF00000000000000000005 /* DisplayEntity.swift */; };
 		NF00000000000000000016 /* SleepDisplaysIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = NF00000000000000000006 /* SleepDisplaysIntent.swift */; };
@@ -238,6 +239,7 @@
 		NF00000000000000000003 /* IdleTimerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleTimerManager.swift; sourceTree = "<group>"; };
 		RP00000000000000000002 /* RatingPrompt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RatingPrompt.swift; sourceTree = "<group>"; };
 		RP00000000000000000001 /* RatingPromptTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RatingPromptTests.swift; sourceTree = "<group>"; };
+		KF00000000000000000001 /* KelvinFormattingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KelvinFormattingTests.swift; sourceTree = "<group>"; };
 		NF00000000000000000004 /* PresetShortcutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetShortcutManager.swift; sourceTree = "<group>"; };
 		NF00000000000000000005 /* DisplayEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayEntity.swift; sourceTree = "<group>"; };
 		NF00000000000000000006 /* SleepDisplaysIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepDisplaysIntent.swift; sourceTree = "<group>"; };
@@ -537,6 +539,7 @@
 				NT00000000000000000010 /* SolarCalculatorTests.swift */,
 				IT00000000000000000001 /* IdleTimerManagerTests.swift */,
 				RP00000000000000000001 /* RatingPromptTests.swift */,
+				KF00000000000000000001 /* KelvinFormattingTests.swift */,
 				LP00000000000000000001 /* LocationProviderTests.swift */,
 			);
 			path = DimmerlyTests;
@@ -865,6 +868,7 @@
 				CP00000000000000000012 /* ControlCenterControlTests.swift in Sources */,
 				IT00000000000000000011 /* IdleTimerManagerTests.swift in Sources */,
 				RP00000000000000000011 /* RatingPromptTests.swift in Sources */,
+				KF00000000000000000011 /* KelvinFormattingTests.swift in Sources */,
 				LP00000000000000000011 /* LocationProviderTests.swift in Sources */,
 				FI0000000000000000000011 /* DisplayIntentTests.swift in Sources */,
 			);

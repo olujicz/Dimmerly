@@ -18,6 +18,7 @@ Semantic Versioning.
 - The widget button and the Control Center dim toggle report a failure when Dimmerly could not dim anything (no display to cover, or the wake input could not start). Before, they reported success and the toggle looked like nothing had happened. Dimming displays that are already dimmed still counts as success.
 - VoiceOver names the display on each per-display dim and restore button ("Dim DELL U2720Q"), and the hint says the display turns black instead of promising minimum brightness. Translated in every shipped language.
 - Settings says so when Use Current Location fails for a reason other than permission, and offers Try Again or manual entry. Before, an unexpected system error, or a fix that never arrived after repeated "location unknown" errors, left the row silent. A request waits 30 seconds after the first of those errors, or gives up after three. Translated in every shipped language.
+- The warmth readout under each display's slider writes the colour temperature the way your language does ("4.500 K" in German, "4 500 K" in French) instead of always "4500K". VoiceOver says "kelvins" with the same number, and still says "automatic" while Auto Warmth is setting it.
 
 ## [1.5.0] - 2026-11-14
 
