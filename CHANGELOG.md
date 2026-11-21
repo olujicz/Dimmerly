@@ -27,6 +27,7 @@ Semantic Versioning.
 - The VoiceOver hint on each display's dim button says how to wake it (Esc, or any key) instead of "press again". Translated in every shipped language.
 - The App Store edition asks for a rating only while Dimmerly is the active app, so the one ask per version is not spent while it is in the background.
 - Schedules missed while Dimmerly was not running apply when it starts: after a Mac that was off overnight boots, the newest trigger crossed since Dimmerly last ran (up to 24 hours back) takes effect instead of being skipped. Turning a schedule back on also applies its trigger from earlier the same day, as the setting always promised.
+- The idle timer no longer blanks displays while a video, presentation or other app is keeping the display awake. It blanks once that stops, if you are still idle.
 
 ## [1.5.0] - 2026-11-14
 

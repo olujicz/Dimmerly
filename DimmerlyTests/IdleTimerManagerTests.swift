@@ -6,6 +6,7 @@
 //
 
 @testable import Dimmerly
+import IOKit.pwr_mgt
 import XCTest
 
 /// Mutable idle-seconds box so the injected provider closure has nothing to capture
@@ -16,7 +17,48 @@ private final class IdleSecondsBox {
 }
 
 @MainActor
+private final class FlagBox {
+    var value = false
+}
+
+@MainActor
 final class IdleTimerManagerTests: XCTestCase {
+    func testDoesNotFireWhileDisplaySleepIsPrevented() {
+        let idle = IdleSecondsBox()
+        let prevented = FlagBox()
+        var fireCount = 0
+        let manager = IdleTimerManager(
+            idleSecondsProvider: { idle.value },
+            displaySleepPreventedProvider: { prevented.value }
+        )
+        manager.onIdleThresholdReached = { fireCount += 1 }
+        manager.start(thresholdMinutes: 5)
+
+        idle.value = 600
+        prevented.value = true
+        manager.checkIdleTime()
+        manager.checkIdleTime()
+        XCTAssertEqual(fireCount, 0, "A playing video must not be blanked")
+
+        prevented.value = false
+        manager.checkIdleTime()
+        XCTAssertEqual(fireCount, 1, "Fires once the assertion is released and the user is still idle")
+        manager.stop()
+    }
+
+    func testSystemProbeSeesADisplaySleepAssertion() {
+        var assertionID = IOPMAssertionID(0)
+        let result = IOPMAssertionCreateWithName(
+            kIOPMAssertPreventUserIdleDisplaySleep as CFString,
+            IOPMAssertionLevel(kIOPMAssertionLevelOn),
+            "DimmerlyTests display sleep probe" as CFString,
+            &assertionID
+        )
+        XCTAssertEqual(result, kIOReturnSuccess)
+        XCTAssertTrue(IdleTimerManager.systemDisplaySleepPrevented())
+        IOPMAssertionRelease(assertionID)
+    }
+
     func testDoesNotFireBelowThreshold() {
         let box = IdleSecondsBox()
         var fireCount = 0

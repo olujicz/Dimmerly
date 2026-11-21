@@ -13,6 +13,7 @@
 
 import CoreGraphics
 import Foundation
+import IOKit.pwr_mgt
 
 /// Manages automatic display blanking after a period of user inactivity.
 ///
@@ -30,6 +31,7 @@ import Foundation
 @MainActor
 class IdleTimerManager {
     typealias IdleSecondsProvider = @MainActor () -> TimeInterval
+    typealias DisplaySleepPreventedProvider = @MainActor () -> Bool
 
     /// Callback invoked once when the idle threshold is reached
     var onIdleThresholdReached: (() -> Void)?
@@ -53,8 +55,30 @@ class IdleTimerManager {
     /// states without depending on real HID hardware state.
     private let idleSecondsProvider: IdleSecondsProvider
 
-    init(idleSecondsProvider: @escaping IdleSecondsProvider = IdleTimerManager.systemIdleSeconds) {
+    /// Reports whether some app holds a "keep the display awake" assertion (video playback,
+    /// presentations, `caffeinate -d`). Injectable for tests.
+    private let displaySleepPreventedProvider: DisplaySleepPreventedProvider
+
+    init(
+        idleSecondsProvider: @escaping IdleSecondsProvider = IdleTimerManager.systemIdleSeconds,
+        displaySleepPreventedProvider: @escaping DisplaySleepPreventedProvider =
+            IdleTimerManager.systemDisplaySleepPrevented
+    ) {
         self.idleSecondsProvider = idleSecondsProvider
+        self.displaySleepPreventedProvider = displaySleepPreventedProvider
+    }
+
+    /// True while any process holds a `PreventUserIdleDisplaySleep` power assertion.
+    ///
+    /// Reading the assertion summary needs no entitlement, so this works in the sandboxed
+    /// App Store edition too. If the summary cannot be read it returns false, keeping the
+    /// previous behaviour (idle time alone decides).
+    static func systemDisplaySleepPrevented() -> Bool {
+        var status: Unmanaged<CFDictionary>?
+        guard IOPMCopyAssertionsStatus(&status) == kIOReturnSuccess,
+              let counts = status?.takeRetainedValue() as? [String: Int]
+        else { return false }
+        return (counts[kIOPMAssertPreventUserIdleDisplaySleep as String] ?? 0) > 0
     }
 
     /// Seconds since the last HID input event (keyboard, mouse, trackpad).
@@ -108,7 +132,7 @@ class IdleTimerManager {
     /// Checks current system idle time and fires callback if threshold is crossed.
     ///
     /// Firing logic:
-    /// - If idle time >= threshold AND not yet fired: Fire callback and set flag
+    /// - If idle time >= threshold AND not yet fired AND no display-sleep assertion is held: Fire callback and set flag
     /// - If idle time < threshold: Reset flag (user became active)
     ///
     /// This ensures the callback fires exactly once per idle period, even if the user
@@ -123,6 +147,10 @@ class IdleTimerManager {
             return
         }
         guard !hasFiredForCurrentIdle else { return }
+        // A video or presentation keeps the display awake on purpose; do not blank over it.
+        // The flag stays clear, so blanking still happens once the assertion is released
+        // if the user is still idle.
+        guard !displaySleepPreventedProvider() else { return }
         hasFiredForCurrentIdle = true
         onIdleThresholdReached?()
     }
