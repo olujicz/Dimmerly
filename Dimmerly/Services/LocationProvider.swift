@@ -73,6 +73,9 @@ enum LocationAccessProblem: Equatable {
     case denied
     /// A policy such as a configuration profile blocks location access; the person can't change it.
     case restricted
+    /// Access is fine but the system could not produce a fix: a terminal Core Location error,
+    /// or transient "location unknown" errors that kept coming until the request gave up.
+    case failed
 
     /// The problem a request would hit right now, or nil if one can go ahead.
     /// Location Services being off is checked first: macOS then reports every app as denied.
@@ -115,6 +118,15 @@ class LocationProvider: NSObject {
     private let requestGate = LocationRequestGate()
     private let locationServicesAvailable: LocationServicesAvailabilityCheck
 
+    /// Transient "location unknown" errors a request tolerates before it gives up.
+    static let maxTransientFailures = 3
+    /// How long a request keeps waiting for a fix once the first transient error has come in.
+    /// Starts at that error, not at the request: before then the person may still be answering
+    /// the authorization prompt.
+    private let transientFailureTimeout: Duration
+    private var transientFailureCount = 0
+    private var transientFailureTimeoutTask: Task<Void, Never>?
+
     /// The `UserDefaults` suite to read from and persist to. Defaults to `.standard` for
     /// production use; tests should inject an isolated suite so they don't read or overwrite
     /// the developer's real saved location.
@@ -133,10 +145,12 @@ class LocationProvider: NSObject {
         defaults: UserDefaults = .standard,
         locationServicesAvailable: @escaping LocationServicesAvailabilityCheck = {
             await LocationProvider.systemLocationServicesEnabled()
-        }
+        },
+        transientFailureTimeout: Duration = .seconds(30)
     ) {
         self.defaults = defaults
         self.locationServicesAvailable = locationServicesAvailable
+        self.transientFailureTimeout = transientFailureTimeout
         readsSystemAuthorization = true
         super.init()
         locationManager.delegate = self
@@ -159,10 +173,12 @@ class LocationProvider: NSObject {
     init(
         forTesting _: Bool,
         defaults: UserDefaults = .standard,
-        locationServicesAvailable: @escaping LocationServicesAvailabilityCheck = { false }
+        locationServicesAvailable: @escaping LocationServicesAvailabilityCheck = { false },
+        transientFailureTimeout: Duration = .seconds(30)
     ) {
         self.defaults = defaults
         self.locationServicesAvailable = locationServicesAvailable
+        self.transientFailureTimeout = transientFailureTimeout
         readsSystemAuthorization = false
         super.init()
         loadSavedLocation()
@@ -177,6 +193,7 @@ class LocationProvider: NSObject {
     /// Uses `startUpdatingLocation()` which reliably triggers the macOS
     /// authorization prompt, even for agent (LSUIElement) apps.
     func requestLocation() {
+        resetTransientFailureTracking()
         let requestToken = requestGate.begin()
         // `CLLocationManager.locationServicesEnabled()` can block briefly and is
         // flagged as non-main-thread-safe by Apple, so the check runs off the main
@@ -200,13 +217,15 @@ class LocationProvider: NSObject {
     /// clears (or changes) once the person fixes it in System Settings and comes back.
     /// Nothing is cached: access can change at any time while the app runs.
     func refreshAccessProblem() async {
-        guard accessProblem != nil else { return }
+        // A failed fix says nothing about access, so a re-check has nothing to correct. It stays
+        // until a new request, a manual location, or a fix replaces it.
+        guard accessProblem != nil, accessProblem != .failed else { return }
         let servicesEnabled = await locationServicesAvailable()
         if readsSystemAuthorization {
             authorizationStatus = locationManager.authorizationStatus
         }
         // A request made in the meantime may already have cleared or replaced the problem.
-        guard accessProblem != nil else { return }
+        guard accessProblem != nil, accessProblem != .failed else { return }
         accessProblem = LocationAccessProblem.current(servicesEnabled: servicesEnabled, status: authorizationStatus)
     }
 
@@ -248,6 +267,7 @@ class LocationProvider: NSObject {
     /// Sets a user-entered manual location
     func setManualLocation(latitude: Double, longitude: Double) {
         requestGate.invalidate()
+        resetTransientFailureTracking()
         locationManager.stopUpdatingLocation()
         self.latitude = latitude
         self.longitude = longitude
@@ -259,12 +279,46 @@ class LocationProvider: NSObject {
     /// Clears the saved location
     func clearLocation() {
         requestGate.invalidate()
+        resetTransientFailureTracking()
         locationManager.stopUpdatingLocation()
         latitude = nil
         longitude = nil
         defaults.removeObject(forKey: Self.latitudeKey)
         defaults.removeObject(forKey: Self.longitudeKey)
         defaults.removeObject(forKey: Self.hasSavedKey)
+    }
+
+    private func resetTransientFailureTracking() {
+        transientFailureCount = 0
+        transientFailureTimeoutTask?.cancel()
+        transientFailureTimeoutTask = nil
+    }
+
+    /// The system reported a temporary failure and will keep trying. Waiting forever would leave
+    /// Settings looking busy with no way out, so a request gives up after a few of them in a row,
+    /// or when none has been followed by a fix within the timeout.
+    private func noteTransientFailure(token: UInt64) {
+        guard requestGate.acceptsCallback(token) else { return }
+        transientFailureCount += 1
+        if transientFailureCount >= Self.maxTransientFailures {
+            failRequest(token: token)
+            return
+        }
+        guard transientFailureTimeoutTask == nil else { return }
+        transientFailureTimeoutTask = Task { [weak self, transientFailureTimeout] in
+            try? await Task.sleep(for: transientFailureTimeout)
+            guard !Task.isCancelled else { return }
+            self?.failRequest(token: token)
+        }
+    }
+
+    /// Ends a request that can no longer produce a fix and says so in Settings.
+    private func failRequest(token: UInt64) {
+        guard requestGate.acceptsCallback(token), accessProblem != .servicesOff else { return }
+        locationManager.stopUpdatingLocation()
+        accessProblem = .failed
+        requestGate.complete(token)
+        resetTransientFailureTracking()
     }
 
     private func loadSavedLocation() {
@@ -298,6 +352,7 @@ extension LocationProvider: CLLocationManagerDelegate {
             self.accessProblem = nil
             self.saveLocation()
             self.requestGate.complete(requestToken)
+            self.resetTransientFailureTracking()
         }
     }
 
@@ -307,16 +362,36 @@ extension LocationProvider: CLLocationManagerDelegate {
         // here would kill the one-shot request and silently leave sunrise/sunset schedules
         // without a location, even though a location may have arrived moments later.
         if let clError = error as? CLError, clError.code == .locationUnknown {
+            reportTransientFailure()
             return
         }
         manager.stopUpdatingLocation()
         if let clError = error as? CLError, clError.code == .denied {
             reportDeniedRequest()
+        } else {
+            reportFailedRequest()
         }
     }
 
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         applyAuthorizationStatus(manager.authorizationStatus)
+    }
+
+    /// A temporary failure for a request that is still waiting; see `noteTransientFailure`.
+    nonisolated func reportTransientFailure() {
+        let requestToken = requestGate.current()
+        Task { @MainActor in
+            self.noteTransientFailure(token: requestToken)
+        }
+    }
+
+    /// An error that ends the request without a fix. Settings then offers a retry or manual
+    /// entry, rather than the request just stopping.
+    nonisolated func reportFailedRequest() {
+        let requestToken = requestGate.current()
+        Task { @MainActor in
+            self.failRequest(token: requestToken)
+        }
     }
 
     /// The person turned down the prompt for a request that is still waiting. Settings then

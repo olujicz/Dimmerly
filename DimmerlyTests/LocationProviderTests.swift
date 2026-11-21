@@ -226,6 +226,112 @@ final class LocationProviderTests: XCTestCase {
         XCTAssertEqual(provider.accessProblem, .denied)
     }
 
+    // MARK: - Failures that are not a denial
+
+    private func settle() async {
+        try? await Task.sleep(for: .milliseconds(50))
+    }
+
+    /// A provider whose request is open and past the Location Services check, as it is after
+    /// the system accepted `startUpdatingLocation()`.
+    private func providerWithPendingRequest(
+        transientFailureTimeout: Duration = .seconds(30)
+    ) async -> LocationProvider {
+        let provider = LocationProvider(
+            forTesting: true,
+            defaults: testDefaults,
+            transientFailureTimeout: transientFailureTimeout
+        )
+        provider.requestLocation()
+        await settle()
+        // Stands in for a refresh that saw Location Services come back while the request waited.
+        provider.accessProblem = nil
+        return provider
+    }
+
+    func testTerminalLocationErrorIsReported() async {
+        let provider = await providerWithPendingRequest()
+
+        provider.locationManager(CLLocationManager(), didFailWithError: CLError(.network))
+        await settle()
+
+        XCTAssertEqual(provider.accessProblem, .failed)
+        XCTAssertFalse(provider.hasLocation)
+    }
+
+    func testUnsolicitedTerminalErrorIsNotReported() async {
+        let provider = LocationProvider(forTesting: true, defaults: testDefaults)
+
+        provider.locationManager(CLLocationManager(), didFailWithError: CLError(.network))
+        await settle()
+
+        XCTAssertNil(provider.accessProblem, "No request was waiting")
+    }
+
+    func testRepeatedTransientErrorsEndTheRequest() async {
+        let provider = await providerWithPendingRequest()
+
+        for _ in 0 ..< LocationProvider.maxTransientFailures - 1 {
+            provider.locationManager(CLLocationManager(), didFailWithError: CLError(.locationUnknown))
+        }
+        await settle()
+        XCTAssertNil(provider.accessProblem, "A few transient errors are tolerated")
+
+        provider.locationManager(CLLocationManager(), didFailWithError: CLError(.locationUnknown))
+        await settle()
+
+        XCTAssertEqual(provider.accessProblem, .failed)
+    }
+
+    func testTransientErrorFollowedByNoFixTimesOut() async throws {
+        let provider = await providerWithPendingRequest(transientFailureTimeout: .milliseconds(500))
+
+        provider.locationManager(CLLocationManager(), didFailWithError: CLError(.locationUnknown))
+        try await Task.sleep(for: .milliseconds(30))
+        XCTAssertNil(provider.accessProblem, "Still within the timeout")
+
+        try await Task.sleep(for: .milliseconds(1500))
+        XCTAssertEqual(provider.accessProblem, .failed)
+    }
+
+    func testTransientErrorThenFixSucceedsWithoutAProblem() async throws {
+        let provider = await providerWithPendingRequest(transientFailureTimeout: .milliseconds(100))
+
+        provider.locationManager(CLLocationManager(), didFailWithError: CLError(.locationUnknown))
+        provider.locationManager(
+            CLLocationManager(),
+            didUpdateLocations: [CLLocation(latitude: 48.85, longitude: 2.35)]
+        )
+        try await Task.sleep(for: .milliseconds(300))
+
+        XCTAssertNil(provider.accessProblem, "The timeout must not fire after a fix")
+        XCTAssertEqual(provider.latitude, 48.85)
+        XCTAssertEqual(provider.longitude, 2.35)
+    }
+
+    func testManualLocationCancelsAPendingTimeout() async throws {
+        let provider = await providerWithPendingRequest(transientFailureTimeout: .milliseconds(100))
+
+        provider.locationManager(CLLocationManager(), didFailWithError: CLError(.locationUnknown))
+        provider.setManualLocation(latitude: 1, longitude: 2)
+        try await Task.sleep(for: .milliseconds(300))
+
+        XCTAssertNil(provider.accessProblem)
+    }
+
+    func testFailureStaysAfterARefreshAndClearsOnTheNextRequest() async {
+        let provider = await providerWithPendingRequest()
+        provider.locationManager(CLLocationManager(), didFailWithError: CLError(.network))
+        await settle()
+        XCTAssertEqual(provider.accessProblem, .failed)
+
+        await provider.refreshAccessProblem()
+        XCTAssertEqual(provider.accessProblem, .failed, "Returning to the app is not a reason to hide it")
+
+        provider.setManualLocation(latitude: 1, longitude: 2)
+        XCTAssertNil(provider.accessProblem)
+    }
+
     func testUnsolicitedDenialIsNotReported() {
         let provider = LocationProvider(forTesting: true, defaults: testDefaults)
 
