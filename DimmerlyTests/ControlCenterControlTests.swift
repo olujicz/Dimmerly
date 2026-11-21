@@ -206,7 +206,10 @@ final class ControlCenterControlTests: XCTestCase {
         settings.preventScreenLock = false
         var blanked = 0
 
-        DisplayAction.setDimmed(true, settings: settings, blank: { _ in blanked += 1 })
+        DisplayAction.setDimmed(true, settings: settings, blank: { _ in
+            blanked += 1
+            return true
+        })
 
         XCTAssertEqual(blanked, 1)
     }
@@ -220,7 +223,10 @@ final class ControlCenterControlTests: XCTestCase {
         handleWidgetDimStateCommand(
             true,
             settings: settings,
-            setDimmed: { isDimmed, _ in requested.append(isDimmed) },
+            setDimmed: { isDimmed, _ in
+                requested.append(isDimmed)
+                return true
+            },
             isBlankingAnyDisplay: { false },
             publisher: makePublisher()
         )
@@ -242,7 +248,7 @@ final class ControlCenterControlTests: XCTestCase {
         handleWidgetDimStateCommand(
             false,
             settings: AppSettings(defaults: settingsDefaults),
-            setDimmed: { _, _ in },
+            setDimmed: { _, _ in true },
             isBlankingAnyDisplay: { false },
             publisher: publisher
         )
@@ -273,6 +279,25 @@ final class ControlCenterControlTests: XCTestCase {
         assertDimStatePublication(publishedBefore: false, actualBefore: false, requested: true, actualAfter: false)
     }
 
+    func testDimStateCommandReportsFailureButStillPublishesTheRealState() {
+        sharedDefaults.set(true, forKey: SharedConstants.controlDimStateKey)
+        var publishedValuesAtReload: [Bool] = []
+        let publisher = ControlCenterStatePublisher(defaults: sharedDefaults) { _ in
+            publishedValuesAtReload.append(SharedConstants.publishedDimState(in: self.sharedDefaults))
+        }
+
+        let succeeded = handleWidgetDimStateCommand(
+            true,
+            settings: AppSettings(defaults: settingsDefaults),
+            setDimmed: { _, _ in false },
+            isBlankingAnyDisplay: { false },
+            publisher: publisher
+        )
+
+        XCTAssertFalse(succeeded)
+        XCTAssertEqual(publishedValuesAtReload, [false], "The toggle must show that nothing was dimmed")
+    }
+
     private func assertDimStatePublication(
         publishedBefore: Bool,
         actualBefore: Bool,
@@ -298,6 +323,7 @@ final class ControlCenterControlTests: XCTestCase {
                 XCTAssertEqual(value, requested, file: file, line: line)
                 events.append("action")
                 actualState = actualAfter
+                return true
             },
             isBlankingAnyDisplay: {
                 events.append("state")

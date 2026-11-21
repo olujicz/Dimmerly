@@ -170,20 +170,26 @@ final class ScreenBlanker {
         dismiss(force: true)
     }
 
-    func blank() {
-        guard !isBlanking, !isPerDisplayFullBlanked else { return }
+    /// Starts a global blanking session.
+    ///
+    /// - Returns: `true` when the displays are blanked afterwards, including when they already
+    ///   were. `false` when nothing was blanked: no display could be covered, the input monitor
+    ///   could not start, or an overlay window could not be shown.
+    @discardableResult
+    func blank() -> Bool {
+        guard !isBlanking, !isPerDisplayFullBlanked else { return true }
         // A display AppKit has no screen for yet cannot get a window. It is left for the screen
         // parameters change that covers it later. If no display can be covered at all, there is
         // nothing to blank, and swallowing input behind no visible overlay would only look like
         // a frozen Mac, so no session starts.
         let displayIDs = displays.activeDisplayIDs.filter { displays.hasScreen(for: $0) }
-        guard !displayIDs.isEmpty else { return }
+        guard !displayIDs.isEmpty else { return false }
 
         do {
             try startDismissMonitoring(action: { [weak self] in self?.dismiss() })
         } catch {
             failurePresenter(error as? BlankingInputMonitorError ?? .unavailable)
-            return
+            return false
         }
 
         activationTime = clock.now
@@ -196,6 +202,8 @@ final class ScreenBlanker {
         } else {
             coverAfterBlankStarts()
         }
+        // A window that cannot be shown ends the session again before this returns.
+        return isBlanking
     }
 
     /// Puts the windows up once a global session has started or its fade has finished, covering

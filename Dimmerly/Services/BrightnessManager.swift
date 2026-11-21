@@ -539,11 +539,16 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
     #endif
 
     /// Toggles blanking for a single display
-    func toggleBlank(for displayID: CGDirectDisplayID) {
-        if ScreenBlanker.shared.isDisplayBlanked(displayID) {
-            ScreenBlanker.shared.unblankDisplay(displayID)
+    func toggleBlank(
+        for displayID: CGDirectDisplayID,
+        blanker: ScreenBlanker = .shared,
+        settings: AppSettings = .shared
+    ) {
+        if blanker.isDisplayBlanked(displayID) {
+            blanker.unblankDisplay(displayID)
         } else {
-            ScreenBlanker.shared.blankDisplay(displayID)
+            DisplayAction.applyWakePolicy(from: settings, to: blanker)
+            blanker.blankDisplay(displayID)
         }
         // No manual observation nudge needed: ScreenBlanker is @Observable, so views
         // reading its blanked-display state re-render on their own.
@@ -708,6 +713,14 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
                 nameIndex[name] = index
                 newDisplays[i].name = "\(name) (\(index))"
             }
+        }
+
+        // A display that disappears takes its unsaved edits with it: the debounced save only
+        // walks the displays that remain. Save the outgoing list first, under each display's
+        // stable identity, so the values are found again when it reconnects.
+        let remainingIDs = Set(newDisplays.map(\.id))
+        if displays.contains(where: { !remainingIDs.contains($0.id) }) {
+            persistAll()
         }
 
         displays = newDisplays

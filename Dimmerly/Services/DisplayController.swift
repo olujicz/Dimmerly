@@ -47,15 +47,18 @@ enum DisplayAction {
     /// - `requireEscapeToDismiss`: Whether Escape key is required (vs any input)
     ///
     /// - Parameter settings: Current app settings
+    /// - Returns: `false` when blanking was chosen and nothing was blanked. Real display sleep
+    ///   runs asynchronously and shows its own alert on failure, so it reports `true`.
     @MainActor
-    static func performSleep(settings: AppSettings) {
+    @discardableResult
+    static func performSleep(settings: AppSettings) -> Bool {
         #if APPSTORE
             // Sandbox prevents spawning pmset — always use gamma-based screen blanking
-            blankWithSettings(settings)
+            return blankWithSettings(settings)
         #else
             if settings.preventScreenLock {
                 // User wants blanking to avoid triggering screen lock
-                blankWithSettings(settings)
+                return blankWithSettings(settings)
             } else {
                 // Use real display sleep via pmset
                 Task {
@@ -64,6 +67,7 @@ enum DisplayAction {
                         AlertPresenter.showError(error)
                     }
                 }
+                return true
             }
         #endif
     }
@@ -81,29 +85,42 @@ enum DisplayAction {
     ///   - settings: Current app settings, used when dimming.
     ///   - blanker: The blanker to wake. Injectable for tests.
     ///   - blank: The dim action. Injectable for tests.
+    /// - Returns: `false` only when dimming was asked for and nothing could be blanked. A request
+    ///   that finds the state already as asked is a success.
     @MainActor
+    @discardableResult
     static func setDimmed(
         _ isDimmed: Bool,
         settings: AppSettings,
         blanker: ScreenBlanker = .shared,
-        blank: (AppSettings) -> Void = { DisplayAction.blankWithSettings($0) }
-    ) {
+        blank: (AppSettings) -> Bool = { DisplayAction.blankWithSettings($0) }
+    ) -> Bool {
         if isDimmed {
-            guard !blanker.isBlankingAnyDisplay else { return }
-            blank(settings)
+            guard !blanker.isBlankingAnyDisplay else { return true }
+            return blank(settings)
         } else {
             blanker.dismiss(force: true)
+            return true
         }
     }
 
     /// Configures ScreenBlanker from app settings and triggers blanking.
     @MainActor
-    static func blankWithSettings(_ settings: AppSettings) {
-        ScreenBlanker.shared.ignoreMouseMovement = settings.ignoreMouseMovement
+    @discardableResult
+    static func blankWithSettings(_ settings: AppSettings) -> Bool {
+        applyWakePolicy(from: settings, to: .shared)
         let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         ScreenBlanker.shared.useFadeTransition = settings.fadeTransition && !reduceMotion
-        ScreenBlanker.shared.requireEscapeToDismiss = settings.requireEscapeToDismiss
-        ScreenBlanker.shared.blank()
+        return ScreenBlanker.shared.blank()
+    }
+
+    /// Hands the blanker the user's wake preferences. Every way of blanking goes through this,
+    /// the global action and the per-display buttons alike, so a session wakes the way the
+    /// settings say even if no global blank has run since launch.
+    @MainActor
+    static func applyWakePolicy(from settings: AppSettings, to blanker: ScreenBlanker) {
+        blanker.ignoreMouseMovement = settings.ignoreMouseMovement
+        blanker.requireEscapeToDismiss = settings.requireEscapeToDismiss
     }
 }
 

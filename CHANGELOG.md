@@ -13,6 +13,13 @@ Semantic Versioning.
 - The App Store edition asks for a rating at most once per version, and only after you have used Dimmerly for a week, applied presets on at least three days, and closed the menu bar panel. It never asks on first launch, while a display is blanked, or while the panel is open. Nothing about your use leaves your Mac. The direct download never asks.
 
 ### Fixed
+- A brightness, warmth or contrast change made just before a monitor is unplugged is saved with that monitor and is back when it reconnects, even under a different display ID.
+- The moon button beside each display wakes the way Settings says (Esc only, ignore mouse movement), including right after launch. Before, only the main dim action followed those settings.
+- The widget button and the Control Center dim toggle report a failure when Dimmerly could not dim anything (no display to cover, or the wake input could not start). Before, they reported success and the toggle looked like nothing had happened. Dimming displays that are already dimmed still counts as success.
+- The Sleep Displays shortcut fails with an error when Dimmerly could not dim anything, as the widget and Control Center already did. Before, Shortcuts showed success. Translated in every shipped language.
+- VoiceOver names the display on each per-display dim and restore button ("Dim DELL U2720Q"), and the hint says the display turns black instead of promising minimum brightness. Translated in every shipped language.
+- Settings says so when Use Current Location fails for a reason other than permission, and offers Try Again or manual entry. Before, an unexpected system error, or a fix that never arrived after repeated "location unknown" errors, left the row silent. A request waits 30 seconds after the first of those errors, or gives up after three. Translated in every shipped language.
+- The warmth readout under each display's slider writes the colour temperature the way your language does ("4.500 K" in German, "4 500 K" in French) instead of always "4500K". VoiceOver says "kelvins" with the same number, and still says "automatic" while Auto Warmth is setting it.
 - In the App Store edition, a blanked display is restored when you switch to another app, instead of staying black with no way to wake it. Without that, the wake key reached the other app. If the display that held keyboard focus is unplugged, another blanked display takes over.
 
 ## [1.5.0] - 2026-11-14
