@@ -134,11 +134,11 @@ class ScheduleManager {
 
     /// Applies the current schedule-enabled setting. Called by the app on launch and
     /// whenever `AppSettings.scheduleEnabled` changes. No-op when state is unchanged.
-    func apply(enabled: Bool) {
+    func apply(enabled: Bool, now: Date = Date()) {
         guard enabled != lastEnabled else { return }
         lastEnabled = enabled
         if enabled {
-            startPolling()
+            startPolling(now: now)
         } else {
             stopPolling()
         }
@@ -147,15 +147,19 @@ class ScheduleManager {
     // MARK: - Polling
 
     /// Starts the polling timer and performs an immediate schedule check.
-    private func startPolling() {
-        stopPolling()
+    private func startPolling(now: Date) {
+        // Only the timer and in-memory state restart here. The persisted last-check time must
+        // survive so the check below can catch up on triggers missed while the app was not
+        // running; `stopPolling()` clears it because it means scheduling was turned off.
+        pollingTimer.stop()
+        lastCheckDate = nil
         // 30-second interval is sufficient for minute-resolution schedules
         // (worst-case delay: 30 seconds after trigger time)
         pollingTimer.start(interval: 30) { [weak self] in
             self?.checkSchedules()
         }
         // Also check immediately to handle schedules that should fire right now
-        checkSchedules()
+        checkSchedules(now: now)
     }
 
     /// Stops the polling timer and resets the last check date.

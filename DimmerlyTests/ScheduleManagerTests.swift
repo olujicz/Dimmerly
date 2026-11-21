@@ -181,6 +181,23 @@ final class ScheduleManagerTests: XCTestCase {
         XCTAssertEqual(fired, [day], "The 07:00 Day trigger missed overnight should apply on launch")
     }
 
+    func testEnablingSchedulingOnLaunchCatchesUpTriggerOlderThanStartupLookback() {
+        let night = UUID()
+        manager.addSchedule(makeSchedule(name: "Night", hour: 10, minute: 0, presetID: night))
+        manager.apply(enabled: true, now: makeDate(hour: 9, minute: 50))
+        manager.apply(enabled: false, now: makeDate(hour: 9, minute: 50))
+        manager.checkSchedules(now: makeDate(hour: 9, minute: 55))
+
+        // The app quits at 09:55 and starts again at 10:03, as the app does on launch: the
+        // persisted check time, not the two-minute look-back, decides what was missed.
+        let relaunched = relaunchedManager()
+        var fired: [UUID] = []
+        relaunched.onScheduleTriggered = { fired.append($0) }
+        relaunched.apply(enabled: true, now: makeDate(hour: 10, minute: 3))
+
+        XCTAssertEqual(fired, [night], "A trigger missed 3 minutes before launch should apply")
+    }
+
     func testReEnablingScheduleAppliesItsTriggerCrossedEarlierToday() {
         var fired: [UUID] = []
         manager.onScheduleTriggered = { fired.append($0) }
