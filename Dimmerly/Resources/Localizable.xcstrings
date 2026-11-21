@@ -72,6 +72,77 @@
         }
       }
     },
+    "Dimmerly couldn’t get your location. Try again, or enter a location manually." : {
+      "comment" : "Settings: the system could not determine the location; offers a retry or manual entry",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly konnte deinen Standort nicht ermitteln. Versuche es erneut oder gib einen Standort manuell ein."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly couldn’t get your location. Try again, or enter a location manually."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly no pudo obtener tu ubicación. Inténtalo de nuevo o introduce una ubicación manualmente."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly n’a pas pu obtenir votre position. Réessayez ou saisissez une position manuellement."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly non è riuscito a ottenere la tua posizione. Riprova oppure inserisci una posizione manualmente."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly が現在地を取得できませんでした。もう一度試すか、場所を手動で入力してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly에서 현재 위치를 가져오지 못했습니다. 다시 시도하거나 위치를 직접 입력하세요."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly kon je locatie niet ophalen. Probeer het opnieuw of voer handmatig een locatie in."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Dimmerly não conseguiu obter sua localização. Tente novamente ou insira um local manualmente."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly nije uspeo da odredi tvoju lokaciju. Pokušaj ponovo ili ručno unesi lokaciju."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly 无法获取你的位置。请重试，或手动输入位置。"
+          }
+        }
+      }
+    },
     "If this Mac isn't connected to that input, the display shows \"No Signal\" until you switch it back with the monitor's own buttons." : {
       "comment" : "Confirmation message: switching a monitor's input source",
       "localizations" : {
@@ -352,6 +423,77 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "要将%1$@切换到%2$@吗？"
+          }
+        }
+      }
+    },
+    "Try Again" : {
+      "comment" : "Settings: button that asks for the current location again after it failed",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erneut versuchen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try Again"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reintentar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réessayer"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riprova"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再試行"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다시 시도"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opnieuw proberen"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tentar novamente"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokušaj ponovo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重试"
           }
         }
       }

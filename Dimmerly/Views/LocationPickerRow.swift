@@ -87,8 +87,11 @@ struct LocationPickerRow: View {
             .font(.caption)
             .accessibilityElement(children: .combine)
 
-            // Restricted access is set by a policy the person can't change in System Settings.
-            if problem != .restricted {
+            if problem == .failed {
+                Button("Try Again") { locationProvider.requestLocation() }
+                    .font(.caption)
+            } else if problem != .restricted {
+                // Restricted access is set by a policy the person can't change in System Settings.
                 ExternalLinkButton(
                     title: Text("Open Location Services Settings"),
                     help: Text("Open Location Services in System Settings"),
@@ -121,6 +124,11 @@ struct LocationPickerRow: View {
             String(
                 localized: "Location access is restricted on this Mac. Enter a location manually.",
                 comment: "Settings: location access is blocked by a policy the person can't change"
+            )
+        case .failed:
+            String(
+                localized: "Dimmerly couldn’t get your location. Try again, or enter a location manually.",
+                comment: "Settings: the system could not determine the location; offers a retry or manual entry"
             )
         }
     }
