@@ -8755,72 +8755,72 @@
         }
       }
     },
-    "Dim display" : {
+    "Dim %@" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Display dimmen"
+            "value" : "%@ dimmen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dim display"
+            "value" : "Dim %@"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Atenuar pantalla"
+            "value" : "Atenuar %@"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Assombrir l’écran"
+            "value" : "Assombrir %@"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Oscura display"
+            "value" : "Oscura %@"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "画面を暗くする"
+            "value" : "%@ を暗くする"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "화면 어둡게"
+            "value" : "%@ 어둡게"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Scherm dimmen"
+            "value" : "%@ dimmen"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Escurecer tela"
+            "value" : "Escurecer %@"
           }
         },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zatamni ekran"
+            "value" : "Zatamni %@"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "调暗显示器"
+            "value" : "调暗 %@"
           }
         }
       }
@@ -9250,72 +9250,72 @@
         }
       }
     },
-    "Dims the display to minimum brightness" : {
+    "Turns the display black. Press again to restore it." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmt das Display auf minimale Helligkeit"
+            "value" : "Schaltet das Display schwarz. Erneut drücken, um es wiederherzustellen."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dims the display to minimum brightness"
+            "value" : "Turns the display black. Press again to restore it."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Atenúa la pantalla al brillo mínimo"
+            "value" : "Pone la pantalla en negro. Púlsalo de nuevo para restaurarla."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Réduit la luminosité de l’écran au minimum"
+            "value" : "Rend l’écran noir. Appuyez de nouveau pour le restaurer."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Riduce la luminosità dello schermo al minimo"
+            "value" : "Rende nero il display. Premi di nuovo per ripristinarlo."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "画面を最小輝度まで暗くします"
+            "value" : "画面を真っ黒にします。もう一度押すと復元します。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "화면을 최소 밝기로 어둡게 합니다"
+            "value" : "화면을 검게 만듭니다. 다시 누르면 복원됩니다."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimt het scherm tot de minimale helderheid"
+            "value" : "Maakt het scherm zwart. Druk opnieuw om het te herstellen."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Escurece a tela até o brilho mínimo"
+            "value" : "Deixa a tela preta. Pressione novamente para restaurá-la."
           }
         },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zatamnjuje ekran na minimalnu osvetljenost"
+            "value" : "Ekran postaje crn. Pritisnite ponovo da ga vratite."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "将显示器调暗到最低亮度"
+            "value" : "将显示器变黑。再次按下可恢复。"
           }
         }
       }
@@ -16825,72 +16825,72 @@
         }
       }
     },
-    "Restore display" : {
+    "Restore %@" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Display wiederherstellen"
+            "value" : "%@ wiederherstellen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Restore display"
+            "value" : "Restore %@"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Restaurar pantalla"
+            "value" : "Restaurar %@"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Restaurer l’écran"
+            "value" : "Restaurer %@"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ripristina display"
+            "value" : "Ripristina %@"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "画面を復元"
+            "value" : "%@ を復元"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "화면 복원"
+            "value" : "%@ 복원"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Scherm herstellen"
+            "value" : "%@ herstellen"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Restaurar tela"
+            "value" : "Restaurar %@"
           }
         },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vrati ekran"
+            "value" : "Vrati %@"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "恢复显示器"
+            "value" : "恢复 %@"
           }
         }
       }

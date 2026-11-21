@@ -493,12 +493,12 @@ struct DisplayBrightnessRow: View {
                 }
                 .buttonStyle(.borderless)
                 .iconButtonOverhang()
-                .help(isBlanked ? Text("Restore display") : Text("Dim display"))
-                .accessibilityLabel(isBlanked ? Text("Restore display") : Text("Dim display"))
+                .help(isBlanked ? Text("Restore \(display.name)") : Text("Dim \(display.name)"))
+                .accessibilityLabel(isBlanked ? Text("Restore \(display.name)") : Text("Dim \(display.name)"))
                 .accessibilityHint(
                     isBlanked
                         ? Text("Restores the display to its previous brightness")
-                        : Text("Dims the display to minimum brightness")
+                        : Text("Turns the display black. Press again to restore it.")
                 )
             }
 
