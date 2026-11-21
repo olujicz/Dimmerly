@@ -145,6 +145,54 @@ final class ScheduleManagerTests: XCTestCase {
         XCTAssertEqual(triggerCount, 1, "Should fire once after gap crossing trigger time")
     }
 
+    func testLaunchCatchesUpTriggerMissedWhileAppWasNotRunning() {
+        let night = UUID(), day = UUID()
+        manager.addSchedule(makeSchedule(name: "Night", hour: 23, minute: 0, presetID: night))
+        manager.addSchedule(makeSchedule(name: "Day", hour: 7, minute: 0, presetID: day))
+        manager.checkSchedules(now: makeDate(day: 1, hour: 23, minute: 0, second: 30))
+
+        // Shut down at 23:00 under Night, boot at 08:00: a new instance, as after relaunch.
+        let relaunched = ScheduleManager(
+            defaults: testDefaults,
+            locationCoordinates: { (latitude: 0.0, longitude: -40.0) }
+        )
+        var fired: [UUID] = []
+        relaunched.onScheduleTriggered = { fired.append($0) }
+        relaunched.checkSchedules(now: makeDate(day: 2, hour: 8, minute: 0))
+
+        XCTAssertEqual(fired, [day], "The 07:00 Day trigger missed overnight should apply on launch")
+    }
+
+    func testReEnablingScheduleAppliesItsTriggerCrossedEarlierToday() {
+        var fired: [UUID] = []
+        manager.onScheduleTriggered = { fired.append($0) }
+        let presetID = UUID()
+        let schedule = makeSchedule(hour: 10, minute: 0, presetID: presetID, isEnabled: false)
+        manager.addSchedule(schedule)
+        manager.apply(enabled: true)
+        fired.removeAll()
+
+        manager.toggleSchedule(id: schedule.id, now: makeDate(hour: 12, minute: 0))
+        XCTAssertEqual(fired, [presetID], "Re-enabled schedule should apply today's crossed trigger")
+
+        manager.toggleSchedule(id: schedule.id, now: makeDate(hour: 12, minute: 1))
+        manager.toggleSchedule(id: schedule.id, now: makeDate(hour: 12, minute: 2))
+        XCTAssertEqual(fired.count, 2)
+        manager.apply(enabled: false)
+    }
+
+    func testReEnablingScheduleBeforeItsTriggerDoesNotFire() {
+        var count = 0
+        manager.onScheduleTriggered = { _ in count += 1 }
+        let schedule = makeSchedule(hour: 10, minute: 0, isEnabled: false)
+        manager.addSchedule(schedule)
+        manager.apply(enabled: true)
+        count = 0
+        manager.toggleSchedule(id: schedule.id, now: makeDate(hour: 9, minute: 0))
+        XCTAssertEqual(count, 0)
+        manager.apply(enabled: false)
+    }
+
     func testCheckSchedulesCatchesUpAcrossMidnight() {
         var firedPresets: [UUID] = []
         manager.onScheduleTriggered = { firedPresets.append($0) }
