@@ -20,7 +20,7 @@ Semantic Versioning.
 - VoiceOver names the display on each per-display dim and restore button ("Dim DELL U2720Q"), and the hint says the display turns black instead of promising minimum brightness. Translated in every shipped language.
 - Settings says so when Use Current Location fails for a reason other than permission, and offers Try Again or manual entry. Before, an unexpected system error, or a fix that never arrived after repeated "location unknown" errors, left the row silent. A request waits 30 seconds after the first of those errors, or gives up after three. Translated in every shipped language.
 - The warmth readout under each display's slider writes the colour temperature the way your language does ("4.500 K" in German, "4 500 K" in French) instead of always "4500K". VoiceOver says "kelvins" with the same number, and still says "automatic" while Auto Warmth is setting it.
-- In the App Store edition, a blanked display is restored when you switch to another app, instead of staying black with no way to wake it. Without that, the wake key reached the other app. If the display that held keyboard focus is unplugged, another blanked display takes over.
+- In the App Store edition, a blanked display is restored when you switch to another app, instead of staying black with no way to wake it. Without that, the wake key reached the other app. If the display that held keyboard focus is unplugged, another blanked display takes over. If Dimmerly cannot take keyboard focus when blanking starts (for example an idle timer fires while another app is in front), the displays are restored after a moment instead of staying black.
 
 ## [1.5.0] - 2026-11-14
 

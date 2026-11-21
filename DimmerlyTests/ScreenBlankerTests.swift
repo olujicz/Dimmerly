@@ -11,35 +11,7 @@ import XCTest
 @MainActor
 final class ScreenBlankerTests: XCTestCase {
     private func makeHarness() -> ScreenBlankerHarness {
-        let input = FakeBlankingInputMonitor()
-        let windows = FakeBlankingWindowController()
-        let gamma = FakeDisplayGammaController()
-        let cursor = FakeCursorController()
-        let clock = FakeBlankingClock(now: 100)
-        let displays = FakeActiveDisplayProvider(activeDisplayIDs: [7, 9])
-        let failures = FailureRecorder()
-        let notificationCenter = NotificationCenter()
-        let sut = ScreenBlanker(
-            inputMonitor: input,
-            windows: windows,
-            gamma: gamma,
-            cursor: cursor,
-            clock: clock,
-            displays: displays,
-            notificationCenter: notificationCenter,
-            failurePresenter: { error in failures.errors.append(error) }
-        )
-        return ScreenBlankerHarness(
-            sut: sut,
-            input: input,
-            windows: windows,
-            gamma: gamma,
-            cursor: cursor,
-            clock: clock,
-            displays: displays,
-            failures: failures,
-            notificationCenter: notificationCenter
-        )
+        ScreenBlankerHarness.make()
     }
 
     func testBlankFromIdleStartsMonitoringAndBlanksEveryDisplay() {
@@ -993,7 +965,39 @@ extension ScreenBlankerTests {
 }
 
 @MainActor
-private struct ScreenBlankerHarness {
+struct ScreenBlankerHarness {
+    static func make() -> ScreenBlankerHarness {
+        let input = FakeBlankingInputMonitor()
+        let windows = FakeBlankingWindowController()
+        let gamma = FakeDisplayGammaController()
+        let cursor = FakeCursorController()
+        let clock = FakeBlankingClock(now: 100)
+        let displays = FakeActiveDisplayProvider(activeDisplayIDs: [7, 9])
+        let failures = FailureRecorder()
+        let notificationCenter = NotificationCenter()
+        let sut = ScreenBlanker(
+            inputMonitor: input,
+            windows: windows,
+            gamma: gamma,
+            cursor: cursor,
+            clock: clock,
+            displays: displays,
+            notificationCenter: notificationCenter,
+            failurePresenter: { error in failures.errors.append(error) }
+        )
+        return ScreenBlankerHarness(
+            sut: sut,
+            input: input,
+            windows: windows,
+            gamma: gamma,
+            cursor: cursor,
+            clock: clock,
+            displays: displays,
+            failures: failures,
+            notificationCenter: notificationCenter
+        )
+    }
+
     let sut: ScreenBlanker
     let input: FakeBlankingInputMonitor
     let windows: FakeBlankingWindowController
@@ -1035,12 +1039,12 @@ private struct ScreenBlankerHarness {
 #endif
 
 @MainActor
-private final class FailureRecorder {
+final class FailureRecorder {
     var errors: [BlankingInputMonitorError] = []
 }
 
 @MainActor
-private final class FakeBlankingInputMonitor: BlankingInputMonitoring {
+final class FakeBlankingInputMonitor: BlankingInputMonitoring {
     var startPolicies: [BlankingInputPolicy] = []
     var startError: BlankingInputMonitorError?
     var stopCount = 0
@@ -1088,7 +1092,7 @@ private final class FakeBlankingInputMonitor: BlankingInputMonitoring {
 }
 
 @MainActor
-private final class FakeBlankingWindowController: BlankingWindowControlling {
+final class FakeBlankingWindowController: BlankingWindowControlling {
     var beginSessionCount = 0
     var shownDisplayIDs: [CGDirectDisplayID] = []
     var events: [String] = []
@@ -1101,20 +1105,43 @@ private final class FakeBlankingWindowController: BlankingWindowControlling {
         events.append("begin")
     }
 
+    /// Whether AppKit made Dimmerly the active app. While false, nothing can become key.
+    var appIsActive = true
+    /// The overlay that is the key window, if any.
+    var keyDisplayID: CGDirectDisplayID?
+    var promoteCount = 0
+
+    var hasInputCapture: Bool {
+        appIsActive && keyDisplayID.map(shownDisplayIDs.contains) == true
+    }
+
+    func promoteKeyOverlayIfNeeded() {
+        promoteCount += 1
+        guard appIsActive, !hasInputCapture, let next = shownDisplayIDs.sorted().first else { return }
+        keyDisplayID = next
+    }
+
     func showWindow(for displayID: CGDirectDisplayID, showsEscapeHint _: Bool) -> Bool {
         guard !failingDisplayIDs.contains(displayID) else { return false }
         shownDisplayIDs.append(displayID)
         events.append("show:\(displayID)")
+        if appIsActive, keyDisplayID == nil {
+            keyDisplayID = displayID
+        }
         return true
     }
 
     func removeWindow(for displayID: CGDirectDisplayID) {
         shownDisplayIDs.removeAll { $0 == displayID }
+        if keyDisplayID == displayID {
+            keyDisplayID = nil
+        }
     }
 
     func removeAllWindows() {
         removeAllCount += 1
         shownDisplayIDs.removeAll()
+        keyDisplayID = nil
     }
 
     func endBlankingSession() {
@@ -1129,7 +1156,7 @@ private final class FakeBlankingWindowController: BlankingWindowControlling {
 }
 
 @MainActor
-private final class FakeDisplayGammaController: DisplayGammaControlling {
+final class FakeDisplayGammaController: DisplayGammaControlling {
     struct Application {
         let displayID: CGDirectDisplayID
         let brightness: Double
@@ -1157,7 +1184,7 @@ private final class FakeDisplayGammaController: DisplayGammaControlling {
 }
 
 @MainActor
-private final class FakeCursorController: CursorVisibilityControlling {
+final class FakeCursorController: CursorVisibilityControlling {
     var hideCount = 0
     var unhideCount = 0
 
@@ -1171,7 +1198,7 @@ private final class FakeCursorController: CursorVisibilityControlling {
 }
 
 @MainActor
-private final class FakeBlankingClock: BlankingClock {
+final class FakeBlankingClock: BlankingClock {
     var now: TimeInterval
     var sleepCallCount = 0
     var cancelledSleepCount = 0
@@ -1198,7 +1225,7 @@ private final class FakeBlankingClock: BlankingClock {
 }
 
 @MainActor
-private final class FakeActiveDisplayProvider: ActiveDisplayProviding {
+final class FakeActiveDisplayProvider: ActiveDisplayProviding {
     var activeDisplayIDs: [CGDirectDisplayID]
     /// Active displays AppKit has not published an NSScreen for yet.
     var displayIDsWithoutScreen: Set<CGDirectDisplayID> = []
