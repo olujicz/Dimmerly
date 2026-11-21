@@ -471,9 +471,9 @@ private struct MenuBarAutoWarmthToggle: View {
         if !LocationProvider.shared.hasLocation {
             Text("Set location in Settings")
         } else if let desc = colorTempManager.nextTransitionDescription() {
-            Text("\(Int(colorTempManager.currentKelvin))K · \(desc)")
+            Text(verbatim: "\(GammaMath.formattedKelvin(colorTempManager.currentKelvin)) · \(desc)")
         } else {
-            Text("\(Int(colorTempManager.currentKelvin))K")
+            Text(verbatim: GammaMath.formattedKelvin(colorTempManager.currentKelvin))
         }
     }
 }

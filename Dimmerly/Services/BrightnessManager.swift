@@ -720,6 +720,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
         // stable identity, so the values are found again when it reconnects.
         let remainingIDs = Set(newDisplays.map(\.id))
         if displays.contains(where: { !remainingIDs.contains($0.id) }) {
+            resolveActiveTransition()
             persistAll()
         }
 
@@ -1167,28 +1168,33 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
         }
     }
 
+    /// Ends a running transition and settles every display it was moving on its end values, so
+    /// what gets persisted is where the change was heading, not a mid-transition frame.
+    private func resolveActiveTransition() {
+        guard let activeTransition else { return }
+        activeTransition.task.cancel()
+        self.activeTransition = nil
+        for target in activeTransition.targets {
+            guard let index = displays.firstIndex(where: { $0.id == target.displayID }) else { continue }
+            if let brightness = target.end.brightness {
+                displays[index].brightness = brightness
+            }
+            if let warmth = target.end.warmth {
+                displays[index].warmth = warmth
+            }
+            if let contrast = target.end.contrast {
+                displays[index].contrast = contrast
+            }
+        }
+    }
+
     /// Saves pending changes right away. Called when the app terminates, so a change made in
     /// the last 500 ms is not lost with the debounce task. A running preset transition is
     /// stopped and its end values are saved, since it can no longer finish and persist them.
     func flushPendingPersistence() {
         persistTask?.cancel()
         persistTask = nil
-        if let activeTransition {
-            activeTransition.task.cancel()
-            self.activeTransition = nil
-            for target in activeTransition.targets {
-                guard let index = displays.firstIndex(where: { $0.id == target.displayID }) else { continue }
-                if let brightness = target.end.brightness {
-                    displays[index].brightness = brightness
-                }
-                if let warmth = target.end.warmth {
-                    displays[index].warmth = warmth
-                }
-                if let contrast = target.end.contrast {
-                    displays[index].contrast = contrast
-                }
-            }
-        }
+        resolveActiveTransition()
         persistAll()
     }
 

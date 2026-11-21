@@ -366,6 +366,7 @@ struct DisplayBrightnessRow: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(AppSettings.self) private var settings
 
     let display: ExternalDisplay
     let isBlanked: Bool
@@ -498,7 +499,9 @@ struct DisplayBrightnessRow: View {
                 .accessibilityHint(
                     isBlanked
                         ? Text("Restores the display to its previous brightness")
-                        : Text("Turns the display black. Press again to restore it.")
+                        : settings.requireEscapeToDismiss
+                        ? Text("Turns the display black. Press Esc to wake it.")
+                        : Text("Turns the display black. Press any key to wake it.")
                 )
             }
 

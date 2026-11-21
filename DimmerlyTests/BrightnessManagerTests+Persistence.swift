@@ -102,4 +102,31 @@ extension BrightnessManagerTests {
         XCTAssertEqual(reconnected.warmth, 0.3, accuracy: 0.0001)
         XCTAssertEqual(reconnected.contrast, 0.8, accuracy: 0.0001)
     }
+
+    /// Unplugging a display while a preset transition is running must save where the transition
+    /// was heading, not whatever frame it had reached.
+    func testUnplugDuringATransitionSavesTheTransitionEndValues() throws {
+        let suiteName = "BrightnessManagerTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let identity = "v16652m49551s3212"
+        let manager = managerWithIsolatedDefaults(defaults, identity: identity)
+        manager.displays.append(ExternalDisplay(id: 3, name: "LG", brightness: 1.0, warmth: 0.0, contrast: 0.5))
+        manager.canAnimateTransitionsHook = { true }
+
+        let preset = BrightnessPreset(
+            name: "Evening",
+            displayWarmth: [identity: 0.42],
+            displayContrast: [identity: 0.6]
+        )
+        XCTAssertTrue(manager.animateToPreset(preset), "Animation should start")
+
+        manager.activeDisplayIDsHook = { [3] }
+        manager.refreshDisplays()
+
+        let warmth = try XCTUnwrap(defaults.dictionary(forKey: "dimmerlyDisplayWarmth") as? [String: Double])
+        let contrast = try XCTUnwrap(defaults.dictionary(forKey: "dimmerlyDisplayContrast") as? [String: Double])
+        XCTAssertEqual(try XCTUnwrap(warmth[identity]), 0.42, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(contrast[identity]), 0.6, accuracy: 0.0001)
+    }
 }

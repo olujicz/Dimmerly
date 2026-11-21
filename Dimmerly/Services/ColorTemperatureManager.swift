@@ -443,7 +443,7 @@ class ColorTemperatureManager {
     // MARK: - Status
 
     /// Returns a short description of the next sunrise or sunset transition for UI display,
-    /// e.g. "Sunset 8:12 PM · 2700K", or nil if unavailable.
+    /// e.g. "Sunset 8:12 PM · 2,700 K", or nil if unavailable.
     func nextTransitionDescription() -> String? {
         guard let location = locationCoordinates() else { return nil }
 
@@ -455,16 +455,16 @@ class ColorTemperatureManager {
         )
         guard let sunrise = solar.sunrise, let sunset = solar.sunset else { return nil }
 
-        let dayK = settings.dayTemperature
-        let nightK = settings.nightTemperature
+        let dayK = GammaMath.formattedKelvin(Double(settings.dayTemperature))
+        let nightK = GammaMath.formattedKelvin(Double(settings.nightTemperature))
 
         if now < sunrise {
             let time = sunrise.formatted(date: .omitted, time: .shortened)
-            return String(localized: "Sunrise \(time) · \(dayK)K",
+            return String(localized: "Sunrise \(time) · \(dayK)",
                           comment: "Next color temperature transition — sunrise time and target Kelvin")
         } else if now < sunset {
             let time = sunset.formatted(date: .omitted, time: .shortened)
-            return String(localized: "Sunset \(time) · \(nightK)K",
+            return String(localized: "Sunset \(time) · \(nightK)",
                           comment: "Next color temperature transition — sunset time and target Kelvin")
         } else {
             // After sunset — next transition is tomorrow's sunrise
@@ -476,7 +476,7 @@ class ColorTemperatureManager {
                 )
                 if let tomorrowSunrise = tomorrowSolar.sunrise {
                     let time = tomorrowSunrise.formatted(date: .omitted, time: .shortened)
-                    return String(localized: "Sunrise \(time) · \(dayK)K",
+                    return String(localized: "Sunrise \(time) · \(dayK)",
                                   comment: "Next color temperature transition — sunrise time and target Kelvin")
                 }
             }

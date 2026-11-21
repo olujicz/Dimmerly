@@ -21,6 +21,11 @@ Semantic Versioning.
 - Settings says so when Use Current Location fails for a reason other than permission, and offers Try Again or manual entry. Before, an unexpected system error, or a fix that never arrived after repeated "location unknown" errors, left the row silent. A request waits 30 seconds after the first of those errors, or gives up after three. Translated in every shipped language.
 - The warmth readout under each display's slider writes the colour temperature the way your language does ("4.500 K" in German, "4 500 K" in French) instead of always "4500K". VoiceOver says "kelvins" with the same number, and still says "automatic" while Auto Warmth is setting it.
 - In the App Store edition, a blanked display is restored when you switch to another app, instead of staying black with no way to wake it. Without that, the wake key reached the other app. If the display that held keyboard focus is unplugged, another blanked display takes over. If Dimmerly cannot take keyboard focus when blanking starts (for example an idle timer fires while another app is in front), the displays are restored after a moment instead of staying black.
+- If Location Services is off when you press Use Current Location and you turn it on while Settings is open, the request now starts instead of waiting forever. Clearing the saved location also clears the warning.
+- A monitor unplugged in the middle of a preset transition is saved with the values the transition was heading to, not a half-way frame.
+- The colour temperatures beside Auto Warmth, in the menu bar panel and in Settings, follow your language's number format, and VoiceOver reads them as kelvins.
+- The VoiceOver hint on each display's dim button says how to wake it (Esc, or any key) instead of "press again". Translated in every shipped language.
+- The App Store edition asks for a rating only while Dimmerly is the active app, so the one ask per version is not spent while it is in the background.
 
 ## [1.5.0] - 2026-11-14
 

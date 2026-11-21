@@ -11,6 +11,7 @@
 //  edition records anything or asks (see `RatingPrompt`).
 //
 
+import AppKit
 import Foundation
 
 /// Counts of use that the prompt decision reads.
@@ -144,7 +145,9 @@ final class RatingPromptTracker {
         ) {
             Task { @MainActor in
                 try? await Task.sleep(for: delay)
-                guard !isBusy() else { return }
+                // The system shows its own window only for the active app. Claiming while the
+                // app is in the background would use up the ask without anyone seeing it.
+                guard NSApp.isActive, !isBusy() else { return }
                 let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
                 if tracker.claimPrompt(version: version) {
                     request()

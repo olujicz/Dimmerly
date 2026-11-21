@@ -7,6 +7,7 @@
 
 import CoreLocation
 @testable import Dimmerly
+import Synchronization
 import XCTest
 
 @MainActor
@@ -352,6 +353,33 @@ final class LocationProviderTests: XCTestCase {
         provider.authorizationStatus = .notDetermined
 
         await provider.refreshAccessProblem()
+
+        XCTAssertNil(provider.accessProblem)
+    }
+
+    func testRefreshStartsWaitingRequestOnceServicesComeBack() async {
+        let servicesOn = Mutex(false)
+        let provider = LocationProvider(
+            forTesting: true,
+            defaults: testDefaults,
+            locationServicesAvailable: { servicesOn.withLock { $0 } }
+        )
+        provider.requestLocation()
+        await settle()
+        XCTAssertEqual(provider.accessProblem, .servicesOff)
+
+        servicesOn.withLock { $0 = true }
+        await provider.refreshAccessProblem()
+
+        // The request began: the warning is gone, or it names whatever the system says now.
+        XCTAssertNotEqual(provider.accessProblem, LocationAccessProblem.servicesOff)
+    }
+
+    func testClearLocationClearsAccessProblem() {
+        let provider = LocationProvider(forTesting: true, defaults: testDefaults)
+        provider.accessProblem = .denied
+
+        provider.clearLocation()
 
         XCTAssertNil(provider.accessProblem)
     }

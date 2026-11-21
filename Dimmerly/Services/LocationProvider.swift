@@ -226,6 +226,13 @@ class LocationProvider: NSObject {
         }
         // A request made in the meantime may already have cleared or replaced the problem.
         guard accessProblem != nil, accessProblem != .failed else { return }
+        // The switch came back while a request was still waiting on it: that request never
+        // started, so begin it now rather than leaving Settings waiting for a fix.
+        let waitingToken = requestGate.current()
+        if accessProblem == .servicesOff, servicesEnabled, requestGate.acceptsCallback(waitingToken) {
+            beginLocationRequest(token: waitingToken)
+            return
+        }
         accessProblem = LocationAccessProblem.current(servicesEnabled: servicesEnabled, status: authorizationStatus)
     }
 
@@ -283,6 +290,8 @@ class LocationProvider: NSObject {
         locationManager.stopUpdatingLocation()
         latitude = nil
         longitude = nil
+        // Nothing is waiting any more, so a warning about the request that was has no subject.
+        accessProblem = nil
         defaults.removeObject(forKey: Self.latitudeKey)
         defaults.removeObject(forKey: Self.longitudeKey)
         defaults.removeObject(forKey: Self.hasSavedKey)
