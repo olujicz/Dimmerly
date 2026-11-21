@@ -243,6 +243,7 @@ struct DimmerlyApp: App {
 
     /// The App Store edition may ask for a rating once the panel is closed and nothing is happening.
     private func panelDidClose() {
+        DisplayRowExpansion.shared.reset()
         #if APPSTORE
             RatingPrompt.panelDidClose(
                 isBusy: { [menuBarPanelCoordinator, screenBlanker] in

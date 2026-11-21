@@ -1132,3 +1132,32 @@ extension MenuBarPanelTests {
         XCTAssertTrue(source.contains("contrast == .increased ? 1.5 : 0.75"))
     }
 }
+
+@MainActor
+final class DisplayRowExpansionTests: XCTestCase {
+    func testToggleExpandsAndCollapsesOnlyThatDisplay() {
+        let expansion = DisplayRowExpansion()
+        expansion.toggle(7)
+        XCTAssertTrue(expansion.isExpanded(7))
+        XCTAssertFalse(expansion.isExpanded(9))
+        expansion.toggle(7)
+        XCTAssertFalse(expansion.isExpanded(7))
+    }
+
+    func testExpansionSurvivesWarmthRestoreBecauseItIsNotRowState() {
+        // Switching Auto Warmth off restores warmth and can rebuild the rows. The state is held
+        // by the model, so a rebuilt row reads the same answer.
+        let expansion = DisplayRowExpansion()
+        expansion.setExpanded(true, for: 7)
+        XCTAssertTrue(expansion.isExpanded(7))
+    }
+
+    func testResetCollapsesEveryRow() {
+        let expansion = DisplayRowExpansion()
+        expansion.setExpanded(true, for: 7)
+        expansion.setExpanded(true, for: 9)
+        expansion.reset()
+        XCTAssertFalse(expansion.isExpanded(7))
+        XCTAssertFalse(expansion.isExpanded(9))
+    }
+}
