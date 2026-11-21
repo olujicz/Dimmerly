@@ -9388,72 +9388,142 @@
         }
       }
     },
-    "Turns the display black. Press again to restore it." : {
+    "Turns the display black. Press Esc to wake it." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Schaltet das Display schwarz. Erneut drücken, um es wiederherzustellen."
+            "value" : "Schaltet das Display schwarz. Zum Aufwecken Esc drücken."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Turns the display black. Press again to restore it."
+            "value" : "Turns the display black. Press Esc to wake it."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pone la pantalla en negro. Púlsalo de nuevo para restaurarla."
+            "value" : "Pone la pantalla en negro. Pulsa Esc para activarla."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rend l’écran noir. Appuyez de nouveau pour le restaurer."
+            "value" : "Rend l’écran noir. Appuyez sur Échap pour le réactiver."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rende nero il display. Premi di nuovo per ripristinarlo."
+            "value" : "Rende nero il display. Premi Esc per riattivarlo."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "画面を真っ黒にします。もう一度押すと復元します。"
+            "value" : "画面を真っ黒にします。Escキーで復帰します。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "화면을 검게 만듭니다. 다시 누르면 복원됩니다."
+            "value" : "화면을 검게 만듭니다. Esc를 누르면 깨어납니다."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Maakt het scherm zwart. Druk opnieuw om het te herstellen."
+            "value" : "Maakt het scherm zwart. Druk op Esc om het te wekken."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deixa a tela preta. Pressione novamente para restaurá-la."
+            "value" : "Deixa a tela preta. Pressione Esc para reativá-la."
           }
         },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ekran postaje crn. Pritisnite ponovo da ga vratite."
+            "value" : "Ekran postaje crn. Pritisnite Esc za buđenje."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "将显示器变黑。再次按下可恢复。"
+            "value" : "将显示器变黑。按 Esc 键唤醒。"
+          }
+        }
+      }
+    },
+    "Turns the display black. Press any key to wake it." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schaltet das Display schwarz. Zum Aufwecken beliebige Taste drücken."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turns the display black. Press any key to wake it."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pone la pantalla en negro. Pulsa cualquier tecla para activarla."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rend l’écran noir. Appuyez sur une touche pour le réactiver."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rende nero il display. Premi un tasto qualsiasi per riattivarlo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画面を真っ黒にします。任意のキーで復帰します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "화면을 검게 만듭니다. 아무 키나 누르면 깨어납니다."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maakt het scherm zwart. Druk op een willekeurige toets om het te wekken."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deixa a tela preta. Pressione qualquer tecla para reativá-la."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekran postaje crn. Pritisnite bilo koji taster za buđenje."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将显示器变黑。按任意键唤醒。"
           }
         }
       }
@@ -19014,73 +19084,73 @@
         }
       }
     },
-    "Sunrise %@ · %lldK" : {
+    "Sunrise %@ · %@" : {
       "comment" : "Next color temperature transition — sunrise time and target Kelvin",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sonnenaufgang %@ · %lldK"
+            "value" : "Sonnenaufgang %@ · %@"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sunrise %@ · %lldK"
+            "value" : "Sunrise %@ · %@"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Amanecer %@ · %lldK"
+            "value" : "Amanecer %@ · %@"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lever du soleil %@ · %lldK"
+            "value" : "Lever du soleil %@ · %@"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Alba %@ · %lldK"
+            "value" : "Alba %@ · %@"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "日の出 %@ · %lldK"
+            "value" : "日の出 %@ · %@"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "일출 %@ · %lldK"
+            "value" : "일출 %@ · %@"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zonsopgang %@ · %lldK"
+            "value" : "Zonsopgang %@ · %@"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nascer do sol %@ · %lldK"
+            "value" : "Nascer do sol %@ · %@"
           }
         },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Izlazak sunca %@ · %lldK"
+            "value" : "Izlazak sunca %@ · %@"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "日出 %@ · %lldK"
+            "value" : "日出 %@ · %@"
           }
         }
       }
@@ -19156,73 +19226,73 @@
         }
       }
     },
-    "Sunset %@ · %lldK" : {
+    "Sunset %@ · %@" : {
       "comment" : "Next color temperature transition — sunset time and target Kelvin",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sonnenuntergang %@ · %lldK"
+            "value" : "Sonnenuntergang %@ · %@"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sunset %@ · %lldK"
+            "value" : "Sunset %@ · %@"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Atardecer %@ · %lldK"
+            "value" : "Atardecer %@ · %@"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Coucher du soleil %@ · %lldK"
+            "value" : "Coucher du soleil %@ · %@"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tramonto %@ · %lldK"
+            "value" : "Tramonto %@ · %@"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "日の入り %@ · %lldK"
+            "value" : "日の入り %@ · %@"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "일몰 %@ · %lldK"
+            "value" : "일몰 %@ · %@"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zonsondergang %@ · %lldK"
+            "value" : "Zonsondergang %@ · %@"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pôr do sol %@ · %lldK"
+            "value" : "Pôr do sol %@ · %@"
           }
         },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zalazak sunca %@ · %lldK"
+            "value" : "Zalazak sunca %@ · %@"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "日落 %@ · %lldK"
+            "value" : "日落 %@ · %@"
           }
         }
       }
@@ -21577,9 +21647,6 @@
     "%@, %@" : {
       "shouldTranslate" : false
     },
-    "%lldK" : {
-      "shouldTranslate" : false
-    },
     "%lldK · %@" : {
       "shouldTranslate" : false
     },
@@ -21588,76 +21655,6 @@
     },
     "⌘%lld" : {
       "shouldTranslate" : false
-    },
-    "%lld Kelvin" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld Kelvin"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld Kelvin"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld kelvin"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld kelvins"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld kelvin"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld ケルビン"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld 켈빈"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld kelvin"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld kelvin"
-          }
-        },
-        "sr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld kelvina"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld 开尔文"
-          }
-        }
-      }
     },
     "%lld milliseconds" : {
       "localizations" : {

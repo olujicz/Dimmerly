@@ -145,7 +145,16 @@ extension GammaMath {
         spelledOut: Bool = false,
         locale: Locale = .autoupdatingCurrent
     ) -> String {
-        Measurement(value: kelvinForWarmth(warmth), unit: UnitTemperature.kelvin).formatted(
+        formattedKelvin(kelvinForWarmth(warmth), spelledOut: spelledOut, locale: locale)
+    }
+
+    /// A colour temperature already expressed in Kelvin, written with the same locale rules.
+    static func formattedKelvin(
+        _ kelvin: Double,
+        spelledOut: Bool = false,
+        locale: Locale = .autoupdatingCurrent
+    ) -> String {
+        Measurement(value: kelvin, unit: UnitTemperature.kelvin).formatted(
             .measurement(
                 width: spelledOut ? .wide : .abbreviated,
                 // The value is a colour temperature, not a weather reading: never convert it.
