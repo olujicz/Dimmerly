@@ -702,6 +702,7 @@ final class ScreenshotStageTests: XCTestCase {
             "MenuBarPanelHost.swift", // Panel presenter; presentation only
             "KeyboardShortcutManager.swift", // Shortcut recording UI state
             "ScreenBlanker.swift", // Runs only on an explicit Turn Off
+            "ScreenSleepState.swift", // Read-only sleep/wake flag; holds no display state
         ]
         let sources = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent()

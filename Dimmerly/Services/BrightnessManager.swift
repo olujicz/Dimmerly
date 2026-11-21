@@ -532,6 +532,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
                 while !Task.isCancelled {
                     try? await Task.sleep(for: .seconds(1))
                     guard !Task.isCancelled, let self else { return }
+                    guard !ScreenSleepState.shouldPausePolling else { continue }
                     syncBuiltInBrightness()
                 }
             }
