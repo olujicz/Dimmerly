@@ -30,6 +30,7 @@ Semantic Versioning.
 - The idle timer no longer blanks displays while a video, presentation or other app is keeping the display awake. It blanks once that stops, if you are still idle.
 - A Day preset applied by a schedule shortly before sunrise is no longer undone a few minutes later when Auto Warmth resumes. The sunrise transition continues from the warmth on screen instead of jumping back to the night tint (and a sunset transition likewise never moves back past it).
 - Dimmerly stops reading monitor values over DDC and syncing the built-in backlight while the displays are asleep or dimmed by Dimmerly, so it no longer pokes a sleeping monitor every few seconds. It resumes on the next check after wake.
+- Schedules keep their once-a-day bookkeeping straight after you change time zone while Dimmerly is running, instead of using the zone from when it launched. Auto Warmth and sunrise/sunset schedules also stay on the right day when the saved location is far from your time zone's meridian (they used to report night in the afternoon).
 
 ## [1.5.0] - 2026-11-14
 

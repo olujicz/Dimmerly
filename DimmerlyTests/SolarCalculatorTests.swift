@@ -38,6 +38,27 @@ final class SolarCalculatorTests: XCTestCase {
         hour * 60 + minute
     }
 
+    // MARK: - Far From Time Zone
+
+    /// Longitude -172 with a UTC+13 clock (a stale or mismatched saved location) used to push both
+    /// events into the next local day, so Auto Warmth reported night at 15:00.
+    func testEventsStayInTheRequestedLocalDayWhenFarFromTheZoneMeridian() throws {
+        let tz = try XCTUnwrap(TimeZone(identifier: "Pacific/Tongatapu"))
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = tz
+        let date = makeDate(year: 2026, month: 3, day: 20, timeZone: tz)
+        let solar = SolarCalculator.sunriseSunset(latitude: 0, longitude: -172, date: date, timeZone: tz)
+        let sunrise = try XCTUnwrap(solar.sunrise)
+        let sunset = try XCTUnwrap(solar.sunset)
+
+        XCTAssertTrue(calendar.isDate(sunrise, inSameDayAs: date), "Sunrise belongs to the requested day")
+        XCTAssertTrue(calendar.isDate(sunset, inSameDayAs: date), "Sunset belongs to the requested day")
+        XCTAssertLessThan(sunrise, sunset)
+        let afternoon = makeDate(year: 2026, month: 3, day: 20, hour: 15, timeZone: tz)
+        XCTAssertGreaterThan(afternoon, sunrise)
+        XCTAssertLessThan(afternoon, sunset, "15:00 is daytime")
+    }
+
     // MARK: - Known Location Accuracy
 
     /// New York City — 2026-03-20 (spring equinox): sunrise ~06:58, sunset ~19:10 EDT

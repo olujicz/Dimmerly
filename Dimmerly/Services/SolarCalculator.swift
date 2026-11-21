@@ -122,7 +122,11 @@ enum SolarCalculator {
         let tzOffset = Double(timeZone.secondsFromGMT(for: startOfDay)) / 3600.0
 
         // Solar noon (minutes from local midnight)
-        let solarNoon = (720.0 - 4.0 * longitude - eqOfTime + tzOffset * 60.0)
+        // A location far from its time zone's meridian (longitude -172 under UTC+13, say) puts
+        // the raw value outside 0..<1440. Fold it into the requested local day so the events
+        // belong to that day instead of the one before or after.
+        let rawSolarNoon = 720.0 - 4.0 * longitude - eqOfTime + tzOffset * 60.0
+        let solarNoon = rawSolarNoon - 1440.0 * floor(rawSolarNoon / 1440.0)
 
         // Sunrise and sunset in minutes from midnight local time
         let sunriseMinutes = solarNoon - hourAngle * 4.0
