@@ -197,7 +197,10 @@ final class ScreenBlankerTests: XCTestCase {
         harness.sut.blankDisplay(7)
         var sleepCount = 0
 
-        DisplayAction.setDimmed(false, settings: AppSettings(), blanker: harness.sut) { _ in sleepCount += 1 }
+        DisplayAction.setDimmed(false, settings: AppSettings(), blanker: harness.sut) { _ in
+            sleepCount += 1
+            return true
+        }
 
         XCTAssertFalse(harness.sut.isBlankingAnyDisplay)
         XCTAssertEqual(harness.gamma.restoredDisplayIDs, [7])
@@ -208,11 +211,17 @@ final class ScreenBlankerTests: XCTestCase {
         let harness = makeHarness()
         var sleepCount = 0
 
-        DisplayAction.setDimmed(true, settings: AppSettings(), blanker: harness.sut) { _ in sleepCount += 1 }
+        DisplayAction.setDimmed(true, settings: AppSettings(), blanker: harness.sut) { _ in
+            sleepCount += 1
+            return true
+        }
         XCTAssertEqual(sleepCount, 1)
 
         harness.sut.blankDisplay(7)
-        DisplayAction.setDimmed(true, settings: AppSettings(), blanker: harness.sut) { _ in sleepCount += 1 }
+        DisplayAction.setDimmed(true, settings: AppSettings(), blanker: harness.sut) { _ in
+            sleepCount += 1
+            return true
+        }
         XCTAssertEqual(sleepCount, 1, "A toggle that already reads as on must not start a second session")
     }
 
@@ -279,41 +288,6 @@ final class ScreenBlankerTests: XCTestCase {
         XCTAssertEqual(harness.input.stopCount, 1)
         XCTAssertEqual(harness.gamma.restoredDisplayIDs, [7, 9, 11])
         XCTAssertEqual(harness.cursor.unhideCount, 1)
-    }
-
-    // MARK: - Wake preferences on the per-display path
-
-    func testPerDisplayBlankingFollowsSavedWakePreferencesAfterFreshLaunch() throws {
-        let suiteName = "ScreenBlankerTests-\(UUID().uuidString)"
-        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
-        defer { defaults.removePersistentDomain(forName: suiteName) }
-        defaults.set(true, forKey: "dimmerlyRequireEscapeToDismiss")
-        defaults.set(true, forKey: "dimmerlyIgnoreMouseMovement")
-        // A new AppSettings and a new blanker: nothing has blanked globally since launch.
-        let settings = AppSettings(defaults: defaults)
-        let harness = makeHarness()
-        let manager = BrightnessManager(forTesting: true, defaults: defaults)
-
-        manager.toggleBlank(for: 7, blanker: harness.sut, settings: settings)
-        manager.toggleBlank(for: 9, blanker: harness.sut, settings: settings)
-
-        XCTAssertEqual(harness.input.startPolicies, [.escapeOnly])
-        XCTAssertTrue(harness.sut.requireEscapeToDismiss)
-        XCTAssertTrue(harness.sut.ignoreMouseMovement)
-    }
-
-    func testPerDisplayBlankingKeepsAnyInputWakeWhenPreferencesAreDefault() throws {
-        let suiteName = "ScreenBlankerTests-\(UUID().uuidString)"
-        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
-        defer { defaults.removePersistentDomain(forName: suiteName) }
-        let settings = AppSettings(defaults: defaults)
-        let harness = makeHarness()
-        let manager = BrightnessManager(forTesting: true, defaults: defaults)
-
-        manager.toggleBlank(for: 7, blanker: harness.sut, settings: settings)
-        manager.toggleBlank(for: 9, blanker: harness.sut, settings: settings)
-
-        XCTAssertEqual(harness.input.startPolicies, [.anyInput(ignorePointerMovement: false)])
     }
 
     // MARK: - Blanking while a display has no screen yet
@@ -835,6 +809,113 @@ final class ScreenBlankerTests: XCTestCase {
 
         XCTAssertTrue(source.contains("completionHandler: nil"))
         XCTAssertFalse(source.contains("await NSAnimationContext.runAnimationGroup"))
+    }
+}
+
+@MainActor
+extension ScreenBlankerTests {
+    // MARK: - Reporting whether blanking happened
+
+    private func makeIsolatedSettings() -> AppSettings {
+        let suiteName = "ScreenBlankerTests-\(UUID().uuidString)"
+        addTeardownBlock { UserDefaults().removePersistentDomain(forName: suiteName) }
+        return AppSettings(defaults: UserDefaults(suiteName: suiteName)!)
+    }
+
+    func testBlankReportsSuccessAndThatAnActiveSessionIsAlreadySatisfied() {
+        let harness = makeHarness()
+
+        XCTAssertTrue(harness.sut.blank())
+        XCTAssertTrue(harness.sut.blank(), "Already blanked is not a failure")
+        XCTAssertEqual(harness.input.startPolicies.count, 1)
+    }
+
+    func testBlankReportsFailureWhenTheInputMonitorCannotStart() {
+        let harness = makeHarness()
+        harness.input.startError = .unavailable
+
+        XCTAssertFalse(harness.sut.blank())
+        XCTAssertFalse(harness.sut.isBlanking)
+        XCTAssertEqual(harness.failures.errors, [.unavailable])
+    }
+
+    func testBlankReportsFailureWhenNoDisplayCanBeCovered() {
+        let harness = makeHarness()
+        harness.displays.activeDisplayIDs = []
+
+        XCTAssertFalse(harness.sut.blank())
+        XCTAssertFalse(harness.sut.isBlanking)
+    }
+
+    func testBlankReportsFailureWhenNoOverlayWindowCanBeShown() {
+        let harness = makeHarness()
+        harness.windows.failingDisplayIDs = [7, 9]
+
+        XCTAssertFalse(harness.sut.blank())
+        XCTAssertFalse(harness.sut.isBlanking)
+    }
+
+    func testSetDimmedReportsFailureOnlyWhenBlankingFailed() {
+        let harness = makeHarness()
+        let settings = makeIsolatedSettings()
+
+        let blanker = harness.sut
+        let dim = { (blank: Bool) in
+            DisplayAction.setDimmed(true, settings: settings, blanker: blanker) { _ in blank }
+        }
+        XCTAssertFalse(dim(false))
+        XCTAssertTrue(dim(true))
+        XCTAssertTrue(DisplayAction.setDimmed(false, settings: settings, blanker: harness.sut) { _ in false })
+    }
+
+    func testSetDimmedOnWhileAlreadyBlankingIsASuccess() {
+        let harness = makeHarness()
+        harness.sut.blank()
+        let settings = makeIsolatedSettings()
+        var blankCalls = 0
+
+        let succeeded = DisplayAction.setDimmed(true, settings: settings, blanker: harness.sut) { _ in
+            blankCalls += 1
+            return false
+        }
+
+        XCTAssertTrue(succeeded)
+        XCTAssertEqual(blankCalls, 0)
+    }
+
+    // MARK: - Wake preferences on the per-display path
+
+    func testPerDisplayBlankingFollowsSavedWakePreferencesAfterFreshLaunch() throws {
+        let suiteName = "ScreenBlankerTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        defaults.set(true, forKey: "dimmerlyRequireEscapeToDismiss")
+        defaults.set(true, forKey: "dimmerlyIgnoreMouseMovement")
+        // A new AppSettings and a new blanker: nothing has blanked globally since launch.
+        let settings = AppSettings(defaults: defaults)
+        let harness = makeHarness()
+        let manager = BrightnessManager(forTesting: true, defaults: defaults)
+
+        manager.toggleBlank(for: 7, blanker: harness.sut, settings: settings)
+        manager.toggleBlank(for: 9, blanker: harness.sut, settings: settings)
+
+        XCTAssertEqual(harness.input.startPolicies, [.escapeOnly])
+        XCTAssertTrue(harness.sut.requireEscapeToDismiss)
+        XCTAssertTrue(harness.sut.ignoreMouseMovement)
+    }
+
+    func testPerDisplayBlankingKeepsAnyInputWakeWhenPreferencesAreDefault() throws {
+        let suiteName = "ScreenBlankerTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let harness = makeHarness()
+        let manager = BrightnessManager(forTesting: true, defaults: defaults)
+
+        manager.toggleBlank(for: 7, blanker: harness.sut, settings: settings)
+        manager.toggleBlank(for: 9, blanker: harness.sut, settings: settings)
+
+        XCTAssertEqual(harness.input.startPolicies, [.anyInput(ignorePointerMovement: false)])
     }
 }
 

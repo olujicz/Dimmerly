@@ -105,21 +105,23 @@ struct ControlCenterStatePublisher {
 extension WidgetActionCommand {
     /// Runs a widget or Control Center command inside the app process.
     ///
-    /// Returns false when there was nothing to do it with: a preset that was deleted after the
-    /// widget or control was set up, or an ID that is not a preset ID at all. The other commands
-    /// publish whatever state they actually reached, so they report true.
+    /// Returns false when the command could not be done: a preset that was deleted after the
+    /// widget or control was set up, an ID that is not a preset ID at all, or a dim request that
+    /// blanked nothing (no display to cover, or the wake input could not start). A dim request
+    /// that finds the displays already dimmed succeeded. The state is published either way, so
+    /// the toggle shows what really happened.
     @discardableResult
     func performInApp(settings: AppSettings = .shared, presetManager: PresetManager = .shared) -> Bool {
         switch self {
         case .dimDisplays:
-            DisplayAction.performSleep(settings: settings)
+            return DisplayAction.performSleep(settings: settings)
         case let .applyPreset(presetID):
             guard let uuid = UUID(uuidString: presetID), let preset = presetManager.preset(withID: uuid) else {
                 return false
             }
             presetManager.applyPreset(preset, to: BrightnessManager.shared, animated: true)
         case let .setDimming(value):
-            handleWidgetDimStateCommand(value, settings: settings)
+            return handleWidgetDimStateCommand(value, settings: settings)
         case let .setAutoWarmth(value):
             handleWidgetAutoWarmthCommand(value, settings: settings)
         }
@@ -135,16 +137,19 @@ extension WidgetActionCommand {
 
 /// Applies the Control Center dim toggle's requested state.
 /// Publishes actual blanking state before reloading, even when the action leaves it unchanged.
+/// Returns whether the request was met: `false` only when dimming was asked for and failed.
 @MainActor
+@discardableResult
 func handleWidgetDimStateCommand(
     _ isDimmed: Bool,
     settings: AppSettings,
-    setDimmed: (Bool, AppSettings) -> Void = { DisplayAction.setDimmed($0, settings: $1) },
+    setDimmed: (Bool, AppSettings) -> Bool = { DisplayAction.setDimmed($0, settings: $1) },
     isBlankingAnyDisplay: () -> Bool = { ScreenBlanker.shared.isBlankingAnyDisplay },
     publisher: ControlCenterStatePublisher = .live
-) {
-    setDimmed(isDimmed, settings)
+) -> Bool {
+    let succeeded = setDimmed(isDimmed, settings)
     publisher.publishDimState(isBlankingAnyDisplay(), forceReload: true)
+    return succeeded
 }
 
 /// Applies the Control Center Auto Warmth toggle's requested state.
