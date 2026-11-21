@@ -62,7 +62,7 @@ final class IdleTimerManagerTests: XCTestCase {
     func testDoesNotFireBelowThreshold() {
         let box = IdleSecondsBox()
         var fireCount = 0
-        let manager = IdleTimerManager(idleSecondsProvider: { box.value })
+        let manager = IdleTimerManager(idleSecondsProvider: { box.value }, displaySleepPreventedProvider: { false })
         manager.onIdleThresholdReached = { fireCount += 1 }
         manager.start(thresholdMinutes: 5)
 
@@ -75,7 +75,7 @@ final class IdleTimerManagerTests: XCTestCase {
     func testInvalidIdleTimeDoesNotTriggerAutoDim() {
         let box = IdleSecondsBox()
         var fireCount = 0
-        let manager = IdleTimerManager(idleSecondsProvider: { box.value })
+        let manager = IdleTimerManager(idleSecondsProvider: { box.value }, displaySleepPreventedProvider: { false })
         manager.onIdleThresholdReached = { fireCount += 1 }
         manager.start(thresholdMinutes: 5)
 
@@ -88,7 +88,7 @@ final class IdleTimerManagerTests: XCTestCase {
     func testFiresExactlyOnceWhenThresholdCrossed() {
         let box = IdleSecondsBox()
         var fireCount = 0
-        let manager = IdleTimerManager(idleSecondsProvider: { box.value })
+        let manager = IdleTimerManager(idleSecondsProvider: { box.value }, displaySleepPreventedProvider: { false })
         manager.onIdleThresholdReached = { fireCount += 1 }
         manager.start(thresholdMinutes: 5)
 
@@ -105,7 +105,7 @@ final class IdleTimerManagerTests: XCTestCase {
     func testFiresAgainAfterActivityResetsIdlePeriod() {
         let box = IdleSecondsBox()
         var fireCount = 0
-        let manager = IdleTimerManager(idleSecondsProvider: { box.value })
+        let manager = IdleTimerManager(idleSecondsProvider: { box.value }, displaySleepPreventedProvider: { false })
         manager.onIdleThresholdReached = { fireCount += 1 }
         manager.start(thresholdMinutes: 5)
 
@@ -127,7 +127,7 @@ final class IdleTimerManagerTests: XCTestCase {
     func testStopPreventsFurtherFiring() {
         let box = IdleSecondsBox()
         var fireCount = 0
-        let manager = IdleTimerManager(idleSecondsProvider: { box.value })
+        let manager = IdleTimerManager(idleSecondsProvider: { box.value }, displaySleepPreventedProvider: { false })
         manager.onIdleThresholdReached = { fireCount += 1 }
         manager.start(thresholdMinutes: 5)
         manager.stop()
