@@ -25,7 +25,7 @@ Semantic Versioning.
 - A monitor unplugged in the middle of a preset transition is saved with the values the transition was heading to, not a half-way frame.
 - The colour temperatures beside Auto Warmth, in the menu bar panel and in Settings, follow your language's number format, and VoiceOver reads them as kelvins.
 - The VoiceOver hint on each display's dim button says how to wake it (Esc, or any key) instead of "press again". Translated in every shipped language.
-- The App Store edition asks for a rating only while Dimmerly is the active app, so the one ask per version is not spent while it is in the background.
+- The App Store edition now reaches the rating ask from the normal menu bar flow. It no longer waits for Dimmerly to be the active app, which a menu bar app rarely is after its panel closes, so the ask never came. It still waits while a display is blanked or the panel is open, and keeps the one ask per version.
 - Schedules missed while Dimmerly was not running apply when it starts: after a Mac that was off overnight boots, the newest trigger crossed since Dimmerly last ran (up to 24 hours back) takes effect instead of being skipped. Turning a schedule back on also applies its trigger from earlier the same day, as the setting always promised.
 - The idle timer no longer blanks displays while a video, presentation or other app is keeping the display awake. It blanks once that stops, if you are still idle.
 - A Day preset applied by a schedule shortly before sunrise is no longer undone a few minutes later when Auto Warmth resumes. The sunrise transition continues from the warmth on screen instead of jumping back to the night tint (and a sunset transition likewise never moves back past it).
