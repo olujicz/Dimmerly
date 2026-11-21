@@ -318,14 +318,12 @@ class ScheduleManager {
         return calendar.date(byAdding: .minute, value: offsetMinutes, to: solarTime)
     }
 
-    private static let dayFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "yyyy-MM-dd"
-        return f
-    }()
-
-    private static func dateString(for date: Date) -> String {
-        dayFormatter.string(from: date)
+    /// The `yyyy-MM-dd` key for the local calendar day of `date`. Built from `Calendar.current`,
+    /// which follows time-zone changes while the app runs; a cached `DateFormatter` keeps the
+    /// zone it was created in, so fired-day keys would drift after travelling.
+    static func dateString(for date: Date) -> String {
+        let parts = Calendar.current.dateComponents([.year, .month, .day], from: date)
+        return String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
     }
 
     // MARK: - CRUD

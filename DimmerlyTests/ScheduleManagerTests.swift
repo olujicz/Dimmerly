@@ -145,6 +145,24 @@ final class ScheduleManagerTests: XCTestCase {
         XCTAssertEqual(triggerCount, 1, "Should fire once after gap crossing trigger time")
     }
 
+    func testFiredDayKeyFollowsTimeZoneChanges() throws {
+        let original = NSTimeZone.default
+        defer { NSTimeZone.default = original }
+        // 2026-01-01 23:30 UTC is already January 2 in Kiritimati (UTC+14) and still January 1 in UTC.
+        var utcCalendar = Calendar(identifier: .gregorian)
+        utcCalendar.timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let parts = DateComponents(year: 2026, month: 1, day: 1, hour: 23, minute: 30)
+        let instant = try XCTUnwrap(utcCalendar.date(from: parts))
+
+        NSTimeZone.default = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        XCTAssertEqual(ScheduleManager.dateString(for: instant), "2026-01-01")
+        NSTimeZone.default = try XCTUnwrap(TimeZone(identifier: "Pacific/Kiritimati"))
+        XCTAssertEqual(
+            ScheduleManager.dateString(for: instant), "2026-01-02",
+            "A cached formatter would keep the old zone"
+        )
+    }
+
     func testLaunchCatchesUpTriggerMissedWhileAppWasNotRunning() {
         let night = UUID(), day = UUID()
         manager.addSchedule(makeSchedule(name: "Night", hour: 23, minute: 0, presetID: night))
@@ -218,16 +236,18 @@ final class ScheduleManagerTests: XCTestCase {
             locationCoordinates: { (latitude: 0.0, longitude: longitude) }
         )
         let sourceDay = makeDate(day: 1, hour: 12, minute: 0)
-        let trigger: Date = try XCTUnwrap(
-            stride(from: -180, through: 180, by: 1).lazy.compactMap { candidateLongitude in
-                longitude = Double(candidateLongitude)
-                guard let trigger = solarManager.resolveTriggerDate(
-                    .sunset(offsetMinutes: 120),
-                    on: sourceDay
-                ) else { return nil }
-                return Calendar.current.isDate(trigger, inSameDayAs: sourceDay) ? nil : trigger
-            }.first
-        )
+        // Find a longitude whose sunset-plus-offset lands on the next day, and keep the manager
+        // pointed at it (the lazy search used to leave `longitude` at the end of the scan).
+        var found: Date?
+        for candidateLongitude in stride(from: -180, through: 180, by: 1) {
+            longitude = Double(candidateLongitude)
+            guard let candidate = solarManager.resolveTriggerDate(.sunset(offsetMinutes: 120), on: sourceDay),
+                  !Calendar.current.isDate(candidate, inSameDayAs: sourceDay)
+            else { continue }
+            found = candidate
+            break
+        }
+        let trigger = try XCTUnwrap(found)
 
         var firedPresets: [UUID] = []
         solarManager.onScheduleTriggered = { firedPresets.append($0) }
