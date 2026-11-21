@@ -235,7 +235,7 @@ final class ScreenBlankerTests: XCTestCase {
         XCTAssertEqual(harness.windows.shownDisplayIDs, [7, 9, 11])
         XCTAssertEqual(harness.gamma.blankedDisplayIDs, [7, 9, 11])
         XCTAssertEqual(harness.windows.beginSessionCount, 1)
-        XCTAssertEqual(harness.input.startPolicies, [.escapeOnly])
+        XCTAssertEqual(harness.input.startPolicies, [.expectedWhenEscapeOnlyIsRequested(ignoringMovement: false)])
 
         // The existing wake path still covers the display added mid-session.
         harness.clock.now = 100.5
@@ -598,7 +598,7 @@ final class ScreenBlankerTests: XCTestCase {
 
         XCTAssertFalse(harness.sut.isBlanking)
         XCTAssertEqual(harness.sut.blankedDisplayIDs, [7, 9])
-        XCTAssertEqual(harness.input.startPolicies, [.escapeOnly])
+        XCTAssertEqual(harness.input.startPolicies, [.expectedWhenEscapeOnlyIsRequested(ignoringMovement: false)])
         XCTAssertEqual(harness.cursor.hideCount, 1)
     }
 
@@ -944,8 +944,14 @@ extension ScreenBlankerTests {
         manager.toggleBlank(for: 7, blanker: harness.sut, settings: settings)
         manager.toggleBlank(for: 9, blanker: harness.sut, settings: settings)
 
-        XCTAssertEqual(harness.input.startPolicies, [.escapeOnly])
-        XCTAssertTrue(harness.sut.requireEscapeToDismiss)
+        #if APPSTORE
+            // Launch moved the saved Escape-only choice to any input with movement ignored.
+            XCTAssertEqual(harness.input.startPolicies, [.anyInput(ignorePointerMovement: true)])
+            XCTAssertFalse(harness.sut.requireEscapeToDismiss)
+        #else
+            XCTAssertEqual(harness.input.startPolicies, [.escapeOnly])
+            XCTAssertTrue(harness.sut.requireEscapeToDismiss)
+        #endif
         XCTAssertTrue(harness.sut.ignoreMouseMovement)
     }
 
@@ -1121,8 +1127,12 @@ final class FakeBlankingWindowController: BlankingWindowControlling {
         keyDisplayID = next
     }
 
-    func showWindow(for displayID: CGDirectDisplayID, showsEscapeHint _: Bool) -> Bool {
+    /// The hint flag each overlay was shown with, in order.
+    var escapeHintFlags: [Bool] = []
+
+    func showWindow(for displayID: CGDirectDisplayID, showsEscapeHint: Bool) -> Bool {
         guard !failingDisplayIDs.contains(displayID) else { return false }
+        escapeHintFlags.append(showsEscapeHint)
         shownDisplayIDs.append(displayID)
         events.append("show:\(displayID)")
         if appIsActive, keyDisplayID == nil {

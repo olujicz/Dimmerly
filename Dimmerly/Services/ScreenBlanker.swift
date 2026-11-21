@@ -99,6 +99,12 @@ final class ScreenBlanker {
     var ignoreMouseMovement = false
     var useFadeTransition = false
     var requireEscapeToDismiss = false
+
+    /// What the sessions follow: the preference, unless this edition cannot offer Escape-only.
+    private var wakesOnlyOnEscape: Bool {
+        requireEscapeToDismiss && BlankingInputPolicy.supportsEscapeOnly
+    }
+
     var brightnessForDisplay: ((CGDirectDisplayID) -> Double)?
     var warmthForDisplay: ((CGDirectDisplayID) -> Double)?
     var contrastForDisplay: ((CGDirectDisplayID) -> Double)?
@@ -185,8 +191,8 @@ final class ScreenBlanker {
 
     /// Gives AppKit a bounded interval to make Dimmerly active with a key overlay after the
     /// session asked for activation. An idle timer or schedule can blank while another app is
-    /// frontmost; if activation never succeeds, Dimmerly gets no resign notification and an
-    /// Escape-only session would have no way out, so the session ends instead.
+    /// frontmost; if activation never succeeds, Dimmerly gets no resign notification and the
+    /// wake input would never arrive, so the session ends instead.
     private func scheduleCaptureVerification() {
         captureVerificationTask?.cancel()
         captureVerificationTask = nil
@@ -299,7 +305,7 @@ final class ScreenBlanker {
               !state.perDisplayCovered.contains(displayID),
               displays.activeDisplayIDs.contains(displayID),
               displays.hasScreen(for: displayID),
-              windows.showWindow(for: displayID, showsEscapeHint: requireEscapeToDismiss)
+              windows.showWindow(for: displayID, showsEscapeHint: wakesOnlyOnEscape)
         else {
             return
         }
@@ -429,9 +435,10 @@ final class ScreenBlanker {
     }
 
     private func startDismissMonitoring(action: @escaping @MainActor () -> Void) throws {
-        let policy: BlankingInputPolicy = requireEscapeToDismiss
-            ? .escapeOnly
-            : .anyInput(ignorePointerMovement: ignoreMouseMovement)
+        let policy = BlankingInputPolicy.forSession(
+            requireEscape: requireEscapeToDismiss,
+            ignorePointerMovement: ignoreMouseMovement
+        )
 
         try inputMonitor.start(
             policy: policy,
@@ -456,7 +463,7 @@ final class ScreenBlanker {
         for displayID in displayIDs {
             guard windows.showWindow(
                 for: displayID,
-                showsEscapeHint: requireEscapeToDismiss
+                showsEscapeHint: wakesOnlyOnEscape
             ) else {
                 return false
             }

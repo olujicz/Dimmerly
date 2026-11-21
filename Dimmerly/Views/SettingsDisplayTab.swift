@@ -86,12 +86,14 @@ struct DisplaySettingsTab: View {
                 Toggle("Fade transition", isOn: $settings.fadeTransition)
                     .help(Text("Gradually dims displays instead of turning them off instantly"))
 
-                Picker("Wake Displays", selection: $settings.requireEscapeToDismiss) {
-                    Text("Any input").tag(false)
-                    Text("Escape key only").tag(true)
-                }
-                .pickerStyle(.radioGroup)
-                .help("Choose how to wake displays after dimming")
+                #if !APPSTORE
+                    Picker("Wake Displays", selection: $settings.requireEscapeToDismiss) {
+                        Text("Any input").tag(false)
+                        Text("Escape key only").tag(true)
+                    }
+                    .pickerStyle(.radioGroup)
+                    .help("Choose how to wake displays after dimming")
+                #endif
 
                 #if APPSTORE
                     Text(
@@ -104,9 +106,16 @@ struct DisplaySettingsTab: View {
                     .foregroundStyle(.secondary)
                 #endif
 
-                if !settings.requireEscapeToDismiss {
+                if !settings.wakesOnlyOnEscape {
                     Toggle("Ignore mouse movement", isOn: $settings.ignoreMouseMovement)
-                        .help(Text("Only wake the screen on keyboard input or mouse click, not mouse movement"))
+                        .help(
+                            Text(
+                                """
+                                Only wake the screen on keyboard input, a mouse click or scrolling, \
+                                not mouse movement
+                                """
+                            )
+                        )
                 }
             }
         } header: {

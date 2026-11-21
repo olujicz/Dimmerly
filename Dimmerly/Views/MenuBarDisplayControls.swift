@@ -504,7 +504,7 @@ struct DisplayBrightnessRow: View {
                 .accessibilityHint(
                     isBlanked
                         ? Text("Restores the display to its previous brightness")
-                        : settings.requireEscapeToDismiss
+                        : settings.wakesOnlyOnEscape
                         ? Text("Turns the display black. Press Esc to wake it.")
                         : Text("Turns the display black. Press any key to wake it.")
                 )

@@ -12,6 +12,9 @@ Semantic Versioning.
 ### Added
 - The App Store edition asks for a rating at most once per version, and only after you have used Dimmerly for a week, applied presets on at least three days, and closed the menu bar panel. It never asks on first launch, while a display is blanked, or while the panel is open. Nothing about your use leaves your Mac. The direct download never asks.
 
+### Changed
+- In the App Store edition, dimmed displays now always wake with a key or click. The "Escape key only" option is gone there: Mission Control and other system overviews take the Esc key, which could leave a dimmed screen with no way to wake it. If you had chosen Escape only, Dimmerly turns on "Ignore mouse movement" for you instead. The direct download keeps both options. Translated in every shipped language.
+
 ### Fixed
 - A brightness, warmth or contrast change made just before a monitor is unplugged is saved with that monitor and is back when it reconnects, even under a different display ID.
 - The moon button beside each display wakes the way Settings says (Esc only, ignore mouse movement), including right after launch. Before, only the main dim action followed those settings.
@@ -27,6 +30,7 @@ Semantic Versioning.
 - The VoiceOver hint on each display's dim button says how to wake it (Esc, or any key) instead of "press again". Translated in every shipped language.
 - The App Store edition now reaches the rating ask from the normal menu bar flow. It no longer waits for Dimmerly to be the active app, which a menu bar app rarely is after its panel closes, so the ask never came. It still waits while a display is blanked or the panel is open, and keeps the one ask per version.
 - Schedules missed while Dimmerly was not running apply when it starts: after a Mac that was off overnight boots, the newest trigger crossed since Dimmerly last ran (up to 24 hours back) takes effect instead of being skipped. Turning a schedule back on also applies its trigger from earlier the same day, as the setting always promised.
+- The help for "Ignore mouse movement" now says scrolling still wakes the screen, which it always did; only pointer movement is ignored. Translated in every shipped language.
 - A display row you expanded in the menu bar panel stays expanded when you turn Auto Warmth off, and the panel still opens collapsed.
 - The idle timer no longer blanks displays while a video, presentation or other app is keeping the display awake. It blanks once that stops, if you are still idle.
 - A Day preset applied by a schedule shortly before sunrise is no longer undone a few minutes later when Auto Warmth resumes. The sunrise transition continues from the warmth on screen instead of jumping back to the night tint (and a sunset transition likewise never moves back past it).

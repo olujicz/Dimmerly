@@ -170,7 +170,12 @@ Wake behavior can be configured for:
 
 - keyboard, click, scroll, or mouse movement
 - keyboard, click, or scroll when mouse movement is ignored
-- Escape only for stricter dismissal
+- Escape only for stricter dismissal (direct download only)
+
+The App Store edition always wakes on a key or click, so dimming cannot
+leave you without a way back when macOS takes the keyboard (Mission Control,
+for example). If you had chosen Escape only there, Dimmerly switches to "Ignore
+mouse movement" once.
 
 Animated transitions respect the macOS Reduce Motion setting.
 
@@ -284,8 +289,8 @@ reserved by macOS or another app.
 ### Displays wake too easily
 
 Open Settings and adjust the dimming wake behavior. Enable "Ignore mouse
-movement" if small pointer movement wakes the displays, or enable Escape-only
-dismissal for stricter control.
+movement" if small pointer movement wakes the displays. The direct-download
+build can also wake on Escape only.
 
 ### Get help
 

@@ -153,9 +153,17 @@ class AppSettings {
         didSet { defaults.set(fadeTransition, forKey: "dimmerlyFadeTransition") }
     }
 
-    /// Whether to require Escape key to dismiss blanking (instead of any input)
+    /// Whether to require Escape key to dismiss blanking (instead of any input). Only the direct
+    /// download offers it; the App Store edition migrates a saved `true` away at launch (see
+    /// `migrateEscapeOnlyWake(in:)`) and ignores the preference in `wakesOnlyOnEscape`.
     var requireEscapeToDismiss: Bool {
         didSet { defaults.set(requireEscapeToDismiss, forKey: "dimmerlyRequireEscapeToDismiss") }
+    }
+
+    /// Whether dimmed displays wake only on Escape in this edition. Always false in the App
+    /// Store edition, whatever `requireEscapeToDismiss` holds.
+    var wakesOnlyOnEscape: Bool {
+        requireEscapeToDismiss && BlankingInputPolicy.supportsEscapeOnly
     }
 
     /// Whether schedule-based auto-dimming is enabled
@@ -284,6 +292,10 @@ class AppSettings {
         self.defaults = defaults
         let d = defaults
 
+        #if APPSTORE
+            Self.migrateEscapeOnlyWake(in: d)
+        #endif
+
         // Load shortcut data (Data type needs special handling)
         shortcutData = d.data(forKey: "dimmerlyKeyboardShortcut") ?? Self.defaultShortcutData
 
@@ -323,6 +335,17 @@ class AppSettings {
             )
             ddcWriteDelay = Self.integer(d, "dimmerlyDDCWriteDelay", default: 50, in: Self.ddcWriteDelayRange)
         #endif
+    }
+
+    /// Moves a saved "Escape key only" wake preference to the closest thing the App Store edition
+    /// still offers: wake on any input, with mouse movement ignored. That keeps a wake that a
+    /// stray pointer nudge cannot trigger, which is what most people chose Escape-only for.
+    /// Safe to run on every launch: once the Escape-only flag is off there is nothing to move.
+    /// Compiled into every edition so it can be tested; only the App Store edition runs it.
+    static func migrateEscapeOnlyWake(in defaults: UserDefaults) {
+        guard defaults.bool(forKey: "dimmerlyRequireEscapeToDismiss") else { return }
+        defaults.set(false, forKey: "dimmerlyRequireEscapeToDismiss")
+        defaults.set(true, forKey: "dimmerlyIgnoreMouseMovement")
     }
 
     /// The integer stored under `key` clamped to `range`, or `defaultValue` when nothing is stored.

@@ -14,6 +14,27 @@ import Synchronization
 enum BlankingInputPolicy: Equatable, Sendable {
     case escapeOnly
     case anyInput(ignorePointerMovement: Bool)
+
+    /// Whether this edition offers "Escape key only" wake. The App Store edition cannot: it
+    /// only sees the events AppKit routes to Dimmerly, and when Mission Control or another
+    /// system overview takes the keyboard the Esc never arrives, which would leave a black
+    /// screen with no way to wake it. Any key or click always ends the dim there.
+    static var supportsEscapeOnly: Bool {
+        #if APPSTORE
+            false
+        #else
+            true
+        #endif
+    }
+
+    /// The policy for a session. Every session starts through here, so a saved or injected
+    /// Escape-only preference cannot reach the App Store edition's input monitor.
+    static func forSession(requireEscape: Bool, ignorePointerMovement: Bool) -> BlankingInputPolicy {
+        if requireEscape, supportsEscapeOnly {
+            return .escapeOnly
+        }
+        return .anyInput(ignorePointerMovement: ignorePointerMovement)
+    }
 }
 
 enum BlankingInputMonitorError: LocalizedError, Equatable, Sendable {

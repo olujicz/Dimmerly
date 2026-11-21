@@ -495,6 +495,58 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertFalse(settings.requireEscapeToDismiss, "requireEscapeToDismiss should default to false")
     }
 
+    // MARK: - Escape-only wake migration
+
+    func testMigrationMovesSavedEscapeOnlyWakeToIgnoringMouseMovement() {
+        testDefaults.set(true, forKey: "dimmerlyRequireEscapeToDismiss")
+        testDefaults.set(false, forKey: "dimmerlyIgnoreMouseMovement")
+
+        AppSettings.migrateEscapeOnlyWake(in: testDefaults)
+
+        XCTAssertFalse(testDefaults.bool(forKey: "dimmerlyRequireEscapeToDismiss"))
+        XCTAssertTrue(testDefaults.bool(forKey: "dimmerlyIgnoreMouseMovement"))
+    }
+
+    func testMigrationIsIdempotentAndLeavesLaterChoicesAlone() {
+        testDefaults.set(true, forKey: "dimmerlyRequireEscapeToDismiss")
+
+        AppSettings.migrateEscapeOnlyWake(in: testDefaults)
+        // The person turns movement ignoring back off after the migration; a second run keeps it.
+        testDefaults.set(false, forKey: "dimmerlyIgnoreMouseMovement")
+        AppSettings.migrateEscapeOnlyWake(in: testDefaults)
+
+        XCTAssertFalse(testDefaults.bool(forKey: "dimmerlyRequireEscapeToDismiss"))
+        XCTAssertFalse(testDefaults.bool(forKey: "dimmerlyIgnoreMouseMovement"))
+    }
+
+    func testMigrationLeavesEveryoneWhoNeverChoseEscapeOnlyUntouched() {
+        testDefaults.set(false, forKey: "dimmerlyIgnoreMouseMovement")
+        AppSettings.migrateEscapeOnlyWake(in: testDefaults)
+        XCTAssertFalse(testDefaults.bool(forKey: "dimmerlyIgnoreMouseMovement"))
+
+        testDefaults.set(true, forKey: "dimmerlyIgnoreMouseMovement")
+        AppSettings.migrateEscapeOnlyWake(in: testDefaults)
+        XCTAssertTrue(testDefaults.bool(forKey: "dimmerlyIgnoreMouseMovement"))
+        XCTAssertFalse(testDefaults.bool(forKey: "dimmerlyRequireEscapeToDismiss"))
+    }
+
+    func testLoadingSettingsAppliesTheEscapeOnlyMigrationOnlyInTheAppStoreEdition() {
+        testDefaults.set(true, forKey: "dimmerlyRequireEscapeToDismiss")
+
+        let loaded = AppSettings(defaults: testDefaults)
+
+        #if APPSTORE
+            XCTAssertFalse(loaded.requireEscapeToDismiss)
+            XCTAssertTrue(loaded.ignoreMouseMovement)
+            XCTAssertFalse(loaded.wakesOnlyOnEscape)
+            XCTAssertFalse(testDefaults.bool(forKey: "dimmerlyRequireEscapeToDismiss"), "The migration is saved")
+        #else
+            XCTAssertTrue(loaded.requireEscapeToDismiss)
+            XCTAssertFalse(loaded.ignoreMouseMovement)
+            XCTAssertTrue(loaded.wakesOnlyOnEscape)
+        #endif
+    }
+
     func testScheduleEnabledDefault() {
         XCTAssertFalse(settings.scheduleEnabled, "scheduleEnabled should default to false")
     }
