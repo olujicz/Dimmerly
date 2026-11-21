@@ -50,6 +50,16 @@ final class RatingPromptTests: XCTestCase {
         XCTAssertTrue(tracker.claimPrompt(now: day(7), version: "1.5.1"))
     }
 
+    func testBusyMomentClaimsNothingAndInactiveAppDoesNotBlock() {
+        let tracker = makeTracker()
+        useForSeveralDays(tracker)
+        XCTAssertFalse(tracker.claimPrompt(now: day(10), version: "1.5.1", isBusy: true))
+        XCTAssertNil(tracker.stats.lastPromptDate)
+        // The claim does not depend on whether the menu bar app is the active app.
+        XCTAssertTrue(tracker.claimPrompt(now: day(10), version: "1.5.1", isBusy: false))
+        XCTAssertEqual(tracker.stats.lastPromptVersion, "1.5.1")
+    }
+
     func testManyPresetsOnOneDayCountAsOneActiveDay() {
         let tracker = makeTracker()
         tracker.recordLaunch(now: day(0))

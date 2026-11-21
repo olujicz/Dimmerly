@@ -110,9 +110,10 @@ final class RatingPromptTracker {
         defaults.set(today, forKey: Key.lastActiveDay)
     }
 
-    /// Records an ask and returns true when the policy allows one now. The caller asks only on true.
-    func claimPrompt(now: Date = Date(), version: String) -> Bool {
-        guard RatingPromptPolicy.isEligible(stats, now: now, version: version, calendar: calendar) else {
+    /// Records an ask and returns true when the policy allows one now and nothing is busy.
+    /// The caller asks only on true. A busy moment claims nothing, so the ask stays available.
+    func claimPrompt(now: Date = Date(), version: String, isBusy: Bool = false) -> Bool {
+        guard !isBusy, RatingPromptPolicy.isEligible(stats, now: now, version: version, calendar: calendar) else {
             return false
         }
         defaults.set(now, forKey: Key.lastPromptDate)
@@ -145,11 +146,10 @@ final class RatingPromptTracker {
         ) {
             Task { @MainActor in
                 try? await Task.sleep(for: delay)
-                // The system shows its own window only for the active app. Claiming while the
-                // app is in the background would use up the ask without anyone seeing it.
-                guard NSApp.isActive, !isBusy() else { return }
+                // A menu bar app is rarely the active app once its panel has closed, so activity
+                // is not a condition. The panel being closed and nothing blanked is.
                 let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
-                if tracker.claimPrompt(version: version) {
+                if tracker.claimPrompt(version: version, isBusy: isBusy()) {
                     request()
                 }
             }
