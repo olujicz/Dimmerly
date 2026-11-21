@@ -381,6 +381,39 @@ final class ColorTemperatureManagerTests: XCTestCase {
         XCTAssertTrue(manager.isActive, "The override must expire at the start, rather than midpoint, of sunset")
     }
 
+    func testSunriseTransitionAfterDayPresetDoesNotSnapBackToTheNightTint() throws {
+        // A Day preset (warmth 0) applied 30 minutes before sunrise, with a 40 minute transition,
+        // whose override ends 10 minutes later when the transition starts.
+        testSettings.colorTempTransitionMinutes = 40
+        let noon = makeDate(hour: 12, minute: 0)
+        let solar = SolarCalculator.sunriseSunset(latitude: 0, longitude: localSolarCoordinates.longitude, date: noon)
+        let sunrise = try XCTUnwrap(solar.sunrise)
+        let (manager, brightnessManager) = isolatedManager(warmth: 0.0)
+        manager.locationCoordinatesHook = { nil }
+        manager.apply(enabled: true)
+        manager.notifyManualWarmthChange()
+        manager.locationCoordinatesHook = { self.localSolarCoordinates }
+        defer { manager.apply(enabled: false) }
+
+        manager.updateColorTemperature(now: sunrise.addingTimeInterval(-30 * 60))
+        XCTAssertFalse(manager.isActive)
+
+        let dayKelvin = GammaMath.kelvinForWarmth(0.0)
+        for minutes in [-20.0, -10.0, 0.0] {
+            manager.updateColorTemperature(now: sunrise.addingTimeInterval(minutes * 60))
+            XCTAssertTrue(manager.isActive)
+            XCTAssertGreaterThanOrEqual(
+                manager.currentKelvin, dayKelvin - 1,
+                "At \(minutes) min from sunrise auto warmth must not return to the night tint"
+            )
+            XCTAssertEqual(try XCTUnwrap(brightnessManager.currentWarmthSnapshot().values.first), 0.0, accuracy: 0.01)
+        }
+
+        // Once the transition is over the held value is dropped.
+        manager.updateColorTemperature(now: sunrise.addingTimeInterval(3 * 3600))
+        XCTAssertEqual(manager.currentKelvin, Double(testSettings.dayTemperature))
+    }
+
     func testManualOverrideExpiresAfterLocationIsUnavailableAcrossBoundaries() {
         let manager = managerWithManualOverride(at: makeDate(hour: 12, minute: 0))
         defer { manager.apply(enabled: false) }
