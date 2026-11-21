@@ -21,18 +21,29 @@ protocol BlankingWindowControlling: AnyObject {
     /// Shows the wake hint again after input that didn't wake the displays.
     func revealWakeHint()
 
-    /// Whether wake input can reach the overlays: Dimmerly is the active app and one of its
-    /// overlays is the key window. Always true where input is captured another way.
-    var hasInputCapture: Bool { get }
+    /// Whether wake input can reach the overlays. Always `.held` where input is captured
+    /// another way.
+    var inputCaptureStatus: BlankingInputCaptureStatus { get }
 
     /// Makes a surviving overlay the key window when none is. Does nothing without overlays or
     /// when one already is key.
     func promoteKeyOverlayIfNeeded()
 }
 
+/// How well the overlays can receive wake input right now.
+enum BlankingInputCaptureStatus: Equatable {
+    /// Dimmerly is the active app and a visible overlay is the key window.
+    case held
+    /// Dimmerly is active with a key overlay, but no overlay is visible. Mission Control and
+    /// similar overviews cause this briefly, so a single sighting is not proof of loss.
+    case obscured
+    /// Dimmerly is not the active app, or no overlay is the key window.
+    case lost
+}
+
 extension BlankingWindowControlling {
-    var hasInputCapture: Bool {
-        true
+    var inputCaptureStatus: BlankingInputCaptureStatus {
+        .held
     }
 
     func promoteKeyOverlayIfNeeded() {}
@@ -165,11 +176,12 @@ final class SystemBlankingWindowController: BlankingWindowControlling {
         wakeHints.removeValue(forKey: displayID)
     }
 
-    var hasInputCapture: Bool {
+    var inputCaptureStatus: BlankingInputCaptureStatus {
         #if APPSTORE
-            NSApp.isActive && windows.values.contains { $0.isKeyWindow && $0.occlusionState.contains(.visible) }
+            guard NSApp.isActive, let keyOverlay = windows.values.first(where: \.isKeyWindow) else { return .lost }
+            return keyOverlay.occlusionState.contains(.visible) ? .held : .obscured
         #else
-            true
+            .held
         #endif
     }
 

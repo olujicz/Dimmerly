@@ -369,6 +369,16 @@ final class CarbonHotKeyRegistration {
         onTriggered: @escaping @MainActor () -> Void
     ) -> Any? {
         guard let keyCode = shortcut.physicalKeyCode, shortcut.isValidCarbonShortcut else { return nil }
+        return install(keyCode: keyCode, modifiers: modifiers(for: shortcut), onTriggered: onTriggered)
+    }
+
+    /// Registers a key by its physical code. The shortcut recorder cannot produce a bare Escape,
+    /// so the blanking wake route calls this directly.
+    static func install(
+        keyCode: UInt16,
+        modifiers: UInt32,
+        onTriggered: @escaping @MainActor () -> Void
+    ) -> Any? {
         let registration = CarbonHotKeyRegistration(onTriggered: onTriggered)
         var eventType = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
         let context = Unmanaged.passUnretained(registration).toOpaque()
@@ -384,7 +394,7 @@ final class CarbonHotKeyRegistration {
             return nil
         }
         let status = RegisterEventHotKey(
-            UInt32(keyCode), modifiers(for: shortcut),
+            UInt32(keyCode), modifiers,
             EventHotKeyID(signature: signature, id: registration.id),
             GetApplicationEventTarget(), 0, &registration.hotKey
         )

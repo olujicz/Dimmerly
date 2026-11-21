@@ -6,6 +6,7 @@
 //
 
 import AppKit
+import OSLog
 import Synchronization
 #if !APPSTORE
     import ApplicationServices
@@ -97,6 +98,67 @@ enum BlankingInputDecision: Equatable, Sendable {
             }
             return .suppressAndWake
         }
+    }
+}
+
+/// A session-scoped Escape route that does not depend on AppKit delivering the key to
+/// Dimmerly. The App Store edition's local event monitor only sees events while Dimmerly is the
+/// active app with a key window, and Mission Control, App Exposé, the app grid, Notification
+/// Center, Spotlight and Stage Manager can take Escape without changing any window state that
+/// Dimmerly can observe. A Carbon hot key is delivered by the system, needs no Accessibility
+/// permission and works in the sandbox.
+///
+/// It is registered only while a blanking session is live and released on every teardown. A
+/// failed registration leaves the local monitor as the only route, which is the previous
+/// behaviour.
+@MainActor
+final class EscapeWakeHotKey {
+    typealias Installer = @MainActor (@escaping @MainActor () -> Void) -> Any?
+    typealias Remover = @MainActor (Any) -> Void
+
+    static let escapeKeyCode: UInt16 = 53
+
+    private static let logger = Logger(subsystem: "rs.in.olujic.dimmerly", category: "EscapeWakeHotKey")
+
+    private let installer: Installer
+    private let remover: Remover
+    private var registration: Any?
+
+    init(
+        installer: @escaping Installer = { onTriggered in
+            CarbonHotKeyRegistration.install(
+                keyCode: EscapeWakeHotKey.escapeKeyCode,
+                modifiers: 0,
+                onTriggered: onTriggered
+            )
+        },
+        remover: @escaping Remover = { ($0 as? CarbonHotKeyRegistration)?.cancel() }
+    ) {
+        self.installer = installer
+        self.remover = remover
+    }
+
+    var isRegistered: Bool {
+        registration != nil
+    }
+
+    /// Replaces any earlier registration, so restarting a session never leaves two behind.
+    /// - Returns: `false` when the system refused the key.
+    @discardableResult
+    func register(onEscape: @escaping @MainActor () -> Void) -> Bool {
+        unregister()
+        guard let registration = installer(onEscape) else {
+            Self.logger.info("Escape could not be registered as a hot key; relying on the local monitor")
+            return false
+        }
+        self.registration = registration
+        return true
+    }
+
+    func unregister() {
+        guard let registration else { return }
+        self.registration = nil
+        remover(registration)
     }
 }
 
@@ -294,6 +356,11 @@ extension BlankingInputMonitoring {
     @MainActor
     final class SystemBlankingInputMonitor: BlankingInputMonitoring {
         private var localMonitor: Any?
+        private let escapeHotKey: EscapeWakeHotKey
+
+        init(escapeHotKey: EscapeWakeHotKey = EscapeWakeHotKey()) {
+            self.escapeHotKey = escapeHotKey
+        }
 
         var requiresActiveApp: Bool {
             true
@@ -324,9 +391,13 @@ extension BlankingInputMonitoring {
             guard localMonitor != nil else {
                 throw BlankingInputMonitorError.unavailable
             }
+            // Escape wakes under both policies. This route keeps working when the system takes
+            // the key from the overlay without Dimmerly noticing.
+            escapeHotKey.register(onEscape: onWake)
         }
 
         func stop() {
+            escapeHotKey.unregister()
             if let localMonitor {
                 NSEvent.removeMonitor(localMonitor)
             }

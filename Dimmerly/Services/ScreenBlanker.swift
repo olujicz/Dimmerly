@@ -71,6 +71,10 @@ final class ScreenBlanker {
     private var sessionID = 0
     private var captureVerificationTask: Task<Void, Never>?
     private var captureRecheckTask: Task<Void, Never>?
+    /// Consecutive timed checks that found the key overlay fully occluded. Overviews such as
+    /// Mission Control hide the overlays for a moment, so one sighting does not end the session.
+    private var consecutiveObscuredChecks = 0
+    private static let obscuredChecksBeforeDismissal = 2
 
     /// True while a global blanking session is active. Per-display blanking deliberately does not
     /// count: it is dismissed differently and does not gate gamma writes the same way.
@@ -206,6 +210,9 @@ final class ScreenBlanker {
     private func scheduleCaptureVerification() {
         captureVerificationTask?.cancel()
         captureVerificationTask = nil
+        captureRecheckTask?.cancel()
+        captureRecheckTask = nil
+        consecutiveObscuredChecks = 0
         guard isCaptureRequired else { return }
         let id = sessionID
         captureVerificationTask = Task { @MainActor [weak self] in
@@ -220,6 +227,12 @@ final class ScreenBlanker {
             verifyCapture()
             startCaptureRecheck(id: id)
         }
+    }
+
+    /// True once the start-up verification has finished and the session is being rechecked. Until
+    /// then the overlays may not exist yet (the fade), or activation is still settling.
+    var isCaptureMonitoringLive: Bool {
+        captureRecheckTask != nil
     }
 
     /// Keeps checking for the rest of the session. Losing capture without Dimmerly resigning
@@ -238,28 +251,46 @@ final class ScreenBlanker {
                     return
                 }
                 guard let self, !Task.isCancelled, id == sessionID, isCaptureRequired else { return }
-                verifyCapture()
+                recheckCapture()
             }
         }
     }
 
-    /// Promotes an overlay if none is key, then ends the session when input still cannot be
-    /// captured.
-    private func verifyCapture() {
-        guard isCaptureRequired else { return }
-        windows.promoteKeyOverlayIfNeeded()
-        guard !windows.hasInputCapture else { return }
-        dismiss(force: true)
+    /// One timed check of a verified session. Only these count toward persistent occlusion.
+    func recheckCapture() {
+        guard isCaptureMonitoringLive else { return }
+        verifyCapture(countsTowardsOcclusion: true)
     }
 
-    /// Runs after a topology change has been applied: a removed overlay may have held the key
-    /// status, or AppKit may already have cleared it. The first check after the session starts
-    /// still owns activation, so this leaves the verdict to it.
+    /// Promotes an overlay if none is key, then ends the session when input cannot be captured.
+    /// A key overlay that is merely occluded has to stay that way across consecutive timed
+    /// checks first: a single full occlusion can be an overview passing over the screen.
+    private func verifyCapture(countsTowardsOcclusion: Bool = true) {
+        guard isCaptureRequired else { return }
+        windows.promoteKeyOverlayIfNeeded()
+        switch windows.inputCaptureStatus {
+        case .held:
+            consecutiveObscuredChecks = 0
+        case .obscured:
+            guard countsTowardsOcclusion else { return }
+            consecutiveObscuredChecks += 1
+            guard consecutiveObscuredChecks >= Self.obscuredChecksBeforeDismissal else { return }
+            dismiss(force: true)
+        case .lost:
+            dismiss(force: true)
+        }
+    }
+
+    /// Runs after a topology change or space change. A removed overlay may have held the key
+    /// status, or AppKit may already have cleared it. Nothing is judged until the start-up
+    /// verification has finished: before that the fade may still be running without overlays,
+    /// and the first check owns activation. Only the timed checks count occlusion, so a burst of
+    /// notifications cannot add up to a dismissal.
     private func reconcileCapture() {
         guard isCaptureRequired else { return }
         windows.promoteKeyOverlayIfNeeded()
-        guard captureVerificationTask == nil else { return }
-        verifyCapture()
+        guard isCaptureMonitoringLive else { return }
+        verifyCapture(countsTowardsOcclusion: false)
     }
 
     private func endCaptureVerification() {
@@ -268,6 +299,7 @@ final class ScreenBlanker {
         captureVerificationTask = nil
         captureRecheckTask?.cancel()
         captureRecheckTask = nil
+        consecutiveObscuredChecks = 0
     }
 
     /// Starts a global blanking session.

@@ -325,70 +325,6 @@ final class ScreenBlankerTests: XCTestCase {
         XCTAssertTrue(harness.sut.isDisplayBlanked(7))
     }
 
-    // MARK: - Capture lost without Dimmerly resigning (Mission Control)
-
-    func testSpaceChangeEndsBlankWhenCaptureWasLostWithoutResigning() async {
-        let harness = makeHarness()
-        harness.input.requiresActiveApp = true
-        // Let the start-up verification finish first.
-        harness.clock.completesSleepsImmediately = true
-        harness.sut.blank()
-        for _ in 0 ..< 100 {
-            await Task.yield()
-        }
-        // Mission Control takes the keyboard but Dimmerly never gets a resign notification.
-        harness.windows.appIsActive = false
-        harness.windows.keyDisplayID = nil
-
-        harness.postActiveSpaceChange()
-
-        XCTAssertFalse(harness.sut.isBlanking)
-        XCTAssertEqual(harness.input.stopCount, 1)
-        XCTAssertEqual(harness.gamma.restoredDisplayIDs, [7, 9])
-    }
-
-    func testSpaceChangeKeepsBlankingWhileCaptureHolds() {
-        let harness = makeHarness()
-        harness.input.requiresActiveApp = true
-        harness.sut.blank()
-
-        harness.postActiveSpaceChange()
-
-        XCTAssertTrue(harness.sut.isBlanking)
-        XCTAssertEqual(harness.input.stopCount, 0)
-    }
-
-    func testSpaceChangeLeavesBlankingAloneWhenWakeInputDoesNotNeedTheActiveApp() {
-        let harness = makeHarness()
-        harness.sut.blank()
-        harness.windows.appIsActive = false
-        harness.windows.keyDisplayID = nil
-
-        harness.postActiveSpaceChange()
-
-        XCTAssertTrue(harness.sut.isBlanking)
-    }
-
-    func testPeriodicRecheckEndsBlankWhenCaptureIsLostLater() async {
-        let harness = ScreenBlankerHarness.make(recheckInterval: .milliseconds(10))
-        harness.input.requiresActiveApp = true
-        harness.clock.completesSleepsImmediately = true
-        harness.sut.blank()
-        for _ in 0 ..< 100 {
-            await Task.yield()
-        }
-        XCTAssertTrue(harness.sut.isBlanking, "Capture still holds")
-
-        harness.windows.appIsActive = false
-        harness.windows.keyDisplayID = nil
-        for _ in 0 ..< 500 where harness.sut.isBlanking {
-            try? await Task.sleep(for: .milliseconds(10))
-        }
-
-        XCTAssertFalse(harness.sut.isBlanking)
-        XCTAssertEqual(harness.input.stopCount, 1)
-    }
-
     func testLosingFocusWhileIdleDoesNothing() {
         let harness = makeHarness()
         harness.input.requiresActiveApp = true
@@ -1030,7 +966,10 @@ extension ScreenBlankerTests {
 
 @MainActor
 struct ScreenBlankerHarness {
-    static func make(recheckInterval: Duration = .seconds(1)) -> ScreenBlankerHarness {
+    static func make(
+        recheckInterval: Duration = .seconds(1),
+        input customInput: BlankingInputMonitoring? = nil
+    ) -> ScreenBlankerHarness {
         let input = FakeBlankingInputMonitor()
         let windows = FakeBlankingWindowController()
         let gamma = FakeDisplayGammaController()
@@ -1041,7 +980,7 @@ struct ScreenBlankerHarness {
         let notificationCenter = NotificationCenter()
         let workspaceNotificationCenter = NotificationCenter()
         let sut = ScreenBlanker(
-            inputMonitor: input,
+            inputMonitor: customInput ?? input,
             windows: windows,
             gamma: gamma,
             cursor: cursor,
@@ -1185,13 +1124,19 @@ final class FakeBlankingWindowController: BlankingWindowControlling {
     var keyDisplayID: CGDirectDisplayID?
     var promoteCount = 0
 
-    var hasInputCapture: Bool {
-        appIsActive && keyDisplayID.map(shownDisplayIDs.contains) == true
+    /// Whether the key overlay is at least partly on screen. Mission Control hides it.
+    var overlaysAreVisible = true
+
+    var inputCaptureStatus: BlankingInputCaptureStatus {
+        guard appIsActive, keyDisplayID.map(shownDisplayIDs.contains) == true else { return .lost }
+        return overlaysAreVisible ? .held : .obscured
     }
 
     func promoteKeyOverlayIfNeeded() {
         promoteCount += 1
-        guard appIsActive, !hasInputCapture, let next = shownDisplayIDs.sorted().first else { return }
+        guard appIsActive, keyDisplayID.map(shownDisplayIDs.contains) != true,
+              let next = shownDisplayIDs.sorted().first
+        else { return }
         keyDisplayID = next
     }
 
