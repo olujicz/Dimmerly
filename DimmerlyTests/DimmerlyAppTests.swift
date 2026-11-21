@@ -700,6 +700,7 @@ final class ScreenshotStageTests: XCTestCase {
             "PresetEntity.swift", // App Intents indexing; launch setup that the stage skips
             "MenuBarPanel.swift", // Panel coordinator; presentation only
             "MenuBarPanelHost.swift", // Panel presenter; presentation only
+            "MenuBarDisplayControls.swift", // Which rows are expanded; presentation only, reset on close
             "KeyboardShortcutManager.swift", // Shortcut recording UI state
             "ScreenBlanker.swift", // Runs only on an explicit Turn Off
             "ScreenSleepState.swift", // Read-only sleep/wake flag; holds no display state

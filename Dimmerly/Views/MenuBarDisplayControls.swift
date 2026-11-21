@@ -399,7 +399,10 @@ struct DisplayBrightnessRow: View {
     @State private var sliderValue: Double
     @State private var warmthValue: Double
     @State private var contrastValue: Double
-    @State private var showAdjustments = false
+    private var showAdjustments: Bool {
+        DisplayRowExpansion.shared.isExpanded(display.id)
+    }
+
     #if !APPSTORE
         @State private var volumeValue: Double
     #endif
@@ -424,7 +427,9 @@ struct DisplayBrightnessRow: View {
         _warmthValue = State(initialValue: display.warmth)
         _contrastValue = State(initialValue: display.contrast)
         #if DEBUG
-            _showAdjustments = State(initialValue: ScreenshotStage.expandedDisplayNames.contains(display.name))
+            if ScreenshotStage.expandedDisplayNames.contains(display.name) {
+                DisplayRowExpansion.shared.setExpanded(true, for: display.id)
+            }
         #endif
         #if !APPSTORE
             // `hardwareVolume` is always nil at this point: `.ddcControls(...)` sets it by
@@ -439,7 +444,7 @@ struct DisplayBrightnessRow: View {
             HStack {
                 Button {
                     withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8)) {
-                        showAdjustments.toggle()
+                        DisplayRowExpansion.shared.toggle(display.id)
                     }
                 } label: {
                     HStack(spacing: 4) {
@@ -833,3 +838,38 @@ struct DisplayBrightnessRow: View {
         }
     }
 #endif
+
+/// Remembers which display rows in the menu bar panel show their warmth and contrast sliders.
+/// The state lives outside the row views so it survives a row being rebuilt while the panel is
+/// open, for example when Auto Warmth is switched off and warmth values are restored. The panel
+/// starts collapsed each time it opens.
+@MainActor
+@Observable
+final class DisplayRowExpansion {
+    static let shared = DisplayRowExpansion()
+
+    private(set) var expandedDisplayIDs: Set<CGDirectDisplayID> = []
+
+    func isExpanded(_ displayID: CGDirectDisplayID) -> Bool {
+        expandedDisplayIDs.contains(displayID)
+    }
+
+    func toggle(_ displayID: CGDirectDisplayID) {
+        if !expandedDisplayIDs.insert(displayID).inserted {
+            expandedDisplayIDs.remove(displayID)
+        }
+    }
+
+    func setExpanded(_ expanded: Bool, for displayID: CGDirectDisplayID) {
+        if expanded {
+            expandedDisplayIDs.insert(displayID)
+        } else {
+            expandedDisplayIDs.remove(displayID)
+        }
+    }
+
+    /// Collapses every row. Called when the panel closes.
+    func reset() {
+        expandedDisplayIDs.removeAll()
+    }
+}
