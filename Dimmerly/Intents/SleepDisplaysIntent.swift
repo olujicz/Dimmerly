@@ -23,7 +23,14 @@ struct SleepDisplaysIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult {
-        DisplayAction.performSleep(settings: AppSettings.shared)
+        try Self.run { DisplayAction.performSleep(settings: AppSettings.shared) }
         return .result()
+    }
+
+    /// Runs the sleep action and fails the shortcut when it reports that nothing was blanked,
+    /// with the same localized error the widget and Control Center commands show.
+    @MainActor
+    static func run(_ sleep: () -> Bool) throws {
+        guard sleep() else { throw WidgetActionExecution.Failure.didNotComplete }
     }
 }

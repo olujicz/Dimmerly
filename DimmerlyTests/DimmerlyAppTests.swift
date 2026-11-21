@@ -568,6 +568,14 @@ final class DimmerlyAppTests: XCTestCase {
         }
     #endif
 
+    @MainActor
+    func testSleepDisplaysIntentFailsWhenNothingWasBlanked() {
+        XCTAssertThrowsError(try SleepDisplaysIntent.run { false }) { error in
+            XCTAssertEqual(error as? WidgetActionExecution.Failure, .didNotComplete)
+        }
+        XCTAssertNoThrow(try SleepDisplaysIntent.run { true })
+    }
+
     func testParameterizedIntentsExposeConstructibleConversationalSummaries() {
         _ = SetDisplayBrightnessIntent.parameterSummary
         _ = SetDisplayWarmthIntent.parameterSummary
