@@ -112,6 +112,17 @@ protocol BlankingInputMonitoring: AnyObject {
     ) throws
 
     func stop()
+
+    /// Whether input reaches the monitor only while Dimmerly is the active app. The App Store
+    /// edition can only see events AppKit routes to it, so when another app takes focus the wake
+    /// key stops arriving and the session has to end.
+    var requiresActiveApp: Bool { get }
+}
+
+extension BlankingInputMonitoring {
+    var requiresActiveApp: Bool {
+        false
+    }
 }
 
 #if !APPSTORE
@@ -283,6 +294,10 @@ protocol BlankingInputMonitoring: AnyObject {
     @MainActor
     final class SystemBlankingInputMonitor: BlankingInputMonitoring {
         private var localMonitor: Any?
+
+        var requiresActiveApp: Bool {
+            true
+        }
 
         func start(
             policy: BlankingInputPolicy,

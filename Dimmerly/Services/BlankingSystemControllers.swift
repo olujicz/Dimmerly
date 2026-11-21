@@ -20,6 +20,22 @@ protocol BlankingWindowControlling: AnyObject {
 
     /// Shows the wake hint again after input that didn't wake the displays.
     func revealWakeHint()
+
+    /// Whether wake input can reach the overlays: Dimmerly is the active app and one of its
+    /// overlays is the key window. Always true where input is captured another way.
+    var hasInputCapture: Bool { get }
+
+    /// Makes a surviving overlay the key window when none is. Does nothing without overlays or
+    /// when one already is key.
+    func promoteKeyOverlayIfNeeded()
+}
+
+extension BlankingWindowControlling {
+    var hasInputCapture: Bool {
+        true
+    }
+
+    func promoteKeyOverlayIfNeeded() {}
 }
 
 @MainActor
@@ -142,8 +158,30 @@ final class SystemBlankingWindowController: BlankingWindowControlling {
     }
 
     func removeWindow(for displayID: CGDirectDisplayID) {
+        // Removal never promotes another overlay: it also runs while a session is torn down, and
+        // AppKit may already have cleared the key status. `promoteKeyOverlayIfNeeded()` runs once
+        // the topology has been reconciled.
         windows.removeValue(forKey: displayID)?.orderOut(nil)
         wakeHints.removeValue(forKey: displayID)
+    }
+
+    var hasInputCapture: Bool {
+        #if APPSTORE
+            NSApp.isActive && windows.values.contains { $0.isKeyWindow }
+        #else
+            true
+        #endif
+    }
+
+    func promoteKeyOverlayIfNeeded() {
+        #if APPSTORE
+            // Wake input is read through the key window. When the display holding it goes away,
+            // another overlay takes over so keys keep reaching the monitor.
+            guard !windows.values.contains(where: \.isKeyWindow),
+                  let next = windows.sorted(by: { $0.key < $1.key }).first?.value
+            else { return }
+            next.makeKeyAndOrderFront(nil)
+        #endif
     }
 
     func removeAllWindows() {
@@ -170,7 +208,11 @@ final class SystemBlankingWindowController: BlankingWindowControlling {
 
     func endBlankingSession() {
         #if APPSTORE
-            previouslyFrontmostApplication?.activate(options: [])
+            // Give focus back only if Dimmerly still has it. When the session ended because the
+            // user switched to another app, that app is the one they want.
+            if NSApp.isActive {
+                previouslyFrontmostApplication?.activate(options: [])
+            }
             previouslyFrontmostApplication = nil
         #endif
     }

@@ -59,11 +59,16 @@ final class ScreenBlanker {
     private let displays: ActiveDisplayProviding
     private let failurePresenter: @MainActor (BlankingInputMonitorError) -> Void
     private let gracePeriod: TimeInterval
+    private let captureVerificationDelay: Duration
 
     private var state = BlankingState()
     private var activationTime: TimeInterval = 0
     private var fadeTask: Task<Void, Never>?
     private var isCursorHidden = false
+    /// Identifies the running session, so a capture check scheduled for an earlier one cannot
+    /// act on a later one.
+    private var sessionID = 0
+    private var captureVerificationTask: Task<Void, Never>?
 
     /// True while a global blanking session is active. Per-display blanking deliberately does not
     /// count: it is dismissed differently and does not gate gamma writes the same way.
@@ -108,6 +113,7 @@ final class ScreenBlanker {
         displays: ActiveDisplayProviding = SystemActiveDisplayProvider(),
         notificationCenter: NotificationCenter = .default,
         gracePeriod: TimeInterval = 0.5,
+        captureVerificationDelay: Duration = .milliseconds(500),
         failurePresenter: @escaping @MainActor (BlankingInputMonitorError) -> Void = { error in
             NSApp.activate()
             let alert = NSAlert()
@@ -136,6 +142,7 @@ final class ScreenBlanker {
         self.clock = clock
         self.displays = displays
         self.gracePeriod = gracePeriod
+        self.captureVerificationDelay = captureVerificationDelay
         self.failurePresenter = failurePresenter
 
         // AppKit can publish a new display's NSScreen after the CoreGraphics reconfiguration
@@ -150,6 +157,77 @@ final class ScreenBlanker {
                 self?.displayTopologyDidChange()
             }
         }
+        notificationCenter.addObserver(
+            forName: NSApplication.didResignActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.appDidResignActive()
+            }
+        }
+    }
+
+    /// Ends a session whose wake input can no longer be captured. In the App Store edition a
+    /// local event monitor only sees events while Dimmerly is active, so once another app takes
+    /// focus (Command-Tab, a notification, Mission Control) the overlay would stay black with no
+    /// way to wake it. A partial per-display session has no input capture to lose.
+    func appDidResignActive() {
+        guard isCaptureRequired else { return }
+        dismiss(force: true)
+    }
+
+    /// True while a session whose wake input depends on Dimmerly being the active app with a key
+    /// overlay is running.
+    private var isCaptureRequired: Bool {
+        inputMonitor.requiresActiveApp && (state.isGlobal || state.recoveryArmed)
+    }
+
+    /// Gives AppKit a bounded interval to make Dimmerly active with a key overlay after the
+    /// session asked for activation. An idle timer or schedule can blank while another app is
+    /// frontmost; if activation never succeeds, Dimmerly gets no resign notification and an
+    /// Escape-only session would have no way out, so the session ends instead.
+    private func scheduleCaptureVerification() {
+        captureVerificationTask?.cancel()
+        captureVerificationTask = nil
+        guard isCaptureRequired else { return }
+        let id = sessionID
+        captureVerificationTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                try await clock.sleep(for: captureVerificationDelay)
+            } catch {
+                return
+            }
+            guard !Task.isCancelled, id == sessionID else { return }
+            captureVerificationTask = nil
+            verifyCapture()
+        }
+    }
+
+    /// Promotes an overlay if none is key, then ends the session when input still cannot be
+    /// captured.
+    private func verifyCapture() {
+        guard isCaptureRequired else { return }
+        windows.promoteKeyOverlayIfNeeded()
+        guard !windows.hasInputCapture else { return }
+        dismiss(force: true)
+    }
+
+    /// Runs after a topology change has been applied: a removed overlay may have held the key
+    /// status, or AppKit may already have cleared it. The first check after the session starts
+    /// still owns activation, so this leaves the verdict to it.
+    private func reconcileCapture() {
+        guard isCaptureRequired else { return }
+        windows.promoteKeyOverlayIfNeeded()
+        guard captureVerificationTask == nil else { return }
+        verifyCapture()
+    }
+
+    private func endCaptureVerification() {
+        sessionID += 1
+        captureVerificationTask?.cancel()
+        captureVerificationTask = nil
     }
 
     /// Starts a global blanking session.
@@ -174,6 +252,7 @@ final class ScreenBlanker {
             return false
         }
 
+        sessionID += 1
         activationTime = clock.now
         let displaySet = Set(displayIDs)
         state.global = useFadeTransition ? .fading(displaySet) : .blanked(displaySet)
@@ -196,6 +275,7 @@ final class ScreenBlanker {
         }
         windows.beginBlankingSession()
         state.global = .blanked(covered)
+        scheduleCaptureVerification()
     }
 
     func dismiss(force: Bool = false) {
@@ -263,10 +343,10 @@ final class ScreenBlanker {
 
         if state.isGlobal {
             reconcileGlobalBlanking(for: activeDisplayIDs)
-            return
+        } else {
+            reconcilePerDisplayBlanking(for: activeDisplayIDs)
         }
-
-        reconcilePerDisplayBlanking(for: activeDisplayIDs)
+        reconcileCapture()
     }
 
     private func reconcileGlobalBlanking(for activeDisplayIDs: Set<CGDirectDisplayID>) {
@@ -430,6 +510,7 @@ final class ScreenBlanker {
 
     private func restoreAllAndFinish() {
         guard state.isGlobal else { return }
+        endCaptureVerification()
         fadeTask?.cancel()
         fadeTask = nil
         inputMonitor.stop()
@@ -466,6 +547,7 @@ final class ScreenBlanker {
         // down rather than after.
         let hadArmedSession = state.recoveryArmed
         if hadArmedSession {
+            endCaptureVerification()
             inputMonitor.stop()
         }
         let restoredDisplayIDs = fullyRestoredDisplayIDs(state.perDisplayCovered)
@@ -493,13 +575,16 @@ final class ScreenBlanker {
         }
 
         state.recoveryArmed = true
+        sessionID += 1
         activationTime = clock.now
         windows.beginBlankingSession()
         hideCursorIfNeeded()
+        scheduleCaptureVerification()
     }
 
     private func stopPerDisplayRecovery() {
         guard state.recoveryArmed else { return }
+        endCaptureVerification()
         inputMonitor.stop()
         windows.endBlankingSession()
         unhideCursorIfNeeded()
