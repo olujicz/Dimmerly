@@ -34,6 +34,9 @@ final class ScreenBlanker {
         var perDisplayCovered: Set<CGDirectDisplayID> = []
         /// True once every active display is covered per-display and the dismissal monitor is armed.
         var recoveryArmed = false
+        /// When each per-display blank started, for the grace period before a click on its
+        /// overlay wakes it. Entries outlive their display; blanking again overwrites them.
+        var perDisplayBlankedAt: [CGDirectDisplayID: TimeInterval] = [:]
 
         var isGlobal: Bool {
             switch global {
@@ -150,6 +153,9 @@ final class ScreenBlanker {
         self.gracePeriod = gracePeriod
         self.captureVerificationDelay = captureVerificationDelay
         self.failurePresenter = failurePresenter
+        windows.onOverlayMouseDown = { [weak self] displayID in
+            self?.overlayWasPressed(displayID)
+        }
 
         // AppKit can publish a new display's NSScreen after the CoreGraphics reconfiguration
         // callback has already run. Reconciling again once the screen list changes covers a
@@ -181,6 +187,24 @@ final class ScreenBlanker {
     func appDidResignActive() {
         guard isCaptureRequired else { return }
         dismiss(force: true)
+    }
+
+    /// Wakes one display when its overlay is pressed during partial blanking.
+    ///
+    /// The dismissal monitor only starts once every active display is covered, so with one display
+    /// still on, a press on a dark display's overlay has nothing else to catch it. Once the
+    /// monitor is armed (or a global session runs) it owns wake input, grace period included, and
+    /// the press is left to it. The same grace period as the other wakes applies, so the click
+    /// that blanked the display cannot immediately wake it again.
+    func overlayWasPressed(_ displayID: CGDirectDisplayID) {
+        guard !state.isGlobal,
+              !state.recoveryArmed,
+              state.perDisplayCovered.contains(displayID),
+              clock.now - (state.perDisplayBlankedAt[displayID] ?? activationTime) >= gracePeriod
+        else {
+            return
+        }
+        unblankDisplay(displayID)
     }
 
     /// True while a session whose wake input depends on Dimmerly being the active app with a key
@@ -312,6 +336,7 @@ final class ScreenBlanker {
 
         gamma.blank(displayID)
         state.perDisplayCovered.insert(displayID)
+        state.perDisplayBlankedAt[displayID] = clock.now
 
         guard Self.shouldEnablePerDisplayRecovery(
             blankedDisplayIDs: state.perDisplayCovered,

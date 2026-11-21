@@ -530,6 +530,28 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertFalse(testDefaults.bool(forKey: "dimmerlyRequireEscapeToDismiss"))
     }
 
+    func testMigrationCompletesOnTheNextLaunchAfterBeingInterrupted() throws {
+        let escapeKey = "dimmerlyRequireEscapeToDismiss"
+        let ignoreKey = "dimmerlyIgnoreMouseMovement"
+        let interrupted = try XCTUnwrap(InterruptibleDefaults(suiteName: testSuiteName))
+        testDefaults.set(true, forKey: escapeKey)
+        testDefaults.set(false, forKey: ignoreKey)
+        interrupted.survivingWrites = 1
+
+        // The launch dies after the first write, as a crash or a quit during launch would.
+        AppSettings.migrateEscapeOnlyWake(in: interrupted)
+
+        XCTAssertEqual(interrupted.attemptedKeys, [ignoreKey, escapeKey], "Mouse movement is saved first")
+        XCTAssertTrue(testDefaults.bool(forKey: ignoreKey), "The choice survives the interruption")
+        XCTAssertTrue(testDefaults.bool(forKey: escapeKey), "The migration is still marked as pending")
+
+        // Next launch.
+        AppSettings.migrateEscapeOnlyWake(in: testDefaults)
+
+        XCTAssertFalse(testDefaults.bool(forKey: escapeKey))
+        XCTAssertTrue(testDefaults.bool(forKey: ignoreKey))
+    }
+
     func testLoadingSettingsAppliesTheEscapeOnlyMigrationOnlyInTheAppStoreEdition() {
         testDefaults.set(true, forKey: "dimmerlyRequireEscapeToDismiss")
 
@@ -570,5 +592,19 @@ final class AppSettingsTests: XCTestCase {
         settings.menuBarIconRaw = "nonexistent_style"
         XCTAssertEqual(settings.menuBarIcon, .defaultIcon,
                        "Invalid raw value should fall back to .defaultIcon")
+    }
+}
+
+/// A defaults store that stops saving after a set number of writes, standing in for a launch that
+/// is interrupted part-way through a migration.
+private final class InterruptibleDefaults: UserDefaults {
+    var survivingWrites = Int.max
+    private(set) var attemptedKeys: [String] = []
+
+    override func set(_ value: Any?, forKey defaultName: String) {
+        attemptedKeys.append(defaultName)
+        guard survivingWrites > 0 else { return }
+        survivingWrites -= 1
+        super.set(value, forKey: defaultName)
     }
 }

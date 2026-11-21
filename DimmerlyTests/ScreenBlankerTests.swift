@@ -1099,6 +1099,7 @@ final class FakeBlankingInputMonitor: BlankingInputMonitoring {
 
 @MainActor
 final class FakeBlankingWindowController: BlankingWindowControlling {
+    var onOverlayMouseDown: ((CGDirectDisplayID) -> Void)?
     var beginSessionCount = 0
     var shownDisplayIDs: [CGDirectDisplayID] = []
     var events: [String] = []
@@ -1156,6 +1157,12 @@ final class FakeBlankingWindowController: BlankingWindowControlling {
 
     func endBlankingSession() {
         endSessionCount += 1
+    }
+
+    /// A mouse press on a display's overlay, as the App Store edition's overlay view reports it.
+    func pressOverlay(of displayID: CGDirectDisplayID) {
+        guard shownDisplayIDs.contains(displayID) else { return }
+        onOverlayMouseDown?(displayID)
     }
 
     var revealWakeHintCount = 0

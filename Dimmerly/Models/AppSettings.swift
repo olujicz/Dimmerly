@@ -341,11 +341,14 @@ class AppSettings {
     /// still offers: wake on any input, with mouse movement ignored. That keeps a wake that a
     /// stray pointer nudge cannot trigger, which is what most people chose Escape-only for.
     /// Safe to run on every launch: once the Escape-only flag is off there is nothing to move.
+    /// The Escape-only flag is what marks the migration as pending, so it is cleared last. If the
+    /// launch is interrupted between the two writes, the flag is still set and the next launch
+    /// finishes the move; the other order could lose the choice and leave mouse movement waking.
     /// Compiled into every edition so it can be tested; only the App Store edition runs it.
     static func migrateEscapeOnlyWake(in defaults: UserDefaults) {
         guard defaults.bool(forKey: "dimmerlyRequireEscapeToDismiss") else { return }
-        defaults.set(false, forKey: "dimmerlyRequireEscapeToDismiss")
         defaults.set(true, forKey: "dimmerlyIgnoreMouseMovement")
+        defaults.set(false, forKey: "dimmerlyRequireEscapeToDismiss")
     }
 
     /// The integer stored under `key` clamped to `range`, or `defaultValue` when nothing is stored.

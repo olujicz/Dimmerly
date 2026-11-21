@@ -9528,6 +9528,76 @@
         }
       }
     },
+    "Turns the display black. Click it to wake it, or press any key once every display is black." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schaltet das Display schwarz. Zum Aufwecken darauf klicken oder, sobald alle Displays schwarz sind, eine beliebige Taste drücken."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turns the display black. Click it to wake it, or press any key once every display is black."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pone la pantalla en negro. Haz clic en ella para activarla o pulsa cualquier tecla cuando todas las pantallas estén en negro."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rend l’écran noir. Cliquez dessus pour le réactiver, ou appuyez sur une touche quand tous les écrans sont noirs."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rende nero il display. Fai clic su di esso per riattivarlo, oppure premi un tasto qualsiasi quando tutti i display sono neri."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画面を真っ黒にします。クリックすると復帰します。すべての画面が黒のときは、任意のキーでも復帰します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "화면을 검게 만듭니다. 화면을 클릭하면 깨어나며, 모든 화면이 검을 때는 아무 키나 눌러도 깨어납니다."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maakt het scherm zwart. Klik erop om het te wekken, of druk op een willekeurige toets zodra alle schermen zwart zijn."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deixa a tela preta. Clique nela para reativá-la ou pressione qualquer tecla quando todas as telas estiverem pretas."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekran postaje crn. Kliknite na njega za buđenje ili pritisnite bilo koji taster kada su svi ekrani crni."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将显示器变黑。点按它即可唤醒；所有显示器都变黑后，按任意键也可唤醒。"
+          }
+        }
+      }
+    },
     "Display Adjustments" : {
       "extractionState" : "stale",
       "localizations" : {

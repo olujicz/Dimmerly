@@ -13,7 +13,7 @@ Semantic Versioning.
 - The App Store edition asks for a rating at most once per version, and only after you have used Dimmerly for a week, applied presets on at least three days, and closed the menu bar panel. It never asks on first launch, while a display is blanked, or while the panel is open. Nothing about your use leaves your Mac. The direct download never asks.
 
 ### Changed
-- In the App Store edition, dimmed displays now always wake with a key or click. The "Escape key only" option is gone there: Mission Control and other system overviews take the Esc key, which could leave a dimmed screen with no way to wake it. If you had chosen Escape only, Dimmerly turns on "Ignore mouse movement" for you instead. The direct download keeps both options. Translated in every shipped language.
+- In the App Store edition, dimmed displays now wake with any key or click. The "Escape key only" option is gone there: Mission Control and other system overviews take the Esc key, which could leave a dimmed screen with no way to wake it. If you dim only one display, click its black screen to wake it, and the VoiceOver hint on the dim button says so. If you had chosen Escape only, Dimmerly turns on "Ignore mouse movement" for you instead. The direct download keeps both options. Translated in every shipped language.
 
 ### Fixed
 - A brightness, warmth or contrast change made just before a monitor is unplugged is saved with that monitor and is back when it reconnects, even under a different display ID.

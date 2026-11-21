@@ -133,4 +133,130 @@ final class BlankingWakePolicyTests: XCTestCase {
             XCTAssertTrue(harness.sut.requireEscapeToDismiss)
         #endif
     }
+
+    func testOverlayViewAcceptsTheFirstMouseAndReportsEveryKindOfPress() throws {
+        let view = BlankingOverlayContentView()
+        var pressCount = 0
+        view.onMouseDown = { pressCount += 1 }
+
+        // Without this, the press that merely activates Dimmerly would be swallowed.
+        XCTAssertTrue(view.acceptsFirstMouse(for: nil))
+
+        func press(_ type: NSEvent.EventType) throws -> NSEvent {
+            try XCTUnwrap(NSEvent.mouseEvent(
+                with: type, location: .zero, modifierFlags: [], timestamp: 0,
+                windowNumber: 0, context: nil, eventNumber: 0, clickCount: 1, pressure: 1
+            ))
+        }
+        let left = try press(.leftMouseDown)
+        let right = try press(.rightMouseDown)
+        let other = try press(.otherMouseDown)
+        view.mouseDown(with: left)
+        view.rightMouseDown(with: right)
+        view.otherMouseDown(with: other)
+
+        XCTAssertEqual(pressCount, 3)
+    }
+
+    // MARK: - Clicking a dimmed display's overlay
+
+    func testPressingTheOverlayOfAPartiallyBlankedDisplayWakesThatDisplay() {
+        let harness = makeHarness()
+        harness.sut.blankDisplay(7)
+        harness.clock.now = 100.5
+
+        harness.windows.pressOverlay(of: 7)
+
+        XCTAssertFalse(harness.sut.isBlankingAnyDisplay)
+        XCTAssertTrue(harness.sut.blankedDisplayIDs.isEmpty)
+        XCTAssertEqual(harness.gamma.restoredDisplayIDs, [7])
+        XCTAssertTrue(harness.windows.shownDisplayIDs.isEmpty)
+        XCTAssertTrue(harness.input.startPolicies.isEmpty, "A partial session never armed the monitor")
+    }
+
+    func testPressingOneOverlayLeavesOtherPartiallyBlankedDisplaysDark() {
+        let harness = makeHarness()
+        harness.displays.activeDisplayIDs = [7, 9, 11]
+        harness.sut.blankDisplay(7)
+        harness.sut.blankDisplay(9)
+        harness.clock.now = 100.5
+
+        harness.windows.pressOverlay(of: 7)
+
+        XCTAssertEqual(harness.sut.blankedDisplayIDs, [9])
+        XCTAssertEqual(harness.gamma.restoredDisplayIDs, [7])
+        XCTAssertEqual(harness.windows.shownDisplayIDs, [9])
+    }
+
+    func testPressingAnOverlayDuringTheGracePeriodDoesNotWake() {
+        let harness = makeHarness()
+        harness.sut.blankDisplay(7)
+        // The click that dimmed the display must not wake it again as it lands on the overlay.
+        harness.clock.now = 100.2
+
+        harness.windows.pressOverlay(of: 7)
+
+        XCTAssertEqual(harness.sut.blankedDisplayIDs, [7])
+        XCTAssertTrue(harness.gamma.restoredDisplayIDs.isEmpty)
+
+        harness.clock.now = 100.5
+        harness.windows.pressOverlay(of: 7)
+
+        XCTAssertTrue(harness.sut.blankedDisplayIDs.isEmpty)
+    }
+
+    func testTheGracePeriodOfAnOverlayPressStartsWhenThatDisplayWasBlanked() {
+        let harness = makeHarness()
+        harness.displays.activeDisplayIDs = [7, 9, 11]
+        harness.sut.blankDisplay(7)
+        harness.clock.now = 105
+        harness.sut.blankDisplay(9)
+
+        // Display 7 has been dark for seconds; display 9 only just went dark.
+        harness.windows.pressOverlay(of: 9)
+        XCTAssertEqual(harness.sut.blankedDisplayIDs, [7, 9])
+        harness.windows.pressOverlay(of: 7)
+        XCTAssertEqual(harness.sut.blankedDisplayIDs, [9])
+    }
+
+    func testOverlayPressIsLeftToTheInputMonitorOnceEveryDisplayIsCovered() throws {
+        let harness = makeHarness()
+        harness.sut.blankDisplay(7)
+        harness.sut.blankDisplay(9)
+        harness.clock.now = 100.5
+
+        harness.windows.pressOverlay(of: 7)
+
+        XCTAssertEqual(harness.sut.blankedDisplayIDs, [7, 9], "The armed monitor owns wake input")
+        XCTAssertTrue(harness.gamma.restoredDisplayIDs.isEmpty)
+        try harness.input.sendWake()
+        XCTAssertTrue(harness.sut.blankedDisplayIDs.isEmpty)
+    }
+
+    func testOverlayPressIsIgnoredDuringAGlobalSession() {
+        let harness = makeHarness()
+        harness.sut.blank()
+        harness.clock.now = 100.5
+
+        harness.windows.pressOverlay(of: 7)
+
+        XCTAssertTrue(harness.sut.isBlanking)
+        XCTAssertTrue(harness.gamma.restoredDisplayIDs.isEmpty)
+    }
+
+    func testOverlayPressForADisplayThatIsNotBlankedDoesNothing() {
+        let harness = makeHarness()
+        harness.sut.blankDisplay(7)
+        harness.clock.now = 100.5
+
+        harness.sut.overlayWasPressed(9)
+
+        XCTAssertEqual(harness.sut.blankedDisplayIDs, [7])
+        XCTAssertTrue(harness.gamma.restoredDisplayIDs.isEmpty)
+    }
+
+    func testBlankerRegistersItselfForOverlayPresses() {
+        let harness = makeHarness()
+        XCTAssertNotNil(harness.windows.onOverlayMouseDown)
+    }
 }
