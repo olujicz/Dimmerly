@@ -712,6 +712,8 @@
                     try? await Task.sleep(for: .seconds(pollingInterval))
                     guard !Task.isCancelled else { return }
                     guard let self, sessionGate.capture() != nil else { return }
+                    // Reads would wake a sleeping monitor and are wasted on a blanked one.
+                    guard !ScreenSleepState.shouldPausePolling else { continue }
                     pollAllDisplays()
                 }
             }

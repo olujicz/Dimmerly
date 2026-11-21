@@ -29,6 +29,7 @@ Semantic Versioning.
 - Schedules missed while Dimmerly was not running apply when it starts: after a Mac that was off overnight boots, the newest trigger crossed since Dimmerly last ran (up to 24 hours back) takes effect instead of being skipped. Turning a schedule back on also applies its trigger from earlier the same day, as the setting always promised.
 - The idle timer no longer blanks displays while a video, presentation or other app is keeping the display awake. It blanks once that stops, if you are still idle.
 - A Day preset applied by a schedule shortly before sunrise is no longer undone a few minutes later when Auto Warmth resumes. The sunrise transition continues from the warmth on screen instead of jumping back to the night tint (and a sunset transition likewise never moves back past it).
+- Dimmerly stops reading monitor values over DDC and syncing the built-in backlight while the displays are asleep or dimmed by Dimmerly, so it no longer pokes a sleeping monitor every few seconds. It resumes on the next check after wake.
 
 ## [1.5.0] - 2026-11-14
 

@@ -90,6 +90,7 @@
 		NT00000000000000000001 /* SolarCalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = NT00000000000000000010 /* SolarCalculatorTests.swift */; };
 		NT00000000000000000002 /* DimmingScheduleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = NT00000000000000000020 /* DimmingScheduleTests.swift */; };
 		NT00000000000000000003 /* ScheduleManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = NT00000000000000000030 /* ScheduleManagerTests.swift */; };
+		SSS000000000000000000012 /* ScreenSleepStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SSS000000000000000000002 /* ScreenSleepStateTests.swift */; };
 		UPDCTRLTESTB100000000000 /* UpdaterControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = UPDCTRLTESTF000000000000 /* UpdaterControllerTests.swift */; };
 		PE00000000000000000011 /* PresetEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = PE00000000000000000001 /* PresetEntity.swift */; };
 		PRV00000000000000000002 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = PRV00000000000000000001 /* PrivacyInfo.xcprivacy */; };
@@ -126,6 +127,7 @@
 		VS00000000000000000015 /* SettingsAboutTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = VS00000000000000000005 /* SettingsAboutTab.swift */; };
 		SETUPDSECB10000000000000 /* SettingsUpdatesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = SETUPDSECF00000000000000 /* SettingsUpdatesSection.swift */; };
 		WW00000000000000000011 /* WorkspaceWakeMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = WW00000000000000000001 /* WorkspaceWakeMonitor.swift */; };
+		SSS000000000000000000011 /* ScreenSleepState.swift in Sources */ = {isa = PBXBuildFile; fileRef = SSS000000000000000000001 /* ScreenSleepState.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -253,6 +255,7 @@
 		NT00000000000000000010 /* SolarCalculatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolarCalculatorTests.swift; sourceTree = "<group>"; };
 		NT00000000000000000020 /* DimmingScheduleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DimmingScheduleTests.swift; sourceTree = "<group>"; };
 		NT00000000000000000030 /* ScheduleManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleManagerTests.swift; sourceTree = "<group>"; };
+		SSS000000000000000000002 /* ScreenSleepStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenSleepStateTests.swift; sourceTree = "<group>"; };
 		UPDCTRLTESTF000000000000 /* UpdaterControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdaterControllerTests.swift; sourceTree = "<group>"; };
 		PE00000000000000000001 /* PresetEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetEntity.swift; sourceTree = "<group>"; };
 		PRV00000000000000000001 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
@@ -290,6 +293,7 @@
 		VS00000000000000000005 /* SettingsAboutTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsAboutTab.swift; sourceTree = "<group>"; };
 		SETUPDSECF00000000000000 /* SettingsUpdatesSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsUpdatesSection.swift; sourceTree = "<group>"; };
 		WW00000000000000000001 /* WorkspaceWakeMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceWakeMonitor.swift; sourceTree = "<group>"; };
+		SSS000000000000000000001 /* ScreenSleepState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenSleepState.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -463,6 +467,7 @@
 				CT00000000000000000001 /* ColorTemperatureManager.swift */,
 				CP00000000000000000001 /* ControlCenterStatePublisher.swift */,
 				WW00000000000000000001 /* WorkspaceWakeMonitor.swift */,
+				SSS000000000000000000001 /* ScreenSleepState.swift */,
 				DC00000000000000000001 /* DDCPacketCodec.swift */,
 				HW00000000000000000001 /* DDCController.swift */,
 				HW00000000000000000003 /* HardwareBrightnessManager.swift */,
@@ -534,6 +539,7 @@
 				E2F0BAA221177547FC5C458C /* JSONDefaultsArrayStoreTests.swift */,
 				PT00000000000000000002 /* PollingTimerTests.swift */,
 				NT00000000000000000030 /* ScheduleManagerTests.swift */,
+				SSS000000000000000000002 /* ScreenSleepStateTests.swift */,
 				UPDCTRLTESTF000000000000 /* UpdaterControllerTests.swift */,
 				SB00000000000000000001 /* ScreenBlankerTests.swift */,
 				SB00000000000000000002 /* ScreenBlankerCaptureTests.swift */,
@@ -822,6 +828,7 @@
 				CT00000000000000000011 /* ColorTemperatureManager.swift in Sources */,
 				CP00000000000000000011 /* ControlCenterStatePublisher.swift in Sources */,
 				WW00000000000000000011 /* WorkspaceWakeMonitor.swift in Sources */,
+				SSS000000000000000000011 /* ScreenSleepState.swift in Sources */,
 				PT00000000000000000011 /* PollingTimer.swift in Sources */,
 				B384217D3A68010EA915DE22 /* JSONDefaultsArrayStore.swift in Sources */,
 				DC00000000000000000011 /* DDCPacketCodec.swift in Sources */,
@@ -858,6 +865,7 @@
 				NT00000000000000000001 /* SolarCalculatorTests.swift in Sources */,
 				NT00000000000000000002 /* DimmingScheduleTests.swift in Sources */,
 				NT00000000000000000003 /* ScheduleManagerTests.swift in Sources */,
+				SSS000000000000000000012 /* ScreenSleepStateTests.swift in Sources */,
 				UPDCTRLTESTB100000000000 /* UpdaterControllerTests.swift in Sources */,
 				PT00000000000000000012 /* PollingTimerTests.swift in Sources */,
 				DDADD6A8F394B61338B57630 /* JSONDefaultsArrayStoreTests.swift in Sources */,
