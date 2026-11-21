@@ -167,7 +167,7 @@ final class SystemBlankingWindowController: BlankingWindowControlling {
 
     var hasInputCapture: Bool {
         #if APPSTORE
-            NSApp.isActive && windows.values.contains { $0.isKeyWindow }
+            NSApp.isActive && windows.values.contains { $0.isKeyWindow && $0.occlusionState.contains(.visible) }
         #else
             true
         #endif

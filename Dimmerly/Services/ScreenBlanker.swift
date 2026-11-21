@@ -60,6 +60,7 @@ final class ScreenBlanker {
     private let failurePresenter: @MainActor (BlankingInputMonitorError) -> Void
     private let gracePeriod: TimeInterval
     private let captureVerificationDelay: Duration
+    private let captureRecheckInterval: Duration
 
     private var state = BlankingState()
     private var activationTime: TimeInterval = 0
@@ -69,6 +70,7 @@ final class ScreenBlanker {
     /// act on a later one.
     private var sessionID = 0
     private var captureVerificationTask: Task<Void, Never>?
+    private var captureRecheckTask: Task<Void, Never>?
 
     /// True while a global blanking session is active. Per-display blanking deliberately does not
     /// count: it is dismissed differently and does not gate gamma writes the same way.
@@ -114,6 +116,8 @@ final class ScreenBlanker {
         notificationCenter: NotificationCenter = .default,
         gracePeriod: TimeInterval = 0.5,
         captureVerificationDelay: Duration = .milliseconds(500),
+        captureRecheckInterval: Duration = .seconds(1),
+        workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter,
         failurePresenter: @escaping @MainActor (BlankingInputMonitorError) -> Void = { error in
             NSApp.activate()
             let alert = NSAlert()
@@ -143,6 +147,7 @@ final class ScreenBlanker {
         self.displays = displays
         self.gracePeriod = gracePeriod
         self.captureVerificationDelay = captureVerificationDelay
+        self.captureRecheckInterval = captureRecheckInterval
         self.failurePresenter = failurePresenter
 
         // AppKit can publish a new display's NSScreen after the CoreGraphics reconfiguration
@@ -164,6 +169,17 @@ final class ScreenBlanker {
         ) { [weak self] _ in
             MainActor.assumeIsolated {
                 self?.appDidResignActive()
+            }
+        }
+        // Mission Control and space switches can take the keyboard away without Dimmerly ever
+        // resigning, so the overlay is checked again whenever the active space changes.
+        workspaceNotificationCenter.addObserver(
+            forName: NSWorkspace.activeSpaceDidChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.reconcileCapture()
             }
         }
     }
@@ -202,6 +218,28 @@ final class ScreenBlanker {
             guard !Task.isCancelled, id == sessionID else { return }
             captureVerificationTask = nil
             verifyCapture()
+            startCaptureRecheck(id: id)
+        }
+    }
+
+    /// Keeps checking for the rest of the session. Losing capture without Dimmerly resigning
+    /// (Mission Control, for one) would otherwise leave a black screen that swallows the wake key.
+    /// It runs on real time, apart from the injected clock that paces the start-up verification.
+    private func startCaptureRecheck(id: Int) {
+        captureRecheckTask?.cancel()
+        captureRecheckTask = nil
+        guard isCaptureRequired, id == sessionID else { return }
+        let interval = captureRecheckInterval
+        captureRecheckTask = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                do {
+                    try await Task.sleep(for: interval)
+                } catch {
+                    return
+                }
+                guard let self, !Task.isCancelled, id == sessionID, isCaptureRequired else { return }
+                verifyCapture()
+            }
         }
     }
 
@@ -228,6 +266,8 @@ final class ScreenBlanker {
         sessionID += 1
         captureVerificationTask?.cancel()
         captureVerificationTask = nil
+        captureRecheckTask?.cancel()
+        captureRecheckTask = nil
     }
 
     /// Starts a global blanking session.
