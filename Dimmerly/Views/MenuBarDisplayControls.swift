@@ -439,6 +439,22 @@ struct DisplayBrightnessRow: View {
         #endif
     }
 
+    /// How to wake the display the dim button turns black. In the App Store edition, wake input
+    /// only reaches Dimmerly while it is active: a press on this display's black screen wakes it
+    /// (the one way back while another display is still on), and a key works once every display
+    /// is black.
+    private var dimHint: Text {
+        #if APPSTORE
+            Text("Turns the display black. Click it to wake it, or press any key once every display is black.")
+        #else
+            if settings.wakesOnlyOnEscape {
+                Text("Turns the display black. Press Esc to wake it.")
+            } else {
+                Text("Turns the display black. Press any key to wake it.")
+            }
+        #endif
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
@@ -501,13 +517,7 @@ struct DisplayBrightnessRow: View {
                 .iconButtonOverhang()
                 .help(isBlanked ? Text("Restore \(display.name)") : Text("Dim \(display.name)"))
                 .accessibilityLabel(isBlanked ? Text("Restore \(display.name)") : Text("Dim \(display.name)"))
-                .accessibilityHint(
-                    isBlanked
-                        ? Text("Restores the display to its previous brightness")
-                        : settings.requireEscapeToDismiss
-                        ? Text("Turns the display black. Press Esc to wake it.")
-                        : Text("Turns the display black. Press any key to wake it.")
-                )
+                .accessibilityHint(isBlanked ? Text("Restores the display to its previous brightness") : dimHint)
             }
 
             DisplaySliderRow(leadingSymbol: "sun.min", trailingSymbol: "sun.max") {

@@ -495,6 +495,80 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertFalse(settings.requireEscapeToDismiss, "requireEscapeToDismiss should default to false")
     }
 
+    // MARK: - Escape-only wake migration
+
+    func testMigrationMovesSavedEscapeOnlyWakeToIgnoringMouseMovement() {
+        testDefaults.set(true, forKey: "dimmerlyRequireEscapeToDismiss")
+        testDefaults.set(false, forKey: "dimmerlyIgnoreMouseMovement")
+
+        AppSettings.migrateEscapeOnlyWake(in: testDefaults)
+
+        XCTAssertFalse(testDefaults.bool(forKey: "dimmerlyRequireEscapeToDismiss"))
+        XCTAssertTrue(testDefaults.bool(forKey: "dimmerlyIgnoreMouseMovement"))
+    }
+
+    func testMigrationIsIdempotentAndLeavesLaterChoicesAlone() {
+        testDefaults.set(true, forKey: "dimmerlyRequireEscapeToDismiss")
+
+        AppSettings.migrateEscapeOnlyWake(in: testDefaults)
+        // The person turns movement ignoring back off after the migration; a second run keeps it.
+        testDefaults.set(false, forKey: "dimmerlyIgnoreMouseMovement")
+        AppSettings.migrateEscapeOnlyWake(in: testDefaults)
+
+        XCTAssertFalse(testDefaults.bool(forKey: "dimmerlyRequireEscapeToDismiss"))
+        XCTAssertFalse(testDefaults.bool(forKey: "dimmerlyIgnoreMouseMovement"))
+    }
+
+    func testMigrationLeavesEveryoneWhoNeverChoseEscapeOnlyUntouched() {
+        testDefaults.set(false, forKey: "dimmerlyIgnoreMouseMovement")
+        AppSettings.migrateEscapeOnlyWake(in: testDefaults)
+        XCTAssertFalse(testDefaults.bool(forKey: "dimmerlyIgnoreMouseMovement"))
+
+        testDefaults.set(true, forKey: "dimmerlyIgnoreMouseMovement")
+        AppSettings.migrateEscapeOnlyWake(in: testDefaults)
+        XCTAssertTrue(testDefaults.bool(forKey: "dimmerlyIgnoreMouseMovement"))
+        XCTAssertFalse(testDefaults.bool(forKey: "dimmerlyRequireEscapeToDismiss"))
+    }
+
+    func testMigrationCompletesOnTheNextLaunchAfterBeingInterrupted() throws {
+        let escapeKey = "dimmerlyRequireEscapeToDismiss"
+        let ignoreKey = "dimmerlyIgnoreMouseMovement"
+        let interrupted = try XCTUnwrap(InterruptibleDefaults(suiteName: testSuiteName))
+        testDefaults.set(true, forKey: escapeKey)
+        testDefaults.set(false, forKey: ignoreKey)
+        interrupted.survivingWrites = 1
+
+        // The launch dies after the first write, as a crash or a quit during launch would.
+        AppSettings.migrateEscapeOnlyWake(in: interrupted)
+
+        XCTAssertEqual(interrupted.attemptedKeys, [ignoreKey, escapeKey], "Mouse movement is saved first")
+        XCTAssertTrue(testDefaults.bool(forKey: ignoreKey), "The choice survives the interruption")
+        XCTAssertTrue(testDefaults.bool(forKey: escapeKey), "The migration is still marked as pending")
+
+        // Next launch.
+        AppSettings.migrateEscapeOnlyWake(in: testDefaults)
+
+        XCTAssertFalse(testDefaults.bool(forKey: escapeKey))
+        XCTAssertTrue(testDefaults.bool(forKey: ignoreKey))
+    }
+
+    func testLoadingSettingsAppliesTheEscapeOnlyMigrationOnlyInTheAppStoreEdition() {
+        testDefaults.set(true, forKey: "dimmerlyRequireEscapeToDismiss")
+
+        let loaded = AppSettings(defaults: testDefaults)
+
+        #if APPSTORE
+            XCTAssertFalse(loaded.requireEscapeToDismiss)
+            XCTAssertTrue(loaded.ignoreMouseMovement)
+            XCTAssertFalse(loaded.wakesOnlyOnEscape)
+            XCTAssertFalse(testDefaults.bool(forKey: "dimmerlyRequireEscapeToDismiss"), "The migration is saved")
+        #else
+            XCTAssertTrue(loaded.requireEscapeToDismiss)
+            XCTAssertFalse(loaded.ignoreMouseMovement)
+            XCTAssertTrue(loaded.wakesOnlyOnEscape)
+        #endif
+    }
+
     func testScheduleEnabledDefault() {
         XCTAssertFalse(settings.scheduleEnabled, "scheduleEnabled should default to false")
     }
@@ -518,5 +592,19 @@ final class AppSettingsTests: XCTestCase {
         settings.menuBarIconRaw = "nonexistent_style"
         XCTAssertEqual(settings.menuBarIcon, .defaultIcon,
                        "Invalid raw value should fall back to .defaultIcon")
+    }
+}
+
+/// A defaults store that stops saving after a set number of writes, standing in for a launch that
+/// is interrupted part-way through a migration.
+private final class InterruptibleDefaults: UserDefaults {
+    var survivingWrites = Int.max
+    private(set) var attemptedKeys: [String] = []
+
+    override func set(_ value: Any?, forKey defaultName: String) {
+        attemptedKeys.append(defaultName)
+        guard survivingWrites > 0 else { return }
+        survivingWrites -= 1
+        super.set(value, forKey: defaultName)
     }
 }

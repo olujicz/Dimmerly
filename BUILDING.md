@@ -131,7 +131,7 @@ Repository-level branch protection, tag protection, Actions, and security settin
 ### App Store Build
 
 - Uses gamma tables + fullscreen overlay windows for dimming/blanking
-- Dimming can be dismissed by configured wake input (or Escape-only mode)
+- Dimming wakes on any key or click (mouse movement can be ignored); Escape-only mode is a direct-download option only
 - Full-screen dimming is force-cleared on system wake before gamma reapply
 
 ## Control Center Integration
