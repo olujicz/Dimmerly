@@ -95,6 +95,12 @@ class ColorTemperatureManager {
     /// start uses the current duration, even if that setting changes while paused.
     private var overrideSolarBoundary: Date?
 
+    /// Kelvin the screens showed when a manual override ended inside a sunrise or sunset
+    /// transition. The transition never moves back past it (a Day preset applied shortly
+    /// before sunrise stays put instead of snapping to the night tint). Cleared once the
+    /// transition is over.
+    private var transitionResumeKelvin: Double?
+
     /// Last warmth value written to the log, so routine 60-second ticks don't flood it.
     private var lastLoggedWarmth: Double?
 
@@ -147,6 +153,7 @@ class ColorTemperatureManager {
                 settings.preAutoWarmthSnapshot = brightnessManager.currentWarmthSnapshot()
             }
             manualOverrideActive = false
+            transitionResumeKelvin = nil
             overrideState = nil
             overrideSolarBoundary = nil
             animateNextUpdate = true
@@ -251,6 +258,7 @@ class ColorTemperatureManager {
                 manualOverrideActive = false
                 self.overrideState = nil
                 overrideSolarBoundary = nil
+                transitionResumeKelvin = Self.isTransition(state) ? currentShownKelvin() : nil
                 colorTemperatureLogger.info("Manual warmth override cleared at a day/night boundary")
             }
         }
@@ -265,7 +273,7 @@ class ColorTemperatureManager {
         let dayKelvin = Double(settings.dayTemperature)
         let nightKelvin = Double(settings.nightTemperature)
 
-        let targetKelvin: Double = switch state {
+        let interpolatedKelvin: Double = switch state {
         case .day:
             dayKelvin
         case .night:
@@ -276,13 +284,13 @@ class ColorTemperatureManager {
             dayKelvin + (nightKelvin - dayKelvin) * progress
         }
 
-        currentKelvin = targetKelvin
-        let warmth = GammaMath.warmthForKelvin(targetKelvin)
+        currentKelvin = holdingResumeKelvin(interpolatedKelvin, state: state)
+        let warmth = GammaMath.warmthForKelvin(currentKelvin)
         let clamped = min(max(warmth, 0.0), 1.0)
 
         // Logged only when the target moves materially: this runs every 60 seconds, and the
         // point is a usable trail for "warmth looked wrong at time X", not a per-tick firehose.
-        let summary = "\(state.logDescription) kelvin=\(Int(targetKelvin)) warmth=\(clamped)"
+        let summary = "\(state.logDescription) kelvin=\(Int(currentKelvin)) warmth=\(clamped)"
         if lastLoggedWarmth == nil || abs((lastLoggedWarmth ?? 0) - clamped) > 0.01 {
             lastLoggedWarmth = clamped
             colorTemperatureLogger.info("Applying \(summary, privacy: .public)")
@@ -304,6 +312,35 @@ class ColorTemperatureManager {
             bm.setAllWarmth(to: clamped)
         }
         bm.isAutoColorTempUpdate = false
+    }
+
+    private static func isTransition(_ state: ColorTempState) -> Bool {
+        switch state {
+        case .sunriseTransition, .sunsetTransition: true
+        case .day, .night: false
+        }
+    }
+
+    /// Average colour temperature the displays currently show, or nil with no displays.
+    private func currentShownKelvin() -> Double? {
+        let values = Array(brightnessManager.currentWarmthSnapshot().values)
+        guard !values.isEmpty else { return nil }
+        return GammaMath.kelvinForWarmth(values.reduce(0, +) / Double(values.count))
+    }
+
+    /// Keeps a transition from moving back past where a manual override left the screens:
+    /// a sunrise transition never goes warmer than that, a sunset transition never cooler.
+    private func holdingResumeKelvin(_ interpolated: Double, state: ColorTempState) -> Double {
+        guard let resume = transitionResumeKelvin else { return interpolated }
+        switch state {
+        case .sunriseTransition:
+            return max(interpolated, resume)
+        case .sunsetTransition:
+            return min(interpolated, resume)
+        case .day, .night:
+            transitionResumeKelvin = nil
+            return interpolated
+        }
     }
 
     /// Determines the color temperature state for a given time relative to sunrise/sunset.
