@@ -58,6 +58,12 @@
             "value" : "Limpar atalho para %@"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить сочетание клавиш для «%@»"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -127,6 +133,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "O Dimmerly não conseguiu obter sua localização. Tente novamente ou insira um local manualmente."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly не удалось определить ваше местоположение. Повторите попытку или укажите его вручную."
           }
         },
         "sr" : {
@@ -200,6 +212,12 @@
             "value" : "Se este Mac não estiver conectado a essa entrada, a tela mostrará \"Sem sinal\" até que você volte usando os botões do próprio monitor."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Если этот Mac не подключён к выбранному входу, на дисплее появится сообщение «Нет сигнала». Чтобы вернуть изображение, переключите вход кнопками монитора."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -269,6 +287,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Os valores salvos de brilho, tonalidade quente e contraste serão substituídos pelos ajustes atuais da tela."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сохранённые значения яркости, теплоты и контраста будут заменены текущими настройками дисплеев."
           }
         },
         "sr" : {
@@ -342,6 +366,12 @@
             "value" : "Mudar"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переключить"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -411,6 +441,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mudar %1$@ para %2$@?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переключить дисплей «%1$@» на вход %2$@?"
           }
         },
         "sr" : {
@@ -484,6 +520,12 @@
             "value" : "Tentar novamente"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Повторить попытку"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -555,6 +597,12 @@
             "value" : "Atualizar"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обновить"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -624,6 +672,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Atualizar \"%@\"?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обновить «%@»?"
           }
         },
         "sr" : {
@@ -698,6 +752,12 @@
             "value" : "Use pelo menos duas teclas modificadoras, incluindo Control (⌃) ou Command (⌘)."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Используйте не менее двух клавиш-модификаторов, включая Control (⌃) или Command (⌘)."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -767,6 +827,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Um atalho está indisponível. Escolha outro atalho."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Это сочетание клавиш недоступно. Выберите другое."
           }
         },
         "sr" : {
@@ -840,6 +906,12 @@
             "value" : "Controle de brilho"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Управление яркостью"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -909,6 +981,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Não foi possível abrir o Dimmerly para controlar as telas."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось открыть Dimmerly для управления дисплеями."
           }
         },
         "sr" : {
@@ -982,6 +1060,12 @@
             "value" : "O Dimmerly não encontrou esta predefinição. Ela pode ter sido excluída."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly не удалось найти этот пресет. Возможно, он удалён."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1051,6 +1135,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "O Dimmerly não concluiu a ação nas telas. Tente novamente."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly не удалось выполнить действие с дисплеями. Повторите попытку."
           }
         },
         "sr" : {
@@ -1124,6 +1214,12 @@
             "value" : "Escurece todas as telas conectadas usando o Dimmerly."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приглушает все подключённые дисплеи через Dimmerly."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1193,6 +1289,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Compatibilidade das telas"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Совместимость дисплеев"
           }
         },
         "sr" : {
@@ -1266,6 +1368,12 @@
             "value" : "Brilho por hardware indisponível"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Аппаратная регулировка яркости недоступна"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1337,6 +1445,12 @@
             "value" : "Brilho por hardware indisponível · %@"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Аппаратная регулировка яркости недоступна · %@"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1406,6 +1520,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Controles de hardware disponíveis"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Аппаратное управление доступно"
           }
         },
         "sr" : {
@@ -1480,6 +1600,12 @@
             "value" : "Os controles de hardware não estão disponíveis"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Аппаратное управление недоступно"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1549,6 +1675,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Controles de hardware: %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Аппаратное управление: %@"
           }
         },
         "sr" : {
@@ -1623,6 +1755,12 @@
             "value" : "Nenhuma das telas conectadas é compatível com o controle direto por hardware. O Dimmerly está usando o brilho por software e mudará automaticamente quando uma tela compatível for conectada."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ни один из подключённых дисплеев не поддерживает прямое аппаратное управление. Dimmerly регулирует яркость программно и автоматически переключится при подключении совместимого дисплея."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1692,6 +1830,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Usar controles de hardware quando disponíveis"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Использовать аппаратное управление, когда оно доступно"
           }
         },
         "sr" : {
@@ -1766,6 +1910,12 @@
             "value" : "Usa DDC/CI para controlar diretamente telas externas compatíveis. Telas não compatíveis continuam usando o brilho por software."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Управляет совместимыми внешними дисплеями напрямую через DDC/CI. Для остальных дисплеев яркость регулируется программно."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1835,6 +1985,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Usa brilho por software"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Яркость регулируется программно"
           }
         },
         "sr" : {
@@ -1908,6 +2064,12 @@
             "value" : "brilho por hardware indisponível"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "аппаратная регулировка яркости недоступна"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1977,6 +2139,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "brilho por hardware indisponível, %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "аппаратная регулировка яркости недоступна, %@"
           }
         },
         "sr" : {
@@ -2050,6 +2218,12 @@
             "value" : "controles de hardware disponíveis"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "аппаратное управление доступно"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2119,6 +2293,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "controles de hardware disponíveis, %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "аппаратное управление доступно, %@"
           }
         },
         "sr" : {
@@ -2192,6 +2372,12 @@
             "value" : "usa brilho por software"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "яркость регулируется программно"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2263,6 +2449,12 @@
             "value" : "sem resposta DDC/CI, desconecte o monitor da tomada por um minuto"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "нет ответа от DDC/CI, отключите питание монитора на минуту"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2331,6 +2523,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "\"%@\" será excluído permanentemente."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "«%@» будет удалено без возможности восстановления."
           }
         },
         "sr" : {
@@ -2404,6 +2602,12 @@
             "value" : "Brilho de %@"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Яркость дисплея «%@»"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2473,6 +2677,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Contraste de %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Контраст дисплея «%@»"
           }
         },
         "sr" : {
@@ -2546,6 +2756,12 @@
             "value" : "Fonte de entrada de %@"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Источник сигнала дисплея «%@»"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2615,6 +2831,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ é um atalho padrão do sistema. Tente outra combinação."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ — стандартное системное сочетание клавиш. Попробуйте другое."
           }
         },
         "sr" : {
@@ -2688,6 +2910,12 @@
             "value" : "Volume de %@"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Громкость дисплея «%@»"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2759,6 +2987,12 @@
             "value" : "Temperatura de %@"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Теплота дисплея «%@»"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2827,6 +3061,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@%%"
+          }
+        },
+        "ru" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@%%"
@@ -2907,6 +3147,12 @@
             "value" : "%1$@K · %2$@"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@K · %2$@"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2976,6 +3222,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%d min depois"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Через %d мин"
           }
         },
         "sr" : {
@@ -3049,6 +3301,12 @@
             "value" : "%d min após o nascer do sol"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Через %d мин после восхода"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3118,6 +3376,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%d min após o pôr do sol"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Через %d мин после заката"
           }
         },
         "sr" : {
@@ -3191,6 +3455,12 @@
             "value" : "%d min antes"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "За %d мин"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3262,6 +3532,12 @@
             "value" : "%d min antes do nascer do sol"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "За %d мин до восхода"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3331,6 +3607,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%d min antes do pôr do sol"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "За %d мин до заката"
           }
         },
         "sr" : {
@@ -3524,6 +3806,36 @@
             }
           }
         },
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%d минута"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%d минуты"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%d минут"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%d минуты"
+                }
+              }
+            }
+          }
+        },
         "sr" : {
           "variations" : {
             "plural" : {
@@ -3619,6 +3931,12 @@
             "value" : "%d por cento"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d процентов"
+          }
+        },
         "sr" : {
           "variations" : {
             "plural" : {
@@ -3711,6 +4029,12 @@
             "value" : "É necessária uma localização para os recursos de nascer e pôr do sol."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Для функций, привязанных к восходу и закату, нужно указать местоположение."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3782,6 +4106,12 @@
             "value" : "Uma localização é necessária para agendamentos de nascer e pôr do sol."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Для расписаний, привязанных к восходу и закату, нужно указать местоположение."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3851,6 +4181,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Um utilitário da barra de menus do macOS para controlar o brilho da tela."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Утилита для управления яркостью дисплеев из строки меню macOS."
           }
         },
         "sr" : {
@@ -3925,6 +4261,12 @@
             "value" : "Um utilitário da barra de menus do macOS para colocar seus monitores em repouso com um único atalho de teclado.\n"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Утилита для строки меню macOS, которая переводит дисплеи в режим сна одним сочетанием клавиш.\n"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3993,6 +4335,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Um valor entre -90 e 90"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Значение от −90 до 90"
           }
         },
         "sr" : {
@@ -4065,6 +4413,12 @@
             "value" : "Um valor entre -180 e 180"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Значение от −180 до 180"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4133,6 +4487,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sobre"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "О программе"
           }
         },
         "sr" : {
@@ -4205,6 +4565,12 @@
             "value" : "A permissão de Acessibilidade é necessária para atalhos globais."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Для глобальных сочетаний клавиш нужен доступ в разделе «Универсальный доступ»."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4275,6 +4641,12 @@
             "value" : "Adicionar"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавить"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4343,6 +4715,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Adicionar agendamento…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавить расписание…"
           }
         },
         "sr" : {
@@ -4416,6 +4794,12 @@
             "value" : "Ajustar a tonalidade quente automaticamente com base no nascer e pôr do sol"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Автоматически менять теплоту по времени восхода и заката"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4485,6 +4869,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ajustando as telas"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Параметры дисплеев регулируются"
           }
         },
         "sr" : {
@@ -4558,6 +4948,12 @@
             "value" : "Ajusta-se gradualmente durante o nascer e pôr do sol."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Плавно меняется на восходе и закате."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4627,6 +5023,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ocorreu um erro inesperado: %@. Tente novamente ou reinicie o app."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Произошла непредвиденная ошибка: %@. Повторите попытку или перезапустите приложение."
           }
         },
         "sr" : {
@@ -4699,6 +5101,12 @@
             "value" : "Qualquer entrada"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Любое действие"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4767,6 +5175,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aplica os ajustes de brilho salvos a todas as telas"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Применяет сохранённые настройки яркости ко всем дисплеям"
           }
         },
         "sr" : {
@@ -4839,6 +5253,12 @@
             "value" : "Aplicar"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Применить"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4907,6 +5327,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aplicar %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Применить «%@»"
           }
         },
         "sr" : {
@@ -4979,6 +5405,12 @@
             "value" : "Aplicar predefinição"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Применить пресет"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5047,6 +5479,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aplicar predefinições por agendamento"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Применять пресеты по расписанию"
           }
         },
         "sr" : {
@@ -5120,6 +5558,12 @@
             "value" : "Ao nascer do sol"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "На восходе"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5189,6 +5633,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ao pôr do sol"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "На закате"
           }
         },
         "sr" : {
@@ -5262,6 +5712,12 @@
             "value" : "Áudio mudo"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выключение звука"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5331,6 +5787,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Auto"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Авто"
           }
         },
         "sr" : {
@@ -5404,6 +5866,12 @@
             "value" : "Tonalidade quente automática"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Автонастройка теплоты"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5472,6 +5940,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Escurecer automaticamente após inatividade"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приглушать при бездействии"
           }
         },
         "sr" : {
@@ -5545,6 +6019,12 @@
             "value" : "Temperatura de cor automática"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Автоматическая цветовая температура"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5614,6 +6094,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aplicar automaticamente predefinições de brilho nos horários agendados"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Автоматически применять пресеты яркости в заданное время"
           }
         },
         "sr" : {
@@ -5687,6 +6173,12 @@
             "value" : "Escurecer as telas automaticamente após um período de inatividade"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Автоматически приглушать дисплеи после периода бездействия"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5755,6 +6247,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Iniciar o Dimmerly automaticamente ao entrar"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Автоматически запускать Dimmerly при входе в систему"
           }
         },
         "sr" : {
@@ -5828,6 +6326,12 @@
             "value" : "Apaga as telas em vez de colocar os monitores em repouso para manter a sessão desbloqueada"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Затемнять экраны без перехода дисплеев в режим сна, чтобы сеанс оставался разблокированным"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5897,6 +6401,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ganho de azul"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Усиление синего"
           }
         },
         "sr" : {
@@ -5970,6 +6480,12 @@
             "value" : "Brilho"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Яркость"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6038,6 +6554,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cancelar"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отмена"
           }
         },
         "sr" : {
@@ -6109,6 +6631,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Escolha entre colocar as telas em repouso ou escurecê-las"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выберите режим сна или приглушение дисплеев"
           }
         },
         "sr" : {
@@ -6183,6 +6711,12 @@
             "value" : "Escolha como o Dimmerly controla a saída do display"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выберите способ управления изображением на дисплеях"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6252,6 +6786,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Escolha como ativar as telas após escurecê-las"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выберите способ пробуждения дисплеев после приглушения"
           }
         },
         "sr" : {
@@ -6324,6 +6864,12 @@
             "value" : "Limpar localização"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить местоположение"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6392,6 +6938,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Limpar atalho"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить сочетание клавиш"
           }
         },
         "sr" : {
@@ -6464,6 +7016,12 @@
             "value" : "Clique para gravar um novo atalho"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нажмите, чтобы задать новое сочетание клавиш"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6532,6 +7090,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Temperatura de cor"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Цветовая температура"
           }
         },
         "sr" : {
@@ -6606,6 +7170,12 @@
             "value" : "Combinado"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Комбинированный"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6675,6 +7245,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Componente 1"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Компонентный 1"
           }
         },
         "sr" : {
@@ -6748,6 +7324,12 @@
             "value" : "Componente 2"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Компонентный 2"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6817,6 +7399,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Componente 3"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Компонентный 3"
           }
         },
         "sr" : {
@@ -6890,6 +7478,12 @@
             "value" : "Composite 1"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Композитный 1"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6961,6 +7555,12 @@
             "value" : "Composite 2"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Композитный 2"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7030,6 +7630,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Conecte um monitor externo para ajustar o brilho."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Подключите внешний дисплей, чтобы настроить его яркость."
           }
         },
         "sr" : {
@@ -7104,6 +7710,12 @@
             "value" : "Telas conectadas:"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Подключённые дисплеи:"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7173,6 +7785,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Contraste"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Контраст"
           }
         },
         "sr" : {
@@ -7247,6 +7865,12 @@
             "value" : "Modo de controle:"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Режим управления:"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7317,6 +7941,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Controlar brilho, volume e entrada do monitor via protocolo DDC/CI"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Управлять яркостью, громкостью и входом монитора по протоколу DDC/CI"
           }
         },
         "sr" : {
@@ -7391,6 +8021,12 @@
             "value" : "Controla a retroiluminação do monitor diretamente via DDC/CI. Recorre ao brilho por software se DDC não estiver disponível."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Управляет подсветкой монитора напрямую через DDC/CI. Если DDC недоступен, яркость регулируется программно."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7459,6 +8095,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Frio"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Холодно"
           }
         },
         "sr" : {
@@ -7532,6 +8174,12 @@
             "value" : "Não foi possível ler o ajuste da tela via DDC/CI. O monitor pode estar ocupado ou o barramento I2C encontrou um erro. Tente novamente em instantes."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось прочитать настройку дисплея через DDC/CI. Возможно, монитор занят или произошла ошибка шины I2C. Повторите попытку через несколько секунд."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7601,6 +8249,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Não foi possível gravar o ajuste da tela via DDC/CI. O monitor pode não ser compatível com este controle ou o barramento I2C encontrou um erro. Tente novamente em instantes."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось изменить настройку дисплея через DDC/CI. Возможно, монитор не поддерживает эту функцию или произошла ошибка шины I2C. Повторите попытку через несколько секунд."
           }
         },
         "sr" : {
@@ -7674,6 +8328,12 @@
             "value" : "Criar uma nova predefinição agendada"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запланировать применение пресета"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7745,6 +8405,12 @@
             "value" : "Temperatura de cor diurna"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дневная цветовая температура"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7814,6 +8480,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dia"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "День"
           }
         },
         "sr" : {
@@ -7960,6 +8632,12 @@
             "value" : "Intervalo de sondagem DDC"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Интервал опроса DDC"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8029,6 +8707,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Atraso de escrita DDC"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Задержка записи DDC"
           }
         },
         "sr" : {
@@ -8103,6 +8787,12 @@
             "value" : "DDC/CI controla o hardware do monitor diretamente pelo cabo de vídeo. Nem todos os monitores suportam DDC — HDMI integrado em Macs Apple Silicon, adaptadores DisplayLink e a maioria das TVs não funcionam. Telas não suportadas usam brilho por software automaticamente."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DDC/CI управляет аппаратными настройками монитора напрямую по кабелю дисплея. DDC поддерживают не все мониторы и подключения: например, встроенный HDMI на Mac с чипом Apple, адаптеры DisplayLink и большинство телевизоров не работают с DDC. Для несовместимых дисплеев яркость автоматически регулируется программно."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8171,6 +8861,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Excluir"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить"
           }
         },
         "sr" : {
@@ -8244,6 +8940,12 @@
             "value" : "Excluir %@"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить «%@»"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8312,6 +9014,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Excluir predefinição"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить пресет"
           }
         },
         "sr" : {
@@ -8384,6 +9092,12 @@
             "value" : "Excluir predefinição?"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить пресет?"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8454,6 +9168,12 @@
             "value" : "Excluir agendamento"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить расписание"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8522,6 +9242,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Excluir agendamento?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить расписание?"
           }
         },
         "sr" : {
@@ -8595,6 +9321,12 @@
             "value" : "Predefinição excluída"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пресет удалён"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8664,6 +9396,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Descrição"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Описание"
           }
         },
         "sr" : {
@@ -8737,6 +9475,12 @@
             "value" : "Escurecer"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приглушить"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8806,6 +9550,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Escurecer todas as telas"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приглушить все дисплеи"
           }
         },
         "sr" : {
@@ -8879,6 +9629,12 @@
             "value" : "Escurecer todas as telas (↩)"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приглушить все дисплеи (↩)"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8947,6 +9703,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Escurecer %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приглушить дисплей «%@»"
           }
         },
         "sr" : {
@@ -9019,6 +9781,12 @@
             "value" : "Escurecer tela"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приглушить дисплей"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9087,6 +9855,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Escurecer telas"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приглушить дисплеи"
           }
         },
         "sr" : {
@@ -9161,6 +9935,12 @@
             "value" : "Apenas escurecer"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Только приглушение"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9232,6 +10012,12 @@
             "value" : "O Dimmerly não tem permissão para controlar monitores. Verifique Ajustes do Sistema > Privacidade e Segurança."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "У Dimmerly нет разрешения на управление дисплеями. Проверьте раздел «Конфиденциальность и безопасность» в Системных настройках."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9300,6 +10086,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Escurecimento"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приглушение"
           }
         },
         "sr" : {
@@ -9374,6 +10166,12 @@
             "value" : "Escurece as telas sem suspender os monitores. Sua sessão permanece desbloqueada."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Затемняет экраны без перехода дисплеев в режим сна. Сеанс остаётся разблокированным."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9442,6 +10240,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Deixa a tela preta. Pressione Esc para reativá-la."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Затемняет дисплей. Нажмите Esc, чтобы вывести его из этого режима."
           }
         },
         "sr" : {
@@ -9514,6 +10318,12 @@
             "value" : "Deixa a tela preta. Pressione qualquer tecla para reativá-la."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Затемняет дисплей. Нажмите любую клавишу, чтобы вывести его из этого режима."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9582,6 +10392,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Deixa a tela preta. Clique nela para reativá-la ou pressione qualquer tecla quando todas as telas estiverem pretas."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Затемняет дисплей. Чтобы вернуть изображение, щёлкните по экрану. Когда все экраны затемнены, можно также нажать любую клавишу."
           }
         },
         "sr" : {
@@ -9655,6 +10471,12 @@
             "value" : "Ajustes de tela"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Настройки дисплея"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9724,6 +10546,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tempo esgotado na comunicação com a tela"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Монитор не ответил вовремя"
           }
         },
         "sr" : {
@@ -9797,6 +10625,12 @@
             "value" : "Serviço da tela não encontrado"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Служба дисплея не найдена"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9866,6 +10700,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Repouso de monitor indisponível"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Режим сна дисплеев недоступен"
           }
         },
         "sr" : {
@@ -10083,6 +10923,12 @@
             "value" : "Telas"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дисплеи"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10269,6 +11115,36 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "As telas serão escurecidas automaticamente após %d minutos de inatividade."
+                }
+              }
+            }
+          }
+        },
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Дисплеи автоматически приглушаются, если бездействие длится %d минуту."
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Дисплеи автоматически приглушаются, если бездействие длится %d минуты."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Дисплеи автоматически приглушаются, если бездействие длится %d минут."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Дисплеи автоматически приглушаются, если бездействие длится %d минуты."
                 }
               }
             }
@@ -10514,6 +11390,12 @@
             "value" : "Ativar controle de hardware DDC/CI"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Включить аппаратное управление через DDC/CI"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10582,6 +11464,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Inserir manualmente…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Указать вручную…"
           }
         },
         "sr" : {
@@ -10654,6 +11542,12 @@
             "value" : "Insira suas coordenadas aproximadas para o cálculo do nascer e pôr do sol. Você pode encontrá-las pesquisando sua cidade em um mapa."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Укажите приблизительные координаты для расчёта времени восхода и заката. Координаты можно узнать, найдя свой город на карте."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10722,6 +11616,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Somente tecla Esc"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Только клавиша Esc"
           }
         },
         "sr" : {
@@ -10793,6 +11693,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Entardecer"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вечер"
           }
         },
         "sr" : {
@@ -10867,6 +11773,12 @@
             "value" : "Monitor externo"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Внешний дисплей"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10935,6 +11847,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Transição suave"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Плавное затемнение"
           }
         },
         "sr" : {
@@ -11008,6 +11926,12 @@
             "value" : "Falha ao desativar inicialização ao entrar: %@"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось отключить запуск при входе: %@"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11079,6 +12003,12 @@
             "value" : "Falha ao ativar inicialização ao entrar: %@"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось включить запуск при входе: %@"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11148,6 +12078,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Falha ao ler o ajuste da tela (VCP 0x%02X)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось прочитать настройку дисплея (VCP 0x%02X)"
           }
         },
         "sr" : {
@@ -11222,6 +12158,12 @@
             "value" : "Falha ao colocar os monitores em repouso (Erro %d)"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось перевести дисплеи в режим сна (ошибка %d)"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11291,6 +12233,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Falha ao colocar os monitores em repouso (Saída %d)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось перевести дисплеи в режим сна (код выхода %d)"
           }
         },
         "sr" : {
@@ -11364,6 +12312,12 @@
             "value" : "Falha ao gravar o ajuste da tela (VCP 0x%02X)"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось изменить настройку дисплея (VCP 0x%02X)"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11432,6 +12386,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Horário fixo"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заданное время"
           }
         },
         "sr" : {
@@ -11505,6 +12465,12 @@
             "value" : "Máximo"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Максимум"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11574,6 +12540,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Geral"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Основные"
           }
         },
         "sr" : {
@@ -11646,6 +12618,12 @@
             "value" : "Atalhos globais de teclado funcionam em qualquer aplicativo."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Глобальные сочетания клавиш работают в любом приложении."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11714,6 +12692,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Escurece as telas gradualmente em vez de desligá-las instantaneamente"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Плавно приглушать дисплеи вместо мгновенного отключения"
           }
         },
         "sr" : {
@@ -11787,6 +12771,12 @@
             "value" : "Escurece as telas gradualmente em vez de desligá-las instantaneamente."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Плавно приглушает дисплеи вместо мгновенного отключения."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11856,6 +12846,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ganho de verde"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Усиление зелёного"
           }
         },
         "sr" : {
@@ -11929,6 +12925,12 @@
             "value" : "Controle de hardware"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Аппаратное управление"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11998,6 +13000,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Controle de hardware indisponível"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Аппаратное управление недоступно"
           }
         },
         "sr" : {
@@ -12071,6 +13079,12 @@
             "value" : "Controle de hardware via DDC/CI"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Аппаратное управление через DDC/CI"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12142,6 +13156,12 @@
             "value" : "O modo Hardware requer uma tela compatível com DDC e controle de brilho."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Для аппаратного режима нужен дисплей с поддержкой DDC и регулировки яркости."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12211,6 +13231,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hardware"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Аппаратный"
           }
         },
         "sr" : {
@@ -12428,6 +13454,12 @@
             "value" : "Ocultar temperatura de cor"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скрыть цветовую температуру"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12497,6 +13529,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ocultar ajustes de tela"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скрыть настройки дисплея"
           }
         },
         "sr" : {
@@ -12570,6 +13608,12 @@
             "value" : "Com que frequência ler os valores de hardware do monitor"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Как часто считывать аппаратные настройки монитора"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12640,6 +13684,12 @@
             "value" : "Temporizador de inatividade"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Таймер бездействия"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12708,6 +13758,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ignorar movimento do mouse"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Игнорировать движение мыши"
           }
         },
         "sr" : {
@@ -12781,6 +13837,12 @@
             "value" : "Fonte de entrada"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Источник сигнала"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12852,6 +13914,12 @@
             "value" : "Entrada"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вход"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12920,6 +13988,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Atalho de teclado"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сочетание клавиш"
           }
         },
         "sr" : {
@@ -12993,6 +14067,12 @@
             "value" : "Atalho de teclado: %@"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сочетание клавиш: %@"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13061,6 +14141,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Latitude"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Широта"
           }
         },
         "sr" : {
@@ -13134,6 +14220,12 @@
             "value" : "A latitude deve estar entre -90 e 90."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Широта должна быть в диапазоне от −90 до 90."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13202,6 +14294,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Iniciar ao entrar"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запускать при входе"
           }
         },
         "sr" : {
@@ -13276,6 +14374,12 @@
             "value" : "Permita o Dimmerly em Itens de Início nos Ajustes do Sistema para concluir a ativação."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Чтобы включить запуск при входе, разрешите Dimmerly в разделе «Объекты входа» в Системных настройках."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13347,6 +14451,12 @@
             "value" : "Abrir Ajustes de Itens de Início"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть настройки объектов входа"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13415,6 +14525,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Localização"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Местоположение"
           }
         },
         "sr" : {
@@ -13488,6 +14604,12 @@
             "value" : "Localização: latitude %@, longitude %@"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Местоположение: широта %@, долгота %@"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13556,6 +14678,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Longitude"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Долгота"
           }
         },
         "sr" : {
@@ -13629,6 +14757,12 @@
             "value" : "A longitude deve estar entre -180 e 180."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Долгота должна быть в диапазоне от −180 до 180."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13700,6 +14834,12 @@
             "value" : "Máximo de predefinições atingido"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Достигнут лимит пресетов"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13768,6 +14908,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ícone da barra de menus"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Значок в строке меню"
           }
         },
         "sr" : {
@@ -13841,6 +14987,12 @@
             "value" : "Atraso mínimo entre escritas DDC (aumente se o monitor não responder)"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Минимальная задержка между командами записи DDC. Увеличьте её, если монитор не отвечает."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13912,6 +15064,12 @@
             "value" : "Silenciar"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выключить звук"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13980,6 +15138,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nome"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Название"
           }
         },
         "sr" : {
@@ -14053,6 +15217,12 @@
             "value" : "Nomear esta predefinição"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Введите название пресета"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14122,6 +15292,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Noite"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ночь"
           }
         },
         "sr" : {
@@ -14195,6 +15371,12 @@
             "value" : "Temperatura de cor noturna"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ночная цветовая температура"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14264,6 +15446,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nenhum monitor externo"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нет внешних дисплеев"
           }
         },
         "sr" : {
@@ -14337,6 +15525,12 @@
             "value" : "Nenhuma fonte de entrada detectada"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Источник сигнала не обнаружен"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14406,6 +15600,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nenhum serviço de tela do IOKit foi encontrado para este monitor. Isso geralmente significa que o tipo de conexão (por exemplo, DisplayLink USB) não é compatível com DDC/CI no macOS."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Служба дисплея IOKit для этого монитора не найдена. Обычно это означает, что тип подключения, например DisplayLink по USB, не поддерживает DDC/CI в macOS."
           }
         },
         "sr" : {
@@ -14479,6 +15679,12 @@
             "value" : "Sem resposta DDC/CI. Desconecte o monitor da tomada por um minuto."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нет ответа от DDC/CI. Отключите питание монитора на минуту."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14549,6 +15755,12 @@
             "value" : "Nenhuma predefinição disponível. Crie uma predefinição primeiro."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нет доступных пресетов. Сначала создайте пресет."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14617,6 +15829,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nenhum"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нет"
           }
         },
         "sr" : {
@@ -14690,6 +15908,12 @@
             "value" : "Sem ajustar as telas"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Параметры дисплеев не регулируются"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14758,6 +15982,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Deslocamento"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Смещение"
           }
         },
         "sr" : {
@@ -14829,6 +16059,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "OK"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ОК"
           }
         },
         "sr" : {
@@ -14903,6 +16139,12 @@
             "value" : "Reativar a tela apenas com teclado, clique ou rolagem, não com movimento do mouse"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Будить экран при нажатии клавиши, щелчке мышью или прокрутке. Движение мыши игнорируется."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14971,6 +16213,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Abrir Ajustes de Acessibilidade"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть настройки универсального доступа"
           }
         },
         "sr" : {
@@ -15044,6 +16292,12 @@
             "value" : "Abrir Ajustes do Dimmerly (⌘,)"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть настройки Dimmerly (⌘,)"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15112,6 +16366,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Abrir ajustes de Tela Bloqueada"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть настройки экрана блокировки"
           }
         },
         "sr" : {
@@ -15185,6 +16445,12 @@
             "value" : "Abrir configurações de acessibilidade do macOS"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть настройки универсального доступа macOS"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15254,6 +16520,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Abrir configurações da Tela de Bloqueio do macOS"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть настройки экрана блокировки macOS"
           }
         },
         "sr" : {
@@ -15327,6 +16599,12 @@
             "value" : "Abrir o repositório GitHub do Dimmerly"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть репозиторий Dimmerly на GitHub"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15396,6 +16674,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Permissão negada"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступ запрещён"
           }
         },
         "sr" : {
@@ -15469,6 +16753,12 @@
             "value" : "Insira números válidos."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Введите допустимые числа."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15538,6 +16828,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Consultar a cada %d segundos"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Опрос каждые %d с"
           }
         },
         "sr" : {
@@ -15611,6 +16907,12 @@
             "value" : "Modo de energia"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Режим питания"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15679,6 +16981,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Predefinição"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пресет"
           }
         },
         "sr" : {
@@ -15752,6 +17060,12 @@
             "value" : "Nome da predefinição"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Название пресета"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15822,6 +17136,12 @@
             "value" : "Predefinições"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пресеты"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15890,6 +17210,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pressione uma combinação de teclas para gravar"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нажмите нужное сочетание клавиш"
           }
         },
         "sr" : {
@@ -15963,6 +17289,12 @@
             "value" : "Pressione Esc para reativar"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нажмите Esc, чтобы вернуть изображение"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16031,6 +17363,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pressione o atalho…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нажмите сочетание клавиш…"
           }
         },
         "sr" : {
@@ -16104,6 +17442,12 @@
             "value" : "Evitar bloqueio de tela"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Предотвращать блокировку экрана"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16173,6 +17517,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Encerrar Dimmerly"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завершить Dimmerly"
           }
         },
         "sr" : {
@@ -16246,6 +17596,12 @@
             "value" : "Encerrar Dimmerly (⌘Q)"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завершить Dimmerly (⌘Q)"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16315,6 +17671,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ganho de vermelho"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Усиление красного"
           }
         },
         "sr" : {
@@ -16387,6 +17749,12 @@
             "value" : "Renomear"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переименовать"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16457,6 +17825,12 @@
             "value" : "Renomear %@"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переименовать «%@»"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16525,6 +17899,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Renomear predefinição"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переименовать пресет"
           }
         },
         "sr" : {
@@ -16598,6 +17978,12 @@
             "value" : "Substituir todas as predefinições pelos padrões"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заменить все пресеты стандартными"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16666,6 +18052,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Redefinir contraste"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сбросить контраст"
           }
         },
         "sr" : {
@@ -16738,6 +18130,12 @@
             "value" : "Redefinir atalho para o padrão"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Восстановить стандартное сочетание клавиш"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16806,6 +18204,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Redefinir para o atalho padrão"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Восстановить стандартное сочетание клавиш"
           }
         },
         "sr" : {
@@ -16878,6 +18282,12 @@
             "value" : "Redefinir temperatura"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сбросить теплоту"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16948,6 +18358,12 @@
             "value" : "Restaurar"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Восстановить"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17016,6 +18432,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Restaurar predefinições padrão?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Восстановить стандартные пресеты?"
           }
         },
         "sr" : {
@@ -17089,6 +18511,12 @@
             "value" : "Restaurar padrões"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Восстановить стандартные"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17157,6 +18585,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Restaurar %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Восстановить «%@»"
           }
         },
         "sr" : {
@@ -17229,6 +18663,12 @@
             "value" : "Restaurar tela"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вернуть изображение"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17299,6 +18739,12 @@
             "value" : "Restaura o brilho anterior da tela"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Восстанавливает прежнюю яркость дисплея"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17365,6 +18811,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "S-Video 1"
+          }
+        },
+        "ru" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "S-Video 1"
@@ -17441,6 +18893,12 @@
             "value" : "S-Video 2"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "S-Video 2"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17511,6 +18969,12 @@
             "value" : "Salvar"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сохранить"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17579,6 +19043,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Salvar atual"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сохранить текущие"
           }
         },
         "sr" : {
@@ -17652,6 +19122,12 @@
             "value" : "Salvar configurações atuais de tela como predefinição"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сохранить текущие настройки дисплеев как пресет"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17722,6 +19198,12 @@
             "value" : "Salvar configurações atuais"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сохранить текущие настройки"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17790,6 +19272,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Agendamento"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Расписание"
           }
         },
         "sr" : {
@@ -17863,6 +19351,12 @@
             "value" : "Definir localização em Configurações"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Укажите местоположение в настройках"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17931,6 +19425,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Definir em 25%"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Установить 25%"
           }
         },
         "sr" : {
@@ -18003,6 +19503,12 @@
             "value" : "Definir em 50%"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Установить 50%"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18071,6 +19577,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Definir em 100%"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Установить 100%"
           }
         },
         "sr" : {
@@ -18144,6 +19656,12 @@
             "value" : "Definir…"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Назначить…"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18213,6 +19731,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ajustes..."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Настройки..."
           }
         },
         "sr" : {
@@ -18286,6 +19810,12 @@
             "value" : "Ajustes…"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Настройки…"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18354,6 +19884,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Atalho para %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сочетание клавиш для «%@»"
           }
         },
         "sr" : {
@@ -18427,6 +19963,12 @@
             "value" : "Atalhos"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сочетания клавиш"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18498,6 +20040,12 @@
             "value" : "Mostrar temperatura de cor"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показать цветовую температуру"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18567,6 +20115,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mostrar ajustes de tela"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показать настройки дисплея"
           }
         },
         "sr" : {
@@ -18641,6 +20195,12 @@
             "value" : "Mostrar controles de tonalidade quente e contraste"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показать ползунки теплоты и контраста"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18713,6 +20273,12 @@
             "value" : "Repouso e bloqueio"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сон и блокировка"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18782,6 +20348,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Colocar monitores em repouso"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перевести дисплеи в режим сна"
           }
         },
         "sr" : {
@@ -18856,6 +20428,12 @@
             "value" : "Brilho por software"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Программная яркость"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18925,6 +20503,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Software"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Программный"
           }
         },
         "sr" : {
@@ -18998,6 +20582,12 @@
             "value" : "Código-fonte no GitHub"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Исходный код на GitHub"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19067,6 +20657,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Estilo:"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Стиль:"
           }
         },
         "sr" : {
@@ -19140,6 +20736,12 @@
             "value" : "Nascer do sol"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Восход"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19209,6 +20811,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nascer do sol %@ · %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Восход %@ · %@"
           }
         },
         "sr" : {
@@ -19282,6 +20890,12 @@
             "value" : "Pôr do sol"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закат"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19351,6 +20965,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pôr do sol %@ · %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закат %@ · %@"
           }
         },
         "sr" : {
@@ -19424,6 +21044,12 @@
             "value" : "Alternar fonte de entrada do monitor. Mudar da entrada do Mac fará com que esta tela mostre \"Sem sinal\" até voltar."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переключает источник сигнала монитора. Если выбрать вход, к которому Mac не подключён, появится сообщение «Нет сигнала» до возврата на прежний вход."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19493,6 +21119,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "A tela não respondeu no tempo esperado. Alguns monitores precisam de mais tempo para processar comandos DDC. Tente novamente ou verifique a conexão da tela."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дисплей не ответил вовремя. Некоторым мониторам требуется больше времени для обработки команд DDC. Повторите попытку или проверьте подключение дисплея."
           }
         },
         "sr" : {
@@ -19567,6 +21199,12 @@
             "value" : "O comando para colocar os monitores em repouso falhou com o código de erro IOKit %d. Tente reiniciar o app ou o Mac."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Команда перевода дисплеев в режим сна завершилась с ошибкой IOKit %d. Попробуйте перезапустить приложение или Mac."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19637,6 +21275,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Não foi possível encontrar o serviço Display Wrangler. Isso pode indicar um problema de configuração do sistema."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось найти системную службу управления дисплеями. Возможно, в конфигурации системы есть ошибка."
           }
         },
         "sr" : {
@@ -19710,6 +21354,12 @@
             "value" : "O comando pmset falhou com o código de saída %d. Verifique Ajustes do Sistema > Tela Bloqueada e confirme que o repouso do monitor não está desativado por política."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Команда pmset завершилась с кодом %d. Убедитесь, что режим сна дисплеев разрешён, и проверьте раздел «Экран блокировки» в Системных настройках."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19781,6 +21431,12 @@
             "value" : "O utilitário pmset não foi encontrado em /usr/bin/pmset. Isso é inesperado, pois o pmset vem com o macOS."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Утилита pmset не найдена по пути /usr/bin/pmset. Обычно она входит в состав macOS."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19849,6 +21505,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "A predefinição atribuída a este agendamento foi excluída."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пресет, назначенный этому расписанию, удалён."
           }
         },
         "sr" : {
@@ -19922,6 +21584,12 @@
             "value" : "Esta tela não é compatível com o controle de hardware DDC/CI. Motivos comuns: HDMI integrado em Macs M1/M2, adaptadores DisplayLink ou DDC/CI desativado nos ajustes OSD do monitor. O controle de brilho por software (gama) continua disponível."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дисплей не поддерживает аппаратное управление через DDC/CI. Возможные причины: встроенный HDMI на Mac с M1 или M2, адаптер DisplayLink или отключение DDC/CI в меню монитора. Программная регулировка яркости (гамма) по-прежнему доступна."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19992,6 +21660,12 @@
             "value" : "Isso substituirá todas as suas predefinições pelos padrões. Predefinições personalizadas e atalhos serão perdidos."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Все пресеты будут заменены стандартными. Пользовательские пресеты и сочетания клавиш будут удалены."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20060,6 +21734,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hora"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Время"
           }
         },
         "sr" : {
@@ -20133,6 +21813,12 @@
             "value" : "Transição: %d minutos"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переход: %d мин"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20201,6 +21887,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Gatilho"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Условие запуска"
           }
         },
         "sr" : {
@@ -20274,6 +21966,12 @@
             "value" : "Sintonizador 1"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тюнер 1"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20342,6 +22040,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Desligar monitores"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выключить дисплеи"
           }
         },
         "sr" : {
@@ -20415,6 +22119,12 @@
             "value" : "Desligar todos os monitores"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выключить все дисплеи"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20484,6 +22194,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Desligar todos os monitores (↩)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выключить все дисплеи (↩)"
           }
         },
         "sr" : {
@@ -20558,6 +22274,12 @@
             "value" : "Desliga todos os monitores e bloqueia o Mac, como ao fechar a tampa. Para controlar quando a senha é solicitada, ajuste as configurações de Tela Bloqueada."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выключает все дисплеи и блокирует Mac, как при закрытии крышки. Время до запроса пароля можно изменить в настройках экрана блокировки."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20626,6 +22348,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tipo"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тип"
           }
         },
         "sr" : {
@@ -20699,6 +22427,12 @@
             "value" : "Erro inesperado"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Непредвиденная ошибка"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20768,6 +22502,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Desconhecido"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Неизвестный"
           }
         },
         "sr" : {
@@ -20841,6 +22581,12 @@
             "value" : "Monitor desconhecido"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Неизвестный дисплей"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20910,6 +22656,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ativar som"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Включить звук"
           }
         },
         "sr" : {
@@ -21054,6 +22806,12 @@
             "value" : "Usar localização atual"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Использовать текущее местоположение"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -21124,6 +22882,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Usa DDC para brilho e tabelas gamma para tonalidade quente e contraste. Usa automaticamente brilho por software se DDC não estiver disponível."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Регулирует яркость через DDC, а теплоту и контраст — с помощью таблиц гаммы. Если DDC недоступен, яркость автоматически регулируется программно."
           }
         },
         "sr" : {
@@ -21197,6 +22961,12 @@
             "value" : "Usa tabelas gamma para ajustar a saída do display. Funciona com todas as telas, mas não altera a retroiluminação real."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Меняет изображение с помощью таблиц гаммы. Работает со всеми дисплеями и сохраняет исходный уровень подсветки."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -21266,6 +23036,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Versão"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Версия"
           }
         },
         "sr" : {
@@ -21483,6 +23259,12 @@
             "value" : "Volume"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Громкость"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -21551,6 +23333,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reativar telas"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разбудить дисплеи"
           }
         },
         "sr" : {
@@ -21623,6 +23411,12 @@
             "value" : "Quente"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тепло"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -21692,6 +23486,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Atraso de gravação: %d ms"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Задержка записи: %d мс"
           }
         },
         "sr" : {
@@ -21897,6 +23697,36 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld milissegundos"
+                }
+              }
+            }
+          }
+        },
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld миллисекунда"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld миллисекунды"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld миллисекунд"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld миллисекунды"
                 }
               }
             }
@@ -22116,6 +23946,36 @@
             }
           }
         },
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld секунда"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld секунды"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld секунд"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld секунды"
+                }
+              }
+            }
+          }
+        },
         "sr" : {
           "variations" : {
             "plural" : {
@@ -22210,6 +24070,12 @@
             "value" : "A permissão de Acessibilidade é necessária para bloquear com segurança a entrada que reativa as telas."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Для безопасного подавления ввода, который будит дисплеи, нужен доступ в разделе «Универсальный доступ»."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -22278,6 +24144,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Agradecimentos"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Благодарности"
           }
         },
         "sr" : {
@@ -22350,6 +24222,12 @@
             "value" : "Avançado"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дополнительно"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -22418,6 +24296,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aplica uma predefinição de brilho salva às telas conectadas."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Применяет сохранённый пресет яркости к подключённым дисплеям."
           }
         },
         "sr" : {
@@ -22490,6 +24374,12 @@
             "value" : "Aplica uma predefinição de brilho salva."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Применяет сохранённый пресет яркости."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -22558,6 +24448,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aplicar predefinição de brilho"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Применить пресет яркости"
           }
         },
         "sr" : {
@@ -22630,6 +24526,12 @@
             "value" : "Aplicar predefinição (widget)"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Применить пресет (виджет)"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -22698,6 +24600,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tonalidade quente automática (controle)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Автонастройка теплоты (элемент управления)"
           }
         },
         "sr" : {
@@ -22770,6 +24678,12 @@
             "value" : "Apaga ou restaura a imagem de uma tela específica."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Затемняет выбранный дисплей или возвращает изображение."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -22838,6 +24752,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "O brilho deve estar entre 10 e 100 por cento."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Яркость должна быть в диапазоне от 10 до 100 процентов."
           }
         },
         "sr" : {
@@ -22910,6 +24830,12 @@
             "value" : "Porcentagem de brilho (10–100)"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Яркость в процентах (10–100)"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -22978,6 +24904,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cancelar a adição da predefinição"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отменить добавление пресета"
           }
         },
         "sr" : {
@@ -23050,6 +24982,12 @@
             "value" : "Escolha como o Dimmerly controla o brilho da tela"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выберите способ регулировки яркости дисплеев"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -23118,6 +25056,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Clássico"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Классический"
           }
         },
         "sr" : {
@@ -23190,6 +25134,12 @@
             "value" : "Fechar"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закрыть"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -23258,6 +25208,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "O contraste deve estar entre 0 e 100 por cento."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Контраст должен быть в диапазоне от 0 до 100 процентов."
           }
         },
         "sr" : {
@@ -23330,6 +25286,12 @@
             "value" : "Porcentagem de contraste (0–100, 50 = neutro)"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Контраст в процентах (0–100, нейтральное значение — 50)"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -23398,6 +25360,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Criar este agendamento"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Создать расписание"
           }
         },
         "sr" : {
@@ -23470,6 +25438,12 @@
             "value" : "Padrão"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "По умолчанию"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -23538,6 +25512,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Escurecer telas (controle)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приглушить дисплеи (элемент управления)"
           }
         },
         "sr" : {
@@ -23610,6 +25590,12 @@
             "value" : "Escurecer telas (widget)"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приглушить дисплеи (виджет)"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -23678,6 +25664,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Escurecido"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приглушены"
           }
         },
         "sr" : {
@@ -23750,6 +25742,12 @@
             "value" : "O Dimmerly captura a entrada padrão do teclado e do ponteiro enquanto suas sobreposições estão ativas. Os atalhos do sistema do macOS e as teclas de mídia ainda podem ser processados pelo sistema."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пока активны затемняющие слои Dimmerly, приложение перехватывает обычный ввод с клавиатуры и указателя. Системные сочетания клавиш macOS и мультимедийные клавиши могут по-прежнему обрабатываться системой."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -23818,6 +25816,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "O Dimmerly está usando o brilho por software nas suas telas externas. Os outros controles compatíveis do monitor continuam disponíveis. O brilho por hardware será usado quando uma tela compatível for conectada."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly регулирует яркость внешних дисплеев программно. Остальные поддерживаемые функции мониторов доступны. При подключении совместимого дисплея яркость будет регулироваться аппаратно."
           }
         },
         "sr" : {
@@ -23890,6 +25894,12 @@
             "value" : "Escurece todas as telas conectadas ou reativa as telas que o Dimmerly escureceu."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приглушает все подключённые дисплеи или будит дисплеи, приглушённые Dimmerly."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -23958,6 +25968,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Escurece todas as telas conectadas."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приглушает все подключённые дисплеи."
           }
         },
         "sr" : {
@@ -24030,6 +26046,12 @@
             "value" : "Escurece ou coloca em repouso todas as telas conectadas usando o Dimmerly."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приглушает все подключённые дисплеи или переводит их в режим сна через Dimmerly."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -24098,6 +26120,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Descartar e fechar"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закрыть без сохранения"
           }
         },
         "sr" : {
@@ -24170,6 +26198,12 @@
             "value" : "Tela"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дисплей"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -24238,6 +26272,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ativado"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Включено"
           }
         },
         "sr" : {
@@ -24310,6 +26350,12 @@
             "value" : "Experimental e não verificado em todos os modelos de tela. Se o controle nativo falhar, o Dimmerly recorre ao brilho por software."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Экспериментальная функция, проверенная не на всех моделях дисплеев. Если встроенное управление недоступно, Dimmerly регулирует яркость программно."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -24378,6 +26424,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Brilho nativo experimental"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Экспериментальное встроенное управление яркостью"
           }
         },
         "sr" : {
@@ -24450,6 +26502,12 @@
             "value" : "O brilho por hardware não está disponível"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Аппаратная регулировка яркости недоступна"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -24518,6 +26576,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ocultar ajustes de %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скрыть настройки дисплея «%@»"
           }
         },
         "sr" : {
@@ -24590,6 +26654,12 @@
             "value" : "Não foi possível iniciar a filtragem de entrada."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось запустить фильтрацию ввода."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -24658,6 +26728,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "A filtragem de entrada parou inesperadamente."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Фильтрация ввода неожиданно остановилась."
           }
         },
         "sr" : {
@@ -24730,6 +26806,12 @@
             "value" : "O tempo da filtragem de entrada se esgotou."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Время ожидания фильтрации ввода истекло."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -24798,6 +26880,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Iniciar ao entrar indisponível"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запуск при входе недоступен"
           }
         },
         "sr" : {
@@ -24870,6 +26958,12 @@
             "value" : "Monitor"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Монитор"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -24938,6 +27032,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Lua e névoa"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Луна и дымка"
           }
         },
         "sr" : {
@@ -25010,6 +27110,12 @@
             "value" : "Lua (preenchida)"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Луна (заливка)"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -25078,6 +27184,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Lua (contorno)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Луна (контур)"
           }
         },
         "sr" : {
@@ -25150,6 +27262,12 @@
             "value" : "Brilho nativo por hardware"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Встроенное управление яркостью"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -25218,6 +27336,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Abrir predefinição de brilho"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть пресет яркости"
           }
         },
         "sr" : {
@@ -25290,6 +27414,12 @@
             "value" : "Abrir a política de privacidade do Dimmerly"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть политику конфиденциальности Dimmerly"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -25358,6 +27488,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Abre uma predefinição de brilho salva no Dimmerly."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открывает сохранённый пресет яркости в Dimmerly."
           }
         },
         "sr" : {
@@ -25430,6 +27566,12 @@
             "value" : "ID da predefinição"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Идентификатор пресета"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -25498,6 +27640,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Política de Privacidade"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Политика конфиденциальности"
           }
         },
         "sr" : {
@@ -25570,6 +27718,12 @@
             "value" : "Definir brilho"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Задать яркость"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -25638,6 +27792,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Definir contraste"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Задать контраст"
           }
         },
         "sr" : {
@@ -25710,6 +27870,12 @@
             "value" : "Definir brilho da tela"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Задать яркость дисплея"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -25778,6 +27944,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Definir contraste da tela"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Задать контраст дисплея"
           }
         },
         "sr" : {
@@ -25850,6 +28022,12 @@
             "value" : "Definir tonalidade quente da tela"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Задать теплоту дисплея"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -25918,6 +28096,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Definir tonalidade quente"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Задать теплоту"
           }
         },
         "sr" : {
@@ -25990,6 +28174,12 @@
             "value" : "Definir em 75%"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Установить 75%"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -26058,6 +28248,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Definir no mínimo"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Установить минимум"
           }
         },
         "sr" : {
@@ -26130,6 +28326,12 @@
             "value" : "Define o brilho de uma tela específica."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Задаёт яркость выбранного дисплея."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -26198,6 +28400,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Define a tonalidade quente das cores de uma tela específica."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Задаёт теплоту цветов выбранного дисплея."
           }
         },
         "sr" : {
@@ -26270,6 +28478,12 @@
             "value" : "Define o contraste de uma tela específica."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Задаёт контраст выбранного дисплея."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -26338,6 +28552,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mostrar ajustes de %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показать настройки дисплея «%@»"
           }
         },
         "sr" : {
@@ -26410,6 +28630,12 @@
             "value" : "Sol (dividido)"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Солнце (половина)"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -26478,6 +28704,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Essa predefinição não existe mais."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Этот пресет больше не существует."
           }
         },
         "sr" : {
@@ -26550,6 +28782,12 @@
             "value" : "A tela selecionada não está mais conectada."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбранный дисплей больше не подключён."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -26618,6 +28856,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Este atalho está em conflito com %@."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Это сочетание клавиш конфликтует с действием «%@»."
           }
         },
         "sr" : {
@@ -26690,6 +28934,12 @@
             "value" : "Este atalho está em conflito com o atalho principal das telas."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Это сочетание клавиш конфликтует с основным сочетанием для управления дисплеями."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -26758,6 +29008,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Alternar escurecimento"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переключить приглушение"
           }
         },
         "sr" : {
@@ -26830,6 +29086,12 @@
             "value" : "Alternar escurecimento da tela"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переключить приглушение дисплеев"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -26898,6 +29160,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tenta usar o controle de brilho nativo em telas externas compatíveis da Apple e da LG. A compatibilidade varia conforme o modelo; o brilho por software continua como alternativa."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пробует использовать встроенное управление яркостью на совместимых внешних дисплеях Apple и LG. Поддержка зависит от модели. При необходимости яркость регулируется программно."
           }
         },
         "sr" : {
@@ -26970,6 +29238,12 @@
             "value" : "Tipo de gatilho"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тип условия запуска"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -27038,6 +29312,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ativa ou desativa a tonalidade quente automática das telas."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Включает или выключает автоматическое изменение теплоты дисплея."
           }
         },
         "sr" : {
@@ -27110,6 +29390,12 @@
             "value" : "Não é possível filtrar a entrada de reativação"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось отфильтровать ввод для пробуждения"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -27178,6 +29464,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Usa o brilho nativo ou DDC/CI para controlar diretamente telas externas compatíveis. Telas não compatíveis continuam usando o brilho por software."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Управляет совместимыми внешними дисплеями напрямую через встроенные средства или DDC/CI. Для остальных дисплеев яркость по-прежнему регулируется программно."
           }
         },
         "sr" : {
@@ -27250,6 +29542,12 @@
             "value" : "Usa a retroiluminação nativa da tela ou DDC para o brilho quando disponível, com tabelas gamma para tonalidade quente e contraste. Recorre ao brilho por software quando o controle por hardware não está disponível."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Регулирует яркость через встроенную подсветку или DDC, когда это возможно, а теплоту и контраст — с помощью таблиц гаммы. Если аппаратное управление недоступно, яркость регулируется программно."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -27318,6 +29616,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ver licença"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Просмотреть лицензию"
           }
         },
         "sr" : {
@@ -27390,6 +29694,12 @@
             "value" : "Tonalidade quente"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Теплота"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -27458,6 +29768,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "A tonalidade quente deve estar entre 0 e 100 por cento."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Теплота должна быть в диапазоне от 0 до 100 процентов."
           }
         },
         "sr" : {
@@ -27530,6 +29846,12 @@
             "value" : "Porcentagem de tonalidade quente (0–100)"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Теплота в процентах (0–100)"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -27598,6 +29920,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Qual porcentagem de brilho devo definir?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Какую яркость в процентах задать?"
           }
         },
         "sr" : {
@@ -27670,6 +29998,12 @@
             "value" : "Qual porcentagem de contraste devo definir?"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Какой контраст в процентах задать?"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -27738,6 +30072,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Qual porcentagem de tonalidade quente devo definir?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Какую теплоту в процентах задать?"
           }
         },
         "sr" : {
@@ -27810,6 +30150,12 @@
             "value" : "Qual tela você quer controlar?"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Каким дисплеем хотите управлять?"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -27878,6 +30224,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Qual tela devo controlar?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Каким дисплеем управлять?"
           }
         },
         "sr" : {
@@ -27950,6 +30302,12 @@
             "value" : "Qual predefinição você quer aplicar?"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Какой пресет хотите применить?"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -28018,6 +30376,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Qual predefinição você quer abrir?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Какой пресет хотите открыть?"
           }
         },
         "sr" : {
@@ -28090,6 +30454,12 @@
             "value" : "Qual predefinição devo aplicar?"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Какой пресет применить?"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -28158,6 +30528,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Qual predefinição devo abrir?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Какой пресет открыть?"
           }
         },
         "sr" : {
@@ -28231,6 +30607,12 @@
             "value" : "Tela %lld"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дисплей %lld"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -28300,6 +30682,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@°, %2$@°"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@°, %@°"
           }
         },
         "sr" : {
@@ -28373,6 +30761,12 @@
             "value" : "%1$@ → %2$@"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ → %@"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -28442,6 +30836,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ (%2$@) → %3$@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (%@) → %@"
           }
         },
         "sr" : {
@@ -28514,6 +30914,12 @@
             "value" : "Abrir os ajustes de Serviços de Localização"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть настройки служб геолокации"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -28582,6 +30988,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Abrir Serviços de Localização nos Ajustes do Sistema"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть раздел «Службы геолокации» в Системных настройках"
           }
         },
         "sr" : {
@@ -28655,6 +31067,12 @@
             "value" : "Os Serviços de Localização estão desativados. Ative-os em Ajustes do Sistema > Privacidade e Segurança > Serviços de Localização ou insira uma localização manualmente."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Службы геолокации выключены. Включите их в разделе «Конфиденциальность и безопасность» → «Службы геолокации» в Системных настройках или укажите местоположение вручную."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -28724,6 +31142,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "O Dimmerly não tem acesso à sua localização. Permita em Ajustes do Sistema > Privacidade e Segurança > Serviços de Localização ou insira uma localização manualmente."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "У Dimmerly нет доступа к вашему местоположению. Разрешите доступ в разделе «Конфиденциальность и безопасность» → «Службы геолокации» в Системных настройках или укажите местоположение вручную."
           }
         },
         "sr" : {
@@ -28797,6 +31221,12 @@
             "value" : "O acesso à localização está restrito neste Mac. Insira uma localização manualmente."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступ к местоположению на этом Mac ограничен. Укажите местоположение вручную."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -28866,6 +31296,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@, automático"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, автоматически"
           }
         },
         "sr" : {
@@ -28939,6 +31375,12 @@
             "value" : "Buscar Atualizações…"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проверить обновления…"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -29008,6 +31450,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Buscar atualizações automaticamente"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Автоматически проверять наличие обновлений"
           }
         },
         "sr" : {
@@ -29081,6 +31529,12 @@
             "value" : "Baixar e instalar atualizações automaticamente"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Автоматически загружать и устанавливать обновления"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -29150,6 +31604,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Última verificação"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Последняя проверка"
           }
         },
         "sr" : {
@@ -29223,6 +31683,12 @@
             "value" : "Nunca"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Никогда"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -29292,6 +31758,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Atualizações"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обновления"
           }
         },
         "sr" : {
@@ -29365,6 +31837,12 @@
             "value" : "A busca por atualizações baixa um pequeno arquivo do GitHub. O Dimmerly não envia um perfil do sistema."
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "При проверке обновлений с GitHub загружается небольшой файл. Dimmerly не отправляет сведения о конфигурации системы."
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -29436,6 +31914,12 @@
             "value" : "Atualização Disponível…"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступно обновление…"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -29505,6 +31989,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Instalar a nova versão do Dimmerly"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Установить новую версию Dimmerly"
           }
         },
         "sr" : {

@@ -7,6 +7,9 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+### Added
+- Dimmerly and its widget are available in Russian.
+
 ## [1.5.1] - Unreleased
 
 ### Added
