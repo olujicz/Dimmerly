@@ -22,6 +22,8 @@ automated contributions.
 - Keep credentials, access tokens, and private data out of the repository.
 - Keep internal development notes in the gitignored `docs/` directory. Do not
   force-add them without explicit maintainer approval.
+- For string catalog changes, follow `docs/l10n/README.md` and run
+  `just l10n-check` using the checker in `scripts/l10n/`.
 
 ## Release Safety
 

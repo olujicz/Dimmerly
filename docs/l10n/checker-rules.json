@@ -89,5 +89,257 @@
     "allow_matches": [
       "NSHumanReadableCopyright"
     ]
+  },
+  "_catalog_exceptions": {
+    "Dimmerly/Resources/Localizable.xcstrings": {
+      "length-ratio": {
+        "fr": [
+          "Toggle Dimming"
+        ],
+        "ja": [
+          "Acknowledgements",
+          "Automatic color temperature",
+          "Color Temperature"
+        ],
+        "ko": [
+          "Color Temperature"
+        ],
+        "ru": [
+          "%@ input source"
+        ],
+        "zh-hans": [
+          "%lld milliseconds (('plural', 'other'),)",
+          "Acknowledgements",
+          "Automatic color temperature",
+          "Automatically check for updates",
+          "Color Temperature",
+          "Day color temperature",
+          "Hide color temperature",
+          "Night color temperature",
+          "Show color temperature"
+        ]
+      },
+      "possible-english": {
+        "de": [
+          "Could not read the display setting via DDC/CI. The monitor may be busy or the I2C bus encountered an error. Try again in a moment.",
+          "Could not write the display setting via DDC/CI. The monitor may not support this control or the I2C bus encountered an error. Try again in a moment.",
+          "DDC/CI controls the monitor's hardware directly over the display cable. Not all monitors support DDC — built-in HDMI on Apple Silicon Macs, DisplayLink adapters, and most TVs do not work. Unsupported displays use software brightness automatically.",
+          "Open the Dimmerly GitHub repository",
+          "The pmset utility was not found at /usr/bin/pmset. This is unexpected — pmset is included with macOS.",
+          "This display does not support DDC/CI hardware control. Common reasons: built-in HDMI on M1/M2 Macs, DisplayLink adapters, or the monitor has DDC/CI disabled in its OSD settings. Software brightness control (gamma) is still available."
+        ],
+        "es": [
+          "The pmset utility was not found at /usr/bin/pmset. This is unexpected — pmset is included with macOS."
+        ],
+        "fr": [
+          "Controls the monitor's backlight directly via DDC/CI. Falls back to software brightness if DDC is not available.",
+          "Could not read the display setting via DDC/CI. The monitor may be busy or the I2C bus encountered an error. Try again in a moment.",
+          "Could not write the display setting via DDC/CI. The monitor may not support this control or the I2C bus encountered an error. Try again in a moment.",
+          "Hardware control via DDC/CI",
+          "The pmset utility was not found at /usr/bin/pmset. This is unexpected — pmset is included with macOS."
+        ],
+        "it": [
+          "The pmset utility was not found at /usr/bin/pmset. This is unexpected — pmset is included with macOS."
+        ],
+        "ja": [
+          "The pmset utility was not found at /usr/bin/pmset. This is unexpected — pmset is included with macOS."
+        ],
+        "ko": [
+          "The pmset utility was not found at /usr/bin/pmset. This is unexpected — pmset is included with macOS."
+        ],
+        "nl": [
+          "Control monitor brightness, volume, and input via DDC/CI protocol",
+          "Controls the monitor's backlight directly via DDC/CI. Falls back to software brightness if DDC is not available.",
+          "Could not read the display setting via DDC/CI. The monitor may be busy or the I2C bus encountered an error. Try again in a moment.",
+          "Could not write the display setting via DDC/CI. The monitor may not support this control or the I2C bus encountered an error. Try again in a moment.",
+          "DDC/CI controls the monitor's hardware directly over the display cable. Not all monitors support DDC — built-in HDMI on Apple Silicon Macs, DisplayLink adapters, and most TVs do not work. Unsupported displays use software brightness automatically.",
+          "Hardware control via DDC/CI",
+          "Open the Dimmerly GitHub repository",
+          "The display wrangler service could not be found. This may indicate a system configuration issue.",
+          "The pmset utility was not found at /usr/bin/pmset. This is unexpected — pmset is included with macOS.",
+          "This display does not support DDC/CI hardware control. Common reasons: built-in HDMI on M1/M2 Macs, DisplayLink adapters, or the monitor has DDC/CI disabled in its OSD settings. Software brightness control (gamma) is still available."
+        ],
+        "pt-br": [
+          "Controls the monitor's backlight directly via DDC/CI. Falls back to software brightness if DDC is not available.",
+          "Could not read the display setting via DDC/CI. The monitor may be busy or the I2C bus encountered an error. Try again in a moment.",
+          "Could not write the display setting via DDC/CI. The monitor may not support this control or the I2C bus encountered an error. Try again in a moment.",
+          "Hardware control via DDC/CI",
+          "The pmset utility was not found at /usr/bin/pmset. This is unexpected — pmset is included with macOS."
+        ],
+        "ru": [
+          "The pmset utility was not found at /usr/bin/pmset. This is unexpected — pmset is included with macOS."
+        ],
+        "sr": [
+          "The pmset utility was not found at /usr/bin/pmset. This is unexpected — pmset is included with macOS."
+        ],
+        "zh-hans": [
+          "The pmset utility was not found at /usr/bin/pmset. This is unexpected — pmset is included with macOS."
+        ]
+      },
+      "source-identical": {
+        "de": [
+          "%@K · %@",
+          "Auto",
+          "Composite 1",
+          "Composite 2",
+          "Hardware",
+          "Monitor",
+          "Name",
+          "OK",
+          "S-Video 1",
+          "S-Video 2",
+          "Software",
+          "Tuner 1",
+          "Updates",
+          "Version",
+          "Warm"
+        ],
+        "es": [
+          "%@K · %@",
+          "Auto",
+          "Composite 1",
+          "Composite 2",
+          "General",
+          "Hardware",
+          "Monitor",
+          "S-Video 1",
+          "S-Video 2",
+          "Software"
+        ],
+        "fr": [
+          "%@K · %@",
+          "%d minutes (('plural', 'many'),)",
+          "%d minutes (('plural', 'one'),)",
+          "%d minutes (('plural', 'other'),)",
+          "Auto",
+          "Composite 1",
+          "Composite 2",
+          "Description",
+          "Latitude",
+          "Longitude",
+          "OK",
+          "Tuner 1",
+          "Type",
+          "Version",
+          "Volume"
+        ],
+        "it": [
+          "%@K · %@",
+          "Auto",
+          "Composite 1",
+          "Composite 2",
+          "Hardware",
+          "Monitor",
+          "OK",
+          "S-Video 1",
+          "S-Video 2",
+          "Software",
+          "Tuner 1",
+          "Volume"
+        ],
+        "ja": [
+          "%@K · %@",
+          "OK"
+        ],
+        "ko": [
+          "%@K · %@"
+        ],
+        "nl": [
+          "%@K · %@",
+          "Auto",
+          "Component 1",
+          "Component 2",
+          "Component 3",
+          "Contrast",
+          "Dim",
+          "Hardware",
+          "Monitor",
+          "OK",
+          "S-Video 1",
+          "S-Video 2",
+          "Software",
+          "Trigger",
+          "Tuner 1",
+          "Type",
+          "Updates",
+          "Volume",
+          "Warm"
+        ],
+        "pt-br": [
+          "%@K · %@",
+          "Auto",
+          "Composite 1",
+          "Composite 2",
+          "Hardware",
+          "Latitude",
+          "Longitude",
+          "Monitor",
+          "OK",
+          "S-Video 1",
+          "S-Video 2",
+          "Software",
+          "Volume"
+        ],
+        "ru": [
+          "%@K · %@",
+          "S-Video 1",
+          "S-Video 2"
+        ],
+        "sr": [
+          "%@K · %@",
+          "Auto",
+          "Monitor",
+          "S-Video 1",
+          "S-Video 2"
+        ],
+        "zh-hans": [
+          "%@K · %@",
+          "S-Video 1",
+          "S-Video 2"
+        ]
+      },
+      "xcstrings-stale": {
+        "*": [
+          "%@%%",
+          "%@K · %@",
+          "A location is needed for sunrise and sunset schedules.",
+          "A macOS menu bar utility for putting your displays to sleep — with a single keyboard shortcut.\n",
+          "Blank screens instead of sleeping displays, so your session stays unlocked",
+          "Choose how Dimmerly controls display output",
+          "Combined",
+          "Connect an external display to adjust its brightness.",
+          "Connected Displays:",
+          "Control Mode:",
+          "Control monitor brightness, volume, and input via DDC/CI protocol",
+          "Controls the monitor's backlight directly via DDC/CI. Falls back to software brightness if DDC is not available.",
+          "DDC/CI controls the monitor's hardware directly over the display cable. Not all monitors support DDC — built-in HDMI on Apple Silicon Macs, DisplayLink adapters, and most TVs do not work. Unsupported displays use software brightness automatically.",
+          "Dim",
+          "Display Adjustments",
+          "Enable DDC/CI hardware control",
+          "External Display",
+          "Failed to Sleep Displays (Error %d)",
+          "Gradually dims displays instead of turning them off instantly.",
+          "Hardware controls aren’t available",
+          "Hardware mode requires a DDC-capable display with brightness control.",
+          "Hide color temperature",
+          "Hide display adjustments",
+          "Maximum presets reached",
+          "Name this preset",
+          "No External Displays",
+          "None of your connected displays supports direct hardware control. Dimmerly is using software brightness and will switch automatically when a compatible display is connected.",
+          "Prevent Screen Lock",
+          "Settings...",
+          "Show color temperature",
+          "Show display adjustments",
+          "Show warmth and contrast sliders",
+          "Software brightness",
+          "Style:",
+          "The display sleep command failed with IOKit error code %d. Try restarting the app or your Mac.",
+          "The display wrangler service could not be found. This may indicate a system configuration issue.",
+          "Uses DDC for brightness and gamma tables for warmth and contrast. Automatically uses software brightness if DDC is not available.",
+          "Uses DDC/CI to control compatible external displays directly. Unsupported displays continue using software brightness."
+        ]
+      }
+    }
   }
 }

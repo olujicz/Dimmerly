@@ -14,10 +14,10 @@ The English screenshot and demo fixtures specify their own preset names. When pr
 
 ## Catalog audit
 
-Run the translation-quality skill’s checker from the repository root:
+Run `just l10n-check` from the repository root. The same check runs in `just check` and CI. To run it directly with Python 3.10 or newer, use the [repository copy](../../scripts/l10n/check_catalog.py).
 
 ```sh
-python3 ~/.agents/skills/translation-quality/scripts/check_catalog.py \
+python3 scripts/l10n/check_catalog.py \
   --rules docs/l10n/checker-rules.json \
   Dimmerly/Resources/{InfoPlist,Localizable}.xcstrings \
   DimmerlyWidget/Resources/Localizable.xcstrings
@@ -25,13 +25,7 @@ python3 ~/.agents/skills/translation-quality/scripts/check_catalog.py \
 
 The [rules](checker-rules.json) flag common off-register forms in each locale. Review imperatives and ambiguous pronouns in context as part of each audit. The checker ignores source matches and possible-English flags for `NSHumanReadableCopyright` because the shared English copyright wording is intentional. It still checks placeholders, markup and register for that key.
 
-| Catalog | Findings |
-| --- | --- |
-| App | 98 source matches, 33 possible-English flags, 15 length flags and 38 Xcode stale source entries |
-| Info.plist | Clean with the copyright exception |
-| Widget | Clean |
-
-The source matches are shared formatting such as `%@K · %@`, accepted loanwords, input labels, French timer plurals and one Dutch label attached to a stale source. Keep the format and technical literals. The possible-English findings are translations containing technical terms such as DDC/CI, GitHub, hardware and `pmset`. Xcode's stale entries are retained translations of source keys flagged by extraction. Review those keys separately before removing them.
+The rules record existing app catalog findings under `_catalog_exceptions`, scoped to the catalog path, finding, locale and key. Source matches cover shared formatting, accepted loanwords, input labels and French timer plurals. Possible-English findings include technical terms such as DDC/CI, GitHub and `pmset`. Length exceptions cover individual translations reviewed in context. Xcode's stale entries are retained translations of source keys flagged by extraction. Review those keys separately before removing them. When editing an excepted entry, review the exception and remove it if it no longer applies.
 
 The address audit included stale entries. The former display control and DDC/CI help text and the former IOKit recovery message have no live call sites for a rendered check. If those keys return, verify wrapping in Settings and in the recovery message for the active locale.
 
