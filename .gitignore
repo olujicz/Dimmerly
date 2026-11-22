@@ -113,8 +113,11 @@ iOSInjectionProject/
 .claude/
 .agents/
 
-# Documentation artifacts
-docs/
+# Documentation artifacts. Localization guides are contributor-facing.
+/docs/*
+!/docs/l10n/
+/docs/l10n/*
+!/docs/l10n/*.md
 TEST_TARGET_SETUP.md
 
 # Design source/preview files
