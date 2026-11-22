@@ -6,6 +6,9 @@
     ],
     "allow_matches": [
       "NSHumanReadableCopyright"
+    ],
+    "ignore_checks": [
+      "xcstrings-needs_review"
     ]
   },
   "es": {
@@ -14,6 +17,9 @@
     ],
     "allow_matches": [
       "NSHumanReadableCopyright"
+    ],
+    "ignore_checks": [
+      "xcstrings-needs_review"
     ]
   },
   "fr": {
@@ -22,6 +28,9 @@
     ],
     "allow_matches": [
       "NSHumanReadableCopyright"
+    ],
+    "ignore_checks": [
+      "xcstrings-needs_review"
     ]
   },
   "it": {
@@ -31,6 +40,9 @@
     ],
     "allow_matches": [
       "NSHumanReadableCopyright"
+    ],
+    "ignore_checks": [
+      "xcstrings-needs_review"
     ]
   },
   "ja": {
@@ -39,6 +51,36 @@
     ],
     "allow_matches": [
       "NSHumanReadableCopyright"
+    ],
+    "ignore_checks": [
+      "xcstrings-needs_review"
+    ],
+    "target_patterns": [
+      {
+        "regex": "(?<!\\d):(?!\\d)|[(),;]",
+        "hint": "ja uses full-width （）：； and 、 (digits with separators and /usr paths excepted)",
+        "severity": "warning",
+        "exceptions": [
+          {
+            "before": "\\d",
+            "after": "\\d"
+          },
+          {
+            "source": "^%@K"
+          },
+          {
+            "key": "^%"
+          },
+          {
+            "source": "\\(⌘|\\(↩"
+          }
+        ]
+      },
+      {
+        "regex": "[\\u3040-\\u30ff\\u4e00-\\u9fff] [A-Za-z0-9%]|[A-Za-z0-9%] [\\u3040-\\u30ff\\u4e00-\\u9fff]",
+        "hint": "no space between Japanese and Latin letters or digits",
+        "severity": "warning"
+      }
     ]
   },
   "ko": {
@@ -48,6 +90,9 @@
     ],
     "allow_matches": [
       "NSHumanReadableCopyright"
+    ],
+    "ignore_checks": [
+      "xcstrings-needs_review"
     ]
   },
   "nl": {
@@ -56,6 +101,9 @@
     ],
     "allow_matches": [
       "NSHumanReadableCopyright"
+    ],
+    "ignore_checks": [
+      "xcstrings-needs_review"
     ]
   },
   "pt-BR": {
@@ -64,6 +112,9 @@
     ],
     "allow_matches": [
       "NSHumanReadableCopyright"
+    ],
+    "ignore_checks": [
+      "xcstrings-needs_review"
     ]
   },
   "ru": {
@@ -72,6 +123,9 @@
     ],
     "allow_matches": [
       "NSHumanReadableCopyright"
+    ],
+    "ignore_checks": [
+      "xcstrings-needs_review"
     ]
   },
   "sr": {
@@ -80,6 +134,9 @@
     ],
     "allow_matches": [
       "NSHumanReadableCopyright"
+    ],
+    "ignore_checks": [
+      "xcstrings-needs_review"
     ]
   },
   "zh-Hans": {
@@ -88,6 +145,21 @@
     ],
     "allow_matches": [
       "NSHumanReadableCopyright"
+    ],
+    "ignore_checks": [
+      "xcstrings-needs_review"
+    ],
+    "target_patterns": [
+      {
+        "regex": "[\\u3040-\\u30ff\\u4e00-\\u9fff][A-Za-z0-9]|[A-Za-z0-9][\\u3040-\\u30ff\\u4e00-\\u9fff]",
+        "hint": "one space between Chinese and Latin letters or digits",
+        "severity": "warning"
+      },
+      {
+        "regex": "[\\u3040-\\u30ff\\u4e00-\\u9fff][,;:!?]|[！？。]{2,}|\\((?!⌘)",
+        "hint": "use full-width punctuation beside Chinese text; no repeated marks",
+        "severity": "warning"
+      }
     ]
   },
   "_catalog_exceptions": {
@@ -338,6 +410,21 @@
           "The display wrangler service could not be found. This may indicate a system configuration issue.",
           "Uses DDC for brightness and gamma tables for warmth and contrast. Automatically uses software brightness if DDC is not available.",
           "Uses DDC/CI to control compatible external displays directly. Unsupported displays continue using software brightness."
+        ]
+      },
+      "number-mismatch": {
+        "ja": [
+          "Use at least two modifier keys, including Control (⌃) or Command (⌘).",
+          "no DDC/CI reply, unplug the monitor from power for a minute",
+          "No DDC/CI reply. Unplug the monitor from power for a minute.",
+          "A macOS menu bar utility for putting your displays to sleep — with a single keyboard shortcut.\n"
+        ],
+        "ko": [
+          "no DDC/CI reply, unplug the monitor from power for a minute",
+          "No DDC/CI reply. Unplug the monitor from power for a minute."
+        ],
+        "zh-hans": [
+          "Contrast percentage (0–100, 50 = neutral)"
         ]
       }
     }

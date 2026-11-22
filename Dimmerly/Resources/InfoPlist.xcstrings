@@ -125,8 +125,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dimmerly は、スケジュールと自動色温度のために日の出と日の入りの時刻を計算する目的で位置情報を使用します。"
+            "state" : "needs_review",
+            "value" : "Dimmerlyは、スケジュールと自動色温度のために日の出と日の入りの時刻を計算する目的で位置情報を使用します。"
           }
         },
         "ko" : {
@@ -202,8 +202,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dimmerly は、スケジュールと自動色温度のために日の出と日の入りの時刻を計算する目的で位置情報を使用します。"
+            "state" : "needs_review",
+            "value" : "Dimmerlyは、スケジュールと自動色温度のために日の出と日の入りの時刻を計算する目的で位置情報を使用します。"
           }
         },
         "ko" : {
