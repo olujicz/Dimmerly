@@ -101,8 +101,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dimmerly n’a pas pu obtenir votre position. Réessayez ou saisissez une position manuellement."
+            "state" : "needs_review",
+            "value" : "Dimmerly n’a pas pu obtenir votre position. Réessayez ou saisissez un emplacement manuellement."
           }
         },
         "it" : {
@@ -113,8 +113,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dimmerly が現在地を取得できませんでした。もう一度試すか、場所を手動で入力してください。"
+            "state" : "needs_review",
+            "value" : "Dimmerlyが現在地を取得できませんでした。もう一度試すか、場所を手動で入力してください。"
           }
         },
         "ko" : {
@@ -178,8 +178,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Si ce Mac n’est pas connecté à cette entrée, l’écran affiche « Pas de signal » jusqu’à ce que vous reveniez en arrière avec les boutons du moniteur."
+            "state" : "needs_review",
+            "value" : "Si ce Mac n’est pas connecté à cette entrée, l’écran affiche « Pas de signal » jusqu’à ce que vous reveniez en arrière avec les boutons du moniteur."
           }
         },
         "it" : {
@@ -409,8 +409,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Basculer %1$@ sur %2$@ ?"
+            "state" : "needs_review",
+            "value" : "Basculer %1$@ sur %2$@ ?"
           }
         },
         "it" : {
@@ -510,8 +510,8 @@
         },
         "nl" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Opnieuw proberen"
+            "state" : "needs_review",
+            "value" : "Probeer opnieuw"
           }
         },
         "pt-BR" : {
@@ -640,8 +640,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mettre à jour « %@ » ?"
+            "state" : "needs_review",
+            "value" : "Mettre à jour « %@ » ?"
           }
         },
         "it" : {
@@ -766,8 +766,8 @@
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "请使用至少两个修饰键，其中包括 Control (⌃) 或 Command (⌘)。"
+            "state" : "needs_review",
+            "value" : "请使用至少两个修饰键，其中包括 Control（⌃）或 Command（⌘）。"
           }
         }
       }
@@ -884,8 +884,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "明るさの制御"
+            "state" : "needs_review",
+            "value" : "輝度の制御"
           }
         },
         "ko" : {
@@ -1643,8 +1643,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Contrôles matériels : %@"
+            "state" : "needs_review",
+            "value" : "Contrôles matériels : %@"
           }
         },
         "it" : {
@@ -1655,8 +1655,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "ハードウェア制御: %@"
+            "state" : "needs_review",
+            "value" : "ハードウェア制御：%@"
           }
         },
         "ko" : {
@@ -2427,8 +2427,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "DDC/CI の応答なし、モニターの電源プラグを1分間抜いてください"
+            "state" : "needs_review",
+            "value" : "DDC/CIの応答なし、モニターの電源プラグを1分間抜いてください"
           }
         },
         "ko" : {
@@ -2491,8 +2491,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "« %@ » sera supprimé définitivement."
+            "state" : "needs_review",
+            "value" : "« %@ » sera supprimé définitivement."
           }
         },
         "it" : {
@@ -2580,8 +2580,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ の明るさ"
+            "state" : "needs_review",
+            "value" : "%@の輝度"
           }
         },
         "ko" : {
@@ -2657,8 +2657,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ のコントラスト"
+            "state" : "needs_review",
+            "value" : "%@のコントラスト"
           }
         },
         "ko" : {
@@ -2734,8 +2734,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ の入力ソース"
+            "state" : "needs_review",
+            "value" : "%@の入力ソース"
           }
         },
         "ko" : {
@@ -2811,14 +2811,14 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ は標準のシステムショートカットです。別の組み合わせを試してください。"
+            "state" : "needs_review",
+            "value" : "%@は標準のシステムショートカットです。別の組み合わせを試してください。"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@는 표준 시스템 단축키입니다. 다른 조합을 시도하십시오."
+            "state" : "needs_review",
+            "value" : "입력한 키 조합(%@)은 표준 시스템 단축키입니다. 다른 조합을 시도하십시오."
           }
         },
         "nl" : {
@@ -2888,8 +2888,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ の音量"
+            "state" : "needs_review",
+            "value" : "%@の音量"
           }
         },
         "ko" : {
@@ -2965,8 +2965,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ の色温度"
+            "state" : "needs_review",
+            "value" : "%@の色温度"
           }
         },
         "ko" : {
@@ -3202,8 +3202,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "%d 分後"
+            "state" : "needs_review",
+            "value" : "%d分後"
           }
         },
         "ko" : {
@@ -3433,8 +3433,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "%d 分前"
+            "state" : "needs_review",
+            "value" : "%d分前"
           }
         },
         "ko" : {
@@ -3745,8 +3745,8 @@
             "plural" : {
               "other" : {
                 "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%d 分"
+                  "state" : "needs_review",
+                  "value" : "%d分"
                 }
               }
             }
@@ -3909,8 +3909,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "%d パーセント"
+            "state" : "needs_review",
+            "value" : "%dパーセント"
           }
         },
         "ko" : {
@@ -4239,8 +4239,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "1つのキーボードショートカットでディスプレイをスリープさせるための macOS メニューバーユーティリティです。\n"
+            "state" : "needs_review",
+            "value" : "1つのキーボードショートカットでディスプレイをスリープさせるためのmacOSメニューバーユーティリティです。\n"
           }
         },
         "ko" : {
@@ -4315,8 +4315,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "-90 から 90 の間の値"
+            "state" : "needs_review",
+            "value" : "-90から90の間の値"
           }
         },
         "ko" : {
@@ -4391,8 +4391,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "-180 から 180 の間の値"
+            "state" : "needs_review",
+            "value" : "-180から180の間の値"
           }
         },
         "ko" : {
@@ -4991,8 +4991,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Une erreur inattendue s'est produite : %@. Réessayez ou redémarrez l'app."
+            "state" : "needs_review",
+            "value" : "Une erreur inattendue s'est produite : %@. Réessayez ou redémarrez l'app."
           }
         },
         "it" : {
@@ -5003,8 +5003,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "予期しないエラーが発生しました: %@。再試行するか、アプリを再起動してください。"
+            "state" : "needs_review",
+            "value" : "予期しないエラーが発生しました：%@。再試行するか、アプリを再起動してください。"
           }
         },
         "ko" : {
@@ -5243,8 +5243,8 @@
         },
         "nl" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Toepassen"
+            "state" : "needs_review",
+            "value" : "Pas toe"
           }
         },
         "pt-BR" : {
@@ -5307,8 +5307,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ を適用"
+            "state" : "needs_review",
+            "value" : "%@を適用"
           }
         },
         "ko" : {
@@ -6227,8 +6227,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "ログイン時に Dimmerly を自動的に起動"
+            "state" : "needs_review",
+            "value" : "ログイン時にDimmerlyを自動的に起動"
           }
         },
         "ko" : {
@@ -7225,8 +7225,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "コンポーネント 1"
+            "state" : "needs_review",
+            "value" : "コンポーネント1"
           }
         },
         "ko" : {
@@ -7302,8 +7302,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "コンポーネント 2"
+            "state" : "needs_review",
+            "value" : "コンポーネント2"
           }
         },
         "ko" : {
@@ -7379,8 +7379,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "コンポーネント 3"
+            "state" : "needs_review",
+            "value" : "コンポーネント3"
           }
         },
         "ko" : {
@@ -7456,8 +7456,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "コンポジット 1"
+            "state" : "needs_review",
+            "value" : "コンポジット1"
           }
         },
         "ko" : {
@@ -7533,8 +7533,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "コンポジット 2"
+            "state" : "needs_review",
+            "value" : "コンポジット2"
           }
         },
         "ko" : {
@@ -7676,8 +7676,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Écrans connectés :"
+            "state" : "needs_review",
+            "value" : "Écrans connectés :"
           }
         },
         "it" : {
@@ -7688,8 +7688,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "接続されたディスプレイ:"
+            "state" : "needs_review",
+            "value" : "接続されたディスプレイ："
           }
         },
         "ko" : {
@@ -7831,8 +7831,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mode de contrôle :"
+            "state" : "needs_review",
+            "value" : "Mode de contrôle :"
           }
         },
         "it" : {
@@ -7843,8 +7843,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "制御モード:"
+            "state" : "needs_review",
+            "value" : "制御モード："
           }
         },
         "ko" : {
@@ -8560,6 +8560,12 @@
             "value" : "DDC"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DDC"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8918,8 +8924,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ を削除"
+            "state" : "needs_review",
+            "value" : "%@を削除"
           }
         },
         "ko" : {
@@ -9058,8 +9064,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Supprimer le préréglage ?"
+            "state" : "needs_review",
+            "value" : "Supprimer le préréglage ?"
           }
         },
         "it" : {
@@ -9210,8 +9216,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Supprimer l'horaire ?"
+            "state" : "needs_review",
+            "value" : "Supprimer l'horaire ?"
           }
         },
         "it" : {
@@ -9683,8 +9689,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ を暗くする"
+            "state" : "needs_review",
+            "value" : "%@を暗くする"
           }
         },
         "ko" : {
@@ -9729,8 +9735,8 @@
       "localizations" : {
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Display dimmen"
+            "state" : "needs_review",
+            "value" : "Bildschirm dimmen"
           }
         },
         "en" : {
@@ -9990,8 +9996,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dimmerly にはディスプレイを制御する権限がありません。システム設定 > プライバシーとセキュリティを確認してください。"
+            "state" : "needs_review",
+            "value" : "Dimmerlyにはディスプレイを制御する権限がありません。システム設定 > プライバシーとセキュリティを確認してください。"
           }
         },
         "ko" : {
@@ -10779,6 +10785,12 @@
             "value" : "DisplayPort 1"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DisplayPort 1"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10846,6 +10858,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DisplayPort 2"
+          }
+        },
+        "ru" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "DisplayPort 2"
@@ -11059,8 +11077,8 @@
             "plural" : {
               "other" : {
                 "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%d 分間操作がないと、ディスプレイが自動的に暗くなります。"
+                  "state" : "needs_review",
+                  "value" : "%d分間操作がないと、ディスプレイが自動的に暗くなります。"
                 }
               }
             }
@@ -11245,6 +11263,12 @@
             "value" : "DVI 1"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DVI 1"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11312,6 +11336,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DVI 2"
+          }
+        },
+        "ru" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "DVI 2"
@@ -11892,8 +11922,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Impossible de désactiver le lancement à la connexion : %@"
+            "state" : "needs_review",
+            "value" : "Impossible de désactiver le lancement à la connexion : %@"
           }
         },
         "it" : {
@@ -11904,8 +11934,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "ログイン時に起動を無効化できませんでした: %@"
+            "state" : "needs_review",
+            "value" : "ログイン時に起動を無効化できませんでした：%@"
           }
         },
         "ko" : {
@@ -11969,8 +11999,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Impossible d'activer le lancement à la connexion : %@"
+            "state" : "needs_review",
+            "value" : "Impossible d'activer le lancement à la connexion : %@"
           }
         },
         "it" : {
@@ -11981,8 +12011,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "ログイン時に起動を有効化できませんでした: %@"
+            "state" : "needs_review",
+            "value" : "ログイン時に起動を有効化できませんでした：%@"
           }
         },
         "ko" : {
@@ -12136,8 +12166,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "ディスプレイをスリープできませんでした（エラー %d）"
+            "state" : "needs_review",
+            "value" : "ディスプレイをスリープできませんでした（エラー%d）"
           }
         },
         "ko" : {
@@ -12213,8 +12243,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "ディスプレイをスリープできませんでした（終了コード %d）"
+            "state" : "needs_review",
+            "value" : "ディスプレイをスリープできませんでした（終了コード%d）"
           }
         },
         "ko" : {
@@ -13310,6 +13340,12 @@
             "value" : "HDMI 1"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HDMI 1"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13377,6 +13413,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HDMI 2"
+          }
+        },
+        "ru" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "HDMI 2"
@@ -14033,8 +14075,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Raccourci clavier : %@"
+            "state" : "needs_review",
+            "value" : "Raccourci clavier : %@"
           }
         },
         "it" : {
@@ -14045,8 +14087,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "キーボードショートカット: %@"
+            "state" : "needs_review",
+            "value" : "キーボードショートカット：%@"
           }
         },
         "ko" : {
@@ -14198,8 +14240,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "緯度は -90 から 90 の間で入力してください。"
+            "state" : "needs_review",
+            "value" : "緯度は-90から90の間で入力してください。"
           }
         },
         "ko" : {
@@ -14352,8 +14394,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "有効にするには、システム設定の「ログイン項目」で Dimmerly を許可してください。"
+            "state" : "needs_review",
+            "value" : "有効にするには、システム設定の「一般」＞「ログイン項目と機能拡張」でDimmerlyを許可してください。"
           }
         },
         "ko" : {
@@ -14570,8 +14612,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Emplacement : latitude %@, longitude %@"
+            "state" : "needs_review",
+            "value" : "Emplacement : latitude %@, longitude %@"
           }
         },
         "it" : {
@@ -14582,8 +14624,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "位置情報: 緯度 %@、経度 %@"
+            "state" : "needs_review",
+            "value" : "位置情報：緯度%@、経度%@"
           }
         },
         "ko" : {
@@ -14735,8 +14777,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "経度は -180 から 180 の間で入力してください。"
+            "state" : "needs_review",
+            "value" : "経度は-180から180の間で入力してください。"
           }
         },
         "ko" : {
@@ -14989,8 +15031,8 @@
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Минимальная задержка между командами записи DDC. Увеличьте её, если монитор не отвечает."
+            "state" : "needs_review",
+            "value" : "Минимальная задержка между командами записи DDC (увеличьте, если монитор не отвечает)"
           }
         },
         "sr" : {
@@ -15657,8 +15699,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "DDC/CI の応答がありません。モニターの電源プラグを1分間抜いてください。"
+            "state" : "needs_review",
+            "value" : "DDC/CIの応答がありません。モニターの電源プラグを1分間抜いてください。"
           }
         },
         "ko" : {
@@ -16141,8 +16183,8 @@
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Будить экран при нажатии клавиши, щелчке мышью или прокрутке. Движение мыши игнорируется."
+            "state" : "needs_review",
+            "value" : "Будить экран только по нажатию клавиши, щелчку мышью или прокрутке, но не по движению мыши"
           }
         },
         "sr" : {
@@ -17803,8 +17845,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ の名前を変更"
+            "state" : "needs_review",
+            "value" : "%@の名前を変更"
           }
         },
         "ko" : {
@@ -18400,8 +18442,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Restaurer les préréglages par défaut ?"
+            "state" : "needs_review",
+            "value" : "Restaurer les préréglages par défaut ?"
           }
         },
         "it" : {
@@ -18565,8 +18607,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ を復元"
+            "state" : "needs_review",
+            "value" : "%@を復元"
           }
         },
         "ko" : {
@@ -18611,8 +18653,8 @@
       "localizations" : {
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Display wiederherstellen"
+            "state" : "needs_review",
+            "value" : "Bildschirm wiederherstellen"
           }
         },
         "en" : {
@@ -18687,8 +18729,8 @@
       "localizations" : {
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stellt die vorherige Helligkeit des Displays wieder her"
+            "state" : "needs_review",
+            "value" : "Stellt die vorherige Helligkeit des Bildschirms wieder her"
           }
         },
         "en" : {
@@ -18794,8 +18836,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "S-ビデオ 1"
+            "state" : "needs_review",
+            "value" : "S-ビデオ1"
           }
         },
         "ko" : {
@@ -18871,8 +18913,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "S-ビデオ 2"
+            "state" : "needs_review",
+            "value" : "S-ビデオ2"
           }
         },
         "ko" : {
@@ -19405,8 +19447,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "25% に設定"
+            "state" : "needs_review",
+            "value" : "25%に設定"
           }
         },
         "ko" : {
@@ -19481,8 +19523,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "50% に設定"
+            "state" : "needs_review",
+            "value" : "50%に設定"
           }
         },
         "ko" : {
@@ -19557,8 +19599,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "100% に設定"
+            "state" : "needs_review",
+            "value" : "100%に設定"
           }
         },
         "ko" : {
@@ -20560,8 +20602,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "GitHub のソースコード"
+            "state" : "needs_review",
+            "value" : "GitHubのソースコード"
           }
         },
         "ko" : {
@@ -20625,8 +20667,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Style :"
+            "state" : "needs_review",
+            "value" : "Style :"
           }
         },
         "it" : {
@@ -20637,8 +20679,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "スタイル:"
+            "state" : "needs_review",
+            "value" : "スタイル："
           }
         },
         "ko" : {
@@ -20791,8 +20833,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "日の出 %@ · %@"
+            "state" : "needs_review",
+            "value" : "日の出%@ · %@"
           }
         },
         "ko" : {
@@ -20945,8 +20987,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "日の入り %@ · %@"
+            "state" : "needs_review",
+            "value" : "日の入り%@ · %@"
           }
         },
         "ko" : {
@@ -21010,8 +21052,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Changer la source d'entrée du moniteur. Quitter l'entrée du Mac affichera « Pas de signal » jusqu'au retour à l'entrée d'origine."
+            "state" : "needs_review",
+            "value" : "Changer la source d'entrée du moniteur. Quitter l'entrée du Mac affichera « Pas de signal » jusqu'au retour à l'entrée d'origine."
           }
         },
         "it" : {
@@ -21177,8 +21219,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "ディスプレイをスリープさせるコマンドが IOKit エラーコード %d で失敗しました。アプリまたは Mac を再起動してください。"
+            "state" : "needs_review",
+            "value" : "ディスプレイをスリープさせるコマンドがIOKitエラーコード%dで失敗しました。アプリまたはMacを再起動してください。"
           }
         },
         "ko" : {
@@ -21255,8 +21297,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Display Wrangler サービスが見つかりませんでした。システム構成に問題がある可能性があります。"
+            "state" : "needs_review",
+            "value" : "Display Wranglerサービスが見つかりませんでした。システム構成に問題がある可能性があります。"
           }
         },
         "ko" : {
@@ -21332,8 +21374,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "pmset コマンドは終了コード %d で失敗しました。システム設定 > ロック画面で、ポリシーによりディスプレイスリープが無効になっていないか確認してください。"
+            "state" : "needs_review",
+            "value" : "pmsetコマンドは終了コード%dで失敗しました。システム設定 > ロック画面で、ポリシーによりディスプレイスリープが無効になっていないか確認してください。"
           }
         },
         "ko" : {
@@ -21409,8 +21451,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "/usr/bin/pmset に pmset ユーティリティが見つかりませんでした。pmset は macOS に含まれるため、これは想定外です。"
+            "state" : "needs_review",
+            "value" : "/usr/bin/pmsetにpmsetユーティリティが見つかりませんでした。pmsetはmacOSに含まれるため、これは想定外です。"
           }
         },
         "ko" : {
@@ -21550,8 +21592,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cet écran ne prend pas en charge le contrôle matériel DDC/CI. Causes fréquentes : le port HDMI intégré des Mac M1/M2, les adaptateurs DisplayLink ou DDC/CI désactivé dans le menu OSD du moniteur. Le contrôle logiciel de la luminosité (gamma) reste disponible."
+            "state" : "needs_review",
+            "value" : "Cet écran ne prend pas en charge le contrôle matériel DDC/CI. Causes fréquentes : le port HDMI intégré des Mac M1/M2, les adaptateurs DisplayLink ou DDC/CI désactivé dans le menu OSD du moniteur. Le contrôle logiciel de la luminosité (gamma) reste disponible."
           }
         },
         "it" : {
@@ -21779,8 +21821,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transition : %d minutes"
+            "state" : "needs_review",
+            "value" : "Transition : %d minutes"
           }
         },
         "it" : {
@@ -21791,8 +21833,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "切り替え時間: %d分"
+            "state" : "needs_review",
+            "value" : "切り替え時間：%d分"
           }
         },
         "ko" : {
@@ -21944,8 +21986,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "チューナー 1"
+            "state" : "needs_review",
+            "value" : "チューナー1"
           }
         },
         "ko" : {
@@ -22288,8 +22330,8 @@
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "关闭所有显示器并锁定Mac，就像合上盖子一样。要控制需要密码的时间，请调整锁定屏幕设置。"
+            "state" : "needs_review",
+            "value" : "关闭所有显示器并锁定 Mac，就像合上盖子一样。如需更改关闭显示器后多久才要求输入密码，请前往“系统设置”中的锁定屏幕设置。"
           }
         }
       }
@@ -22735,6 +22777,12 @@
             "value" : "USB-C"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "USB-C"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -23115,6 +23163,12 @@
             "value" : "VGA 1"
           }
         },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "VGA 1"
+          }
+        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -23182,6 +23236,12 @@
           }
         },
         "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "VGA 2"
+          }
+        },
+        "ru" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "VGA 2"
@@ -23454,8 +23514,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Délai d’écriture : %d ms"
+            "state" : "needs_review",
+            "value" : "Délai d’écriture : %d ms"
           }
         },
         "it" : {
@@ -23466,8 +23526,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "書き込み遅延: %d ms"
+            "state" : "needs_review",
+            "value" : "書き込み遅延：%d ms"
           }
         },
         "ko" : {
@@ -23641,8 +23701,8 @@
             "plural" : {
               "other" : {
                 "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld ミリ秒"
+                  "state" : "needs_review",
+                  "value" : "%lldミリ秒"
                 }
               }
             }
@@ -23885,8 +23945,8 @@
             "plural" : {
               "other" : {
                 "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld 秒"
+                  "state" : "needs_review",
+                  "value" : "%lld秒"
                 }
               }
             }
@@ -26556,8 +26616,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ の調整を隠す"
+            "state" : "needs_review",
+            "value" : "%@の調整を隠す"
           }
         },
         "ko" : {
@@ -28152,8 +28212,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "75% に設定"
+            "state" : "needs_review",
+            "value" : "75%に設定"
           }
         },
         "ko" : {
@@ -28532,8 +28592,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ の調整を表示"
+            "state" : "needs_review",
+            "value" : "%@の調整を表示"
           }
         },
         "ko" : {
@@ -28836,8 +28896,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "このショートカットは %@ と競合しています。"
+            "state" : "needs_review",
+            "value" : "このショートカットは%@と競合しています。"
           }
         },
         "ko" : {
@@ -29128,8 +29188,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Essaie le contrôle natif de la luminosité sur les écrans externes Apple et LG compatibles. La prise en charge varie selon le modèle ; la luminosité logicielle reste la solution de repli."
+            "state" : "needs_review",
+            "value" : "Essaie le contrôle natif de la luminosité sur les écrans externes Apple et LG compatibles. La prise en charge varie selon le modèle ; la luminosité logicielle reste la solution de repli."
           }
         },
         "it" : {
@@ -29888,8 +29948,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quel pourcentage de luminosité dois-je régler ?"
+            "state" : "needs_review",
+            "value" : "Quel pourcentage de luminosité dois-je régler ?"
           }
         },
         "it" : {
@@ -29964,8 +30024,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quel pourcentage de contraste dois-je régler ?"
+            "state" : "needs_review",
+            "value" : "Quel pourcentage de contraste dois-je régler ?"
           }
         },
         "it" : {
@@ -30040,8 +30100,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quel pourcentage de chaleur dois-je régler ?"
+            "state" : "needs_review",
+            "value" : "Quel pourcentage de chaleur dois-je régler ?"
           }
         },
         "it" : {
@@ -30116,8 +30176,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quel écran voulez-vous contrôler ?"
+            "state" : "needs_review",
+            "value" : "Quel écran voulez-vous contrôler ?"
           }
         },
         "it" : {
@@ -30192,8 +30252,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quel écran dois-je contrôler ?"
+            "state" : "needs_review",
+            "value" : "Quel écran dois-je contrôler ?"
           }
         },
         "it" : {
@@ -30268,8 +30328,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quel préréglage voulez-vous appliquer ?"
+            "state" : "needs_review",
+            "value" : "Quel préréglage voulez-vous appliquer ?"
           }
         },
         "it" : {
@@ -30344,8 +30404,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quel préréglage voulez-vous ouvrir ?"
+            "state" : "needs_review",
+            "value" : "Quel préréglage voulez-vous ouvrir ?"
           }
         },
         "it" : {
@@ -30420,8 +30480,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quel préréglage dois-je appliquer ?"
+            "state" : "needs_review",
+            "value" : "Quel préréglage dois-je appliquer ?"
           }
         },
         "it" : {
@@ -30496,8 +30556,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quel préréglage dois-je ouvrir ?"
+            "state" : "needs_review",
+            "value" : "Quel préréglage dois-je ouvrir ?"
           }
         },
         "it" : {
@@ -30585,8 +30645,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "ディスプレイ %lld"
+            "state" : "needs_review",
+            "value" : "ディスプレイ%lld"
           }
         },
         "ko" : {
@@ -31033,8 +31093,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Le Service de localisation est désactivé. Activez-le dans Réglages Système > Confidentialité et sécurité > Service de localisation, ou saisissez un lieu manuellement."
+            "state" : "needs_review",
+            "value" : "Le Service de localisation est désactivé. Activez-le dans Réglages Système > Confidentialité et sécurité > Service de localisation, ou saisissez un emplacement manuellement."
           }
         },
         "it" : {
@@ -31110,8 +31170,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dimmerly n’a pas accès à votre position. Autorisez-le dans Réglages Système > Confidentialité et sécurité > Service de localisation, ou saisissez un lieu manuellement."
+            "state" : "needs_review",
+            "value" : "Dimmerly n’a pas accès à votre position. Autorisez-le dans Réglages Système > Confidentialité et sécurité > Service de localisation, ou saisissez un emplacement manuellement."
           }
         },
         "it" : {
@@ -31122,8 +31182,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dimmerly は位置情報にアクセスできません。システム設定 > プライバシーとセキュリティ > 位置情報サービスで許可するか、位置を手動で入力してください。"
+            "state" : "needs_review",
+            "value" : "Dimmerlyは位置情報にアクセスできません。システム設定 > プライバシーとセキュリティ > 位置情報サービスで許可するか、位置を手動で入力してください。"
           }
         },
         "ko" : {
@@ -31187,8 +31247,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "L’accès à la position est restreint sur ce Mac. Saisissez un lieu manuellement."
+            "state" : "needs_review",
+            "value" : "L’accès à la position est restreint sur ce Mac. Saisissez un emplacement manuellement."
           }
         },
         "it" : {

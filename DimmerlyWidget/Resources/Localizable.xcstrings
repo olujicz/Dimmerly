@@ -268,8 +268,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ を適用"
+            "state" : "needs_review",
+            "value" : "%@を適用"
           }
         },
         "ko" : {

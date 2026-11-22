@@ -39,6 +39,28 @@
     ],
     "allow_matches": [
       "NSHumanReadableCopyright"
+    ],
+    "target_patterns": [
+      {
+        "regex": "(?<!\\d):(?!\\d)|[(),;]",
+        "hint": "ja uses full-width （）：； and 、 (digit separators and the ⌘, token excepted)",
+        "severity": "warning",
+        "exceptions": [
+          {
+            "before": "\\d",
+            "after": "\\d"
+          },
+          {
+            "before": "⌘",
+            "after": "）"
+          }
+        ]
+      },
+      {
+        "regex": "[\\u3040-\\u30ff\\u4e00-\\u9fff] [A-Za-z0-9%@]|[A-Za-z0-9%@] [\\u3040-\\u30ff\\u4e00-\\u9fff]",
+        "hint": "no space between Japanese and Latin letters, digits or placeholders",
+        "severity": "warning"
+      }
     ]
   },
   "ko": {
@@ -88,6 +110,18 @@
     ],
     "allow_matches": [
       "NSHumanReadableCopyright"
+    ],
+    "target_patterns": [
+      {
+        "regex": "[\\u3040-\\u30ff\\u4e00-\\u9fff][A-Za-z0-9]|[A-Za-z0-9][\\u3040-\\u30ff\\u4e00-\\u9fff]",
+        "hint": "one space between Chinese and Latin letters or digits",
+        "severity": "warning"
+      },
+      {
+        "regex": "[\\u3040-\\u30ff\\u4e00-\\u9fff][,;:!?]|[！？。]{2,}|\\((?!⌘)",
+        "hint": "use full-width punctuation beside Chinese text; no repeated marks",
+        "severity": "warning"
+      }
     ]
   },
   "_catalog_exceptions": {
@@ -338,6 +372,167 @@
           "The display wrangler service could not be found. This may indicate a system configuration issue.",
           "Uses DDC for brightness and gamma tables for warmth and contrast. Automatically uses software brightness if DDC is not available.",
           "Uses DDC/CI to control compatible external displays directly. Unsupported displays continue using software brightness."
+        ]
+      },
+      "number-mismatch": {
+        "ja": [
+          "Use at least two modifier keys, including Control (⌃) or Command (⌘).",
+          "no DDC/CI reply, unplug the monitor from power for a minute",
+          "No DDC/CI reply. Unplug the monitor from power for a minute.",
+          "A macOS menu bar utility for putting your displays to sleep — with a single keyboard shortcut.\n"
+        ],
+        "ko": [
+          "no DDC/CI reply, unplug the monitor from power for a minute",
+          "No DDC/CI reply. Unplug the monitor from power for a minute."
+        ],
+        "zh-hans": [
+          "Contrast percentage (0–100, 50 = neutral)"
+        ]
+      },
+      "xcstrings-needs_review": {
+        "fr": [
+          "\"%@\" will be permanently deleted.",
+          "An unexpected error occurred: %@. Please try again or restart the app.",
+          "Connected Displays:",
+          "Control Mode:",
+          "Delete Preset?",
+          "Delete Schedule?",
+          "Dimmerly couldn’t get your location. Try again, or enter a location manually.",
+          "Dimmerly doesn’t have access to your location. Allow it in System Settings > Privacy & Security > Location Services, or enter a location manually.",
+          "Failed to disable launch at login: %@",
+          "Failed to enable launch at login: %@",
+          "Hardware controls: %@",
+          "If this Mac isn't connected to that input, the display shows \"No Signal\" until you switch it back with the monitor's own buttons.",
+          "Keyboard shortcut: %@",
+          "Location Services is turned off. Turn it on in System Settings > Privacy & Security > Location Services, or enter a location manually.",
+          "Location access is restricted on this Mac. Enter a location manually.",
+          "Location: Latitude %@, Longitude %@",
+          "Restore Default Presets?",
+          "Style:",
+          "Switch %1$@ to %2$@?",
+          "Switch monitor input source. Switching away from the Mac's input will cause this display to show \"No Signal\" until switched back.",
+          "This display does not support DDC/CI hardware control. Common reasons: built-in HDMI on M1/M2 Macs, DisplayLink adapters, or the monitor has DDC/CI disabled in its OSD settings. Software brightness control (gamma) is still available.",
+          "Transition: %d minutes",
+          "Tries native brightness control for compatible external Apple and LG displays. Support varies by model; software brightness remains the fallback.",
+          "Update \"%@\"?",
+          "What brightness percentage should I set?",
+          "What contrast percentage should I set?",
+          "What warmth percentage should I set?",
+          "Which display do you want to control?",
+          "Which display should I control?",
+          "Which preset do you want to apply?",
+          "Which preset do you want to open?",
+          "Which preset should I apply?",
+          "Which preset should I open?",
+          "Write delay: %d ms"
+        ],
+        "ja": [
+          "%@ brightness",
+          "%@ contrast",
+          "%@ input source",
+          "%@ is a standard system shortcut. Try a different combination.",
+          "%@ volume",
+          "%@ warmth",
+          "%d min after",
+          "%d min before",
+          "%d minutes (('plural', 'other'),)",
+          "%d percent",
+          "%lld milliseconds (('plural', 'other'),)",
+          "%lld seconds (('plural', 'other'),)",
+          "A macOS menu bar utility for putting your displays to sleep — with a single keyboard shortcut.\n",
+          "A value between -180 and 180",
+          "A value between -90 and 90",
+          "Allow Dimmerly in Login Items in System Settings to finish turning this on.",
+          "An unexpected error occurred: %@. Please try again or restart the app.",
+          "Apply %@",
+          "Automatically start Dimmerly when you log in",
+          "Brightness Control",
+          "Component 1",
+          "Component 2",
+          "Component 3",
+          "Composite 1",
+          "Composite 2",
+          "Connected Displays:",
+          "Control Mode:",
+          "Delete %@",
+          "Dim %@",
+          "Dimmerly couldn’t get your location. Try again, or enter a location manually.",
+          "Dimmerly does not have permission to control displays. Please check System Settings > Privacy & Security.",
+          "Dimmerly doesn’t have access to your location. Allow it in System Settings > Privacy & Security > Location Services, or enter a location manually.",
+          "Display %lld",
+          "Displays will dim automatically after %d minutes of inactivity. (('plural', 'other'),)",
+          "Failed to Sleep Displays (Error %d)",
+          "Failed to Sleep Displays (Exit %d)",
+          "Failed to disable launch at login: %@",
+          "Failed to enable launch at login: %@",
+          "Hardware controls: %@",
+          "Hide adjustments for %@",
+          "Keyboard shortcut: %@",
+          "Latitude must be between -90 and 90.",
+          "Location: Latitude %@, Longitude %@",
+          "Longitude must be between -180 and 180.",
+          "No DDC/CI reply. Unplug the monitor from power for a minute.",
+          "Rename %@",
+          "Restore %@",
+          "S-Video 1",
+          "S-Video 2",
+          "Set to 100%",
+          "Set to 25%",
+          "Set to 50%",
+          "Set to 75%",
+          "Show adjustments for %@",
+          "Source Code on GitHub",
+          "Style:",
+          "Sunrise %@ · %@",
+          "Sunset %@ · %@",
+          "The display sleep command failed with IOKit error code %d. Try restarting the app or your Mac.",
+          "The display wrangler service could not be found. This may indicate a system configuration issue.",
+          "The pmset command failed with exit code %d. Check System Settings > Lock Screen and ensure display sleep is not disabled by policy.",
+          "The pmset utility was not found at /usr/bin/pmset. This is unexpected — pmset is included with macOS.",
+          "This shortcut conflicts with %@.",
+          "Transition: %d minutes",
+          "Tuner 1",
+          "Write delay: %d ms",
+          "no DDC/CI reply, unplug the monitor from power for a minute"
+        ],
+        "nl": [
+          "Apply",
+          "Try Again"
+        ],
+        "zh-hans": [
+          "Turns off all displays and locks your Mac, just like closing the lid. To control how quickly your password is required, adjust your Lock Screen settings.",
+          "Use at least two modifier keys, including Control (⌃) or Command (⌘)."
+        ],
+        "ko": [
+          "%@ is a standard system shortcut. Try a different combination."
+        ],
+        "de": [
+          "Dim Display",
+          "Restore Display",
+          "Restores the display to its previous brightness"
+        ],
+        "ru": [
+          "Minimum delay between DDC writes (increase if monitor is unresponsive)",
+          "Only wake the screen on keyboard input, a mouse click or scrolling, not mouse movement"
+        ]
+      }
+    },
+    "Dimmerly/Resources/InfoPlist.xcstrings": {
+      "xcstrings-needs_review": {
+        "ja": [
+          "NSLocationUsageDescription",
+          "NSLocationWhenInUseUsageDescription"
+        ],
+        "pt-br": [
+          "NSLocationUsageDescription",
+          "NSLocationWhenInUseUsageDescription"
+        ]
+      }
+    },
+    "DimmerlyWidget/Resources/Localizable.xcstrings": {
+      "xcstrings-needs_review": {
+        "ja": [
+          "Apply %@"
         ]
       }
     }

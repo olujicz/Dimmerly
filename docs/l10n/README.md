@@ -30,3 +30,11 @@ The rules record existing app catalog findings under `_catalog_exceptions`, scop
 The address audit included stale entries. The former display control and DDC/CI help text and the former IOKit recovery message have no live call sites for a rendered check. If those keys return, verify wrapping in Settings and in the recovery message for the active locale.
 
 Before release, review the changed prompts and labels in the built app, including the location dialog, shortcut editing, input switching and wake controls. Check the widget error and location permission prompt where the locale changed. Use the locale guides to check text width, line breaks and regional glyphs.
+
+## Review state
+
+Strings changed during the translation quality pass carry the Xcode state `needs_review` until a native speaker has checked them. The checker reports every `needs_review` entry, so `_catalog_exceptions` in `checker-rules.json` allowlists the known pending entries under `xcstrings-needs_review`, scoped by catalog, locale and key (plural variants use the checker's variant label). A new pending entry that is not on the list fails `just l10n-check`. After a native speaker has checked a string, set its state back to `translated` and delete its entry from the allowlist. To list the current pending entries, run the checker with the allowlist section removed.
+
+## Checker
+
+The vendored checker follows the translation-quality skill's current checker (CLDR 49 plural categories, hygiene checks, `target_patterns`, `max_length`, protected-literal presence, `machine_translated` as pending). The only local addition is `_catalog_exceptions` for per-key exceptions, which also accepts `number-mismatch`. That check treats a full-width comma between digits as part of one number and ignores number words, so the listed keys are false positives.

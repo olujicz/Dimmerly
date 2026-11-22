@@ -10,9 +10,10 @@ import json
 from pathlib import Path
 import re
 import sys
+import unicodedata
 
 
-# CLDR 50 cardinal categories for the supported language families.
+# CLDR 49 cardinal categories for the supported language families.
 CARDINALS = {
     "en": "one other", "de": "one other", "es": "one many other",
     "fr": "one many other", "it": "one many other", "ja": "other",
@@ -43,7 +44,9 @@ ENGLISH_PHRASE = re.compile(
     r"\b(?:click here|try again|learn more|are you sure|you can|your settings|"
     r"please wait|by default|to continue|if you|this feature)\b"
 )
-STATES = {"new", "needs_review", "stale"}
+STATES = {"new", "needs_review", "stale", "machine_translated"}
+SEVERITIES = ("error", "warning", "info")
+EXCEPTION_FIELDS = ("key", "source", "before", "after")
 
 
 def tag(value):
@@ -115,15 +118,73 @@ def contains(text, term):
     return re.search(r"(?<!\w)" + re.escape(term) + r"(?!\w)", text, re.IGNORECASE) is not None
 
 
+SPACES = str.maketrans({"\u00a0": " ", "\u202f": " ", "\u3000": " "})
+CLOSERS = "\"'”’»」』)）]】›"
+ENDINGS = {"stop": ".。．｡", "colon": ":：", "exclamation": "!！", "question": "?？"}
+# Open and close characters that are unambiguous across the supported locales.
+BRACKETS = (("([（［【", ")]）］】"), ("{｛", "}｝"), ("«", "»"), ("「", "」"), ("『", "』"))
+NUMBER = re.compile(r"\d+(?:[.,\u00a0\u202f' ]\d+)*")
+
+
+def ending(text):
+    text = text.translate(SPACES).rstrip()
+    text = text.rstrip(CLOSERS).rstrip()
+    if text.endswith(("…", "...")):
+        return "ellipsis"
+    for name, chars in ENDINGS.items():
+        if text[-1:] and text[-1] in chars:
+            return name
+    return ""
+
+
+def edge_space(text):
+    text = text.translate(SPACES)
+    return text[:len(text) - len(text.lstrip())], text[len(text.rstrip()):]
+
+
+def unbalanced(text):
+    found = [f"{opens}{closes}" for opens, closes in BRACKETS
+             if sum(text.count(c) for c in opens) != sum(text.count(c) for c in closes)]
+    if text.count('"') % 2:
+        found.append('"')
+    return set(found)
+
+
+def numbers(text):
+    text = unicodedata.normalize("NFKC", text)
+    return Counter(re.sub(r"\D", "", match[0]) for match in NUMBER.finditer(text))
+
+
+def exception_applies(exception, key, source, target, start, end):
+    """True when every context field given in the exception matches."""
+    subjects = {
+        "key": (key, lambda p, t: re.search(p, t)),
+        "source": (source, lambda p, t: re.search(p, t)),
+        # Text immediately before or after the match, anchored to it.
+        "before": (target[:start], lambda p, t: re.search(f"(?:{p})$", t)),
+        "after": (target[end:], lambda p, t: re.match(p, t)),
+    }
+    return all(subjects[field][1](exception[field], subjects[field][0])
+               for field in EXCEPTION_FIELDS if field in exception)
+
+
+def term_excepted(exceptions, key, source):
+    return any(exception_applies(item, key, source, "", 0, 0) for item in exceptions)
+
+
 class Checker:
-    def __init__(self, rules, options, exceptions):
+    def __init__(self, rules, options, exceptions=None):
         self.rules = rules
         self.options = options
-        self.exceptions = exceptions
+        self.exceptions = exceptions or {}
         self.locales = {tag(locale) for locale in options.locale}
         self.counts = Counter()
+        self.translations = {}
 
     def report(self, locale, key, code, detail=""):
+        if code in self.rules.get(locale, {}).get("ignore_checks", []):
+            return
+        # Project extension: per-catalog, per-key exceptions from _catalog_exceptions.
         if key in self.exceptions.get(code, {}).get(locale, []):
             return
         self.counts[code] += 1
@@ -135,7 +196,9 @@ class Checker:
             self.report(locale, "", "missing-locale")
         return sorted((self.locales or available) & available)
 
-    def variant(self, locale, key, source, target, state=None):
+    def variant(self, locale, key, source, target, state=None, contextual=False):
+        # contextual: plural, device or msgctxt variants may legitimately differ,
+        # so number and consistency checks skip them.
         if state in STATES:
             self.report(locale, key, f"xcstrings-{state}")
         if not target.strip():
@@ -148,12 +211,23 @@ class Checker:
 
         rules = self.rules.get(locale, {})
         source_text, target_text = visible(source), visible(target)
+        term_exceptions = rules.get("glossary_exceptions", {})
         for term, forms in rules.get("glossary", {}).items():
             if contains(source_text, term) and not any(contains(target_text, form) for form in forms):
-                self.report(locale, key, "glossary", term)
+                if not term_excepted(term_exceptions.get(term, []), key, source):
+                    self.report(locale, key, "glossary", term)
         for pattern in rules.get("address_patterns", []):
             if re.search(pattern, target_text, re.IGNORECASE):
                 self.report(locale, key, "address", pattern)
+        self.target_patterns(locale, key, source, target, rules.get("target_patterns", []))
+        self.hygiene(locale, key, source, target, contextual)
+        if not contextual and source.strip():
+            self.translations.setdefault((locale, source.strip()), {}).setdefault(
+                target.strip(), []).append(key)
+        for literal in rules.get("protected_literals", []):
+            if literal in source and literal not in target:
+                self.report(locale, key, "protected-literal", literal)
+        self.max_length(locale, key, target)
         allowed = rules.get("allow_matches", [])
         if source in allowed or key in allowed:
             return
@@ -172,6 +246,53 @@ class Checker:
                 low = min(low, 0.2)
             if ratio < low or ratio > self.options.max_ratio:
                 self.report(locale, key, "length-ratio", f"{ratio:.2f}")
+
+    def max_length(self, locale, key, target):
+        # Limits come from the locale's rules and from an optional "*" entry for all locales.
+        for scope in ("*", locale):
+            for pattern, limit in self.rules.get(scope, {}).get("max_length", {}).items():
+                if re.search(pattern, key) and len(target) > limit:
+                    self.report(locale, key, "max-length", f"{len(target)} > {limit}")
+
+    def hygiene(self, locale, key, source, target, contextual):
+        if not source.strip():
+            return
+        if edge_space(source) != edge_space(target):
+            self.report(locale, key, "edge-whitespace")
+        if re.search(r"\S {2,}\S", target) and not re.search(r"\S {2,}\S", source):
+            self.report(locale, key, "double-space")
+        source_text, target_text = visible(source), visible(target)
+        wanted, got = ending(source_text), ending(target_text)
+        # Short CJK labels often drop the final full stop.
+        dropped_stop = wanted == "stop" and not got and language(locale) in {"zh", "ja", "ko"}
+        if wanted != got and not dropped_stop and (wanted or got):
+            self.report(locale, key, "end-punctuation", f"source {wanted or 'none'}, target {got or 'none'}")
+        broken = unbalanced(target_text) - unbalanced(source_text)
+        if broken:
+            self.report(locale, key, "unbalanced", " ".join(sorted(broken)))
+        if not contextual and numbers(source_text) != numbers(target_text):
+            self.report(locale, key, "number-mismatch")
+
+    def finish(self):
+        """Cross-entry checks, run once after the whole catalog was read."""
+        for (locale, source), targets in sorted(self.translations.items()):
+            if len(targets) < 2 or source in self.rules.get(locale, {}).get("inconsistent_ok", []):
+                continue
+            detail = "; ".join(f"{target!r} in {', '.join(map(repr, keys[:3]))}"
+                               for target, keys in sorted(targets.items()))
+            self.report(locale, source, "inconsistent-translation", detail)
+
+    def target_patterns(self, locale, key, source, target, patterns):
+        # Runs on the raw target so punctuation and spacing stay visible.
+        for rule in patterns:
+            flags = re.IGNORECASE if rule.get("ignore_case") else 0
+            for match in re.finditer(rule["regex"], target, flags):
+                if any(exception_applies(item, key, source, target, match.start(), match.end())
+                       for item in rule.get("exceptions", [])):
+                    continue
+                severity = rule.get("severity", "warning")
+                self.report(locale, key, f"target-pattern-{severity}",
+                            f"{rule['regex']!r}: {rule['hint']}; found {match[0]!r}")
 
     def plural(self, locale, key, observed):
         required = CARDINALS.get(language(locale), "").split()
@@ -246,7 +367,8 @@ def check_xcstrings(handle, checker):
                 if original is None:
                     checker.report(locale, label, "missing-source-variant")
                     original = ""
-                checker.variant(locale, label, original, unit.get("value", ""), unit.get("state"))
+                checker.variant(locale, label, original, unit.get("value", ""), unit.get("state"),
+                                contextual=bool(path))
 
 
 def check_csv(handle, checker):
@@ -375,7 +497,8 @@ def check_po(handle, checker):
         if fuzzy:
             checker.report(locale, label, "po-fuzzy")
         if "msgid_plural" not in entry:
-            checker.variant(locale, label, original, entry.get("msgstr", ""))
+            checker.variant(locale, label, original, entry.get("msgstr", ""),
+                            contextual="msgctxt" in entry)
             continue
         slots = {int(field[7:-1]): value for field, value in entry.items() if field.startswith("msgstr[")}
         if count and (len(slots) != count or any(index >= count for index in slots)):
@@ -390,7 +513,20 @@ def check_po(handle, checker):
             signature = placeholder_signature(value)
             best = next((text for text in candidates if placeholder_signature(text) == signature),
                         candidates[0])
-            checker.variant(locale, f"{label} [{index}]", best, value)
+            checker.variant(locale, f"{label} [{index}]", best, value, contextual=True)
+
+
+def validate_exceptions(items):
+    if not isinstance(items, list):
+        raise ValueError("exceptions must be a list")
+    for item in items:
+        fields = set(item) if isinstance(item, dict) else set()
+        if not fields or not fields <= set(EXCEPTION_FIELDS):
+            raise ValueError(f"exception needs one or more of {EXCEPTION_FIELDS}")
+        for field in fields:
+            if not isinstance(item[field], str):
+                raise ValueError(f"exception {field} must be a regex string")
+            re.compile(item[field])
 
 
 def load_rules(path):
@@ -399,7 +535,8 @@ def load_rules(path):
     with path.open(encoding="utf-8") as handle:
         data = json.load(handle)
     exceptions = data.pop("_catalog_exceptions", {})
-    allowed_codes = {"source-identical", "possible-english", "length-ratio", "xcstrings-stale"}
+    allowed_codes = {"source-identical", "possible-english", "length-ratio", "xcstrings-stale", "number-mismatch",
+                     "xcstrings-needs_review"}
     for catalog, findings in exceptions.items():
         for code, locales in findings.items():
             if code not in allowed_codes:
@@ -409,12 +546,31 @@ def load_rules(path):
                     raise ValueError(f"expected a list of keys for {catalog}: {code}")
     rules = {tag(locale): config for locale, config in data.items()}
     for config in rules.values():
-        for field in ("address_patterns", "allow_matches", "protected_literals", "plural_categories"):
+        for field in ("address_patterns", "allow_matches", "protected_literals", "plural_categories",
+                      "ignore_checks", "inconsistent_ok"):
             items = config.get(field, [])
             if not isinstance(items, list) or not all(isinstance(item, str) and item for item in items):
                 raise ValueError(f"expected a list of nonempty strings for {field}")
         for pattern in config.get("address_patterns", []):
             re.compile(pattern)
+        limits = config.get("max_length", {})
+        if not isinstance(limits, dict):
+            raise ValueError("max_length must map key regexes to character limits")
+        for pattern, limit in limits.items():
+            if not isinstance(limit, int) or isinstance(limit, bool) or limit < 1:
+                raise ValueError(f"max_length for {pattern!r} must be a positive integer")
+            re.compile(pattern)
+        for rule in config.get("target_patterns", []):
+            if not isinstance(rule, dict) or not isinstance(rule.get("regex"), str) or not rule["regex"]:
+                raise ValueError("each target_patterns entry needs a nonempty regex")
+            if not isinstance(rule.get("hint"), str) or not rule["hint"]:
+                raise ValueError(f"target pattern {rule['regex']!r} needs a hint")
+            if rule.get("severity", "warning") not in SEVERITIES:
+                raise ValueError(f"severity must be one of {SEVERITIES}")
+            re.compile(rule["regex"])
+            validate_exceptions(rule.get("exceptions", []))
+        for term, items in config.get("glossary_exceptions", {}).items():
+            validate_exceptions(items)
         for term, forms in config.get("glossary", {}).items():
             if not term or not isinstance(forms, list) or not all(isinstance(form, str) and form for form in forms):
                 raise ValueError(f"expected a list of nonempty glossary forms for {term!r}")
@@ -451,13 +607,14 @@ def main():
                 raise ValueError("expected .xcstrings, .csv or .po")
             with path.open(encoding="utf-8-sig", newline="") as handle:
                 reader(handle, checker)
+            checker.finish()
         except (OSError, ValueError, SyntaxError, KeyError, TypeError, AttributeError, csv.Error) as exc:
             print(f"{path}: {exc}", file=sys.stderr)
             result = 2
             continue
         totals = ", ".join(f"{code}={count}" for code, count in sorted(checker.counts.items()))
         print(totals or "No findings")
-        if checker.counts:
+        if any(code != "target-pattern-info" for code in checker.counts):
             result = max(result, 1)
     return result
 
