@@ -49,6 +49,12 @@ jobs:
       - name: Test Screenshot Launch Lifecycle
         run: bash scripts/screenshots/test-launch.sh
 
+      - name: Check String Catalogs
+        run: >-
+          python3 scripts/l10n/check_catalog.py --rules docs/l10n/checker-rules.json
+          Dimmerly/Resources/InfoPlist.xcstrings Dimmerly/Resources/Localizable.xcstrings
+          DimmerlyWidget/Resources/Localizable.xcstrings
+
       - name: Determine CI Scope
         id: scope
         env:

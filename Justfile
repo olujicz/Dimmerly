@@ -54,8 +54,12 @@ test-direct: sparkle
 test-appstore:
     xcodebuild -quiet -project {{project}} -scheme '{{appstore_scheme}}' -configuration Debug-AppStore -destination '{{destination}}' -derivedDataPath {{build_dir}}/appstore test
 
+# Check the app, Info.plist, and widget string catalogs
+l10n-check:
+    python3 scripts/l10n/check_catalog.py --rules docs/l10n/checker-rules.json Dimmerly/Resources/InfoPlist.xcstrings Dimmerly/Resources/Localizable.xcstrings DimmerlyWidget/Resources/Localizable.xcstrings
+
 # Run all project quality checks
-check: format-check lint test build-appstore
+check: l10n-check format-check lint test build-appstore
 
 # Build and run the app
 run: build
