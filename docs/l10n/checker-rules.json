@@ -1,0 +1,93 @@
+{
+  "de": {
+    "address_patterns": [
+      "\\b\\w+\\s+(?-i:Sie)\\b",
+      "\\b(?-i:Ihr(?:e|en|em|er|es)?)\\b"
+    ],
+    "allow_matches": [
+      "NSHumanReadableCopyright"
+    ]
+  },
+  "es": {
+    "address_patterns": [
+      "\\b(?:usted(?:es)?|elija(?:n)?)\\b"
+    ],
+    "allow_matches": [
+      "NSHumanReadableCopyright"
+    ]
+  },
+  "fr": {
+    "address_patterns": [
+      "\\b(?:tu|toi|ton|ta|tes)\\b"
+    ],
+    "allow_matches": [
+      "NSHumanReadableCopyright"
+    ]
+  },
+  "it": {
+    "address_patterns": [
+      "\\b(?-i:Lei)\\b",
+      "\\b(?:scelga|prema|inserisca|riprovi)\\b"
+    ],
+    "allow_matches": [
+      "NSHumanReadableCopyright"
+    ]
+  },
+  "ja": {
+    "address_patterns": [
+      "あなた|きみ|君の"
+    ],
+    "allow_matches": [
+      "NSHumanReadableCopyright"
+    ]
+  },
+  "ko": {
+    "address_patterns": [
+      "(?:세요|해요|해 주세요)(?=\\W|$)",
+      "당신"
+    ],
+    "allow_matches": [
+      "NSHumanReadableCopyright"
+    ]
+  },
+  "nl": {
+    "address_patterns": [
+      "\\b(?:u|uw|uzelf)\\b"
+    ],
+    "allow_matches": [
+      "NSHumanReadableCopyright"
+    ]
+  },
+  "pt-BR": {
+    "address_patterns": [
+      "\\b(?:tu|teu|teus|tua|tuas|contigo)\\b"
+    ],
+    "allow_matches": [
+      "NSHumanReadableCopyright"
+    ]
+  },
+  "ru": {
+    "address_patterns": [
+      "\\b(?:ты|тебя|тебе|тобой|твой|твоя|тво[её]|твои|твоих|твоим|твоими|твоего|твоему|тво[её]м|твоей|твою)\\b"
+    ],
+    "allow_matches": [
+      "NSHumanReadableCopyright"
+    ]
+  },
+  "sr": {
+    "address_patterns": [
+      "\\b(?:vi|vam|vas|vaš\\w*|izaberite|kontrolišite|pritisnite|unesite)\\b"
+    ],
+    "allow_matches": [
+      "NSHumanReadableCopyright"
+    ]
+  },
+  "zh-Hans": {
+    "address_patterns": [
+      "你|您"
+    ],
+    "allow_matches": [
+      "NSHumanReadableCopyright"
+    ]
+  }
+}
