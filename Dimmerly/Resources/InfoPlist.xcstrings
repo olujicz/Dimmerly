@@ -126,7 +126,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Dimmerlyは、スケジュールと自動色温度のために日の出と日の入りの時刻を計算する目的で位置情報を使用します。"
+            "value" : "Dimmerlyは、スケジュールと自動色温度に必要な日の出・日の入りの時刻を計算するために、位置情報を使用します。"
           }
         },
         "ko" : {
@@ -143,8 +143,8 @@
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "O Dimmerly usa sua localização para calcular os horários de nascer e pôr do sol para agendas e temperatura de cor automática."
+            "state" : "needs_review",
+            "value" : "O Dimmerly usa sua localização para calcular os horários de nascer e pôr do sol para os agendamentos e a temperatura de cor automática."
           }
         },
         "ru" : {
@@ -203,7 +203,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Dimmerlyは、スケジュールと自動色温度のために日の出と日の入りの時刻を計算する目的で位置情報を使用します。"
+            "value" : "Dimmerlyは、スケジュールと自動色温度に必要な日の出・日の入りの時刻を計算するために、位置情報を使用します。"
           }
         },
         "ko" : {
@@ -220,8 +220,8 @@
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "O Dimmerly usa sua localização para calcular os horários de nascer e pôr do sol para agendas e temperatura de cor automática."
+            "state" : "needs_review",
+            "value" : "O Dimmerly usa sua localização para calcular os horários de nascer e pôr do sol para os agendamentos e a temperatura de cor automática."
           }
         },
         "ru" : {

@@ -33,7 +33,7 @@ Before release, review the changed prompts and labels in the built app, includin
 
 ## Review state
 
-Strings changed during the translation quality pass carry the Xcode state `needs_review` until a native speaker has checked them. The shared rules list `xcstrings-needs_review` in each locale's `ignore_checks` so the pending state does not fail `just l10n-check`. List the pending strings with `grep -c '"needs_review"'` on each catalog and clear the state after the review.
+Strings changed during the translation quality pass carry the Xcode state `needs_review` until a native speaker has checked them. The checker reports every `needs_review` entry, so `_catalog_exceptions` in `checker-rules.json` allowlists the known pending entries under `xcstrings-needs_review`, scoped by catalog, locale and key (plural variants use the checker's variant label). A new pending entry that is not on the list fails `just l10n-check`. After a native speaker has checked a string, set its state back to `translated` and delete its entry from the allowlist. To list the current pending entries, run the checker with the allowlist section removed.
 
 ## Checker
 

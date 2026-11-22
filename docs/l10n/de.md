@@ -11,5 +11,5 @@ Keep German uses of **Name**, **Warm**, **Version** and the established loanword
 - Address: informal **du**; messages that avoid the pronoun use the infinitive (`Bitte erneut versuchen`).
 - Buttons and menu items: infinitive or noun (`Anwenden`, `Löschen`, `Umschalten`).
 - Gender: no gendered forms address the user. Prefer neutral wording; do not use `*`, `_` or `:` inside words.
-- Display terms: **Bildschirm** in general UI. **Display** appears in compounds and status text that follow macOS Systemeinstellungen; keep each surface consistent (open for native review).
+- Display terms: **Bildschirm** in action labels and descriptions (`Bildschirm dimmen`, `Bildschirm wiederherstellen`). **Display** stays in compounds, status text and error titles (`Displays werden angepasst`, `Displayeinstellung`), following macOS. Revisit both with a native speaker.
 - Typography: „…“, no space before the ellipsis, long compounds may wrap.

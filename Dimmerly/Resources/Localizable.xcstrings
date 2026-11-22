@@ -101,8 +101,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dimmerly n’a pas pu obtenir votre position. Réessayez ou saisissez une position manuellement."
+            "state" : "needs_review",
+            "value" : "Dimmerly n’a pas pu obtenir votre position. Réessayez ou saisissez un emplacement manuellement."
           }
         },
         "it" : {
@@ -178,8 +178,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Si ce Mac n’est pas connecté à cette entrée, l’écran affiche « Pas de signal » jusqu’à ce que vous reveniez en arrière avec les boutons du moniteur."
+            "state" : "needs_review",
+            "value" : "Si ce Mac n’est pas connecté à cette entrée, l’écran affiche « Pas de signal » jusqu’à ce que vous reveniez en arrière avec les boutons du moniteur."
           }
         },
         "it" : {
@@ -409,8 +409,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Basculer %1$@ sur %2$@ ?"
+            "state" : "needs_review",
+            "value" : "Basculer %1$@ sur %2$@ ?"
           }
         },
         "it" : {
@@ -640,8 +640,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mettre à jour « %@ » ?"
+            "state" : "needs_review",
+            "value" : "Mettre à jour « %@ » ?"
           }
         },
         "it" : {
@@ -884,8 +884,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "明るさの制御"
+            "state" : "needs_review",
+            "value" : "輝度の制御"
           }
         },
         "ko" : {
@@ -1643,8 +1643,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Contrôles matériels : %@"
+            "state" : "needs_review",
+            "value" : "Contrôles matériels : %@"
           }
         },
         "it" : {
@@ -2491,8 +2491,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "« %@ » sera supprimé définitivement."
+            "state" : "needs_review",
+            "value" : "« %@ » sera supprimé définitivement."
           }
         },
         "it" : {
@@ -2581,7 +2581,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "%@の明るさ"
+            "value" : "%@の輝度"
           }
         },
         "ko" : {
@@ -2817,8 +2817,8 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@는 표준 시스템 단축키입니다. 다른 조합을 시도하십시오."
+            "state" : "needs_review",
+            "value" : "입력한 키 조합(%@)은 표준 시스템 단축키입니다. 다른 조합을 시도하십시오."
           }
         },
         "nl" : {
@@ -4991,8 +4991,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Une erreur inattendue s'est produite : %@. Réessayez ou redémarrez l'app."
+            "state" : "needs_review",
+            "value" : "Une erreur inattendue s'est produite : %@. Réessayez ou redémarrez l'app."
           }
         },
         "it" : {
@@ -6558,8 +6558,8 @@
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Отменить"
+            "state" : "translated",
+            "value" : "Отмена"
           }
         },
         "sr" : {
@@ -7676,8 +7676,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Écrans connectés :"
+            "state" : "needs_review",
+            "value" : "Écrans connectés :"
           }
         },
         "it" : {
@@ -7831,8 +7831,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mode de contrôle :"
+            "state" : "needs_review",
+            "value" : "Mode de contrôle :"
           }
         },
         "it" : {
@@ -9064,8 +9064,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Supprimer le préréglage ?"
+            "state" : "needs_review",
+            "value" : "Supprimer le préréglage ?"
           }
         },
         "it" : {
@@ -9216,8 +9216,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Supprimer l'horaire ?"
+            "state" : "needs_review",
+            "value" : "Supprimer l'horaire ?"
           }
         },
         "it" : {
@@ -9735,8 +9735,8 @@
       "localizations" : {
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Display dimmen"
+            "state" : "needs_review",
+            "value" : "Bildschirm dimmen"
           }
         },
         "en" : {
@@ -11922,8 +11922,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Impossible de désactiver le lancement à la connexion : %@"
+            "state" : "needs_review",
+            "value" : "Impossible de désactiver le lancement à la connexion : %@"
           }
         },
         "it" : {
@@ -11999,8 +11999,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Impossible d'activer le lancement à la connexion : %@"
+            "state" : "needs_review",
+            "value" : "Impossible d'activer le lancement à la connexion : %@"
           }
         },
         "it" : {
@@ -14075,8 +14075,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Raccourci clavier : %@"
+            "state" : "needs_review",
+            "value" : "Raccourci clavier : %@"
           }
         },
         "it" : {
@@ -14395,7 +14395,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "有効にするには、システム設定の「ログイン項目」でDimmerlyを許可してください。"
+            "value" : "有効にするには、システム設定の「一般」＞「ログイン項目と機能拡張」でDimmerlyを許可してください。"
           }
         },
         "ko" : {
@@ -14612,8 +14612,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Emplacement : latitude %@, longitude %@"
+            "state" : "needs_review",
+            "value" : "Emplacement : latitude %@, longitude %@"
           }
         },
         "it" : {
@@ -18442,8 +18442,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Restaurer les préréglages par défaut ?"
+            "state" : "needs_review",
+            "value" : "Restaurer les préréglages par défaut ?"
           }
         },
         "it" : {
@@ -18653,8 +18653,8 @@
       "localizations" : {
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Display wiederherstellen"
+            "state" : "needs_review",
+            "value" : "Bildschirm wiederherstellen"
           }
         },
         "en" : {
@@ -18729,8 +18729,8 @@
       "localizations" : {
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stellt die vorherige Helligkeit des Displays wieder her"
+            "state" : "needs_review",
+            "value" : "Stellt die vorherige Helligkeit des Bildschirms wieder her"
           }
         },
         "en" : {
@@ -20667,8 +20667,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Style :"
+            "state" : "needs_review",
+            "value" : "Style :"
           }
         },
         "it" : {
@@ -21052,8 +21052,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Changer la source d'entrée du moniteur. Quitter l'entrée du Mac affichera « Pas de signal » jusqu'au retour à l'entrée d'origine."
+            "state" : "needs_review",
+            "value" : "Changer la source d'entrée du moniteur. Quitter l'entrée du Mac affichera « Pas de signal » jusqu'au retour à l'entrée d'origine."
           }
         },
         "it" : {
@@ -21592,8 +21592,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cet écran ne prend pas en charge le contrôle matériel DDC/CI. Causes fréquentes : le port HDMI intégré des Mac M1/M2, les adaptateurs DisplayLink ou DDC/CI désactivé dans le menu OSD du moniteur. Le contrôle logiciel de la luminosité (gamma) reste disponible."
+            "state" : "needs_review",
+            "value" : "Cet écran ne prend pas en charge le contrôle matériel DDC/CI. Causes fréquentes : le port HDMI intégré des Mac M1/M2, les adaptateurs DisplayLink ou DDC/CI désactivé dans le menu OSD du moniteur. Le contrôle logiciel de la luminosité (gamma) reste disponible."
           }
         },
         "it" : {
@@ -21821,8 +21821,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transition : %d minutes"
+            "state" : "needs_review",
+            "value" : "Transition : %d minutes"
           }
         },
         "it" : {
@@ -22331,7 +22331,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "关闭所有显示器并锁定 Mac，就像合上盖子一样。要控制需要密码的时间，请调整锁定屏幕设置。"
+            "value" : "关闭所有显示器并锁定 Mac，就像合上盖子一样。如需更改关闭显示器后多久才要求输入密码，请前往“系统设置”中的锁定屏幕设置。"
           }
         }
       }
@@ -23514,8 +23514,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Délai d’écriture : %d ms"
+            "state" : "needs_review",
+            "value" : "Délai d’écriture : %d ms"
           }
         },
         "it" : {
@@ -29188,8 +29188,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Essaie le contrôle natif de la luminosité sur les écrans externes Apple et LG compatibles. La prise en charge varie selon le modèle ; la luminosité logicielle reste la solution de repli."
+            "state" : "needs_review",
+            "value" : "Essaie le contrôle natif de la luminosité sur les écrans externes Apple et LG compatibles. La prise en charge varie selon le modèle ; la luminosité logicielle reste la solution de repli."
           }
         },
         "it" : {
@@ -29948,8 +29948,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quel pourcentage de luminosité dois-je régler ?"
+            "state" : "needs_review",
+            "value" : "Quel pourcentage de luminosité dois-je régler ?"
           }
         },
         "it" : {
@@ -30024,8 +30024,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quel pourcentage de contraste dois-je régler ?"
+            "state" : "needs_review",
+            "value" : "Quel pourcentage de contraste dois-je régler ?"
           }
         },
         "it" : {
@@ -30100,8 +30100,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quel pourcentage de chaleur dois-je régler ?"
+            "state" : "needs_review",
+            "value" : "Quel pourcentage de chaleur dois-je régler ?"
           }
         },
         "it" : {
@@ -30176,8 +30176,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quel écran voulez-vous contrôler ?"
+            "state" : "needs_review",
+            "value" : "Quel écran voulez-vous contrôler ?"
           }
         },
         "it" : {
@@ -30252,8 +30252,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quel écran dois-je contrôler ?"
+            "state" : "needs_review",
+            "value" : "Quel écran dois-je contrôler ?"
           }
         },
         "it" : {
@@ -30328,8 +30328,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quel préréglage voulez-vous appliquer ?"
+            "state" : "needs_review",
+            "value" : "Quel préréglage voulez-vous appliquer ?"
           }
         },
         "it" : {
@@ -30404,8 +30404,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quel préréglage voulez-vous ouvrir ?"
+            "state" : "needs_review",
+            "value" : "Quel préréglage voulez-vous ouvrir ?"
           }
         },
         "it" : {
@@ -30480,8 +30480,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quel préréglage dois-je appliquer ?"
+            "state" : "needs_review",
+            "value" : "Quel préréglage dois-je appliquer ?"
           }
         },
         "it" : {
@@ -30556,8 +30556,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quel préréglage dois-je ouvrir ?"
+            "state" : "needs_review",
+            "value" : "Quel préréglage dois-je ouvrir ?"
           }
         },
         "it" : {
@@ -31093,8 +31093,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Le Service de localisation est désactivé. Activez-le dans Réglages Système > Confidentialité et sécurité > Service de localisation, ou saisissez un lieu manuellement."
+            "state" : "needs_review",
+            "value" : "Le Service de localisation est désactivé. Activez-le dans Réglages Système > Confidentialité et sécurité > Service de localisation, ou saisissez un emplacement manuellement."
           }
         },
         "it" : {
@@ -31170,8 +31170,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dimmerly n’a pas accès à votre position. Autorisez-le dans Réglages Système > Confidentialité et sécurité > Service de localisation, ou saisissez un lieu manuellement."
+            "state" : "needs_review",
+            "value" : "Dimmerly n’a pas accès à votre position. Autorisez-le dans Réglages Système > Confidentialité et sécurité > Service de localisation, ou saisissez un emplacement manuellement."
           }
         },
         "it" : {
@@ -31247,8 +31247,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "L’accès à la position est restreint sur ce Mac. Saisissez un lieu manuellement."
+            "state" : "needs_review",
+            "value" : "L’accès à la position est restreint sur ce Mac. Saisissez un emplacement manuellement."
           }
         },
         "it" : {

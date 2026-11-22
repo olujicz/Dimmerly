@@ -7,6 +7,6 @@ Use **scherm** for display and **monitor** for physical controls. Use **helderhe
 ## Decisions
 
 - Address: informal **je**; do not use `u`.
-- Buttons and menu items: single-word actions use the imperative, matching macOS Dutch (`Annuleer`, `Voeg toe`, `Verwijder`, `Werk bij`, `Schakel over`, `Pas toe`, `Probeer opnieuw`). Multi-word actions and messages use the infinitive (`Schema toevoegen…`, `Handmatig invoeren…`).
+- Buttons and menu items: short commands use the imperative, matching macOS Dutch (`Annuleer`, `Voeg toe`, `Verwijder`, `Werk bij`, `Schakel over`, `Pas toe`, `Probeer opnieuw`). Descriptive actions use the infinitive (`Schema toevoegen…`, `Handmatig invoeren…`).
 - Gender: no gendered forms address the user.
 - Typography: ‘…’ in new prose; compounds written solid.

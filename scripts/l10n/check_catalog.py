@@ -535,7 +535,8 @@ def load_rules(path):
     with path.open(encoding="utf-8") as handle:
         data = json.load(handle)
     exceptions = data.pop("_catalog_exceptions", {})
-    allowed_codes = {"source-identical", "possible-english", "length-ratio", "xcstrings-stale", "number-mismatch"}
+    allowed_codes = {"source-identical", "possible-english", "length-ratio", "xcstrings-stale", "number-mismatch",
+                     "xcstrings-needs_review"}
     for catalog, findings in exceptions.items():
         for code, locales in findings.items():
             if code not in allowed_codes:
