@@ -156,13 +156,13 @@
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmerly koristi vašu lokaciju za izračunavanje vremena izlaska i zalaska sunca za rasporede i automatsku temperaturu boje."
+            "value" : "Dimmerly koristi tvoju lokaciju za izračunavanje vremena izlaska i zalaska sunca za rasporede i automatsku temperaturu boje."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmerly 使用您的位置来计算日出和日落时间，用于计划任务和自动色温。"
+            "value" : "Dimmerly 使用位置信息来计算日出和日落时间，用于计划任务和自动色温。"
           }
         }
       }
@@ -233,13 +233,13 @@
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmerly koristi vašu lokaciju za izračunavanje vremena izlaska i zalaska sunca za rasporede i automatsku temperaturu boje."
+            "value" : "Dimmerly koristi tvoju lokaciju za izračunavanje vremena izlaska i zalaska sunca za rasporede i automatsku temperaturu boje."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmerly 使用您的位置来计算日出和日落时间，用于计划任务和自动色温。"
+            "value" : "Dimmerly 使用位置信息来计算日出和日落时间，用于计划任务和自动色温。"
           }
         }
       }

@@ -120,7 +120,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmerly에서 현재 위치를 가져오지 못했습니다. 다시 시도하거나 위치를 직접 입력하세요."
+            "value" : "Dimmerly에서 현재 위치를 가져오지 못했습니다. 다시 시도하거나 위치를 직접 입력하십시오."
           }
         },
         "nl" : {
@@ -150,7 +150,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmerly 无法获取你的位置。请重试，或手动输入位置。"
+            "value" : "Dimmerly 无法获取当前位置。请重试，或手动输入位置。"
           }
         }
       }
@@ -221,13 +221,13 @@
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ako ovaj Mac nije povezan na taj ulaz, ekran prikazuje „Nema signala“ dok ga ne vratite dugmadima na samom monitoru."
+            "value" : "Ako ovaj Mac nije povezan na taj ulaz, ekran prikazuje „Nema signala“ dok ga ne vratiš dugmadima na samom monitoru."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "如果此 Mac 未连接到该输入，显示器会显示“无信号”，直到你使用显示器自身的按钮切换回来。"
+            "value" : "如果此 Mac 未连接到该输入，显示器会显示“无信号”，直到使用显示器本身的按钮切回原输入源。"
           }
         }
       }
@@ -737,7 +737,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Control(⌃) 또는 Command(⌘)를 포함해 보조 키를 두 개 이상 사용하세요."
+            "value" : "Control(⌃) 또는 Command(⌘)를 포함해 보조 키를 두 개 이상 사용하십시오."
           }
         },
         "nl" : {
@@ -814,7 +814,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "단축키를 사용할 수 없습니다. 다른 단축키를 선택하세요."
+            "value" : "단축키를 사용할 수 없습니다. 다른 단축키를 선택하십시오."
           }
         },
         "nl" : {
@@ -838,7 +838,7 @@
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Prečica nije dostupna. Izaberite drugu prečicu."
+            "value" : "Prečica nije dostupna. Izaberi drugu prečicu."
           }
         },
         "zh-Hans" : {
@@ -1122,7 +1122,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmerly가 화면 작업을 완료하지 못했습니다. 다시 시도하세요."
+            "value" : "Dimmerly가 화면 작업을 완료하지 못했습니다. 다시 시도하십시오."
           }
         },
         "nl" : {
@@ -2398,7 +2398,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "keine DDC/CI-Antwort, trennen Sie den Monitor für eine Minute vom Stromnetz"
+            "value" : "keine DDC/CI-Antwort, trenne den Monitor für eine Minute vom Stromnetz"
           }
         },
         "en" : {
@@ -2434,7 +2434,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "DDC/CI 응답 없음, 모니터 전원 플러그를 1분간 뽑아 주세요"
+            "value" : "DDC/CI 응답 없음, 모니터 전원 플러그를 1분간 뽑아 주십시오"
           }
         },
         "nl" : {
@@ -2458,7 +2458,7 @@
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "nema DDC/CI odgovora, isključite monitor iz struje na jedan minut"
+            "value" : "nema DDC/CI odgovora, isključi monitor iz struje na jedan minut"
           }
         },
         "zh-Hans" : {
@@ -2670,7 +2670,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ contrast"
+            "value" : "Contrast van %@"
           }
         },
         "pt-BR" : {
@@ -2818,7 +2818,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@는 표준 시스템 단축키입니다. 다른 조합을 시도하세요."
+            "value" : "%@는 표준 시스템 단축키입니다. 다른 조합을 시도하십시오."
           }
         },
         "nl" : {
@@ -2901,7 +2901,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ volume"
+            "value" : "Volume van %@"
           }
         },
         "pt-BR" : {
@@ -5010,7 +5010,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "예기치 않은 오류가 발생했습니다: %@. 다시 시도하거나 앱을 재시작하세요."
+            "value" : "예기치 않은 오류가 발생했습니다: %@. 다시 시도하거나 앱을 재시작하십시오."
           }
         },
         "nl" : {
@@ -6582,7 +6582,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wählen Sie zwischen Ruhezustand und Dimmen"
+            "value" : "Zwischen Ruhezustand und Dimmen wählen"
           }
         },
         "en" : {
@@ -6594,7 +6594,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Elija entre poner las pantallas en reposo o atenuarlas"
+            "value" : "Elige entre poner las pantallas en reposo o atenuarlas"
           }
         },
         "fr" : {
@@ -6642,7 +6642,7 @@
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Izaberite između uspavljivanja i zatamnjivanja ekrana"
+            "value" : "Izaberi između uspavljivanja i zatamnjivanja ekrana"
           }
         },
         "zh-Hans" : {
@@ -6737,7 +6737,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wählen Sie, wie Bildschirme nach dem Dimmen aufgeweckt werden"
+            "value" : "Festlegen, wie Bildschirme nach dem Dimmen aufgeweckt werden"
           }
         },
         "en" : {
@@ -6749,7 +6749,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Elija cómo despertar las pantallas después de atenuarlas"
+            "value" : "Elige cómo reactivar las pantallas después de atenuarlas"
           }
         },
         "fr" : {
@@ -6797,7 +6797,7 @@
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Izaberite kako probuditi ekrane nakon zatamnjivanja"
+            "value" : "Izaberi kako probuditi ekrane nakon zatamnjivanja"
           }
         },
         "zh-Hans" : {
@@ -8159,7 +8159,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "DDC/CI를 통해 디스플레이 설정을 읽을 수 없습니다. 모니터가 사용 중이거나 I2C 버스에서 오류가 발생했을 수 있습니다. 잠시 후 다시 시도하세요."
+            "value" : "DDC/CI를 통해 디스플레이 설정을 읽을 수 없습니다. 모니터가 사용 중이거나 I2C 버스에서 오류가 발생했을 수 있습니다. 잠시 후 다시 시도하십시오."
           }
         },
         "nl" : {
@@ -8236,7 +8236,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "DDC/CI를 통해 디스플레이 설정을 쓸 수 없습니다. 모니터가 이 제어를 지원하지 않거나 I2C 버스에서 오류가 발생했을 수 있습니다. 잠시 후 다시 시도하세요."
+            "value" : "DDC/CI를 통해 디스플레이 설정을 쓸 수 없습니다. 모니터가 이 제어를 지원하지 않거나 I2C 버스에서 오류가 발생했을 수 있습니다. 잠시 후 다시 시도하십시오."
           }
         },
         "nl" : {
@@ -9997,7 +9997,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmerly에 디스플레이 제어 권한이 없습니다. 시스템 설정 > 개인정보 보호 및 보안을 확인하세요."
+            "value" : "Dimmerly에 디스플레이 제어 권한이 없습니다. 시스템 설정 > 개인정보 보호 및 보안을 확인하십시오."
           }
         },
         "nl" : {
@@ -10251,7 +10251,7 @@
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ekran postaje crn. Pritisnite Esc za buđenje."
+            "value" : "Ekran postaje crn. Pritisni Esc za buđenje."
           }
         },
         "zh-Hans" : {
@@ -10327,7 +10327,7 @@
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ekran postaje crn. Pritisnite bilo koji taster za buđenje."
+            "value" : "Ekran postaje crn. Pritisni bilo koji taster za buđenje."
           }
         },
         "zh-Hans" : {
@@ -10403,7 +10403,7 @@
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ekran postaje crn. Kliknite na njega za buđenje ili pritisnite bilo koji taster kada su svi ekrani crni."
+            "value" : "Ekran postaje crn. Klikni na njega za buđenje ili pritisni bilo koji taster kada su svi ekrani crni."
           }
         },
         "zh-Hans" : {
@@ -11491,7 +11491,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Geben Sie Ihre ungefähren Koordinaten für die Berechnung von Sonnenaufgang und Sonnenuntergang ein. Sie können diese finden, indem Sie auf einer Karte nach Ihrer Stadt suchen."
+            "value" : "Gib deine ungefähren Koordinaten ein, damit Dimmerly Sonnenaufgang und Sonnenuntergang berechnen kann. Du findest sie, indem du auf einer Karte nach deiner Stadt suchst."
           }
         },
         "en" : {
@@ -11503,7 +11503,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Introduzca sus coordenadas aproximadas para calcular el amanecer y el atardecer. Puede encontrarlas buscando su ciudad en un mapa."
+            "value" : "Introduce tus coordenadas aproximadas para calcular el amanecer y el atardecer. Puedes encontrarlas buscando tu ciudad en un mapa."
           }
         },
         "fr" : {
@@ -11527,7 +11527,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "일출 및 일몰 계산을 위해 대략적인 좌표를 입력하세요. 지도에서 도시를 검색하면 찾을 수 있습니다."
+            "value" : "일출 및 일몰 계산을 위해 대략적인 좌표를 입력하십시오. 지도에서 도시를 검색하면 찾을 수 있습니다."
           }
         },
         "nl" : {
@@ -11551,13 +11551,13 @@
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Unesite približne koordinate za izračunavanje izlaska i zalaska sunca. Možete ih pronaći pretragom vašeg grada na mapi."
+            "value" : "Unesi približne koordinate za izračunavanje izlaska i zalaska sunca. Možeš ih pronaći tako što ćeš na mapi potražiti svoj grad."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请输入大致坐标以计算日出和日落时间。您可以在地图上搜索您所在的城市来获取坐标。"
+            "value" : "请输入大致坐标以计算日出和日落时间。在地图上搜索所在城市即可获取坐标。"
           }
         }
       }
@@ -14359,7 +14359,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "켜기를 완료하려면 시스템 설정의 로그인 항목에서 Dimmerly를 허용하세요."
+            "value" : "켜기를 완료하려면 시스템 설정의 로그인 항목에서 Dimmerly를 허용하십시오."
           }
         },
         "nl" : {
@@ -14996,7 +14996,7 @@
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minimalno kašnjenje između DDC pisanja (povećajte ako monitor ne reaguje)"
+            "value" : "Minimalno kašnjenje između DDC pisanja (povećaj ako monitor ne reaguje)"
           }
         },
         "zh-Hans" : {
@@ -15628,7 +15628,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Keine DDC/CI-Antwort. Trennen Sie den Monitor für eine Minute vom Stromnetz."
+            "value" : "Keine DDC/CI-Antwort. Trenne den Monitor für eine Minute vom Stromnetz."
           }
         },
         "en" : {
@@ -15664,7 +15664,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "DDC/CI 응답이 없습니다. 모니터 전원 플러그를 1분간 뽑아 주세요."
+            "value" : "DDC/CI 응답이 없습니다. 모니터 전원 플러그를 1분간 뽑아 주십시오."
           }
         },
         "nl" : {
@@ -15688,7 +15688,7 @@
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nema DDC/CI odgovora. Isključite monitor iz struje na jedan minut."
+            "value" : "Nema DDC/CI odgovora. Isključi monitor iz struje na jedan minut."
           }
         },
         "zh-Hans" : {
@@ -15704,7 +15704,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Keine Voreinstellungen vorhanden. Erstellen Sie zuerst eine Voreinstellung."
+            "value" : "Keine Voreinstellungen vorhanden. Erstelle zuerst eine Voreinstellung."
           }
         },
         "en" : {
@@ -15740,7 +15740,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "사용 가능한 프리셋이 없습니다. 먼저 프리셋을 만드세요."
+            "value" : "사용 가능한 프리셋이 없습니다. 먼저 프리셋을 만드십시오."
           }
         },
         "nl" : {
@@ -15764,7 +15764,7 @@
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nema dostupnih podešavanja. Prvo napravite podešavanje."
+            "value" : "Nema dostupnih podešavanja. Prvo napravi podešavanje."
           }
         },
         "zh-Hans" : {
@@ -16702,7 +16702,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bitte geben Sie gültige Zahlen ein."
+            "value" : "Gib gültige Zahlen ein."
           }
         },
         "en" : {
@@ -16714,7 +16714,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Introduzca números válidos."
+            "value" : "Introduce números válidos."
           }
         },
         "fr" : {
@@ -16738,7 +16738,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "유효한 숫자를 입력하세요."
+            "value" : "유효한 숫자를 입력하십시오."
           }
         },
         "nl" : {
@@ -16762,7 +16762,7 @@
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Unesite ispravne brojeve."
+            "value" : "Unesi ispravne brojeve."
           }
         },
         "zh-Hans" : {
@@ -17197,7 +17197,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "기록하려면 키 조합을 누르세요"
+            "value" : "기록하려면 키 조합을 누르십시오"
           }
         },
         "nl" : {
@@ -17298,7 +17298,7 @@
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pritisnite Esc za buđenje"
+            "value" : "Pritisni Esc za buđenje"
           }
         },
         "zh-Hans" : {
@@ -17350,7 +17350,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "단축키를 누르세요…"
+            "value" : "단축키를 누르십시오…"
           }
         },
         "nl" : {
@@ -19360,7 +19360,7 @@
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Podesite lokaciju u Podešavanjima"
+            "value" : "Podesi lokaciju u podešavanjima"
           }
         },
         "zh-Hans" : {
@@ -21106,7 +21106,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "디스플레이가 예상 시간 내에 응답하지 않았습니다. 일부 모니터는 DDC 명령을 처리하는 데 시간이 더 필요합니다. 다시 시도하거나 디스플레이 연결을 확인하세요."
+            "value" : "디스플레이가 예상 시간 내에 응답하지 않았습니다. 일부 모니터는 DDC 명령을 처리하는 데 시간이 더 필요합니다. 다시 시도하거나 디스플레이 연결을 확인하십시오."
           }
         },
         "nl" : {
@@ -21339,7 +21339,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "pmset 명령이 종료 코드 %d로 실패했습니다. 시스템 설정 > 잠금 화면에서 정책으로 디스플레이 잠자기가 비활성화되어 있지 않은지 확인하세요."
+            "value" : "pmset 명령이 종료 코드 %d로 실패했습니다. 시스템 설정 > 잠금 화면에서 정책으로 디스플레이 잠자기가 비활성화되어 있지 않은지 확인하십시오."
           }
         },
         "nl" : {
@@ -21669,7 +21669,7 @@
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ovo će zameniti sva vaša podešavanja podrazumevanim vrednostima. Prilagođena podešavanja i prečice će biti izgubljene."
+            "value" : "Ovo će zameniti sva tvoja podešavanja podrazumevanim vrednostima. Prilagođena podešavanja i prečice će biti izgubljene."
           }
         },
         "zh-Hans" : {
@@ -22259,7 +22259,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "모든 디스플레이를 끄고 Mac을 잠급니다(덮개를 닫는 것과 같음). 암호 요구 시점을 제어하려면 잠금 화면 설정을 조정하세요."
+            "value" : "모든 디스플레이를 끄고 Mac을 잠급니다(덮개를 닫는 것과 같음). 암호 요구 시점을 제어하려면 잠금 화면 설정을 조정하십시오."
           }
         },
         "nl" : {
@@ -29907,7 +29907,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "밝기를 몇 퍼센트로 설정할까요?"
+            "value" : "밝기를 몇 퍼센트로 설정하면 됩니까?"
           }
         },
         "nl" : {
@@ -29983,7 +29983,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "대비를 몇 퍼센트로 설정할까요?"
+            "value" : "대비를 몇 퍼센트로 설정하면 됩니까?"
           }
         },
         "nl" : {
@@ -30059,7 +30059,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "색온도를 몇 퍼센트로 설정할까요?"
+            "value" : "색온도를 몇 퍼센트로 설정하면 됩니까?"
           }
         },
         "nl" : {
@@ -30165,7 +30165,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你想控制哪个显示器？"
+            "value" : "要控制哪台显示器？"
           }
         }
       }
@@ -30211,7 +30211,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "어떤 디스플레이를 제어할까요?"
+            "value" : "어떤 디스플레이를 제어하면 됩니까?"
           }
         },
         "nl" : {
@@ -30317,7 +30317,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你想应用哪个预设？"
+            "value" : "要应用哪个预设？"
           }
         }
       }
@@ -30393,7 +30393,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你想打开哪个预设？"
+            "value" : "要打开哪个预设？"
           }
         }
       }
@@ -30439,7 +30439,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "어떤 프리셋을 적용할까요?"
+            "value" : "어떤 프리셋을 적용하면 됩니까?"
           }
         },
         "nl" : {
@@ -30515,7 +30515,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "어떤 프리셋을 열까요?"
+            "value" : "어떤 프리셋을 열면 됩니까?"
           }
         },
         "nl" : {
@@ -31052,7 +31052,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "위치 서비스가 꺼져 있습니다. 시스템 설정 > 개인정보 보호 및 보안 > 위치 서비스에서 켜거나 위치를 직접 입력하세요."
+            "value" : "위치 서비스가 꺼져 있습니다. 시스템 설정 > 개인정보 보호 및 보안 > 위치 서비스에서 켜거나 위치를 직접 입력하십시오."
           }
         },
         "nl" : {
@@ -31129,7 +31129,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmerly가 위치에 접근할 수 없습니다. 시스템 설정 > 개인정보 보호 및 보안 > 위치 서비스에서 허용하거나 위치를 직접 입력하세요."
+            "value" : "Dimmerly가 위치에 접근할 수 없습니다. 시스템 설정 > 개인정보 보호 및 보안 > 위치 서비스에서 허용하거나 위치를 직접 입력하십시오."
           }
         },
         "nl" : {
@@ -31159,7 +31159,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimmerly 无法访问你的位置。请在“系统设置 > 隐私与安全性 > 定位服务”中允许访问，或手动输入位置。"
+            "value" : "Dimmerly 无法访问位置信息。请在“系统设置 > 隐私与安全性 > 定位服务”中允许访问，或手动输入位置。"
           }
         }
       }
@@ -31206,7 +31206,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "이 Mac에서는 위치 접근이 제한되어 있습니다. 위치를 직접 입력하세요."
+            "value" : "이 Mac에서는 위치 접근이 제한되어 있습니다. 위치를 직접 입력하십시오."
           }
         },
         "nl" : {
