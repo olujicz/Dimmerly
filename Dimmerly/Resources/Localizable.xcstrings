@@ -6660,7 +6660,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wählen Sie, wie Dimmerly die Bildschirmausgabe steuert"
+            "value" : "Wähle, wie Dimmerly die Bildschirmausgabe steuert"
           }
         },
         "en" : {
@@ -6672,7 +6672,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Elija cómo Dimmerly controla la salida de la pantalla"
+            "value" : "Elige cómo Dimmerly controla la salida de la pantalla"
           }
         },
         "fr" : {
@@ -6720,7 +6720,7 @@
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Izaberite kako Dimmerly kontroliše izlaz ekrana"
+            "value" : "Izaberi kako Dimmerly kontroliše izlaz ekrana"
           }
         },
         "zh-Hans" : {
@@ -7617,7 +7617,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "밝기를 조절하려면 외장 디스플레이를 연결하세요."
+            "value" : "밝기를 조절하려면 외장 디스플레이를 연결하십시오."
           }
         },
         "nl" : {
@@ -7952,7 +7952,7 @@
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kontrolišite osvetljenost, jačinu zvuka i ulaz monitora putem DDC/CI protokola"
+            "value" : "Kontroliši osvetljenost, jačinu zvuka i ulaz monitora putem DDC/CI protokola"
           }
         },
         "zh-Hans" : {
@@ -21184,7 +21184,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "디스플레이 잠자기 명령이 IOKit 오류 코드 %d로 실패했습니다. 앱이나 Mac을 재시작해 보세요."
+            "value" : "디스플레이 잠자기 명령이 IOKit 오류 코드 %d로 실패했습니다. 앱이나 Mac을 재시작해 보십시오."
           }
         },
         "nl" : {
