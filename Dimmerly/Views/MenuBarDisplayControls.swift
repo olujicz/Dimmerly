@@ -439,20 +439,18 @@ struct DisplayBrightnessRow: View {
         #endif
     }
 
-    /// How to wake the display the dim button turns black. In the App Store edition, wake input
-    /// only reaches Dimmerly while it is active: a press on this display's black screen wakes it
-    /// (the one way back while another display is still on), and a key works once every display
-    /// is black.
+    /// A click wakes a partially dimmed display. The configured keyboard wake only applies
+    /// once every display is black and the input monitor is running.
     private var dimHint: Text {
-        #if APPSTORE
-            Text("Turns the display black. Click it to wake it, or press any key once every display is black.")
-        #else
+        #if !APPSTORE
             if settings.wakesOnlyOnEscape {
-                Text("Turns the display black. Press Esc to wake it.")
-            } else {
-                Text("Turns the display black. Press any key to wake it.")
+                return Text("""
+                Turns the display black. Click it to wake it while another display is on. \
+                Press Esc when all displays are black.
+                """)
             }
         #endif
+        return Text("Turns the display black. Click it to wake it, or press any key once every display is black.")
     }
 
     var body: some View {

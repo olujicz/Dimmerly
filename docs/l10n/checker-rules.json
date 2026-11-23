@@ -390,13 +390,28 @@
         ]
       },
       "xcstrings-needs_review": {
+        "de": [
+          "Click to wake",
+          "Dim Display",
+          "Dimmerly could not dim the selected display.",
+          "Restore Display",
+          "Restores the display to its previous brightness",
+          "Turns the display black. Click it to wake it while another display is on. Press Esc when all displays are black."
+        ],
+        "es": [
+          "Click to wake",
+          "Dimmerly could not dim the selected display.",
+          "Turns the display black. Click it to wake it while another display is on. Press Esc when all displays are black."
+        ],
         "fr": [
           "\"%@\" will be permanently deleted.",
           "An unexpected error occurred: %@. Please try again or restart the app.",
+          "Click to wake",
           "Connected Displays:",
           "Control Mode:",
           "Delete Preset?",
           "Delete Schedule?",
+          "Dimmerly could not dim the selected display.",
           "Dimmerly couldn’t get your location. Try again, or enter a location manually.",
           "Dimmerly doesn’t have access to your location. Allow it in System Settings > Privacy & Security > Location Services, or enter a location manually.",
           "Failed to disable launch at login: %@",
@@ -414,6 +429,7 @@
           "This display does not support DDC/CI hardware control. Common reasons: built-in HDMI on M1/M2 Macs, DisplayLink adapters, or the monitor has DDC/CI disabled in its OSD settings. Software brightness control (gamma) is still available.",
           "Transition: %d minutes",
           "Tries native brightness control for compatible external Apple and LG displays. Support varies by model; software brightness remains the fallback.",
+          "Turns the display black. Click it to wake it while another display is on. Press Esc when all displays are black.",
           "Update \"%@\"?",
           "What brightness percentage should I set?",
           "What contrast percentage should I set?",
@@ -425,6 +441,11 @@
           "Which preset should I apply?",
           "Which preset should I open?",
           "Write delay: %d ms"
+        ],
+        "it": [
+          "Click to wake",
+          "Dimmerly could not dim the selected display.",
+          "Turns the display black. Click it to wake it while another display is on. Press Esc when all displays are black."
         ],
         "ja": [
           "%@ brightness",
@@ -447,6 +468,7 @@
           "Apply %@",
           "Automatically start Dimmerly when you log in",
           "Brightness Control",
+          "Click to wake",
           "Component 1",
           "Component 2",
           "Component 3",
@@ -456,6 +478,7 @@
           "Control Mode:",
           "Delete %@",
           "Dim %@",
+          "Dimmerly could not dim the selected display.",
           "Dimmerly couldn’t get your location. Try again, or enter a location manually.",
           "Dimmerly does not have permission to control displays. Please check System Settings > Privacy & Security.",
           "Dimmerly doesn’t have access to your location. Allow it in System Settings > Privacy & Security > Location Services, or enter a location manually.",
@@ -492,28 +515,46 @@
           "This shortcut conflicts with %@.",
           "Transition: %d minutes",
           "Tuner 1",
+          "Turns the display black. Click it to wake it while another display is on. Press Esc when all displays are black.",
           "Write delay: %d ms",
           "no DDC/CI reply, unplug the monitor from power for a minute"
         ],
+        "ko": [
+          "%@ is a standard system shortcut. Try a different combination.",
+          "Click to wake",
+          "Dimmerly could not dim the selected display.",
+          "Turns the display black. Click it to wake it while another display is on. Press Esc when all displays are black."
+        ],
         "nl": [
           "Apply",
-          "Try Again"
+          "Click to wake",
+          "Dimmerly could not dim the selected display.",
+          "Try Again",
+          "Turns the display black. Click it to wake it while another display is on. Press Esc when all displays are black."
         ],
-        "zh-hans": [
-          "Turns off all displays and locks your Mac, just like closing the lid. To control how quickly your password is required, adjust your Lock Screen settings.",
-          "Use at least two modifier keys, including Control (⌃) or Command (⌘)."
-        ],
-        "ko": [
-          "%@ is a standard system shortcut. Try a different combination."
-        ],
-        "de": [
-          "Dim Display",
-          "Restore Display",
-          "Restores the display to its previous brightness"
+        "pt-br": [
+          "Click to wake",
+          "Dimmerly could not dim the selected display.",
+          "Turns the display black. Click it to wake it while another display is on. Press Esc when all displays are black."
         ],
         "ru": [
+          "Click to wake",
+          "Dimmerly could not dim the selected display.",
           "Minimum delay between DDC writes (increase if monitor is unresponsive)",
-          "Only wake the screen on keyboard input, a mouse click or scrolling, not mouse movement"
+          "Only wake the screen on keyboard input, a mouse click or scrolling, not mouse movement",
+          "Turns the display black. Click it to wake it while another display is on. Press Esc when all displays are black."
+        ],
+        "sr": [
+          "Click to wake",
+          "Dimmerly could not dim the selected display.",
+          "Turns the display black. Click it to wake it while another display is on. Press Esc when all displays are black."
+        ],
+        "zh-hans": [
+          "Click to wake",
+          "Dimmerly could not dim the selected display.",
+          "Turns off all displays and locks your Mac, just like closing the lid. To control how quickly your password is required, adjust your Lock Screen settings.",
+          "Turns the display black. Click it to wake it while another display is on. Press Esc when all displays are black.",
+          "Use at least two modifier keys, including Control (⌃) or Command (⌘)."
         ]
       }
     },

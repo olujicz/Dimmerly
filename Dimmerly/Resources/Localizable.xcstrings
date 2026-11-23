@@ -10344,6 +10344,83 @@
         }
       }
     },
+    "Turns the display black. Click it to wake it while another display is on. Press Esc when all displays are black." : {
+      "comment" : "VoiceOver hint for the display dim button with Escape-only keyboard wake",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Schaltet das Display schwarz. Zum Aufwecken darauf klicken, solange ein anderes Display an ist. Sind alle Displays schwarz, Esc drücken."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turns the display black. Click it to wake it while another display is on. Press Esc when all displays are black."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Pone la pantalla en negro. Haz clic en ella para activarla mientras haya otra pantalla encendida. Pulsa Esc cuando todas estén en negro."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rend l’écran noir. Cliquez dessus pour le réactiver quand un autre écran est allumé. Appuyez sur Échap quand tous les écrans sont noirs."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Rende nero il display. Fai clic per riattivarlo mentre un altro display è acceso. Premi Esc quando tutti i display sono neri."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "画面を真っ黒にします。ほかの画面が点灯している間は、クリックすると復帰します。すべての画面が黒のときは、Escキーで復帰します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "화면을 검게 만듭니다. 다른 화면이 켜져 있으면 클릭하여 깨울 수 있습니다. 모든 화면이 검을 때는 Esc 키를 누르십시오."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Maakt het scherm zwart. Klik erop om het te wekken zolang een ander scherm aanstaat. Druk op Esc als alle schermen zwart zijn."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Deixa a tela preta. Clique nela para reativá-la enquanto outra tela estiver ligada. Pressione Esc quando todas as telas estiverem pretas."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Делает дисплей чёрным. Щёлкните по нему, пока другой дисплей включён. Если все дисплеи чёрные, нажмите Esc."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zatamnjuje ekran. Klikni na njega da ga probudiš dok je drugi ekran uključen. Pritisni Esc kada su svi ekrani zatamnjeni."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "将显示器变黑。其他显示器亮着时，点击此显示器即可唤醒。所有显示器变黑时，按 Esc 键唤醒。"
+          }
+        }
+      }
+    },
     "Turns the display black. Click it to wake it, or press any key once every display is black." : {
       "localizations" : {
         "de" : {
@@ -17270,6 +17347,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "按下组合键进行录制"
+          }
+        }
+      }
+    },
+    "Click to wake" : {
+      "comment" : "Hint on a dimmed display while another display is visible",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zum Aufwecken klicken"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Click to wake"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Haz clic para activar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Cliquez pour réactiver"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Fai clic per riattivare"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "クリックで復帰"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "클릭하여 깨우기"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Klik om te wekken"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Clique para reativar"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Щёлкните для пробуждения"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Klikni za buđenje"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "点击唤醒"
           }
         }
       }
@@ -28782,6 +28936,83 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "该预设已不存在。"
+          }
+        }
+      }
+    },
+    "Dimmerly could not dim the selected display." : {
+      "comment" : "Error returned by the per-display Shortcuts action if the display remains on",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly konnte den ausgewählten Bildschirm nicht dimmen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly could not dim the selected display."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly no ha podido atenuar la pantalla seleccionada."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly n’a pas pu assombrir l’écran sélectionné."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly non ha potuto oscurare lo schermo selezionato."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerlyは選択した画面を暗くできませんでした。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly에서 선택한 디스플레이를 어둡게 할 수 없었습니다."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly kon het geselecteerde scherm niet dimmen."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "O Dimmerly não conseguiu escurecer a tela selecionada."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly не удалось приглушить выбранный дисплей."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly nije uspeo da zatamni izabrani ekran."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly 无法调暗所选显示器。"
           }
         }
       }

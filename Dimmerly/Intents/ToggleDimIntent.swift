@@ -48,7 +48,9 @@ struct ToggleDimIntent: AppIntent {
         let displayID = try ConnectedDisplayResolver.resolve(display) {
             command.connectedDisplayDescriptors
         }
-        command.toggleDim(for: displayID)
+        guard command.toggleDim(for: displayID) else {
+            throw DisplayIntentError.dimmingFailed
+        }
     }
 }
 

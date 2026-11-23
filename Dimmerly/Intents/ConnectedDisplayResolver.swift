@@ -45,7 +45,7 @@ protocol DisplayIntentCommanding: AnyObject {
     func setBrightness(_ value: Double, for displayID: CGDirectDisplayID)
     func setWarmth(_ value: Double, for displayID: CGDirectDisplayID)
     func setContrast(_ value: Double, for displayID: CGDirectDisplayID)
-    func toggleDim(for displayID: CGDirectDisplayID)
+    func toggleDim(for displayID: CGDirectDisplayID) -> Bool
 }
 
 @MainActor
@@ -74,7 +74,7 @@ final class LiveDisplayIntentCommand: DisplayIntentCommanding {
         manager.setContrast(for: displayID, to: value)
     }
 
-    func toggleDim(for displayID: CGDirectDisplayID) {
+    func toggleDim(for displayID: CGDirectDisplayID) -> Bool {
         manager.toggleBlank(for: displayID)
     }
 }

@@ -7,12 +7,26 @@
 
 import AppKit
 
+enum BlankingOverlayWakeHint: Equatable {
+    case click
+    case escape
+
+    var text: String {
+        switch self {
+        case .click:
+            NSLocalizedString("Click to wake", comment: "Hint on a dimmed display while another display is visible")
+        case .escape: NSLocalizedString("Press Esc to wake", comment: "Hint shown on blanked display")
+        }
+    }
+}
+
 @MainActor
 protocol BlankingWindowControlling: AnyObject {
     func beginBlankingSession()
 
     @discardableResult
     func showWindow(for displayID: CGDirectDisplayID, showsEscapeHint: Bool) -> Bool
+    func setWakeHint(_ hint: BlankingOverlayWakeHint?, for displayID: CGDirectDisplayID)
 
     func removeWindow(for displayID: CGDirectDisplayID)
     func removeAllWindows()
@@ -29,9 +43,8 @@ protocol BlankingWindowControlling: AnyObject {
     /// when one already is key.
     func promoteKeyOverlayIfNeeded()
 
-    /// Called when the mouse is pressed on a display's overlay. Only the App Store edition's
-    /// overlays report this: they are how a single dimmed display gets woken while another app is
-    /// active, a time the local event monitor is not listening.
+    /// Called when the mouse is pressed on a display's overlay. A partial session uses the
+    /// overlay directly because its wake input monitor has not started.
     var onOverlayMouseDown: ((CGDirectDisplayID) -> Void)? { get set }
 }
 
@@ -98,6 +111,11 @@ enum BlankingWindowPresentation {
 final class BlankingOverlayContentView: NSView {
     var onMouseDown: (() -> Void)?
 
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        // The wake label is decorative. A click on it should wake just like a click beside it.
+        super.hitTest(point) == nil ? nil : self
+    }
+
     override func acceptsFirstMouse(for _: NSEvent?) -> Bool {
         true
     }
@@ -144,11 +162,12 @@ final class SystemBlankingWindowController: BlankingWindowControlling {
     }
 
     func showWindow(for displayID: CGDirectDisplayID, showsEscapeHint: Bool) -> Bool {
-        guard windows[displayID] == nil,
-              let screen = NSScreen.screen(for: displayID)
-        else {
-            return windows[displayID] != nil
+        let hint: BlankingOverlayWakeHint? = showsEscapeHint ? .escape : nil
+        if windows[displayID] != nil {
+            setWakeHint(hint, for: displayID)
+            return true
         }
+        guard let screen = NSScreen.screen(for: displayID) else { return false }
 
         #if APPSTORE
             let window: NSWindow = BlankingPanel(
@@ -173,19 +192,14 @@ final class SystemBlankingWindowController: BlankingWindowControlling {
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.setFrame(screen.frame, display: true)
 
-        #if APPSTORE
-            let contentView = BlankingOverlayContentView()
-            contentView.onMouseDown = { [weak self] in
-                self?.onOverlayMouseDown?(displayID)
-            }
-            window.contentView = contentView
-        #endif
-
-        if showsEscapeHint {
-            wakeHints[displayID] = addWakeHint(to: window, screen: screen)
+        let contentView = BlankingOverlayContentView()
+        contentView.onMouseDown = { [weak self] in
+            self?.onOverlayMouseDown?(displayID)
         }
+        window.contentView = contentView
 
         windows[displayID] = window
+        setWakeHint(hint, for: displayID)
         #if APPSTORE
             BlankingWindowPresentation.prepareForLocalInputCapture(window)
         #else
@@ -237,8 +251,8 @@ final class SystemBlankingWindowController: BlankingWindowControlling {
         for label in wakeHints.values {
             label.animator().alphaValue = 1
         }
-        if needsAnnouncement {
-            announceWakeHint()
+        if needsAnnouncement, let label = wakeHints.values.first {
+            announceWakeHint(label.stringValue)
         }
         scheduleWakeHintFade()
     }
@@ -254,29 +268,30 @@ final class SystemBlankingWindowController: BlankingWindowControlling {
         #endif
     }
 
-    private static var wakeHintText: String {
-        NSLocalizedString("Press Esc to wake", comment: "Hint shown on blanked display")
-    }
-
     /// The hint fades so the displays go fully dark, and comes back whenever input is
     /// swallowed without waking. White at 60% on black keeps it above a 7:1 contrast ratio.
-    private func addWakeHint(to window: NSWindow, screen: NSScreen) -> NSTextField {
-        let label = NSTextField(labelWithString: Self.wakeHintText)
+    func setWakeHint(_ hint: BlankingOverlayWakeHint?, for displayID: CGDirectDisplayID) {
+        let text = hint?.text
+        guard wakeHints[displayID]?.stringValue != text else { return }
+        wakeHints.removeValue(forKey: displayID)?.removeFromSuperview()
+        guard let text, let contentView = windows[displayID]?.contentView else { return }
+        let shouldAnnounce = !wakeHints.values.contains { $0.stringValue == text }
+        let label = NSTextField(labelWithString: text)
         label.font = .systemFont(ofSize: 13, weight: .medium)
         label.textColor = .white.withAlphaComponent(0.6)
         label.alignment = .center
         label.sizeToFit()
         label.frame.origin = CGPoint(
-            x: (screen.frame.width - label.frame.width) / 2,
+            x: (contentView.bounds.width - label.frame.width) / 2,
             y: 40
         )
-        window.contentView?.addSubview(label)
+        contentView.addSubview(label)
+        wakeHints[displayID] = label
 
-        if wakeHints.isEmpty {
-            announceWakeHint()
+        if shouldAnnounce {
+            announceWakeHint(text)
         }
         scheduleWakeHintFade()
-        return label
     }
 
     private func scheduleWakeHintFade() {
@@ -294,12 +309,12 @@ final class SystemBlankingWindowController: BlankingWindowControlling {
         }
     }
 
-    private func announceWakeHint() {
+    private func announceWakeHint(_ text: String) {
         NSAccessibility.post(
             element: NSApp as Any,
             notification: .announcementRequested,
             userInfo: [
-                .announcement: Self.wakeHintText,
+                .announcement: text,
                 .priority: NSAccessibilityPriorityLevel.high.rawValue,
             ]
         )

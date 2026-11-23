@@ -197,6 +197,43 @@ final class DisplayIntentTests: XCTestCase {
         XCTAssertTrue(command.dimCalls.isEmpty)
     }
 
+    func testDimIntentReportsFailedCoverAndWakeSetupAndSucceedsForDimAndRestore() throws {
+        let harness = ScreenBlankerHarness.make()
+        harness.displays.activeDisplayIDs = [7]
+        let suiteName = "DisplayIntentTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = AppSettings(defaults: defaults)
+        let manager = BrightnessManager(forTesting: true, defaults: defaults)
+        let entity = DisplayEntity(id: "display:v123m456s789", name: "External")
+        let command = DisplayIntentCommandSpy(
+            connectedDisplayDescriptors: [.init(id: 7, stableIdentity: entity.id, name: entity.name)]
+        )
+        command.onToggleDim = { manager.toggleBlank(for: $0, blanker: harness.sut, settings: settings) }
+        let intent = ToggleDimIntent()
+        intent.display = entity
+
+        harness.displays.displayIDsWithoutScreen = [7]
+        XCTAssertThrowsError(try intent.perform(using: command)) {
+            XCTAssertEqual($0 as? DisplayIntentError, .dimmingFailed)
+        }
+        XCTAssertFalse(harness.sut.isDisplayBlanked(7))
+
+        harness.displays.displayIDsWithoutScreen = []
+        harness.input.startError = .unavailable
+        XCTAssertThrowsError(try intent.perform(using: command)) {
+            XCTAssertEqual($0 as? DisplayIntentError, .dimmingFailed)
+        }
+        XCTAssertFalse(harness.sut.isDisplayBlanked(7))
+        XCTAssertEqual(harness.failures.errors, [.unavailable])
+
+        harness.input.startError = nil
+        try intent.perform(using: command)
+        XCTAssertTrue(harness.sut.isDisplayBlanked(7))
+        try intent.perform(using: command)
+        XCTAssertFalse(harness.sut.isDisplayBlanked(7))
+    }
+
     func testBrightnessIntentAcceptsSharedRangeBoundaries() throws {
         let entity = DisplayEntity(id: "display:v123m456s789", name: "External")
         let command = DisplayIntentCommandSpy(
@@ -457,6 +494,7 @@ private final class DisplayIntentCommandSpy: DisplayIntentCommanding {
     private(set) var warmthCalls: [ValueCall] = []
     private(set) var contrastCalls: [ValueCall] = []
     private(set) var dimCalls: [CGDirectDisplayID] = []
+    var onToggleDim: ((CGDirectDisplayID) -> Bool)?
 
     init(
         connectedDisplayDescriptors: [ConnectedDisplayDescriptor]
@@ -476,8 +514,9 @@ private final class DisplayIntentCommandSpy: DisplayIntentCommanding {
         contrastCalls.append(.init(value: value, displayID: displayID))
     }
 
-    func toggleDim(for displayID: CGDirectDisplayID) {
+    func toggleDim(for displayID: CGDirectDisplayID) -> Bool {
         dimCalls.append(displayID)
+        return onToggleDim?(displayID) ?? true
     }
 }
 

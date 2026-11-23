@@ -329,7 +329,7 @@ final class ScreenBlanker {
               !state.perDisplayCovered.contains(displayID),
               displays.activeDisplayIDs.contains(displayID),
               displays.hasScreen(for: displayID),
-              windows.showWindow(for: displayID, showsEscapeHint: wakesOnlyOnEscape)
+              windows.showWindow(for: displayID, showsEscapeHint: false)
         else {
             return
         }
@@ -338,14 +338,7 @@ final class ScreenBlanker {
         state.perDisplayCovered.insert(displayID)
         state.perDisplayBlankedAt[displayID] = clock.now
 
-        guard Self.shouldEnablePerDisplayRecovery(
-            blankedDisplayIDs: state.perDisplayCovered,
-            activeDisplayIDs: displays.activeDisplayIDs
-        ) else {
-            return
-        }
-
-        startPerDisplayRecovery()
+        updatePerDisplayRecovery(for: displays.activeDisplayIDs)
     }
 
     func unblankDisplay(_ displayID: CGDirectDisplayID) {
@@ -355,6 +348,7 @@ final class ScreenBlanker {
         restore(displayID)
         windows.removeWindow(for: displayID)
         state.perDisplayCovered.remove(displayID)
+        updatePerDisplayWakeHints()
     }
 
     func isDisplayBlanked(_ displayID: CGDirectDisplayID) -> Bool {
@@ -414,22 +408,30 @@ final class ScreenBlanker {
             windows.removeWindow(for: displayID)
         }
         state.perDisplayCovered.subtract(disconnectedDisplayIDs)
+        updatePerDisplayRecovery(for: Array(activeDisplayIDs))
+    }
 
-        guard !state.perDisplayCovered.isEmpty else {
-            stopPerDisplayRecovery()
-            return
-        }
-
-        let shouldRecover = Self.shouldEnablePerDisplayRecovery(
+    private func updatePerDisplayRecovery(for activeDisplayIDs: [CGDirectDisplayID]) {
+        if Self.shouldEnablePerDisplayRecovery(
             blankedDisplayIDs: state.perDisplayCovered,
-            activeDisplayIDs: Array(activeDisplayIDs)
-        )
-        if shouldRecover {
-            guard !state.recoveryArmed else { return }
-            startPerDisplayRecovery()
+            activeDisplayIDs: activeDisplayIDs
+        ) {
+            if !state.recoveryArmed {
+                startPerDisplayRecovery()
+            }
         } else {
             stopPerDisplayRecovery()
         }
+        updatePerDisplayWakeHints()
+    }
+
+    private func updatePerDisplayWakeHints() {
+        #if !APPSTORE
+            let hint: BlankingOverlayWakeHint? = state.recoveryArmed ? (wakesOnlyOnEscape ? .escape : nil) : .click
+            for displayID in state.perDisplayCovered.sorted() {
+                windows.setWakeHint(hint, for: displayID)
+            }
+        #endif
     }
 
     /// Puts windows up for the active displays not yet covered, returning the new covered set.

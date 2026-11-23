@@ -539,20 +539,21 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
         }
     #endif
 
-    /// Toggles blanking for a single display
+    /// Toggles blanking for a single display and reports whether its state changed.
+    @discardableResult
     func toggleBlank(
         for displayID: CGDirectDisplayID,
         blanker: ScreenBlanker = .shared,
         settings: AppSettings = .shared
-    ) {
-        if blanker.isDisplayBlanked(displayID) {
+    ) -> Bool {
+        let wasBlanked = blanker.isDisplayBlanked(displayID)
+        if wasBlanked {
             blanker.unblankDisplay(displayID)
         } else {
             DisplayAction.applyWakePolicy(from: settings, to: blanker)
             blanker.blankDisplay(displayID)
         }
-        // No manual observation nudge needed: ScreenBlanker is @Observable, so views
-        // reading its blanked-display state re-render on their own.
+        return blanker.isDisplayBlanked(displayID) != wasBlanked
     }
 
     /// Returns current brightness values keyed by stable display identity.
