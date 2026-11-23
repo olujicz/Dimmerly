@@ -132,12 +132,12 @@ class ColorTemperatureManager {
     ///
     /// Turning the feature ON snapshots the user's current warmth so it can be restored
     /// if they later turn it OFF, clears any prior manual override, and enables an
-    /// animated first update. Turning it OFF stops polling and restores the snapshot.
+    /// optionally animated first update. Turning it OFF stops polling and restores the snapshot.
     ///
     /// The snapshot is persisted in `AppSettings`. When auto was already on at the last quit,
     /// the displays' persisted warmth is whatever auto last applied, so the stored snapshot is
     /// kept instead of taking a new one.
-    func apply(enabled: Bool) {
+    func apply(enabled: Bool, animateInitialUpdate: Bool = true) {
         guard enabled != isEnabled else {
             // Auto is off at launch: a snapshot left from a session that ended outside the app
             // (setting changed while it wasn't running) is stale and must not be restored later.
@@ -156,7 +156,7 @@ class ColorTemperatureManager {
             transitionResumeKelvin = nil
             overrideState = nil
             overrideSolarBoundary = nil
-            animateNextUpdate = true
+            animateNextUpdate = animateInitialUpdate
             startPolling()
         } else {
             stopPolling()
