@@ -26,7 +26,8 @@ extension BrightnessManager {
         return Array(displayIDs.prefix(Int(displayCount)))
     }
 
-    /// Builds the stable key a display's saved brightness, warmth, and contrast are stored under.
+    /// Builds the base key for a display's brightness, warmth, and contrast. Refresh qualifies
+    /// this key with the display unit number when more than one display reports the same key.
     ///
     /// `CGDirectDisplayID` cannot be used for this. macOS re-enumerates displays under a *new*
     /// ID after sleep/wake and after hot-plug, so an ID-keyed lookup misses on the way back and

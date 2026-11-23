@@ -153,6 +153,8 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
     private let persistenceKey = "dimmerlyDisplayBrightness"
     private let warmthPersistenceKey = "dimmerlyDisplayWarmth"
     private let contrastPersistenceKey = "dimmerlyDisplayContrast"
+    private let duplicateDisplayIdentitiesKey = "dimmerlyDuplicateDisplayIdentities"
+    private var displayIdentities: [CGDirectDisplayID: PersistenceIdentity] = [:]
 
     /// The `UserDefaults` suite per-display values are persisted to. Defaults to `.standard`;
     /// tests inject an isolated suite so they neither read nor overwrite real user settings.
@@ -252,6 +254,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
     /// Test seam for the stable per-display persistence key. The real implementation reads EDID
     /// metadata through CoreGraphics, which unit tests can't synthesize.
     var displayIdentityHook: ((CGDirectDisplayID) -> String)?
+    var displayUnitNumberHook: ((CGDirectDisplayID) -> UInt32)?
 
     /// Test seam for display names, which CoreGraphics resolves from the connected hardware.
     var displayNameHook: ((CGDirectDisplayID) -> String)?
@@ -426,7 +429,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
                 return isBuiltInBacklightAPIAvailable() ? .failed : .unavailable
             }
             if !isBuiltIn {
-                let identity = displayIdentity(for: displayID)
+                let identity = liveDisplayIdentity(for: displayID)
                 // Polling re-reads every second; only a new identity is a change views observe.
                 if !nativeBacklightDisplayIdentities.contains(identity) {
                     nativeBacklightDisplayIdentities.insert(identity)
@@ -456,11 +459,11 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
         /// and resolving the identity live keeps a reused display ID from inheriting support.
         func supportsNativeBacklight(for displayID: CGDirectDisplayID) -> Bool {
             HardwareBrightnessManager.shared.isExternalNativeBrightnessActive
-                && nativeBacklightDisplayIdentities.contains(displayIdentity(for: displayID))
+                && nativeBacklightDisplayIdentities.contains(liveDisplayIdentity(for: displayID))
         }
 
         private func hasExternalBacklightFallback(for displayID: CGDirectDisplayID) -> Bool {
-            externalBacklightFallbackIdentities[displayID] == displayIdentity(for: displayID)
+            externalBacklightFallbackIdentities[displayID] == liveDisplayIdentity(for: displayID)
         }
 
         /// Writes native brightness to an external Apple-managed display.
@@ -643,6 +646,12 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
     /// - Note: If screen blanking is active, gamma reapplication is deferred to avoid flicker.
     func refreshDisplays() {
         let displayIDs = activeDisplayIDsHook?() ?? Self.activeDisplayIDs()
+        let settledBrightnessIDs = settleAndSaveBeforeRemovingDisplays(remainingIDs: Set(displayIDs))
+        let previousDisplaysByIdentity = Dictionary(
+            displays.map { (displayIdentity(for: $0.id), $0) },
+            uniquingKeysWith: { _, latest in latest }
+        )
+        updateDisplayIdentities(for: displayIDs)
 
         #if !APPSTORE
             let builtInDisplayIDs = Set(displayIDs.filter { isBuiltInDisplay($0) })
@@ -685,15 +694,18 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
             savedWarmth: loadPersistedValues(forKey: warmthPersistenceKey),
             savedContrast: loadPersistedValues(forKey: contrastPersistenceKey),
             displaysByID: Dictionary(uniqueKeysWithValues: displays.map { ($0.id, $0) }),
-            displaysByIdentity: displays.reduce(into: [String: ExternalDisplay]()) { result, display in
-                result[displayIdentity(for: display.id)] = display
-            }
+            displaysByIdentity: previousDisplaysByIdentity
         )
         var newDisplays: [ExternalDisplay] = []
         var displaysWithSuppressedBrightnessWrite: Set<CGDirectDisplayID> = []
 
         for displayID in displayIDs {
-            let refreshed = refreshedDisplay(for: displayID, baseline: baseline)
+            let refreshed = refreshedDisplay(
+                for: displayID,
+                baseline: baseline,
+                settledBrightness: settledBrightnessIDs.contains(displayID)
+                    ? baseline.displaysByID[displayID]?.brightness : nil
+            )
             if refreshed.suppressHardwareBrightnessWrite {
                 displaysWithSuppressedBrightnessWrite.insert(displayID)
             }
@@ -717,17 +729,18 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
             }
         }
 
-        // A display that disappears takes its unsaved edits with it: the debounced save only
-        // walks the displays that remain. Save the outgoing list first, under each display's
-        // stable identity, so the values are found again when it reconnects.
-        let remainingIDs = Set(newDisplays.map(\.id))
-        if displays.contains(where: { !remainingIDs.contains($0.id) }) {
-            resolveActiveTransition()
-            persistAll()
-        }
-
         displays = newDisplays
         reapplyAfterRefresh(suppressingHardwareBrightnessWriteFor: displaysWithSuppressedBrightnessWrite)
+    }
+
+    /// A save after refresh only sees the surviving displays. Settle and save the old list
+    /// first, and keep explicit brightness targets even if hardware still shows the old level.
+    private func settleAndSaveBeforeRemovingDisplays(remainingIDs: Set<CGDirectDisplayID>) -> Set<CGDirectDisplayID> {
+        guard displays.contains(where: { !remainingIDs.contains($0.id) }) else { return [] }
+        let settledBrightnessIDs = activeTransition?.hardwareBrightnessDisplayIDs ?? []
+        resolveActiveTransition()
+        persistAll()
+        return settledBrightnessIDs
     }
 
     /// The state a refresh is reconciled against: persisted values plus the displays as they
@@ -742,7 +755,8 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
 
     private func refreshedDisplay(
         for displayID: CGDirectDisplayID,
-        baseline: RefreshBaseline
+        baseline: RefreshBaseline,
+        settledBrightness: Double?
     ) -> (display: ExternalDisplay, suppressHardwareBrightnessWrite: Bool) {
         let builtIn = isBuiltInDisplay(displayID)
         let name = displayNameHook?(displayID) ?? DisplayNameResolver.name(for: displayID)
@@ -750,7 +764,9 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
         let previousDisplay = baseline.displaysByIdentity[identity]
             ?? baseline.displaysByID[displayID]
             ?? (builtIn ? displays.first(where: \.isBuiltIn) : nil)
-        let refreshedBrightness = refreshedBrightness(
+        let refreshedBrightness: (value: Double, suppressHardwareBrightnessWrite: Bool) = settledBrightness.map {
+            ($0, false)
+        } ?? refreshedBrightness(
             for: displayID,
             isBuiltIn: builtIn,
             savedBrightness: savedValue(baseline.savedBrightness, for: displayID, identity: identity),
@@ -1234,7 +1250,29 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
 
     // MARK: - Persistence
 
+    private struct PersistenceIdentity {
+        let base: String
+        let key: String
+        let unit: UInt32?
+    }
+
     private func displayIdentity(for displayID: CGDirectDisplayID) -> String {
+        displayIdentities[displayID]?.key ?? baseDisplayIdentity(for: displayID)
+    }
+
+    #if !APPSTORE
+        /// Hardware capability must follow the live display even before a topology refresh.
+        private func liveDisplayIdentity(for displayID: CGDirectDisplayID) -> String {
+            let base = baseDisplayIdentity(for: displayID)
+            guard let identity = displayIdentities[displayID], identity.base == base else { return base }
+            if let unit = identity.unit, unit != displayUnitNumber(for: displayID) {
+                return base
+            }
+            return identity.key
+        }
+    #endif
+
+    private func baseDisplayIdentity(for displayID: CGDirectDisplayID) -> String {
         if let displayIdentityHook {
             return displayIdentityHook(displayID)
         }
@@ -1245,6 +1283,50 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
             unitNumber: CGDisplayUnitNumber(displayID),
             displayID: displayID
         )
+    }
+
+    private func displayUnitNumber(for displayID: CGDirectDisplayID) -> UInt32 {
+        displayUnitNumberHook?(displayID) ?? CGDisplayUnitNumber(displayID)
+    }
+
+    private func updateDisplayIdentities(for displayIDs: [CGDirectDisplayID]) {
+        let groups = Dictionary(grouping: displayIDs, by: baseDisplayIdentity(for:))
+        let remembered = Set(defaults.stringArray(forKey: duplicateDisplayIdentitiesKey) ?? [])
+        let duplicated = remembered.union(groups.filter { $0.value.count > 1 }.keys)
+        if duplicated != remembered {
+            // A duplicate may be unplugged at the next launch. Keep using the qualified key.
+            defaults.set(duplicated.sorted(), forKey: duplicateDisplayIdentitiesKey)
+        }
+
+        var identities: [CGDirectDisplayID: PersistenceIdentity] = [:]
+        for (baseIdentity, ids) in groups {
+            if duplicated.contains(baseIdentity) {
+                let units = Dictionary(grouping: ids, by: displayUnitNumber(for:))
+                for (unit, unitIDs) in units {
+                    let unitIdentity = "\(baseIdentity):unit:\(unit)"
+                    for id in unitIDs {
+                        let key = unitIDs.count == 1 ? unitIdentity : "\(unitIdentity):id:\(id)"
+                        identities[id] = PersistenceIdentity(base: baseIdentity, key: key, unit: unit)
+                    }
+                }
+            } else if let id = ids.first {
+                identities[id] = PersistenceIdentity(base: baseIdentity, key: baseIdentity, unit: nil)
+            }
+        }
+        #if !APPSTORE
+            // Learning about a duplicate must not turn an unclaimed brightness into a hardware write.
+            for (id, identity) in identities {
+                if let previous = displayIdentities[id],
+                   previous.base == identity.base,
+                   previous.unit == nil || previous.unit == identity.unit,
+                   previous.key != identity.key,
+                   unclaimedExternalBrightnessIdentities.contains(previous.key)
+                {
+                    unclaimedExternalBrightnessIdentities.insert(identity.key)
+                }
+            }
+        #endif
+        displayIdentities = identities
     }
 
     /// Reads a saved value for a display, preferring its stable identity and falling back to the
@@ -1377,7 +1459,7 @@ class BrightnessManager { // swiftlint:disable:this type_body_length
             } else if output.writesExternalBacklight, !suppressHardwareBrightnessWrite {
                 externalBacklightFallbackIdentities[display.id] =
                     setExternalNativeBacklight(for: display.id, to: display.brightness)
-                        ? nil : displayIdentity(for: display.id)
+                        ? nil : liveDisplayIdentity(for: display.id)
             } else if output == .ddc, !suppressHardwareBrightnessWrite,
                       !unclaimedExternalBrightnessIdentities.contains(displayIdentity(for: display.id))
             {
