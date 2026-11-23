@@ -62,6 +62,71 @@ final class ScheduleManagerTests: XCTestCase {
         )
     }
 
+    func testLaunchCatchUpAppliesPresetWithMotionAndWithReduceMotion() async throws {
+        for canAnimate in [true, false] {
+            try await checkLaunchCatchUp(canAnimate: canAnimate, includesWarmth: true)
+        }
+    }
+
+    func testLaunchCatchUpPreservesInitialAutoWarmthForAPresetWithoutWarmth() async throws {
+        try await checkLaunchCatchUp(canAnimate: true, includesWarmth: false)
+    }
+
+    private func checkLaunchCatchUp(canAnimate: Bool, includesWarmth: Bool) async throws {
+        let now = makeDate(hour: 12, minute: 0)
+        let settings = AppSettings(defaults: testDefaults)
+        settings.autoColorTempEnabled = true
+        settings.scheduleEnabled = true
+        let previousCheck = makeDate(hour: 10, minute: 0)
+        testDefaults.set(previousCheck.timeIntervalSince1970, forKey: ScheduleManager.lastCheckKey)
+        let brightness = BrightnessManager(forTesting: true, defaults: testDefaults)
+        brightness.displays = [ExternalDisplay(id: 42, name: "Test", brightness: 1)]
+        brightness.isBuiltInDisplayHook = { _ in false }
+        brightness.isBlankingHook = { false }
+        brightness.canAnimateTransitionsHook = { canAnimate }
+        let expectedWarmth = includesWarmth ? 0.3 : GammaMath.warmthForKelvin(Double(settings.dayTemperature))
+        let finished = expectation(description: "all preset targets reach display output")
+        var reachedTarget = false
+        brightness.applyGammaHook = { _, level, warmth, contrast in
+            if !reachedTarget,
+               abs(level - 0.4) < 0.0001,
+               abs(warmth - expectedWarmth) < 0.0001,
+               abs(contrast - 0.8) < 0.0001
+            {
+                reachedTarget = true
+                finished.fulfill()
+            }
+        }
+        let autoWarmth = ColorTemperatureManager(brightnessManager: brightness, settings: settings)
+        autoWarmth.currentDate = { now }
+        let longitude = Double(TimeZone.current.secondsFromGMT(for: now)) / 240
+        autoWarmth.locationCoordinatesHook = { (latitude: 0, longitude: min(180, max(-180, longitude))) }
+        let presets = PresetManager(
+            defaults: testDefaults,
+            widgetSynchronizer: AppGroupWidgetPresetSynchronizer(
+                defaults: nil, reloadAllTimelines: {}, reloadPresetControls: {}
+            ),
+            notifyWarmthPresetApplied: { autoWarmth.notifyPresetApplied() }
+        )
+        let preset = BrightnessPreset(
+            name: "Midday", universalBrightness: 0.4, universalWarmth: includesWarmth ? expectedWarmth : nil,
+            universalContrast: 0.8
+        )
+        manager.schedules = [makeSchedule(hour: 11, presetID: preset.id)]
+        manager.onScheduleTriggered = { id in
+            XCTAssertEqual(id, preset.id)
+            presets.applyPreset(preset, to: brightness, animated: true)
+        }
+
+        AppServices.startScheduledDisplayAdjustments(settings, autoWarmth: autoWarmth, schedules: manager, now: now)
+        defer { manager.apply(enabled: false) }
+        await fulfillment(of: [finished], timeout: 2)
+        XCTAssertEqual(autoWarmth.isActive, !includesWarmth)
+        autoWarmth.updateColorTemperature(now: now.addingTimeInterval(60))
+        XCTAssertEqual(autoWarmth.isActive, !includesWarmth)
+        XCTAssertEqual(try XCTUnwrap(brightness.displays.first?.warmth), expectedWarmth, accuracy: 0.0001)
+    }
+
     // MARK: - CRUD
 
     func testAddSchedule() {

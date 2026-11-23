@@ -14,6 +14,7 @@ enum DisplayIntentError: Swift.Error, CustomLocalizedStringResourceConvertible {
     case brightnessOutOfRange
     case contrastOutOfRange
     case warmthOutOfRange
+    case dimmingFailed
 
     var localizedStringResource: LocalizedStringResource {
         switch self {
@@ -21,6 +22,7 @@ enum DisplayIntentError: Swift.Error, CustomLocalizedStringResourceConvertible {
         case .brightnessOutOfRange: "Brightness must be between 10 and 100 percent."
         case .contrastOutOfRange: "Contrast must be between 0 and 100 percent."
         case .warmthOutOfRange: "Warmth must be between 0 and 100 percent."
+        case .dimmingFailed: "Dimmerly could not dim the selected display."
         }
     }
 }

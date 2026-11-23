@@ -452,13 +452,24 @@ final class AppServices {
             enabled: settings.idleTimerEnabled,
             thresholdMinutes: settings.idleTimerMinutes
         )
-        scheduleManager.apply(enabled: settings.scheduleEnabled)
-        colorTempManager.apply(enabled: settings.autoColorTempEnabled)
+        Self.startScheduledDisplayAdjustments(settings, autoWarmth: colorTempManager, schedules: scheduleManager)
         ControlCenterStatePublisher.live.publishAutoWarmthState(settings.autoColorTempEnabled)
         ControlCenterStatePublisher.live.publishDisplayOffMode(DisplayAction.offMode(settings: settings))
         // The dim toggle's later changes are published from the scene's `.onChange`.
         ControlCenterStatePublisher.live.publishDimState(ScreenBlanker.shared.isBlankingAnyDisplay)
         presetShortcutManager.updateShortcuts(from: presetManager.presets)
+    }
+
+    static func startScheduledDisplayAdjustments(
+        _ settings: AppSettings,
+        autoWarmth: ColorTemperatureManager,
+        schedules: ScheduleManager,
+        now: Date = Date()
+    ) {
+        // The launch check fires synchronously. Give it an active Auto Warmth manager to
+        // override and a settled starting warmth, even if the catch-up preset only sets brightness.
+        autoWarmth.apply(enabled: settings.autoColorTempEnabled, animateInitialUpdate: !settings.scheduleEnabled)
+        schedules.apply(enabled: settings.scheduleEnabled, now: now)
     }
 
     // MARK: - Hardware Control (DDC/CI)

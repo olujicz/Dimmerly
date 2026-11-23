@@ -930,6 +930,45 @@ extension ScreenBlankerTests {
 
     // MARK: - Wake preferences on the per-display path
 
+    #if !APPSTORE
+        func testPerDisplayWakeHintFollowsPartialAndFullCoverage() throws {
+            for escapeOnly in [true, false] {
+                let harness = makeHarness()
+                harness.sut.requireEscapeToDismiss = escapeOnly
+
+                harness.sut.blankDisplay(7)
+                XCTAssertEqual(harness.windows.wakeHints, [7: .click])
+                XCTAssertTrue(harness.input.startPolicies.isEmpty)
+                harness.windows.pressOverlay(of: 7)
+                XCTAssertTrue(harness.sut.isDisplayBlanked(7), "The initiating click is still in the grace period")
+                harness.clock.now += 1
+                harness.windows.pressOverlay(of: 7)
+                XCTAssertFalse(harness.sut.isDisplayBlanked(7))
+
+                harness.sut.blankDisplay(7)
+                harness.sut.blankDisplay(9)
+                let fullHints: [CGDirectDisplayID: BlankingOverlayWakeHint] =
+                    escapeOnly ? [7: .escape, 9: .escape] : [:]
+                XCTAssertEqual(harness.windows.wakeHints, fullHints)
+                let policy: BlankingInputPolicy = escapeOnly ? .escapeOnly : .anyInput(ignorePointerMovement: false)
+                XCTAssertEqual(harness.input.startPolicies, [policy])
+                harness.clock.now += 1
+                harness.windows.pressOverlay(of: 7)
+                XCTAssertEqual(harness.sut.blankedDisplayIDs, [7, 9], "The monitor owns input during full coverage")
+
+                harness.displays.activeDisplayIDs.append(11)
+                harness.sut.displayTopologyDidChange()
+                XCTAssertEqual(harness.windows.wakeHints, [7: .click, 9: .click])
+                harness.displays.activeDisplayIDs.removeLast()
+                harness.sut.displayTopologyDidChange()
+                XCTAssertEqual(harness.windows.wakeHints, fullHints)
+                harness.clock.now += 1
+                try harness.input.sendWake()
+                XCTAssertTrue(harness.sut.blankedDisplayIDs.isEmpty)
+            }
+        }
+    #endif
+
     func testPerDisplayBlankingFollowsSavedWakePreferencesAfterFreshLaunch() throws {
         let suiteName = "ScreenBlankerTests-\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
@@ -1106,6 +1145,11 @@ final class FakeBlankingWindowController: BlankingWindowControlling {
     var removeAllCount = 0
     var endSessionCount = 0
     var failingDisplayIDs: Set<CGDirectDisplayID> = []
+    var wakeHints: [CGDirectDisplayID: BlankingOverlayWakeHint] = [:]
+
+    func setWakeHint(_ hint: BlankingOverlayWakeHint?, for displayID: CGDirectDisplayID) {
+        wakeHints[displayID] = hint
+    }
 
     func beginBlankingSession() {
         beginSessionCount += 1
@@ -1134,6 +1178,7 @@ final class FakeBlankingWindowController: BlankingWindowControlling {
     func showWindow(for displayID: CGDirectDisplayID, showsEscapeHint: Bool) -> Bool {
         guard !failingDisplayIDs.contains(displayID) else { return false }
         escapeHintFlags.append(showsEscapeHint)
+        setWakeHint(showsEscapeHint ? .escape : nil, for: displayID)
         shownDisplayIDs.append(displayID)
         events.append("show:\(displayID)")
         if appIsActive, keyDisplayID == nil {
@@ -1143,6 +1188,7 @@ final class FakeBlankingWindowController: BlankingWindowControlling {
     }
 
     func removeWindow(for displayID: CGDirectDisplayID) {
+        wakeHints.removeValue(forKey: displayID)
         shownDisplayIDs.removeAll { $0 == displayID }
         if keyDisplayID == displayID {
             keyDisplayID = nil
@@ -1150,6 +1196,7 @@ final class FakeBlankingWindowController: BlankingWindowControlling {
     }
 
     func removeAllWindows() {
+        wakeHints.removeAll()
         removeAllCount += 1
         shownDisplayIDs.removeAll()
         keyDisplayID = nil
@@ -1159,7 +1206,7 @@ final class FakeBlankingWindowController: BlankingWindowControlling {
         endSessionCount += 1
     }
 
-    /// A mouse press on a display's overlay, as the App Store edition's overlay view reports it.
+    /// A mouse press as reported by the display's overlay.
     func pressOverlay(of displayID: CGDirectDisplayID) {
         guard shownDisplayIDs.contains(displayID) else { return }
         onOverlayMouseDown?(displayID)
