@@ -384,7 +384,7 @@ function sliderFill(slider) {
 
 // Download buttons. A phone or tablet can't run a Mac app, so there the first
 // action sends this page to a Mac (the share sheet offers AirDrop, Messages,
-// and Mail) and the DMG link steps back to a text link. On a Mac, a click that
+// and Mail) and the download link steps back to a text link. On a Mac, a click that
 // starts the DMG download says what to do next, because the browser's own
 // download indicator doesn't.
 (function () {
@@ -401,6 +401,7 @@ function sliderFill(slider) {
 
     Array.prototype.forEach.call(groups, function (group) {
         var link = group.querySelector(".button");
+        var downloadsDMG = /\.dmg$/.test(link.href);
         var status = document.createElement("p");
         status.className = "download-status";
         status.setAttribute("role", "status");
@@ -426,7 +427,7 @@ function sliderFill(slider) {
                 );
             });
             link.className = "text-link";
-            link.textContent = "Or download the DMG";
+            link.textContent = downloadsDMG ? "Or download the DMG" : "Or view the latest release";
             group.insertBefore(send, link);
             // The hero's "After you download" link gives way; the steps are
             // still below for anyone reading on a phone.
@@ -440,7 +441,7 @@ function sliderFill(slider) {
         link.addEventListener("click", function () {
             // Locally and before a release has its DMG, the button opens the
             // release page instead, which needs no follow-up.
-            if (!/\.dmg$/.test(link.href)) {
+            if (!downloadsDMG) {
                 return;
             }
             status.textContent = "Downloading Dimmerly. Next, open the DMG and drag Dimmerly to Applications. ";

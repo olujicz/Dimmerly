@@ -49,6 +49,9 @@ jobs:
       - name: Test Screenshot Launch Lifecycle
         run: bash scripts/screenshots/test-launch.sh
 
+      - name: Test Website Download Links
+        run: node --test scripts/website/download-links.test.cjs
+
       - name: Check String Catalogs
         run: >-
           python3 scripts/l10n/check_catalog.py --rules docs/l10n/checker-rules.json
