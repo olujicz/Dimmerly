@@ -139,7 +139,8 @@
           "Color Temperature"
         ],
         "ru": [
-          "%@ input source"
+          "%@ input source",
+          "Click to wake"
         ],
         "zh-hans": [
           "%lld milliseconds (('plural', 'other'),)",
