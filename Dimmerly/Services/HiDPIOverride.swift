@@ -260,7 +260,7 @@
             static let system = SystemLocation()
         }
 
-        /// Adds the display's override file as root and lets WindowServer use the added sizes.
+        /// Adds the display's override file as root and sets the WindowServer flag if it isn't set.
         ///
         /// Everything root needs travels inside the command: the file's contents, its digest
         /// and the paths. Nothing is read from a location the user, or an app running as the
@@ -268,13 +268,17 @@
         /// are trustworthy, that the contents decode to what the digest says and to Dimmerly's
         /// own file for this display, and that no file exists yet.
         ///
-        /// The file is prepared beside its destination and moved into place last, after the
-        /// WindowServer flag is set. If the move fails, the flag goes back to its earlier value.
+        /// The file is staged under a fresh unique name beside its destination and published
+        /// with a hard link, which fails instead of replacing anything that appeared since the
+        /// check. The flag is set first and never rolled back: another model's override may
+        /// have started relying on it meanwhile, and a leftover `true` is harmless.
+        /// - Parameter contents: The file to install; defaults to `plistData(for:)`.
         static func installCommand(
             for display: HiDPIDisplayIdentity,
+            contents: Data? = nil,
             location: SystemLocation = .system
         ) throws -> String {
-            let contents = try plistData(for: display)
+            let contents = try contents ?? plistData(for: display)
             let destination = fileURL(
                 vendorID: display.vendorID, productID: display.productID, root: location.overridesRoot
             )
@@ -282,16 +286,14 @@
             guard let checks = folderChecks(for: directory, location: location, create: true) else {
                 return "/usr/bin/false"
             }
-            let digest = sha256Hex(contents)
             let flag = "\(shellQuoted(location.windowServerDomain)) \(shellQuoted(windowServerKey))"
-            let owner = "\(location.ownerUID):\(location.ownerGID)"
             var lines = preamble(ownerUID: location.ownerUID) + checks + [
                 "DEST=\(shellQuoted(destination.path))",
-                "TMP=\(shellQuoted(directory.path))/.dimmerly-hidpi-$$",
-                "abort() { /bin/rm -f \"$TMP\"; exit 1; }",
                 "[ ! -e \"$DEST\" ] && [ ! -L \"$DEST\" ] || exit 1",
+                "TMP=$(/usr/bin/mktemp \(shellQuoted(directory.path + "/.dimmerly-hidpi.XXXXXXXX"))) || exit 1",
+                "abort() { /bin/rm -f \"$TMP\"; exit 1; }",
                 "printf '%s' \(shellQuoted(contents.base64EncodedString())) | /usr/bin/base64 -D > \"$TMP\" || abort",
-                "[ \"$(digest \"$TMP\")\" = \(shellQuoted(digest)) ] || abort",
+                "[ \"$(digest \"$TMP\")\" = \(shellQuoted(sha256Hex(contents))) ] || abort",
             ]
             for (key, value) in [
                 (ownershipKey, "true"),
@@ -304,34 +306,29 @@
                 )
             }
             lines += [
-                "/usr/sbin/chown \(owner) \"$TMP\" || abort",
+                "/usr/sbin/chown \(location.ownerUID):\(location.ownerGID) \"$TMP\" || abort",
                 "/bin/chmod 644 \"$TMP\" || abort",
-                "CHANGED=0",
-                "undo() {",
-                "  [ \"$CHANGED\" = 1 ] || return 0",
-                "  if [ \"$PRC\" -ne 0 ]; then /usr/bin/defaults delete \(flag); "
-                    + "else /usr/bin/defaults write \(flag) -bool NO; fi",
-                "}",
-                "PRIOR=$(/usr/bin/defaults read \(flag) 2>/dev/null); PRC=$?",
-                "if [ \"$PRC\" -eq 0 ] && [ \"$PRIOR\" = 1 ]; then :",
-                "elif [ \"$PRC\" -ne 0 ] || [ \"$PRIOR\" = 0 ]; then",
-                "  CHANGED=1",
+                "if [ \"$(/usr/bin/defaults read \(flag) 2>/dev/null)\" != 1 ]; then",
+                "  /usr/bin/defaults write \(flag) -bool YES || abort",
                 // `defaults write` can report success without writing, so read the value back.
-                "  /usr/bin/defaults write \(flag) -bool YES || { undo; abort; }",
-                "  [ \"$(/usr/bin/defaults read \(flag) 2>/dev/null)\" = 1 ] || { undo; abort; }",
-                "else abort; fi",
-                "/bin/mv -f \"$TMP\" \"$DEST\" || { undo; abort; }",
+                "  [ \"$(/usr/bin/defaults read \(flag) 2>/dev/null)\" = 1 ] || abort",
+                "fi",
+                "/bin/ln \"$TMP\" \"$DEST\" || abort",
+                "/bin/rm -f \"$TMP\"",
                 "exit 0",
             ]
             return lines.joined(separator: "\n")
         }
 
         /// Removes the display's override file as root, only if it still holds exactly
-        /// `expectedCurrent`, the bytes Dimmerly read and recognised as its own. Then removes
-        /// the vendor folder if that left it empty.
+        /// `expectedCurrent`, the bytes Dimmerly installed. Then removes the vendor folder if
+        /// that left it empty.
         ///
-        /// The WindowServer flag stays as it is: Dimmerly can't tell a flag it set from one the
-        /// user or another tool did, and other overrides may rely on it.
+        /// The file is first moved into a fresh folder of its own, and only that moved copy is
+        /// checked and deleted. If it turns out not to match, it is linked back, or left in
+        /// that folder when something new has taken its place, never deleted.
+        ///
+        /// The WindowServer flag stays as it is: other overrides may rely on it.
         static func removeCommand(
             vendorID: UInt32,
             productID: UInt32,
@@ -346,10 +343,16 @@
             let lines = preamble(ownerUID: location.ownerUID) + checks + [
                 "DEST=\(shellQuoted(destination.path))",
                 "[ -f \"$DEST\" ] && [ ! -L \"$DEST\" ] || exit 1",
-                "[ \"$(digest \"$DEST\")\" = \(shellQuoted(sha256Hex(expectedCurrent))) ] || exit 1",
-                "/bin/rm -f \"$DEST\" || exit 1",
-                "/bin/rmdir \(shellQuoted(directory.path)) 2>/dev/null",
-                "exit 0",
+                "HOLD=$(/usr/bin/mktemp -d \(shellQuoted(directory.path + "/.dimmerly-hold.XXXXXXXX"))) || exit 1",
+                "/bin/mv -n \"$DEST\" \"$HOLD/file\" || { /bin/rmdir \"$HOLD\"; exit 1; }",
+                "if [ -f \"$HOLD/file\" ] && [ ! -L \"$HOLD/file\" ] "
+                    + "&& [ \"$(digest \"$HOLD/file\")\" = \(shellQuoted(sha256Hex(expectedCurrent))) ]; then",
+                "  /bin/rm -rf \"$HOLD\"",
+                "  /bin/rmdir \(shellQuoted(directory.path)) 2>/dev/null",
+                "  exit 0",
+                "fi",
+                "/bin/ln \"$HOLD/file\" \"$DEST\" 2>/dev/null && /bin/rm -rf \"$HOLD\"",
+                "exit 1",
             ]
             return lines.joined(separator: "\n")
         }
@@ -358,14 +361,16 @@
             SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
         }
 
-        /// Shell helpers: `trusted` accepts only a real directory owned by `ownerUID` that group
-        /// and others can't write to, and `digest` prints a file's SHA-256.
+        /// Shell helpers: `trusted` accepts only a real directory owned by `ownerUID` with no ACL that
+        /// group and others can't write to, and `digest` prints a file's SHA-256.
         private static func preamble(ownerUID: UInt32) -> [String] {
             [
                 "umask 022",
                 "trusted() {",
                 "  [ -d \"$1\" ] && [ ! -L \"$1\" ] || return 1",
                 "  [ \"$(/usr/bin/stat -f %u \"$1\")\" = \(ownerUID) ] || return 1",
+                // Any ACL entry, listed after the first line, could grant write access.
+                "  [ -z \"$(/bin/ls -lde \"$1\" | /usr/bin/sed -n '2,$p')\" ] || return 1",
                 "  [ $(( 0$(/usr/bin/stat -f %Lp \"$1\") & 022 )) -eq 0 ]",
                 "}",
                 "digest() { /usr/bin/shasum -a 256 < \"$1\" | /usr/bin/cut -d ' ' -f1; }",

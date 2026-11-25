@@ -134,6 +134,9 @@
         /// by `modelKey`, each with that boot's time. Kept in defaults so the state survives
         /// quitting Dimmerly before the restart.
         static let removalsKey = "HiDPILoadedOverridesRemovedThisBoot"
+        /// SHA-256 of the file Dimmerly installed, per model. A file that no longer matches has
+        /// been edited by someone else and is left alone.
+        static let installedKey = "HiDPIInstalledOverrideDigests"
 
         /// Settings uses this one, so a change still waiting on the password prompt keeps its
         /// lock when the Settings window closes and opens again.
@@ -199,7 +202,7 @@
             let offered = Set(modes.filter(Self.isHiDPI).map { HiDPISize(width: $0.width, height: $0.height) })
             let expected = HiDPIOverride.scaledSizes(nativeWidth: native.width, nativeHeight: native.height)
             let status = HiDPIOverride.status(
-                ownership: Self.readOverride(at: fileURL).ownership,
+                ownership: ownedOverride(at: fileURL, identity: identity).ownership,
                 expectedSizes: expected,
                 offeredHiDPISizes: offered,
                 installedBeforeLastRestart: Self.predatesBoot(fileURL),
@@ -235,11 +238,15 @@
                 // shows whatever appeared since.
                 guard Self.readOverride(at: self.fileURL(for: display)).ownership == .none else { return }
 
-                let command = try HiDPIOverride.installCommand(for: display.identity, location: self.location)
+                let contents = try HiDPIOverride.plistData(for: display.identity)
+                let command = try HiDPIOverride.installCommand(
+                    for: display.identity, contents: contents, location: self.location
+                )
                 try await self.runner.run(command, prompt: String(
                     localized: "Dimmerly wants to add HiDPI sizes for \(display.identity.name).",
                     comment: "Administrator password prompt when turning on HiDPI; the placeholder is the display name"
                 ))
+                self.setInstalledDigest(HiDPIOverride.sha256Hex(contents), for: display.identity)
             }
         }
 
@@ -248,7 +255,7 @@
             guard display.status.action == .turnOff else { return }
             await perform(on: display) {
                 let file = self.fileURL(for: display)
-                let current = Self.readOverride(at: file)
+                let current = self.ownedOverride(at: file, identity: display.identity)
                 guard current.ownership == .dimmerly, let data = current.data else { return }
                 let wasLoaded = Self.predatesBoot(file)
 
@@ -262,6 +269,7 @@
                     localized: "Dimmerly wants to remove HiDPI sizes for \(display.identity.name).",
                     comment: "Administrator password prompt when turning off HiDPI; the placeholder is the display name"
                 ))
+                self.setInstalledDigest(nil, for: display.identity)
                 if wasLoaded {
                     self.recordLoadedFileRemoval(for: display.identity)
                 }
@@ -346,6 +354,29 @@
                 return (nil, .other(hiDPIOnly: false))
             }
             return (data, HiDPIOverride.ownership(ofPlistData: data))
+        }
+
+        // MARK: Installed digests
+
+        /// Like `readOverride`, but a file carrying Dimmerly's marker counts as Dimmerly's only
+        /// while it is byte for byte what Dimmerly installed. Otherwise another tool edited it,
+        /// and it is treated as that tool's.
+        private func ownedOverride(
+            at url: URL, identity: HiDPIDisplayIdentity
+        ) -> (data: Data?, ownership: HiDPIOverrideOwnership) {
+            let read = Self.readOverride(at: url)
+            guard read.ownership == .dimmerly, let data = read.data else { return read }
+            let digests = defaults.dictionary(forKey: Self.installedKey) as? [String: String] ?? [:]
+            guard digests[Self.modelKey(identity)] == HiDPIOverride.sha256Hex(data) else {
+                return (data, .other(hiDPIOnly: false))
+            }
+            return read
+        }
+
+        private func setInstalledDigest(_ digest: String?, for identity: HiDPIDisplayIdentity) {
+            var digests = defaults.dictionary(forKey: Self.installedKey) as? [String: String] ?? [:]
+            digests[Self.modelKey(identity)] = digest
+            defaults.set(digests, forKey: Self.installedKey)
         }
 
         // MARK: Removals this boot

@@ -94,6 +94,32 @@
             XCTAssertNil(flag())
         }
 
+        func testInstallRefusesAFolderWithAnACLEntry() throws {
+            try FileManager.default.createDirectory(at: vendorFolder, withIntermediateDirectories: true)
+            XCTAssertEqual(try Self.run("/bin/chmod", ["+a", "everyone allow add_file", vendorFolder.path]), 0)
+
+            XCTAssertNotEqual(try runInstall(), 0)
+            XCTAssertFalse(FileManager.default.fileExists(atPath: file.path))
+        }
+
+        func testInstallLeavesNoStagingFilesBehind() throws {
+            XCTAssertEqual(try runInstall(), 0)
+            XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: vendorFolder.path).count, 1)
+        }
+
+        func testInstallThatCannotStageTouchesNeitherTheFileNorTheFlag() throws {
+            writeFlag(false)
+            try FileManager.default.createDirectory(at: vendorFolder, withIntermediateDirectories: true)
+            try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: vendorFolder.path)
+            defer {
+                try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: vendorFolder.path)
+            }
+
+            XCTAssertNotEqual(try runInstall(), 0)
+            XCTAssertFalse(FileManager.default.fileExists(atPath: file.path))
+            XCTAssertEqual(flag(), false)
+        }
+
         func testInstallRefusesASymbolicLinkInTheFolderPath() throws {
             let elsewhere = base.appendingPathComponent("elsewhere", isDirectory: true)
             try FileManager.default.createDirectory(at: elsewhere, withIntermediateDirectories: true)
@@ -157,6 +183,7 @@
 
             XCTAssertNotEqual(try runRemove(expecting: original), 0)
             XCTAssertEqual(try Data(contentsOf: file), changed)
+            XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: vendorFolder.path).count, 1)
         }
 
         func testRemoveKeepsAFolderThatHoldsOtherFiles() throws {
@@ -248,6 +275,40 @@
 
             XCTAssertEqual(calls.count, 0)
             XCTAssertEqual(try Data(contentsOf: file), changed)
+        }
+
+        func testTurnOffLeavesAFileThatAnotherToolEditedAfterDimmerlyInstalledIt() async throws {
+            let installer = makeManager { command in
+                guard try Self.shell(command) == 0 else { throw HiDPIModeError.commandFailed }
+            }
+            await installer.enable(row(id: 1, status: .off))
+
+            // Still carries Dimmerly's marker and only HiDPI keys, but the product name changed.
+            var edited = try XCTUnwrap(PropertyListSerialization.propertyList(
+                from: Data(contentsOf: file), format: nil
+            ) as? [String: Any])
+            edited["DisplayProductName"] = "Renamed"
+            let changed = try PropertyListSerialization.data(fromPropertyList: edited, format: .xml, options: 0)
+            try changed.write(to: file)
+
+            let calls = CallCounter()
+            let remover = makeManager { _ in calls.increment() }
+            await remover.disable(row(id: 1, status: .on))
+
+            XCTAssertEqual(calls.count, 0)
+            XCTAssertEqual(try Data(contentsOf: file), changed)
+        }
+
+        func testTurnOffLeavesAMarkedFileDimmerlyHasNoRecordOfInstalling() async throws {
+            let calls = CallCounter()
+            let manager = makeManager { _ in calls.increment() }
+            let handBuilt = try HiDPIOverride.plistData(for: identity)
+            try seed(handBuilt)
+
+            await manager.disable(row(id: 1, status: .on))
+
+            XCTAssertEqual(calls.count, 0)
+            XCTAssertEqual(try Data(contentsOf: file), handBuilt)
         }
 
         func testRowsThatOfferNoActionDoNothing() async {
@@ -371,6 +432,15 @@
             for await _ in stream {
                 return
             }
+        }
+
+        private nonisolated static func run(_ tool: String, _ arguments: [String]) throws -> Int32 {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: tool)
+            process.arguments = arguments
+            try process.run()
+            process.waitUntilExit()
+            return process.terminationStatus
         }
 
         private nonisolated static func shell(_ command: String) throws -> Int32 {
