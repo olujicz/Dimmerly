@@ -31580,6 +31580,77 @@
           }
         }
       }
+    },
+    "Turning HiDPI on also sets a system-wide display preference. It stays on when you turn HiDPI off." : {
+      "comment" : "HiDPI settings note: turning HiDPI on sets a system preference that turning it off leaves in place",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turning HiDPI on also sets a system-wide display preference. It stays on when you turn HiDPI off."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Beim Einschalten von HiDPI wird auch eine systemweite Anzeigeeinstellung aktiviert. Sie bleibt aktiv, wenn du HiDPI wieder ausschaltest."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Al activar HiDPI también se activa un ajuste de pantalla de todo el sistema. Sigue activado cuando desactivas HiDPI."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "L’activation de HiDPI active aussi un réglage d’affichage à l’échelle du système. Il reste activé lorsque vous désactivez HiDPI."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Attivando HiDPI viene attivata anche un’impostazione di visualizzazione valida per tutto il sistema. Resta attiva anche quando disattivi HiDPI."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "HiDPIをオンにすると、システム全体のディスプレイ設定もオンになります。HiDPIをオフにしても、この設定はオンのままです。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "HiDPI를 켜면 시스템 전체 디스플레이 설정도 켜집니다. HiDPI를 꺼도 이 설정은 켜진 채로 유지됩니다."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Als je HiDPI aanzet, wordt ook een schermvoorkeur voor het hele systeem aangezet. Die blijft aan als je HiDPI weer uitzet."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ao ativar o HiDPI, uma preferência de tela de todo o sistema também é ativada. Ela continua ativada quando você desativa o HiDPI."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Uključivanjem HiDPI-ja uključuje se i podešavanje ekrana za ceo sistem. Ostaje uključeno i kada isključiš HiDPI."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "开启 HiDPI 时，也会开启一项系统级的显示设置。关闭 HiDPI 后，该设置仍保持开启。"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

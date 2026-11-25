@@ -207,6 +207,119 @@
             XCTAssertTrue(FileManager.default.fileExists(atPath: target.path))
         }
 
+        // MARK: Exact-path publishing, recovery and preference folder
+
+        /// Runs `publish SRC DEST` from the command's own helpers.
+        private func publish(_ source: URL, to destination: URL) throws -> Int32 {
+            let lines = HiDPIOverride.preamble(ownerUID: getuid()) + [
+                "publish \(HiDPIOverride.shellQuoted(source.path)) \(HiDPIOverride.shellQuoted(destination.path))",
+            ]
+            return try runShell(lines.joined(separator: "\n"))
+        }
+
+        func testPublishLinksTheExactPathAndRefusesToReplaceAFile() throws {
+            let source = base.appendingPathComponent("source")
+            let destination = base.appendingPathComponent("dest")
+            try Data("new".utf8).write(to: source)
+            XCTAssertEqual(try publish(source, to: destination), 0)
+            XCTAssertEqual(try Data(contentsOf: destination), Data("new".utf8))
+
+            let occupied = base.appendingPathComponent("occupied")
+            try Data("theirs".utf8).write(to: occupied)
+            XCTAssertNotEqual(try publish(source, to: occupied), 0)
+            XCTAssertEqual(try Data(contentsOf: occupied), Data("theirs".utf8))
+        }
+
+        func testPublishFailsInsteadOfLinkingInsideADirectoryThatAppearedAtTheDestination() throws {
+            let source = base.appendingPathComponent("source")
+            try Data("new".utf8).write(to: source)
+            let folder = base.appendingPathComponent("folder", isDirectory: true)
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+
+            XCTAssertNotEqual(try publish(source, to: folder), 0)
+            XCTAssertTrue(try FileManager.default.contentsOfDirectory(atPath: folder.path).isEmpty)
+            XCTAssertTrue(FileManager.default.fileExists(atPath: source.path))
+        }
+
+        func testPublishFailsInsteadOfLinkingThroughASymbolicLinkToADirectory() throws {
+            let source = base.appendingPathComponent("source")
+            try Data("new".utf8).write(to: source)
+            let target = base.appendingPathComponent("target", isDirectory: true)
+            try FileManager.default.createDirectory(at: target, withIntermediateDirectories: true)
+            let link = base.appendingPathComponent("link")
+            try FileManager.default.createSymbolicLink(at: link, withDestinationURL: target)
+
+            XCTAssertNotEqual(try publish(source, to: link), 0)
+            XCTAssertTrue(try FileManager.default.contentsOfDirectory(atPath: target.path).isEmpty)
+        }
+
+        func testAFileStrandedInHoldingIsPutBackWhenItsPathIsFree() throws {
+            let stranded = Data("foreign".utf8)
+            try seedHold(stranded)
+
+            // The install stops because a file turned up, and that file is the stranded one.
+            XCTAssertNotEqual(try runInstall(), 0)
+            XCTAssertEqual(try Data(contentsOf: file), stranded)
+            XCTAssertEqual(holdFolders().count, 0)
+        }
+
+        func testAFileStrandedInHoldingStaysPutWhenItsPathIsTaken() throws {
+            let stranded = Data("stranded".utf8)
+            let occupant = Data("occupant".utf8)
+            try seedHold(stranded)
+            try occupant.write(to: file)
+
+            XCTAssertNotEqual(try runRemove(expecting: Data("other".utf8)), 0)
+            XCTAssertEqual(try Data(contentsOf: file), occupant)
+            XCTAssertEqual(try Data(contentsOf: holdFolders()[0].appendingPathComponent("file")), stranded)
+        }
+
+        func testRemovalFinishesAnInterruptedRemovalOfDimmerlysOwnFile() throws {
+            let own = try HiDPIOverride.plistData(for: identity)
+            try seedHold(own)
+
+            XCTAssertEqual(try runRemove(expecting: own), 0)
+            XCTAssertFalse(FileManager.default.fileExists(atPath: vendorFolder.path))
+        }
+
+        func testInstallRefusesAnUntrustedPreferenceFolder() throws {
+            let prefs = base.appendingPathComponent("prefs", isDirectory: true)
+            try FileManager.default.createDirectory(at: prefs, withIntermediateDirectories: true)
+            try FileManager.default.setAttributes([.posixPermissions: 0o777], ofItemAtPath: prefs.path)
+            var untrusted = location
+            untrusted.windowServerDomain = prefs.appendingPathComponent("windowserver").path
+
+            XCTAssertNotEqual(try runShell(HiDPIOverride.installCommand(for: identity, location: untrusted)), 0)
+            XCTAssertFalse(FileManager.default.fileExists(atPath: file.path))
+            XCTAssertNil(NSDictionary(contentsOf: URL(fileURLWithPath: untrusted.windowServerDomain + ".plist")))
+        }
+
+        func testAnInstallThatLandedButReportedFailureIsStillRecognisedAsDimmerlys() async {
+            let flaky = makeManager { command in
+                guard try Self.shell(command) == 0 else { throw HiDPIModeError.commandFailed }
+                throw HiDPIModeError.commandFailed // the result was lost after the file landed
+            }
+            await flaky.enable(row(id: 1, status: .off))
+            XCTAssertEqual(flaky.errors[1], .commandFailed)
+
+            let remover = makeManager { command in
+                guard try Self.shell(command) == 0 else { throw HiDPIModeError.commandFailed }
+            }
+            await remover.disable(row(id: 1, status: .on))
+            XCTAssertFalse(FileManager.default.fileExists(atPath: file.path))
+        }
+
+        func testAnInstallThatNeverLandedLeavesNoRecordBehind() async throws {
+            let manager = makeManager { _ in throw HiDPIModeError.cancelled }
+            await manager.enable(row(id: 1, status: .off))
+            try HiDPIOverride.plistData(for: identity).write(to: { try seed(Data()); return file }())
+
+            let calls = CallCounter()
+            let remover = makeManager { _ in calls.increment() }
+            await remover.disable(row(id: 1, status: .on))
+            XCTAssertEqual(calls.count, 0)
+        }
+
         // MARK: Manager
 
         func testCancellingThePasswordPromptChangesNothingAndShowsNoError() async {
@@ -410,6 +523,18 @@
                 expectedCurrent: data,
                 location: location
             ))
+        }
+
+        private func seedHold(_ data: Data) throws {
+            let hold = vendorFolder.appendingPathComponent(".dimmerly-hold.ABCD1234", isDirectory: true)
+            try FileManager.default.createDirectory(at: hold, withIntermediateDirectories: true)
+            try data.write(to: hold.appendingPathComponent("file"))
+        }
+
+        private func holdFolders() -> [URL] {
+            let names = (try? FileManager.default.contentsOfDirectory(atPath: vendorFolder.path)) ?? []
+            return names.filter { $0.hasPrefix(".dimmerly-hold.") }
+                .map { vendorFolder.appendingPathComponent($0, isDirectory: true) }
         }
 
         private func writeFlag(_ value: Bool) {

@@ -438,7 +438,8 @@
           "macOS didn’t switch to that size. Try another size, or choose one in System Settings > Displays.",
           "Off",
           "macOS didn’t use the HiDPI sizes for this display. Turn HiDPI off to remove the file.",
-          "Applies to all displays of this model."
+          "Applies to all displays of this model.",
+          "Turning HiDPI on also sets a system-wide display preference. It stays on when you turn HiDPI off."
         ],
         "es": [
           "Click to wake",
@@ -472,7 +473,8 @@
           "macOS didn’t switch to that size. Try another size, or choose one in System Settings > Displays.",
           "Off",
           "macOS didn’t use the HiDPI sizes for this display. Turn HiDPI off to remove the file.",
-          "Applies to all displays of this model."
+          "Applies to all displays of this model.",
+          "Turning HiDPI on also sets a system-wide display preference. It stays on when you turn HiDPI off."
         ],
         "fr": [
           "\"%@\" will be permanently deleted.",
@@ -540,7 +542,8 @@
           "macOS didn’t switch to that size. Try another size, or choose one in System Settings > Displays.",
           "Off",
           "macOS didn’t use the HiDPI sizes for this display. Turn HiDPI off to remove the file.",
-          "Applies to all displays of this model."
+          "Applies to all displays of this model.",
+          "Turning HiDPI on also sets a system-wide display preference. It stays on when you turn HiDPI off."
         ],
         "it": [
           "Click to wake",
@@ -574,7 +577,8 @@
           "macOS didn’t switch to that size. Try another size, or choose one in System Settings > Displays.",
           "Off",
           "macOS didn’t use the HiDPI sizes for this display. Turn HiDPI off to remove the file.",
-          "Applies to all displays of this model."
+          "Applies to all displays of this model.",
+          "Turning HiDPI on also sets a system-wide display preference. It stays on when you turn HiDPI off."
         ],
         "ja": [
           "%@ brightness",
@@ -675,7 +679,8 @@
           "macOS didn’t switch to that size. Try another size, or choose one in System Settings > Displays.",
           "Off",
           "macOS didn’t use the HiDPI sizes for this display. Turn HiDPI off to remove the file.",
-          "Applies to all displays of this model."
+          "Applies to all displays of this model.",
+          "Turning HiDPI on also sets a system-wide display preference. It stays on when you turn HiDPI off."
         ],
         "ko": [
           "%@ is a standard system shortcut. Try a different combination.",
@@ -710,7 +715,8 @@
           "macOS didn’t switch to that size. Try another size, or choose one in System Settings > Displays.",
           "Off",
           "macOS didn’t use the HiDPI sizes for this display. Turn HiDPI off to remove the file.",
-          "Applies to all displays of this model."
+          "Applies to all displays of this model.",
+          "Turning HiDPI on also sets a system-wide display preference. It stays on when you turn HiDPI off."
         ],
         "nl": [
           "Apply",
@@ -746,7 +752,8 @@
           "macOS didn’t switch to that size. Try another size, or choose one in System Settings > Displays.",
           "Off",
           "macOS didn’t use the HiDPI sizes for this display. Turn HiDPI off to remove the file.",
-          "Applies to all displays of this model."
+          "Applies to all displays of this model.",
+          "Turning HiDPI on also sets a system-wide display preference. It stays on when you turn HiDPI off."
         ],
         "pt-br": [
           "Click to wake",
@@ -780,7 +787,8 @@
           "macOS didn’t switch to that size. Try another size, or choose one in System Settings > Displays.",
           "Off",
           "macOS didn’t use the HiDPI sizes for this display. Turn HiDPI off to remove the file.",
-          "Applies to all displays of this model."
+          "Applies to all displays of this model.",
+          "Turning HiDPI on also sets a system-wide display preference. It stays on when you turn HiDPI off."
         ],
         "ru": [
           "Click to wake",
@@ -822,7 +830,8 @@
           "macOS didn’t switch to that size. Try another size, or choose one in System Settings > Displays.",
           "Off",
           "macOS didn’t use the HiDPI sizes for this display. Turn HiDPI off to remove the file.",
-          "Applies to all displays of this model."
+          "Applies to all displays of this model.",
+          "Turning HiDPI on also sets a system-wide display preference. It stays on when you turn HiDPI off."
         ],
         "zh-hans": [
           "Click to wake",
@@ -858,7 +867,8 @@
           "macOS didn’t switch to that size. Try another size, or choose one in System Settings > Displays.",
           "Off",
           "macOS didn’t use the HiDPI sizes for this display. Turn HiDPI off to remove the file.",
-          "Applies to all displays of this model."
+          "Applies to all displays of this model.",
+          "Turning HiDPI on also sets a system-wide display preference. It stays on when you turn HiDPI off."
         ]
       }
     },

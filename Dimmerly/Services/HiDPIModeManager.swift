@@ -242,11 +242,22 @@
                 let command = try HiDPIOverride.installCommand(
                     for: display.identity, contents: contents, location: self.location
                 )
+                // Recorded before the prompt: if Dimmerly stops or loses the result after the
+                // install lands, the file is still recognised as its own at the next launch.
+                let digest = HiDPIOverride.sha256Hex(contents)
+                self.setInstalledDigest(digest, for: display.identity)
+                defer {
+                    // Whatever the outcome, keep the record only if the file is the one installed.
+                    let landed = Self.readOverride(at: self.fileURL(for: display)).data
+                        .map(HiDPIOverride.sha256Hex) == digest
+                    if !landed {
+                        self.setInstalledDigest(nil, for: display.identity)
+                    }
+                }
                 try await self.runner.run(command, prompt: String(
                     localized: "Dimmerly wants to add HiDPI sizes for \(display.identity.name).",
                     comment: "Administrator password prompt when turning on HiDPI; the placeholder is the display name"
                 ))
-                self.setInstalledDigest(HiDPIOverride.sha256Hex(contents), for: display.identity)
             }
         }
 

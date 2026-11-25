@@ -49,6 +49,12 @@
             .font(.caption)
             .foregroundStyle(.secondary)
 
+            Text(
+                "Turning HiDPI on also sets a system-wide display preference. It stays on when you turn HiDPI off."
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+
             if manager.displays.isEmpty {
                 Text("No external display below 4K is connected.")
                     .font(.caption)
