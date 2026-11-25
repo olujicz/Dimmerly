@@ -7,16 +7,14 @@ Semantic Versioning.
 
 ## [Unreleased]
 
-### Added
-- In the direct download, Settings › Displays has a HiDPI section for external displays below 4K, such as 1080p and 1440p monitors. Turn it on and Dimmerly asks for your administrator password, installs a display override file that makes macOS offer HiDPI sizes for that display, and asks you to restart. After the restart, pick a size there and macOS draws the display at twice the resolution and scales it down, so text looks smoother. Turn it off the same way to remove the file. Dimmerly only removes a file it installed itself and that is still exactly as it wrote it. Any override file from another app, or one another tool has since edited, is left untouched. Turning HiDPI on sets the system's HiDPI preference if it isn't set, and turning it off leaves that preference as it is. The changes are made by a small tool inside the app that runs once with your administrator rights and exits; a change that was interrupted is finished or undone before the next one, and if the original override can't be put back because another file is in its place, Settings shows where it is kept. The App Store edition can't install system files, so it doesn't have this section. Translated in every shipped language except Russian.
-
-## [1.5.1] - Unreleased
+## [1.5.1] - 2026-11-26
 
 ### Added
-- The App Store edition asks for a rating at most once per version, and only after you have used Dimmerly for a week, applied presets on at least three days, and closed the menu bar panel. It never asks on first launch, while a display is blanked, or while the panel is open. Nothing about your use leaves your Mac. The direct download never asks.
+- The direct download adds HiDPI for external displays below 4K, including 1080p and 1440p monitors. In Settings › Displays › HiDPI, choose **Turn On…**, authorize the change with an administrator password, and restart your Mac. Then choose a HiDPI size to have macOS render at twice the resolution for sharper text.
+- To remove the sizes Dimmerly added, choose **Turn Off…**, authorize the change, and restart again. Dimmerly leaves existing display overrides from other apps in place. The shared macOS HiDPI preference stays enabled after you turn HiDPI off for a display.
 
 ### Changed
-- In the App Store edition, dimmed displays now wake with any key or click. The "Escape key only" option is gone there: Mission Control and other system overviews take the Esc key, which could leave a dimmed screen with no way to wake it. If you dim only one display, click its black screen to wake it, and the VoiceOver hint on the dim button says so. If you had chosen Escape only, Dimmerly turns on "Ignore mouse movement" for you instead. The direct download keeps both options: with Escape only chosen and other displays still on, a click on a dimmed display does nothing, it shows no hint, and you restore it from the menu (the dim button's VoiceOver hint says so); once every display is black, including a Mac with one display, Esc wakes them and the screens say "Press Esc to wake". With Escape only off, a click wakes a dimmed display while another is on, and it says "Click to wake". Translated in every shipped language.
+- With **Escape key only** enabled, use the menu to restore a dimmed display while another display is still on. When every display is dimmed, press Esc to wake them. With **Escape key only** disabled, you can click a dimmed display to wake it while another display is on.
 
 ### Fixed
 - A brightness, warmth or contrast change made just before a monitor is unplugged is saved with that monitor and is back when it reconnects, even under a different display ID.
@@ -26,12 +24,10 @@ Semantic Versioning.
 - VoiceOver names the display on each per-display dim and restore button ("Dim DELL U2720Q"), and the hint says the display turns black instead of promising minimum brightness. Translated in every shipped language.
 - Settings says so when Use Current Location fails for a reason other than permission, and offers Try Again or manual entry. Before, an unexpected system error, or a fix that never arrived after repeated "location unknown" errors, left the row silent. A request waits 30 seconds after the first of those errors, or gives up after three. Translated in every shipped language.
 - The warmth readout under each display's slider writes the colour temperature the way your language does ("4.500 K" in German, "4 500 K" in French) instead of always "4500K". VoiceOver says "kelvins" with the same number, and still says "automatic" while Auto Warmth is setting it.
-- In the App Store edition, a blanked display is restored when you switch to another app, instead of staying black with no way to wake it. Without that, the wake key reached the other app. If the display that held keyboard focus is unplugged, another blanked display takes over. If Dimmerly cannot take keyboard focus when blanking starts (for example an idle timer fires while another app is in front), the displays are restored after a moment instead of staying black.
 - If Location Services is off when you press Use Current Location and you turn it on while Settings is open, the request now starts instead of waiting forever. Clearing the saved location also clears the warning.
 - A monitor unplugged in the middle of a preset transition is saved with the values the transition was heading to, not a half-way frame.
 - The colour temperatures beside Auto Warmth, in the menu bar panel and in Settings, follow your language's number format, and VoiceOver reads them as kelvins.
 - The VoiceOver hint on each display's dim button says how to wake it (Esc, or any key) instead of "press again". Translated in every shipped language.
-- The App Store edition now reaches the rating ask from the normal menu bar flow. It no longer waits for Dimmerly to be the active app, which a menu bar app rarely is after its panel closes, so the ask never came. It still waits while a display is blanked or the panel is open, and keeps the one ask per version.
 - Schedules missed while Dimmerly was not running apply when it starts: after a Mac that was off overnight boots, the newest trigger crossed since Dimmerly last ran (up to 24 hours back) takes effect instead of being skipped. Turning a schedule back on also applies its trigger from earlier the same day, as the setting always promised.
 - The help for "Ignore mouse movement" now says scrolling still wakes the screen, which it always did; only pointer movement is ignored. Translated in every shipped language.
 - A display row you expanded in the menu bar panel stays expanded when you turn Auto Warmth off, and the panel still opens collapsed.
