@@ -370,6 +370,8 @@ struct DisplayBrightnessRow: View {
 
     let display: ExternalDisplay
     let isBlanked: Bool
+    /// True when dimming this display would leave every connected display black.
+    let dimmingCompletesCoverage: Bool
     let isAutoColorTemp: Bool
     let onChange: (Double) -> Void
     let onWarmthChange: (Double) -> Void
@@ -410,6 +412,7 @@ struct DisplayBrightnessRow: View {
     init(
         display: ExternalDisplay,
         isBlanked: Bool,
+        dimmingCompletesCoverage: Bool = false,
         isAutoColorTemp: Bool = false,
         onChange: @escaping (Double) -> Void,
         onWarmthChange: @escaping (Double) -> Void,
@@ -418,6 +421,7 @@ struct DisplayBrightnessRow: View {
     ) {
         self.display = display
         self.isBlanked = isBlanked
+        self.dimmingCompletesCoverage = dimmingCompletesCoverage
         self.isAutoColorTemp = isAutoColorTemp
         self.onChange = onChange
         self.onWarmthChange = onWarmthChange
@@ -439,15 +443,23 @@ struct DisplayBrightnessRow: View {
         #endif
     }
 
-    /// A click wakes a partially dimmed display. The configured keyboard wake only applies
-    /// once every display is black and the input monitor is running.
+    /// Follows `ScreenBlanker.dimWakeInstruction`: a click wakes a partially dimmed display unless
+    /// Escape only applies, and the keyboard wake only runs once every display is black.
     private var dimHint: Text {
         #if !APPSTORE
-            if settings.wakesOnlyOnEscape {
+            switch ScreenBlanker.dimWakeInstruction(
+                wakesOnlyOnEscape: settings.wakesOnlyOnEscape,
+                completesCoverage: dimmingCompletesCoverage
+            ) {
+            case .restoreFromMenuThenEscape:
                 return Text("""
-                Turns the display black. Click it to wake it while another display is on. \
-                Press Esc when all displays are black.
+                Turns the display black. While another display is on, restore it from the menu. \
+                Press Esc once every display is black.
                 """)
+            case .escape:
+                return Text("Turns the display black. Press Esc to wake it.")
+            case .clickOrAnyKey:
+                break
             }
         #endif
         return Text("Turns the display black. Click it to wake it, or press any key once every display is black.")

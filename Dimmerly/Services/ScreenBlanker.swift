@@ -460,6 +460,23 @@ final class ScreenBlanker {
         return alreadyCovered.union(readyDisplayIDs)
     }
 
+    /// How a display dimmed from the menu can be woken, mirroring the sessions' behavior: a click
+    /// reaches it only in partial coverage without Escape only (`overlayWasPressed`), and the
+    /// keyboard monitor, which honors Escape only, runs only once every display is covered.
+    enum DimWakeInstruction: Equatable {
+        /// Click the display now; any key once every display is black.
+        case clickOrAnyKey
+        /// Escape only with other displays still on: restore it from the menu; Esc once all are black.
+        case restoreFromMenuThenEscape
+        /// Escape only and this display is the last one on: Esc.
+        case escape
+    }
+
+    static func dimWakeInstruction(wakesOnlyOnEscape: Bool, completesCoverage: Bool) -> DimWakeInstruction {
+        guard wakesOnlyOnEscape else { return .clickOrAnyKey }
+        return completesCoverage ? .escape : .restoreFromMenuThenEscape
+    }
+
     static func shouldEnablePerDisplayRecovery(
         blankedDisplayIDs: Set<CGDirectDisplayID>,
         activeDisplayIDs: [CGDirectDisplayID]

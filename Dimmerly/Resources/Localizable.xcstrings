@@ -9389,10 +9389,11 @@
       }
     },
     "Turns the display black. Press Esc to wake it." : {
+      "comment" : "VoiceOver hint for the dim button when Escape-only wake applies and this dims the last visible display",
       "localizations" : {
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Schaltet das Display schwarz. Zum Aufwecken Esc drücken."
           }
         },
@@ -9404,55 +9405,55 @@
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Pone la pantalla en negro. Pulsa Esc para activarla."
           }
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Rend l’écran noir. Appuyez sur Échap pour le réactiver."
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Rende nero il display. Premi Esc per riattivarlo."
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "画面を真っ黒にします。Escキーで復帰します。"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "화면을 검게 만듭니다. Esc를 누르면 깨어납니다."
+            "state" : "needs_review",
+            "value" : "화면을 검게 만듭니다. Esc 키를 눌러 깨울 수 있습니다."
           }
         },
         "nl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Maakt het scherm zwart. Druk op Esc om het te wekken."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Deixa a tela preta. Pressione Esc para reativá-la."
           }
         },
         "sr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ekran postaje crn. Pritisni Esc za buđenje."
+            "state" : "needs_review",
+            "value" : "Zatamnjuje ekran. Pritisni Esc da ga probudiš."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "将显示器变黑。按 Esc 键唤醒。"
           }
         }
@@ -9528,73 +9529,73 @@
         }
       }
     },
-    "Turns the display black. Click it to wake it while another display is on. Press Esc when all displays are black." : {
-      "comment" : "VoiceOver hint for the display dim button with Escape-only keyboard wake",
+    "Turns the display black. While another display is on, restore it from the menu. Press Esc once every display is black." : {
+      "comment" : "VoiceOver hint for the dim button when Escape-only wake applies and another display stays on",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Schaltet das Display schwarz. Zum Aufwecken darauf klicken, solange ein anderes Display an ist. Sind alle Displays schwarz, Esc drücken."
+            "value" : "Schaltet das Display schwarz. Solange ein anderes Display an ist, im Menü wiederherstellen. Esc drücken, sobald alle Displays schwarz sind."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Turns the display black. Click it to wake it while another display is on. Press Esc when all displays are black."
+            "value" : "Turns the display black. While another display is on, restore it from the menu. Press Esc once every display is black."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Pone la pantalla en negro. Haz clic en ella para activarla mientras haya otra pantalla encendida. Pulsa Esc cuando todas estén en negro."
+            "value" : "Pone la pantalla en negro. Mientras otra pantalla esté encendida, restáurala desde el menú. Pulsa Esc cuando todas estén en negro."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Rend l’écran noir. Cliquez dessus pour le réactiver quand un autre écran est allumé. Appuyez sur Échap quand tous les écrans sont noirs."
+            "value" : "Rend l’écran noir. Tant qu’un autre écran est allumé, réactivez-le depuis le menu. Appuyez sur Échap quand tous les écrans sont noirs."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Rende nero il display. Fai clic per riattivarlo mentre un altro display è acceso. Premi Esc quando tutti i display sono neri."
+            "value" : "Rende nero il display. Finché un altro display è acceso, ripristinalo dal menu. Premi Esc quando tutti i display sono neri."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "画面を真っ黒にします。ほかの画面が点灯している間は、クリックすると復帰します。すべての画面が黒のときは、Escキーで復帰します。"
+            "value" : "画面を真っ黒にします。ほかの画面が点灯している間は、メニューから復元します。すべての画面が黒のときは、Escキーで復帰します。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "화면을 검게 만듭니다. 다른 화면이 켜져 있으면 클릭하여 깨울 수 있습니다. 모든 화면이 검을 때는 Esc 키를 누르십시오."
+            "value" : "화면을 검게 만듭니다. 다른 화면이 켜져 있는 동안에는 메뉴에서 복원하십시오. 모든 화면이 검을 때는 Esc 키를 누르십시오."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Maakt het scherm zwart. Klik erop om het te wekken zolang een ander scherm aanstaat. Druk op Esc als alle schermen zwart zijn."
+            "value" : "Maakt het scherm zwart. Herstel het via het menu zolang een ander scherm aanstaat. Druk op Esc als alle schermen zwart zijn."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Deixa a tela preta. Clique nela para reativá-la enquanto outra tela estiver ligada. Pressione Esc quando todas as telas estiverem pretas."
+            "value" : "Deixa a tela preta. Enquanto outra tela estiver ligada, restaure-a pelo menu. Pressione Esc quando todas as telas estiverem pretas."
           }
         },
         "sr" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Zatamnjuje ekran. Klikni na njega da ga probudiš dok je drugi ekran uključen. Pritisni Esc kada su svi ekrani zatamnjeni."
+            "value" : "Zatamnjuje ekran. Dok je drugi ekran uključen, vrati ga iz menija. Pritisni Esc kada su svi ekrani zatamnjeni."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "将显示器变黑。其他显示器亮着时，点按此显示器即可唤醒。所有显示器变黑时，按 Esc 键唤醒。"
+            "value" : "将显示器变黑。其他显示器亮着时，请从菜单中恢复。所有显示器变黑时，按 Esc 键唤醒。"
           }
         }
       }
