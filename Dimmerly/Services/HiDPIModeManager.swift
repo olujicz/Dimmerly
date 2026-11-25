@@ -568,7 +568,10 @@
         ) -> (data: Data?, ownership: HiDPIOverrideOwnership) {
             let read = Self.readOverride(at: url)
             guard read.ownership == .dimmerly, let data = read.data else { return read }
-            guard installedDigest(identity) == HiDPIOverride.sha256Hex(data) else {
+            guard let installed = installedRecord(identity),
+                  installed.digest == HiDPIOverride.sha256Hex(data),
+                  installed.fileIdentity == Self.fileIdentity(of: url)
+            else {
                 return (data, .other(hiDPIOnly: false))
             }
             return read
@@ -580,11 +583,26 @@
             )
         }
 
-        private func installedDigest(_ identity: HiDPIDisplayIdentity) -> String? {
+        /// What the helper recorded when it published the file: its digest and its identity on the
+        /// volume. A byte-identical copy someone else made has a different identity.
+        private func installedRecord(_ identity: HiDPIDisplayIdentity) -> (digest: String, fileIdentity: String)? {
             guard let text = try? String(contentsOf: stateFile("installed", identity), encoding: .utf8) else {
                 return nil
             }
-            return text.trimmingCharacters(in: .whitespacesAndNewlines)
+            let lines = text.split(separator: "\n").map(String.init)
+            guard lines.count == 2, lines[1].hasPrefix("id=") else { return nil }
+            return (lines[0], String(lines[1].dropFirst(3)))
+        }
+
+        /// `device:inode`, in the form the helper records; nil when the file can't be inspected.
+        private static func fileIdentity(of url: URL) -> String? {
+            guard let attributes = try? FileManager.default.attributesOfItem(atPath: url.path),
+                  let device = attributes[.systemNumber] as? Int,
+                  let inode = attributes[.systemFileNumber] as? Int
+            else {
+                return nil
+            }
+            return "\(device):\(inode)"
         }
 
         /// The helper writes the boot time here when it removes a file macOS had read at boot.

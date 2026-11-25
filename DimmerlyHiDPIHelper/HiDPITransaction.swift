@@ -166,7 +166,12 @@
 
             var published = false
             do {
-                try writeStage(context, contents: contents)
+                let identity = try writeStage(context, contents: contents)
+                // From here the journal can tell the staged file, once published, from a copy of the
+                // same bytes that someone else put there.
+                try context.writeRecord(
+                    Record(operation: .install, digest: digest, loaded: false, conflict: false, identity: identity)
+                )
                 if try !configuration.preferenceIsEnabled() {
                     try configuration.enablePreference()
                 }
@@ -181,7 +186,7 @@
                 published = true
                 try configuration.checkpoint(.afterInstallPublish)
                 try context.sync(context.vendorFD, "vendor")
-                try context.writeState(model.installedName, Data((digest + "\n").utf8))
+                try context.writeState(model.installedName, installedText(digest: digest, identity: identity))
                 try context.deleteState(model.removedName)
                 try context.deleteRecord()
                 return .done
@@ -207,18 +212,22 @@
             }
             guard context.hasVendor else { return .refused("there is no override folder for this display") }
 
-            guard case .regular = try entryKind(context.vendorFD, model.productFile) else {
+            guard let current = try readRegular(context.vendorFD, model.productFile, maximum: maximumFileSize) else {
                 return .refused("the override file is missing or isn't a regular file")
             }
-            // Only a file this helper installed: its own root-owned record must name the digest.
-            let installed = try readFile(context.stateFD, model.installedName, maximum: 128)
-            guard installed.map({ (String(bytes: $0, encoding: .utf8) ?? "")
-                    .trimmingCharacters(in: .whitespacesAndNewlines) }) == expectedDigest
+            // Only the very file this helper published: its own root-owned record names the digest
+            // and the file's identity, and the file must match both.
+            guard let installed = try readInstalled(context),
+                  installed.digest == expectedDigest,
+                  sha256Hex(current.data) == expectedDigest,
+                  current.identity == installed.identity
             else {
-                return .refused("the helper has no record of installing this file")
+                return .refused("the helper has no record of publishing this file")
             }
             let loaded = try predatesBoot(context.vendorFD, model.productFile, configuration)
-            try context.writeRecord(Record(operation: .remove, digest: expectedDigest, loaded: loaded, conflict: false))
+            try context.writeRecord(Record(
+                operation: .remove, digest: expectedDigest, loaded: loaded, conflict: false, identity: current.identity
+            ))
             try configuration.checkpoint(.afterRemoveRecord)
 
             try configuration.checkpoint(.beforeRemoveHold)
@@ -229,7 +238,9 @@
                 return .refused("the override file changed while Dimmerly was removing it")
             }
             try configuration.checkpoint(.afterRemoveHold)
-            return try finishRemoval(context, expectedDigest: expectedDigest, loaded: loaded)
+            return try finishRemoval(
+                context, expectedDigest: expectedDigest, identity: current.identity, loaded: loaded
+            )
         }
 
         /// Finishes or undoes an interrupted change for `model` and reports a conflict, if any.
@@ -244,13 +255,15 @@
 
         /// Decides what to do with the entry held aside: delete it if it is the expected file,
         /// otherwise put it back.
-        private static func finishRemoval(_ context: Context, expectedDigest: String, loaded: Bool) throws -> Outcome {
+        private static func finishRemoval(
+            _ context: Context, expectedDigest: String, identity: String, loaded: Bool
+        ) throws -> Outcome {
             let model = context.model
             var isExpected = false
-            if case .regular = try entryKind(context.vendorFD, model.holdName),
-               let data = try readFile(context.vendorFD, model.holdName, maximum: maximumFileSize)
-            {
-                isExpected = sha256Hex(data) == expectedDigest
+            // A read that fails for any reason but "it isn't a regular file" throws, leaving the
+            // journal: the held entry is only deleted when it is positively the published file.
+            if let held = try readRegular(context.vendorFD, model.holdName, maximum: maximumFileSize) {
+                isExpected = !identity.isEmpty && held.identity == identity && sha256Hex(held.data) == expectedDigest
             }
 
             if isExpected {
@@ -307,11 +320,15 @@
                 // Never published: remove what was staged. Published: record it as installed.
                 try removeStage(context)
                 try context.sync(context.vendorFD, "vendor")
-                if case .regular = try entryKind(context.vendorFD, model.productFile),
-                   let data = try readFile(context.vendorFD, model.productFile, maximum: maximumFileSize),
-                   sha256Hex(data) == record.digest
+                // Ownership is claimed only for the very file that was staged (same identity, same
+                // bytes). A read that fails throws, so the journal stays until it can be answered.
+                if let current = try readRegular(context.vendorFD, model.productFile, maximum: maximumFileSize),
+                   !record.identity.isEmpty, current.identity == record.identity,
+                   sha256Hex(current.data) == record.digest
                 {
-                    try context.writeState(model.installedName, Data((record.digest + "\n").utf8))
+                    try context.writeState(
+                        model.installedName, installedText(digest: record.digest, identity: record.identity)
+                    )
                     try context.deleteState(model.removedName)
                 }
                 try context.deleteRecord()
@@ -329,7 +346,9 @@
                     try context.deleteRecord()
                     return nil
                 default:
-                    let outcome = try finishRemoval(context, expectedDigest: record.digest, loaded: record.loaded)
+                    let outcome = try finishRemoval(
+                        context, expectedDigest: record.digest, identity: record.identity, loaded: record.loaded
+                    )
                     if case .held = outcome {
                         return outcome
                     }
@@ -370,15 +389,29 @@
             return (info.st_mode & S_IFMT) == S_IFREG ? .regular : .other
         }
 
-        /// Reads a regular file without following links. Returns nil when it can't be opened as one.
-        private static func readFile(_ directory: Int32, _ name: String, maximum: Int) throws -> Data? {
+        /// A file's identity on its volume; a rename keeps it.
+        private static func identity(of info: stat) -> String {
+            "\(info.st_dev):\(info.st_ino)"
+        }
+
+        /// A regular file's bytes and identity, read from one descriptor without following links.
+        /// Nil means it positively isn't there or isn't a regular file (or is too large); any other
+        /// failure to open, inspect or read it throws, so callers never mistake a transient error for
+        /// "not ours" or "not there".
+        private static func readRegular(
+            _ directory: Int32, _ name: String, maximum: Int
+        ) throws -> (data: Data, identity: String)? {
             let fd = openat(directory, name, O_RDONLY | O_NOFOLLOW | O_CLOEXEC)
-            guard fd >= 0 else { return nil }
+            if fd < 0 {
+                if errno == ENOENT || errno == ELOOP {
+                    return nil
+                }
+                throw Failure.io("couldn't open \(name) (\(errno))")
+            }
             defer { close(fd) }
             var info = stat()
-            guard fstat(fd, &info) == 0, (info.st_mode & S_IFMT) == S_IFREG, Int(info.st_size) <= maximum else {
-                return nil
-            }
+            guard fstat(fd, &info) == 0 else { throw Failure.io("couldn't inspect \(name)") }
+            guard (info.st_mode & S_IFMT) == S_IFREG, Int(info.st_size) <= maximum else { return nil }
             var data = Data()
             var buffer = [UInt8](repeating: 0, count: 8192)
             while true {
@@ -394,10 +427,24 @@
                     return nil
                 }
             }
-            return data
+            return (data, identity(of: info))
         }
 
-        private static func writeStage(_ context: Context, contents: Data) throws {
+        static func installedText(digest: String, identity: String) -> Data {
+            Data("\(digest)\nid=\(identity)\n".utf8)
+        }
+
+        /// What the helper recorded about the file it published, or nil if it recorded nothing.
+        private static func readInstalled(_ context: Context) throws -> (digest: String, identity: String)? {
+            guard let file = try readRegular(context.stateFD, context.model.installedName, maximum: 512) else {
+                return nil
+            }
+            let lines = (String(bytes: file.data, encoding: .utf8) ?? "").split(separator: "\n").map(String.init)
+            guard lines.count == 2, lines[0].count == 64, lines[1].hasPrefix("id=") else { return nil }
+            return (lines[0], String(lines[1].dropFirst(3)))
+        }
+
+        private static func writeStage(_ context: Context, contents: Data) throws -> String {
             let model = context.model
             // A stale stage belongs to an interrupted change that reconcile has already handled.
             try removeStage(context)
@@ -413,6 +460,9 @@
             }
             try writeAll(fd, contents)
             guard fsync(fd) == 0 else { throw Failure.io("couldn't save the staging file") }
+            var info = stat()
+            guard fstat(fd, &info) == 0 else { throw Failure.io("couldn't read the staging file") }
+            return identity(of: info)
         }
 
         fileprivate static func writeAll(_ fd: Int32, _ data: Data) throws {
@@ -521,20 +571,25 @@
             var digest: String
             var loaded: Bool
             var conflict: Bool
+            /// The file system identity (`device:inode`) of the file this change is about: the
+            /// staged file for an install, the installed file for a removal. A rename keeps it, so
+            /// it tells the file the helper published from a byte-identical one someone else made.
+            var identity = ""
 
             var data: Data {
                 let lines = [
                     "op=\(operation.rawValue)", "digest=\(digest)",
-                    "loaded=\(loaded ? 1 : 0)", "conflict=\(conflict ? 1 : 0)",
+                    "loaded=\(loaded ? 1 : 0)", "conflict=\(conflict ? 1 : 0)", "id=\(identity)",
                 ]
                 return Data((lines.joined(separator: "\n") + "\n").utf8)
             }
 
-            init(operation: RecordOperation, digest: String, loaded: Bool, conflict: Bool) {
+            init(operation: RecordOperation, digest: String, loaded: Bool, conflict: Bool, identity: String = "") {
                 self.operation = operation
                 self.digest = digest
                 self.loaded = loaded
                 self.conflict = conflict
+                self.identity = identity
             }
 
             init?(data: Data) {
@@ -551,7 +606,8 @@
                     return nil
                 }
                 self.init(
-                    operation: op, digest: digest, loaded: fields["loaded"] == "1", conflict: fields["conflict"] == "1"
+                    operation: op, digest: digest, loaded: fields["loaded"] == "1",
+                    conflict: fields["conflict"] == "1", identity: fields["id"] ?? ""
                 )
             }
         }
@@ -688,13 +744,13 @@
             }
 
             func readRecord() throws -> Record? {
-                guard let data = try HiDPITransaction.readFile(stateFD, model.recordName, maximum: 4096) else {
+                guard let file = try HiDPITransaction.readRegular(stateFD, model.recordName, maximum: 4096) else {
                     if try HiDPITransaction.entryKind(stateFD, model.recordName) == .absent {
                         return nil
                     }
                     throw Failure.unsafe("the change record can't be read")
                 }
-                guard let record = Record(data: data) else { throw Failure.unsafe("the change record is damaged") }
+                guard let record = Record(data: file.data) else { throw Failure.unsafe("the change record is damaged") }
                 return record
             }
 

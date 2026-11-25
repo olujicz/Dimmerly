@@ -144,6 +144,25 @@
             try data.write(to: file(product))
         }
 
+        /// The digest line of the helper's installed record.
+        func installedDigest(_ product: UInt32? = nil) -> String? {
+            state(model(product).installedName)?.split(separator: "\n").first.map(String.init)
+        }
+
+        /// The identity line of the helper's installed record.
+        func installedIdentity(_ product: UInt32? = nil) -> String? {
+            state(model(product).installedName)?.split(separator: "\n").dropFirst().first
+                .map { String($0.dropFirst(3)) }
+        }
+
+        /// `device:inode` as the helper records it.
+        func fileIdentity(_ url: URL) throws -> String {
+            let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
+            let device = try XCTUnwrap(attributes[.systemNumber] as? Int)
+            let inode = try XCTUnwrap(attributes[.systemFileNumber] as? Int)
+            return "\(device):\(inode)"
+        }
+
         func state(_ name: String) -> String? {
             (try? String(contentsOf: stateRoot.appendingPathComponent(name), encoding: .utf8))?
                 .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -163,6 +182,27 @@
             }
         }
 
+        /// Adds a behaviour on top of whatever checkpoint is set, so a test can combine a crash or a
+        /// failing disk with a change made at a chosen moment.
+        func layer(_ extra: @escaping (HiDPITransaction.Step) throws -> Void) {
+            let base = checkpoint
+            checkpoint = { step in
+                try base(step)
+                try extra(step)
+            }
+        }
+
+        /// Overwrites the product file in place after the helper has checked it and just before it
+        /// is captured, as an edit by another tool would.
+        func editBeforeHold(_ data: Data) {
+            let target = file()
+            layer { step in
+                if step == .beforeRemoveHold {
+                    try data.write(to: target)
+                }
+            }
+        }
+
         func crash(at step: HiDPITransaction.Step) {
             at(step) { throw HiDPITransaction.Crash() }
         }
@@ -176,7 +216,7 @@
 
             let data = try contents()
             XCTAssertEqual(try Data(contentsOf: file()), data)
-            XCTAssertEqual(state(model().installedName), HiDPIOverride.sha256Hex(data))
+            XCTAssertEqual(installedDigest(), HiDPIOverride.sha256Hex(data))
             XCTAssertNil(state(model().recordName))
             XCTAssertEqual(names(in: vendorFolder), [model().productFile])
             XCTAssertEqual(preference.value, true)
@@ -255,7 +295,7 @@
 
             checkpoint = { _ in }
             XCTAssertEqual(try recover(), .done)
-            XCTAssertEqual(state(model().installedName), try HiDPIOverride.sha256Hex(contents()))
+            XCTAssertEqual(installedDigest(), try HiDPIOverride.sha256Hex(contents()))
             XCTAssertNil(state(model().recordName))
             XCTAssertEqual(try remove(), .done)
             XCTAssertFalse(FileManager.default.fileExists(atPath: file().path))
@@ -521,8 +561,8 @@
         func testACrashAfterTheHoldOfAFileThatWasNotTheExpectedOnePutsItBack() throws {
             XCTAssertEqual(try install(), .done)
             let foreign = Data("foreign".utf8)
-            try foreign.write(to: file())
             crash(at: .afterRemoveHold)
+            editBeforeHold(foreign)
             XCTAssertThrowsError(try remove())
 
             checkpoint = { _ in }
@@ -626,7 +666,7 @@
 
             checkpoint = { _ in }
             XCTAssertEqual(try recover(), .done)
-            XCTAssertEqual(state(installed), try HiDPIOverride.sha256Hex(contents()))
+            XCTAssertEqual(installedDigest(), try HiDPIOverride.sha256Hex(contents()))
             XCTAssertNil(state(model().recordName))
         }
 
@@ -665,8 +705,8 @@
         func testAFailedSyncAfterRestoringAnOriginalKeepsTheJournalAndTheFile() throws {
             XCTAssertEqual(try install(), .done)
             let edited = Data("edited".utf8)
-            try edited.write(to: file())
             failDisk(after: .afterRemoveHold) { $0 == .syncDirectory("vendor") }
+            editBeforeHold(edited)
             XCTAssertThrowsError(try remove())
             XCTAssertEqual(try Data(contentsOf: file()), edited)
             XCTAssertNotNil(state(model().recordName))
@@ -688,6 +728,120 @@
             XCTAssertEqual(try recover(), .done)
             XCTAssertNil(state(installed))
             XCTAssertNil(state(model().recordName))
+        }
+
+        // MARK: Ownership evidence and failed reads
+
+        func testTheInstalledRecordNamesTheFileTheHelperPublished() throws {
+            XCTAssertEqual(try install(), .done)
+            XCTAssertEqual(installedIdentity(), try fileIdentity(file()))
+        }
+
+        func testTheJournalHoldsTheStagedFilesIdentityBeforeItIsPublishedAndAcrossACrash() throws {
+            crash(at: .afterInstallPublish)
+            XCTAssertThrowsError(try install())
+            let journal = try XCTUnwrap(state(model().recordName))
+            let identity = try fileIdentity(file())
+            XCTAssertTrue(journal.contains("id=\(identity)"), journal)
+
+            checkpoint = { _ in }
+            XCTAssertEqual(try recover(), .done)
+            XCTAssertEqual(installedIdentity(), identity)
+        }
+
+        func testAReadFailureDuringInstallRecoveryKeepsTheJournalUntilTheFileCanBeIdentified() throws {
+            crash(at: .afterInstallPublish)
+            XCTAssertThrowsError(try install())
+            checkpoint = { _ in }
+
+            try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: file().path)
+            defer { try? FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: file().path) }
+            XCTAssertThrowsError(try recover())
+            XCTAssertNotNil(state(model().recordName))
+            XCTAssertNil(installedDigest())
+
+            try FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: file().path)
+            XCTAssertEqual(try recover(), .done)
+            XCTAssertEqual(installedDigest(), try HiDPIOverride.sha256Hex(contents()))
+            XCTAssertEqual(try remove(), .done)
+        }
+
+        func testAReadFailureOfTheHeldFileKeepsTheRemovalJournal() throws {
+            XCTAssertEqual(try install(), .done)
+            crash(at: .afterRemoveHold)
+            XCTAssertThrowsError(try remove())
+            checkpoint = { _ in }
+            let hold = vendorFolder.appendingPathComponent(model().holdName)
+
+            try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: hold.path)
+            defer { try? FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: hold.path) }
+            XCTAssertThrowsError(try recover())
+            XCTAssertNotNil(state(model().recordName))
+            XCTAssertTrue(FileManager.default.fileExists(atPath: hold.path), "an unreadable file is never deleted")
+
+            try FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: hold.path)
+            XCTAssertEqual(try recover(), .done)
+            XCTAssertNil(installedDigest())
+        }
+
+        func testAReadFailureBeforeRemovalChangesNothing() throws {
+            XCTAssertEqual(try install(), .done)
+            try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: file().path)
+            defer { try? FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: file().path) }
+            XCTAssertThrowsError(try remove())
+            XCTAssertNil(state(model().recordName))
+            XCTAssertNotNil(installedDigest())
+        }
+
+        func testAByteIdenticalFileThatBlockedPublishingIsNeverClaimedByRecovery() throws {
+            let identical = try contents()
+            nonisolated(unsafe) var armed = false
+            at(.beforeInstallPublish) {
+                try identical.write(to: self.file())
+                armed = true
+            }
+            stageHook = { directory, name in
+                guard armed else { return unlinkat(directory, name, 0) }
+                errno = EIO
+                return -1
+            }
+            XCTAssertThrowsError(try install())
+            XCTAssertNotNil(state(model().recordName))
+
+            stageHook = nil
+            checkpoint = { _ in }
+            XCTAssertEqual(try recover(), .done)
+            XCTAssertNil(state(model().installedName), "someone else's copy was claimed")
+            XCTAssertNil(state(model().recordName))
+            XCTAssertEqual(try Data(contentsOf: file()), identical)
+
+            guard case .refused = try remove() else { return XCTFail("expected a refusal") }
+            XCTAssertEqual(try Data(contentsOf: file()), identical)
+        }
+
+        func testAByteIdenticalFileSwappedInBeforeRemovalIsNotTheOneTheHelperPublished() throws {
+            XCTAssertEqual(try install(), .done)
+            let identical = try contents()
+            try FileManager.default.removeItem(at: file())
+            try identical.write(to: file())
+
+            guard case .refused = try remove() else { return XCTFail("expected a refusal") }
+            XCTAssertEqual(try Data(contentsOf: file()), identical)
+            XCTAssertNil(state(model().recordName))
+        }
+
+        func testAByteIdenticalFileSwappedInBeforeTheHoldIsPutBackNotDeleted() throws {
+            XCTAssertEqual(try install(), .done)
+            let identical = try contents()
+            at(.beforeRemoveHold) {
+                try FileManager.default.removeItem(at: self.file())
+                try identical.write(to: self.file())
+            }
+
+            guard case .refused = try remove() else { return XCTFail("expected a refusal") }
+            XCTAssertEqual(try Data(contentsOf: file()), identical)
+            XCTAssertNil(state(model().recordName))
+            XCTAssertEqual(names(in: vendorFolder), [model().productFile])
         }
 
         // MARK: Durability across recovery
@@ -724,15 +878,15 @@
 
             XCTAssertEqual(try recover(), .done)
             XCTAssertNil(state(model().recordName))
-            XCTAssertEqual(state(model().installedName), try HiDPIOverride.sha256Hex(contents()))
+            XCTAssertEqual(installedDigest(), try HiDPIOverride.sha256Hex(contents()))
             XCTAssertEqual(try Data(contentsOf: file()), try contents())
         }
 
         func testRepeatedSyncFailuresAfterRestoringAnOriginalNeverLoseIt() throws {
             XCTAssertEqual(try install(), .done)
             let edited = Data("edited".utf8)
-            try edited.write(to: file())
             failSyncs(3)
+            editBeforeHold(edited)
             XCTAssertThrowsError(try remove())
             XCTAssertThrowsError(try recover())
             XCTAssertThrowsError(try recover())
@@ -779,8 +933,8 @@
 
             // A removal that put the original back.
             XCTAssertEqual(try install(), .done)
-            try Data("edited".utf8).write(to: file())
             failSyncs(1)
+            editBeforeHold(Data("edited".utf8))
             XCTAssertThrowsError(try remove())
             log = recordSteps()
             XCTAssertEqual(try recover(), .done)
@@ -1352,8 +1506,8 @@
             // An interrupted change is pending, with no conflict to warn about. The file was
             // edited by someone else, so recovery puts it back instead of deleting it.
             XCTAssertEqual(try install(), .done)
-            try Data("edited".utf8).write(to: file())
             crash(at: .afterRemoveHold)
+            editBeforeHold(Data("edited".utf8))
             XCTAssertThrowsError(try remove())
             XCTAssertTrue(manager.isRecoveryPending(identity))
             XCTAssertNil(manager.heldOriginal(identity))
@@ -1403,6 +1557,19 @@
             await manager.recoverPendingChange(pending)
             XCTAssertNil(manager.errors[1])
             XCTAssertFalse(manager.isRecoveryPending(other))
+        }
+
+        func testAByteIdenticalCopyIsNotOfferedForRemovalByTheManager() async throws {
+            let installer = makeManager()
+            await installer.enable(row(id: 1, status: .off))
+            let identical = try contents()
+            try FileManager.default.removeItem(at: file())
+            try identical.write(to: file())
+
+            let calls = CallCounter()
+            await makeManager { _ in calls.increment() }.disable(row(id: 1, status: .on))
+            XCTAssertEqual(calls.count, 0)
+            XCTAssertEqual(try Data(contentsOf: file()), identical)
         }
 
         func testCancellingThePasswordPromptChangesNothingAndShowsNoError() async {
