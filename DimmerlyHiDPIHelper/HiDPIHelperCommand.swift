@@ -121,6 +121,9 @@
                 case .notRoot:
                     standardError("Dimmerly: this helper must run as root")
                     return ExitCode.unsafe
+                case .missing:
+                    standardError("Dimmerly: a folder that was expected is missing")
+                    return ExitCode.refused
                 case let .invalidInput(message):
                     standardError("Dimmerly: \(message)")
                     return ExitCode.invalidInput

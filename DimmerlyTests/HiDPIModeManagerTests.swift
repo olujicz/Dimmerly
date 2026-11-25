@@ -9,6 +9,8 @@
 //  password is asked for.
 //
 
+// swiftlint:disable file_length
+
 #if !APPSTORE
 
     @testable import Dimmerly
@@ -683,6 +685,158 @@
             XCTAssertNil(state(model().recordName))
         }
 
+        // MARK: Durability across recovery
+
+        /// Records every step the transaction reaches.
+        private func recordSteps() -> StepLog {
+            let log = StepLog()
+            checkpoint = { log.append($0) }
+            return log
+        }
+
+        /// Throws a disk failure for the first `count` directory syncs.
+        private func failSyncs(_ count: Int) {
+            nonisolated(unsafe) var remaining = count
+            checkpoint = { step in
+                guard step == .syncDirectory, remaining > 0 else { return }
+                remaining -= 1
+                throw DiskFailure()
+            }
+        }
+
+        func testRecoveryKeepsTheJournalThroughRepeatedSyncFailures() throws {
+            crash(at: .afterInstallPublish)
+            XCTAssertThrowsError(try install())
+
+            failSyncs(2)
+            XCTAssertThrowsError(try recover())
+            XCTAssertNotNil(state(model().recordName))
+            XCTAssertThrowsError(try recover())
+            XCTAssertNotNil(state(model().recordName))
+            XCTAssertNil(state(model().installedName), "nothing is recorded before the sync succeeds")
+
+            XCTAssertEqual(try recover(), .done)
+            XCTAssertNil(state(model().recordName))
+            XCTAssertEqual(state(model().installedName), try HiDPIOverride.sha256Hex(contents()))
+            XCTAssertEqual(try Data(contentsOf: file()), try contents())
+        }
+
+        func testRepeatedSyncFailuresAfterRestoringAnOriginalNeverLoseIt() throws {
+            XCTAssertEqual(try install(), .done)
+            let edited = Data("edited".utf8)
+            try edited.write(to: file())
+            failSyncs(3)
+            XCTAssertThrowsError(try remove())
+            XCTAssertThrowsError(try recover())
+            XCTAssertThrowsError(try recover())
+            XCTAssertNotNil(state(model().recordName))
+            XCTAssertEqual(try Data(contentsOf: file()), edited)
+
+            XCTAssertEqual(try recover(), .done)
+            XCTAssertNil(state(model().recordName))
+            XCTAssertEqual(try Data(contentsOf: file()), edited)
+        }
+
+        func testEveryRecoveryPathSyncsBeforeItDeletesTheJournal() throws {
+            func assertSyncedBeforeJournalDelete(_ log: StepLog, file: StaticString = #filePath, line: UInt = #line) {
+                let steps = log.steps
+                guard let deleteIndex = steps.firstIndex(of: .deleteState(model().recordName)) else {
+                    return XCTFail("the journal was never deleted", file: file, line: line)
+                }
+                XCTAssertTrue(
+                    steps[..<deleteIndex].contains(.syncDirectory),
+                    "no directory sync before the journal was deleted: \(steps)", file: file, line: line
+                )
+            }
+
+            // An install that was published.
+            crash(at: .afterInstallPublish)
+            XCTAssertThrowsError(try install())
+            var log = recordSteps()
+            XCTAssertEqual(try recover(), .done)
+            assertSyncedBeforeJournalDelete(log)
+
+            // A removal that deleted the held file.
+            crash(at: .afterRemoveUnlink)
+            XCTAssertThrowsError(try remove())
+            log = recordSteps()
+            XCTAssertEqual(try recover(), .done)
+            assertSyncedBeforeJournalDelete(log)
+
+            // An install that never published.
+            crash(at: .afterInstallPreference)
+            XCTAssertThrowsError(try install())
+            log = recordSteps()
+            XCTAssertEqual(try recover(), .done)
+            assertSyncedBeforeJournalDelete(log)
+
+            // A removal that put the original back.
+            XCTAssertEqual(try install(), .done)
+            try Data("edited".utf8).write(to: file())
+            failSyncs(1)
+            XCTAssertThrowsError(try remove())
+            log = recordSteps()
+            XCTAssertEqual(try recover(), .done)
+            assertSyncedBeforeJournalDelete(log)
+        }
+
+        func testNewFoldersAreSyncedIntoTheirParentsBeforeTheJournalIsWritten() throws {
+            let log = recordSteps()
+            XCTAssertEqual(try install(), .done)
+            let steps = log.steps
+            let firstJournal = try XCTUnwrap(steps.firstIndex(of: .writeState(model().recordName)))
+            // The state folder, the override root and the vendor folder were each created.
+            XCTAssertGreaterThanOrEqual(steps[..<firstJournal].filter { $0 == .syncDirectory }.count, 3)
+        }
+
+        func testAFailedSyncOfANewFolderStopsTheInstallBeforeAnythingIsRecorded() throws {
+            failSyncs(1)
+            XCTAssertThrowsError(try install())
+            XCTAssertNil(state(model().recordName))
+            XCTAssertNil(state(model().installedName))
+
+            checkpoint = { _ in }
+            XCTAssertEqual(try install(), .done)
+        }
+
+        // MARK: A pending change when another model took the folder
+
+        func testAnInterruptedRemovalStillRecoversAfterAnotherModelsLastRemovalDeletesTheFolder() throws {
+            XCTAssertEqual(try install(0x2555), .done)
+            XCTAssertEqual(try install(0x2556), .done)
+            crash(at: .afterRemoveUnlink)
+            XCTAssertThrowsError(try remove(0x2555))
+            checkpoint = { _ in }
+
+            // A's file is gone, B is the last one in the folder, and B's removal deletes it.
+            // (B's own reconcile isn't involved: its journal is clean.)
+            XCTAssertEqual(try remove(0x2556), .done)
+            XCTAssertFalse(FileManager.default.fileExists(atPath: vendorFolder.path))
+            XCTAssertNotNil(state(model(0x2555).recordName))
+
+            XCTAssertEqual(try recover(0x2555), .done)
+            XCTAssertNil(state(model(0x2555).recordName))
+            XCTAssertNil(state(model(0x2555).installedName))
+        }
+
+        func testAnInterruptedInstallStillRecoversWhenItsFolderIsGone() throws {
+            crash(at: .afterInstallRecord)
+            XCTAssertThrowsError(try install())
+            checkpoint = { _ in }
+            try FileManager.default.removeItem(at: overridesRoot)
+
+            XCTAssertEqual(try recover(), .done)
+            XCTAssertNil(state(model().recordName))
+        }
+
+        func testRecoveryWithNothingPendingAndNoFolderIsANoOp() throws {
+            XCTAssertEqual(try recover(), .done)
+        }
+
+        func testRemovalWithNoFolderIsRefused() throws {
+            guard case .refused = try remove() else { return XCTFail("expected a refusal") }
+        }
+
         // MARK: Last removal against another install
 
         func testTheLastRemovalInAVendorFolderNeverStrandsAnotherModelsInstall() throws {
@@ -718,6 +872,19 @@
                 XCTAssertEqual(try Data(contentsOf: file(0x2556)), second, "round \(round)")
                 XCTAssertFalse(FileManager.default.fileExists(atPath: file(0x2555).path))
             }
+        }
+    }
+
+    private final class StepLog: @unchecked Sendable {
+        private let lock = NSLock()
+        private var stored: [HiDPITransaction.Step] = []
+
+        var steps: [HiDPITransaction.Step] {
+            lock.withLock { stored }
+        }
+
+        func append(_ step: HiDPITransaction.Step) {
+            lock.withLock { stored.append(step) }
         }
     }
 
@@ -1067,6 +1234,69 @@
             await manager.recoverPendingChange(pending)
             XCTAssertTrue(manager.errors.isEmpty)
             XCTAssertNotNil(state(model().recordName))
+        }
+
+        // MARK: Pending-change discovery
+
+        func testThePendingStateAndTheHeldWarningFollowTheHelpersRecords() throws {
+            let manager = makeManager()
+            XCTAssertFalse(manager.isRecoveryPending(identity))
+            XCTAssertNil(manager.heldOriginal(identity))
+
+            // An interrupted change is pending, with no conflict to warn about. The file was
+            // edited by someone else, so recovery puts it back instead of deleting it.
+            XCTAssertEqual(try install(), .done)
+            try Data("edited".utf8).write(to: file())
+            crash(at: .afterRemoveHold)
+            XCTAssertThrowsError(try remove())
+            XCTAssertTrue(manager.isRecoveryPending(identity))
+            XCTAssertNil(manager.heldOriginal(identity))
+
+            // Another file takes the path: the original is held and the warning names it.
+            checkpoint = { _ in }
+            try Data("occupant".utf8).write(to: file())
+            let holdPath = vendorFolder.appendingPathComponent(model().holdName).path
+            XCTAssertEqual(try recover(), .held(path: holdPath))
+            XCTAssertEqual(manager.heldOriginal(identity), holdPath)
+
+            // The way is cleared and the restore lands, but its sync fails: the journal still
+            // says "conflict", yet the original is back, so the warning goes while the change
+            // stays pending.
+            try FileManager.default.removeItem(at: file())
+            nonisolated(unsafe) var failed = false
+            checkpoint = { step in
+                guard step == .syncDirectory, !failed else { return }
+                failed = true
+                throw HiDPITransaction.Failure.io("disk")
+            }
+            XCTAssertThrowsError(try recover())
+            XCTAssertTrue(FileManager.default.fileExists(atPath: file().path))
+            XCTAssertTrue(manager.isRecoveryPending(identity))
+            XCTAssertNil(manager.heldOriginal(identity), "the original is back; the warning would be stale")
+
+            checkpoint = { _ in }
+            XCTAssertEqual(try recover(), .done)
+            XCTAssertFalse(manager.isRecoveryPending(identity))
+        }
+
+        func testAnInterruptedRemovalIsFinishedFromSettingsAfterAnotherModelsLastRemoval() async throws {
+            XCTAssertEqual(try install(0x2555), .done)
+            XCTAssertEqual(try install(0x2556), .done)
+            crash(at: .afterRemoveUnlink)
+            XCTAssertThrowsError(try remove(0x2555))
+            checkpoint = { _ in }
+            XCTAssertEqual(try remove(0x2556), .done)
+
+            let other = HiDPIDisplayIdentity(
+                vendorID: identity.vendorID, productID: 0x2555, nativeWidth: 1920, nativeHeight: 1080, name: "A"
+            )
+            let manager = makeManager()
+            XCTAssertTrue(manager.isRecoveryPending(other))
+            var pending = row(id: 1, status: .off, identity: other)
+            pending.recoveryPending = true
+            await manager.recoverPendingChange(pending)
+            XCTAssertNil(manager.errors[1])
+            XCTAssertFalse(manager.isRecoveryPending(other))
         }
 
         func testCancellingThePasswordPromptChangesNothingAndShowsNoError() async {

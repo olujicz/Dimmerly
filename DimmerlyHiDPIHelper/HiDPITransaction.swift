@@ -77,6 +77,8 @@
 
         enum Failure: Error, Equatable {
             case notRoot
+            /// A folder that doesn't exist; only recovery and removal treat that as a normal state.
+            case missing
             case invalidInput(String)
             case unsafe(String)
             case unsupported(String)
@@ -200,6 +202,7 @@
             if let held = try reconcile(context) {
                 return held
             }
+            guard context.hasVendor else { return .refused("there is no override folder for this display") }
 
             guard case .regular = try entryKind(context.vendorFD, model.productFile) else {
                 return .refused("the override file is missing or isn't a regular file")
@@ -281,10 +284,24 @@
             let model = context.model
             guard let record = try context.readRecord() else { return nil }
 
+            // Every branch below ends the same way: whatever the journal covers is on disk
+            // (synced) before the journal is deleted, so a failed or interrupted sync leaves the
+            // journal for the next attempt.
+            guard context.hasVendor else {
+                // Another model's last removal took the shared folder, so nothing of this model's
+                // can still be in it: an install never published, a removal that finished.
+                if record.operation == .remove {
+                    try context.deleteState(model.installedName)
+                }
+                try context.deleteRecord()
+                return nil
+            }
+
             switch record.operation {
             case .install:
                 // Never published: remove what was staged. Published: record it as installed.
                 _ = unlinkat(context.vendorFD, model.stageName, 0)
+                try context.sync(context.vendorFD)
                 if case .regular = try entryKind(context.vendorFD, model.productFile),
                    let data = try readFile(context.vendorFD, model.productFile, maximum: maximumFileSize),
                    sha256Hex(data) == record.digest
@@ -298,7 +315,9 @@
             case .remove:
                 switch try entryKind(context.vendorFD, model.holdName) {
                 case .absent:
-                    // The entry was never held, or its removal finished.
+                    // The entry was never held, or its removal or restore finished; make sure it
+                    // is durable before the journal goes.
+                    try context.sync(context.vendorFD)
                     if case .absent = try entryKind(context.vendorFD, model.productFile) {
                         try context.deleteState(model.installedName)
                     }
@@ -306,9 +325,6 @@
                     return nil
                 default:
                     let outcome = try finishRemoval(context, expectedDigest: record.digest, loaded: record.loaded)
-                    if case .done = outcome {
-                        return nil
-                    }
                     if case .held = outcome {
                         return outcome
                     }
@@ -319,6 +335,7 @@
 
         private static func cleanUpInstall(_ context: Context) throws {
             _ = unlinkat(context.vendorFD, context.model.stageName, 0)
+            try context.sync(context.vendorFD)
             try context.deleteRecord()
         }
 
@@ -578,11 +595,18 @@
                     guard locked == 0 else { throw Failure.io("couldn't lock the display model (\(errno))") }
                     // Only under the lock: another change may be deleting the vendor folder, and a
                     // descriptor opened before the lock could point at a folder that is already gone.
-                    let overrides = try open(configuration.overridesComponents, create: createFolders)
-                    let vendor = try HiDPITransaction.openTrusted(
-                        child: model.vendorFolder, of: overrides, create: createFolders, configuration: configuration
-                    )
-                    opened.append(vendor)
+                    var overrides: Int32 = -1
+                    var vendor: Int32 = -1
+                    do {
+                        overrides = try open(configuration.overridesComponents, create: createFolders)
+                        vendor = try HiDPITransaction.openTrusted(
+                            child: model.vendorFolder, of: overrides, create: createFolders,
+                            configuration: configuration
+                        )
+                        opened.append(vendor)
+                    } catch Failure.missing where !createFolders {
+                        // Recovery and removal can run after the vendor folder is gone.
+                    }
                     overridesFD = overrides
                     vendorFD = vendor
                     stateFD = state
@@ -596,11 +620,14 @@
                 holdPath = parts.joined(separator: "/")
             }
 
+            var hasVendor: Bool {
+                vendorFD >= 0
+            }
+
             func close() {
-                Darwin.close(lockFD)
-                Darwin.close(vendorFD)
-                Darwin.close(overridesFD)
-                Darwin.close(stateFD)
+                for descriptor in [lockFD, vendorFD, overridesFD, stateFD] where descriptor >= 0 {
+                    Darwin.close(descriptor)
+                }
             }
 
             // State files live in a root-owned folder and are replaced atomically.
@@ -678,15 +705,26 @@
                 throw Failure.invalidInput("bad folder name")
             }
             var fd = openat(parent, name, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
+            var created = false
             if fd < 0, errno == ENOENT, create {
                 if mkdirat(parent, name, 0o755) != 0, errno != EEXIST {
                     throw Failure.io("couldn't create \(name)")
                 }
+                created = true
                 fd = openat(parent, name, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
+            }
+            if fd < 0, errno == ENOENT, !create {
+                throw Failure.missing
             }
             guard fd >= 0 else { throw Failure.unsafe("can't open \(name) as a folder") }
             do {
                 try requireTrusted(fd, configuration)
+                if created {
+                    // A new folder's entry lives in its parent, so both are flushed before anything
+                    // relies on the folder existing.
+                    try configuration.checkpoint(.syncDirectory)
+                    guard fsync(fd) == 0, fsync(parent) == 0 else { throw Failure.io("couldn't save a new folder") }
+                }
             } catch {
                 close(fd)
                 throw error

@@ -407,7 +407,7 @@
                 status: status,
                 availableSizes: offered.filter { expected.contains($0) }.sorted(by: >),
                 current: current,
-                recoveryPending: FileManager.default.fileExists(atPath: stateFile("record", identity).path)
+                recoveryPending: isRecoveryPending(identity)
             )
         }
 
@@ -598,17 +598,24 @@
             return recorded == Int(boot)
         }
 
+        /// Whether the helper has an unfinished change for this model, from its record file.
+        func isRecoveryPending(_ identity: HiDPIDisplayIdentity) -> Bool {
+            FileManager.default.fileExists(atPath: stateFile("record", identity).path)
+        }
+
         /// Where the helper keeps the original override of an interrupted removal, when another
-        /// file has taken its path; nil otherwise.
-        private func heldOriginal(_ identity: HiDPIDisplayIdentity) -> String? {
+        /// file has taken its path and the original is still there; nil otherwise. A record that
+        /// still says "conflict" after the original was put back doesn't count.
+        func heldOriginal(_ identity: HiDPIDisplayIdentity) -> String? {
             guard let data = try? Data(contentsOf: stateFile("record", identity)),
                   let record = HiDPITransaction.Record(data: data), record.conflict
             else {
                 return nil
             }
             let model = HiDPITransaction.Model(vendorID: identity.vendorID, productID: identity.productID)
-            return overridesRoot.appendingPathComponent(model.vendorFolder)
+            let hold = overridesRoot.appendingPathComponent(model.vendorFolder)
                 .appendingPathComponent(model.holdName).path
+            return (try? FileManager.default.attributesOfItem(atPath: hold)) == nil ? nil : hold
         }
 
         // MARK: Display modes
