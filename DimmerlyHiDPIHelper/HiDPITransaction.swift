@@ -41,6 +41,8 @@
             /// Called as each step is reached; tests use it to change the filesystem at that
             /// moment or to stop dead, as a crash would.
             var checkpoint: (Step) throws -> Void = { _ in }
+            /// Removes a staging file; tests replace it to make the call fail with a chosen errno.
+            var unlinkStage: (Int32, String) -> Int32 = { unlinkat($0, $1, 0) }
 
             static var system: Configuration {
                 Configuration()
@@ -60,7 +62,8 @@
             /// throw here to stand in for a failing disk.
             case writeState(String)
             case deleteState(String)
-            case syncDirectory
+            /// `label` says which folder: "vendor", "state", "new folder:<name>" or "parent of:<name>".
+            case syncDirectory(String)
         }
 
         /// Thrown by a test checkpoint to stop without any cleanup, as a killed process would.
@@ -177,7 +180,7 @@
                 }
                 published = true
                 try configuration.checkpoint(.afterInstallPublish)
-                try context.sync(context.vendorFD)
+                try context.sync(context.vendorFD, "vendor")
                 try context.writeState(model.installedName, Data((digest + "\n").utf8))
                 try context.deleteState(model.removedName)
                 try context.deleteRecord()
@@ -219,7 +222,9 @@
             try configuration.checkpoint(.afterRemoveRecord)
 
             try configuration.checkpoint(.beforeRemoveHold)
-            guard try exclusiveRename(context.vendorFD, model.productFile, context.vendorFD, model.holdName) else {
+            guard try exclusiveRename(
+                context.vendorFD, model.productFile, context.vendorFD, model.holdName, missingSourceIsConflict: true
+            ) else {
                 try context.deleteRecord()
                 return .refused("the override file changed while Dimmerly was removing it")
             }
@@ -256,7 +261,7 @@
                     throw Failure.io("couldn't delete the removed override")
                 }
                 try context.configuration.checkpoint(.afterRemoveUnlink)
-                try context.sync(context.vendorFD)
+                try context.sync(context.vendorFD, "vendor")
                 try context.deleteState(model.installedName)
                 try context.deleteRecord()
                 _ = unlinkat(context.overridesFD, model.vendorFolder, AT_REMOVEDIR)
@@ -265,7 +270,7 @@
 
             if try exclusiveRename(context.vendorFD, model.holdName, context.vendorFD, model.productFile) {
                 // The journal goes only after the restored entry is durable.
-                try context.sync(context.vendorFD)
+                try context.sync(context.vendorFD, "vendor")
                 try context.deleteRecord()
                 return .refused("the override file isn't the one Dimmerly installed")
             }
@@ -300,8 +305,8 @@
             switch record.operation {
             case .install:
                 // Never published: remove what was staged. Published: record it as installed.
-                _ = unlinkat(context.vendorFD, model.stageName, 0)
-                try context.sync(context.vendorFD)
+                try removeStage(context)
+                try context.sync(context.vendorFD, "vendor")
                 if case .regular = try entryKind(context.vendorFD, model.productFile),
                    let data = try readFile(context.vendorFD, model.productFile, maximum: maximumFileSize),
                    sha256Hex(data) == record.digest
@@ -317,7 +322,7 @@
                 case .absent:
                     // The entry was never held, or its removal or restore finished; make sure it
                     // is durable before the journal goes.
-                    try context.sync(context.vendorFD)
+                    try context.sync(context.vendorFD, "vendor")
                     if case .absent = try entryKind(context.vendorFD, model.productFile) {
                         try context.deleteState(model.installedName)
                     }
@@ -333,9 +338,16 @@
             }
         }
 
+        /// Removes the staging file. "Not there" is fine; any other failure leaves the journal in place.
+        private static func removeStage(_ context: Context) throws {
+            if context.configuration.unlinkStage(context.vendorFD, context.model.stageName) != 0, errno != ENOENT {
+                throw Failure.io("couldn't remove the staging file")
+            }
+        }
+
         private static func cleanUpInstall(_ context: Context) throws {
-            _ = unlinkat(context.vendorFD, context.model.stageName, 0)
-            try context.sync(context.vendorFD)
+            try removeStage(context)
+            try context.sync(context.vendorFD, "vendor")
             try context.deleteRecord()
         }
 
@@ -388,7 +400,7 @@
         private static func writeStage(_ context: Context, contents: Data) throws {
             let model = context.model
             // A stale stage belongs to an interrupted change that reconcile has already handled.
-            _ = unlinkat(context.vendorFD, model.stageName, 0)
+            try removeStage(context)
             let fd = openat(
                 context.vendorFD, model.stageName, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0o600
             )
@@ -418,14 +430,21 @@
 
         /// Renames an entry only if nothing exists at the destination. False when something does.
         private static func exclusiveRename(
-            _ fromDirectory: Int32, _ from: String, _ toDirectory: Int32, _ to: String
+            _ fromDirectory: Int32, _ from: String, _ toDirectory: Int32, _ to: String,
+            missingSourceIsConflict: Bool = false
         ) throws -> Bool {
             if renameatx_np(fromDirectory, from, toDirectory, to, renameExclusive) == 0 {
                 return true
             }
             switch errno {
             case EEXIST: return false
-            case ENOENT: return false
+            case ENOENT:
+                // A source that has vanished is only expected when capturing a file someone may
+                // have just removed; publishing or restoring one that isn't there is an error.
+                if missingSourceIsConflict {
+                    return false
+                }
+                throw Failure.io("\(from) is missing")
             case ENOTSUP, EINVAL:
                 throw Failure.unsupported("this volume can't do an exclusive rename")
             default: throw Failure.io("couldn't rename \(from)")
@@ -633,8 +652,8 @@
             // State files live in a root-owned folder and are replaced atomically.
 
             /// Flushes a directory's entries to disk; a failure is an error, not something to ignore.
-            func sync(_ directory: Int32) throws {
-                try configuration.checkpoint(.syncDirectory)
+            func sync(_ directory: Int32, _ label: String) throws {
+                try configuration.checkpoint(.syncDirectory(label))
                 guard fsync(directory) == 0 else { throw Failure.io("couldn't save a folder to disk") }
             }
 
@@ -653,7 +672,7 @@
                     _ = unlinkat(stateFD, temporary, 0)
                     throw Failure.io("couldn't save a state file")
                 }
-                try sync(stateFD)
+                try sync(stateFD, "state")
             }
 
             func deleteState(_ name: String) throws {
@@ -661,7 +680,7 @@
                 if unlinkat(stateFD, name, 0) != 0, errno != ENOENT {
                     throw Failure.io("couldn't delete a state file")
                 }
-                try sync(stateFD)
+                try sync(stateFD, "state")
             }
 
             func writeRecord(_ record: Record) throws {
@@ -705,12 +724,10 @@
                 throw Failure.invalidInput("bad folder name")
             }
             var fd = openat(parent, name, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
-            var created = false
             if fd < 0, errno == ENOENT, create {
                 if mkdirat(parent, name, 0o755) != 0, errno != EEXIST {
                     throw Failure.io("couldn't create \(name)")
                 }
-                created = true
                 fd = openat(parent, name, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
             }
             if fd < 0, errno == ENOENT, !create {
@@ -719,11 +736,15 @@
             guard fd >= 0 else { throw Failure.unsafe("can't open \(name) as a folder") }
             do {
                 try requireTrusted(fd, configuration)
-                if created {
+                if create {
                     // A new folder's entry lives in its parent, so both are flushed before anything
-                    // relies on the folder existing.
-                    try configuration.checkpoint(.syncDirectory)
-                    guard fsync(fd) == 0, fsync(parent) == 0 else { throw Failure.io("couldn't save a new folder") }
+                    // relies on the folder existing. This runs whenever the folder is opened for
+                    // creation, not only when this call made it: an earlier attempt may have made it
+                    // and failed or stopped before its sync.
+                    try configuration.checkpoint(.syncDirectory("new folder:\(name)"))
+                    guard fsync(fd) == 0 else { throw Failure.io("couldn't save a new folder") }
+                    try configuration.checkpoint(.syncDirectory("parent of:\(name)"))
+                    guard fsync(parent) == 0 else { throw Failure.io("couldn't save a folder's parent") }
                 }
             } catch {
                 close(fd)

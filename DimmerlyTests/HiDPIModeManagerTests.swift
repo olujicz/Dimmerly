@@ -54,6 +54,7 @@
         fileprivate var base = URL(fileURLWithPath: "/")
         fileprivate var preference = FakePreference(nil)
         nonisolated(unsafe) var checkpoint: (HiDPITransaction.Step) throws -> Void = { _ in }
+        nonisolated(unsafe) var stageHook: ((Int32, String) -> Int32)?
 
         override func setUpWithError() throws {
             base = try URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
@@ -62,6 +63,7 @@
             try FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
             preference = FakePreference(nil)
             checkpoint = { _ in }
+            stageHook = nil
         }
 
         override func tearDownWithError() throws {
@@ -113,6 +115,9 @@
             configuration.preferenceIsEnabled = { preference.isEnabled() }
             configuration.enablePreference = { preference.enable() }
             configuration.checkpoint = checkpoint
+            if let stageHook {
+                configuration.unlinkStage = stageHook
+            }
             return configuration
         }
 
@@ -626,7 +631,7 @@
         }
 
         func testAFailedSyncAfterPublishingKeepsTheJournal() throws {
-            failDisk(after: .afterInstallPublish) { $0 == .syncDirectory }
+            failDisk(after: .afterInstallPublish) { $0 == .syncDirectory("vendor") }
             XCTAssertThrowsError(try install())
             XCTAssertNotNil(state(model().recordName))
             XCTAssertTrue(FileManager.default.fileExists(atPath: file().path))
@@ -661,7 +666,7 @@
             XCTAssertEqual(try install(), .done)
             let edited = Data("edited".utf8)
             try edited.write(to: file())
-            failDisk(after: .afterRemoveHold) { $0 == .syncDirectory }
+            failDisk(after: .afterRemoveHold) { $0 == .syncDirectory("vendor") }
             XCTAssertThrowsError(try remove())
             XCTAssertEqual(try Data(contentsOf: file()), edited)
             XCTAssertNotNil(state(model().recordName))
@@ -694,11 +699,13 @@
             return log
         }
 
-        /// Throws a disk failure for the first `count` directory syncs.
-        private func failSyncs(_ count: Int) {
+        /// Throws a disk failure for the first `count` syncs of the folder `label` names (the vendor
+        /// folder unless told otherwise). Syncs of other folders pass, so a test reaches the step
+        /// it means to.
+        private func failSyncs(_ count: Int, label: String = "vendor") {
             nonisolated(unsafe) var remaining = count
             checkpoint = { step in
-                guard step == .syncDirectory, remaining > 0 else { return }
+                guard step == .syncDirectory(label), remaining > 0 else { return }
                 remaining -= 1
                 throw DiskFailure()
             }
@@ -744,7 +751,7 @@
                     return XCTFail("the journal was never deleted", file: file, line: line)
                 }
                 XCTAssertTrue(
-                    steps[..<deleteIndex].contains(.syncDirectory),
+                    steps[..<deleteIndex].contains(.syncDirectory("vendor")),
                     "no directory sync before the journal was deleted: \(steps)", file: file, line: line
                 )
             }
@@ -785,18 +792,117 @@
             XCTAssertEqual(try install(), .done)
             let steps = log.steps
             let firstJournal = try XCTUnwrap(steps.firstIndex(of: .writeState(model().recordName)))
-            // The state folder, the override root and the vendor folder were each created.
-            XCTAssertGreaterThanOrEqual(steps[..<firstJournal].filter { $0 == .syncDirectory }.count, 3)
+            // The state folder, the override root and the vendor folder were each synced, and so
+            // was each one's parent, before the journal existed.
+            let before = Array(steps[..<firstJournal])
+            for name in ["State", "Overrides", model().vendorFolder] {
+                XCTAssertTrue(before.contains(.syncDirectory("new folder:\(name)")), name)
+                XCTAssertTrue(before.contains(.syncDirectory("parent of:\(name)")), name)
+            }
         }
 
         func testAFailedSyncOfANewFolderStopsTheInstallBeforeAnythingIsRecorded() throws {
-            failSyncs(1)
+            failSyncs(1, label: "new folder:State")
             XCTAssertThrowsError(try install())
             XCTAssertNil(state(model().recordName))
             XCTAssertNil(state(model().installedName))
 
             checkpoint = { _ in }
             XCTAssertEqual(try install(), .done)
+        }
+
+        func testAFolderMadeByAnEarlierAttemptIsSyncedAgainOnEveryRetry() throws {
+            let labels = [
+                "parent of:State", "new folder:Overrides", "parent of:Overrides", "parent of:\(model().vendorFolder)",
+            ]
+            for label in labels {
+                try? FileManager.default.removeItem(at: base.appendingPathComponent("Overrides"))
+                try? FileManager.default.removeItem(at: stateRoot)
+
+                // The folder is made, its sync fails; the retry finds the folder already there and
+                // must still sync it, which this proves by failing that sync a second time too.
+                failSyncs(2, label: label)
+                XCTAssertThrowsError(try install(), label)
+                XCTAssertThrowsError(try install(), "the second attempt skipped \(label)")
+                XCTAssertNil(state(model().recordName), label)
+
+                let log = recordSteps()
+                XCTAssertEqual(try install(), .done, label)
+                XCTAssertTrue(log.steps.contains(.syncDirectory(label)), "the third attempt skipped \(label)")
+                XCTAssertEqual(try Data(contentsOf: file()), try contents())
+            }
+        }
+
+        // MARK: Staging file removal
+
+        private func failStageRemoval(with code: Int32) {
+            stageHook = { _, _ in
+                errno = code
+                return -1
+            }
+        }
+
+        func testAnInstallRecoveryThatCantRemoveTheStageKeepsTheJournal() throws {
+            crash(at: .afterInstallPreference)
+            XCTAssertThrowsError(try install())
+            XCTAssertTrue(names(in: vendorFolder).contains(model().stageName))
+
+            checkpoint = { _ in }
+            failStageRemoval(with: EIO)
+            XCTAssertThrowsError(try recover())
+            XCTAssertNotNil(state(model().recordName))
+            XCTAssertTrue(names(in: vendorFolder).contains(model().stageName))
+            // The next change sees the pending journal rather than a clean slate.
+            XCTAssertThrowsError(try install())
+            XCTAssertNotNil(state(model().recordName))
+
+            stageHook = nil
+            XCTAssertEqual(try recover(), .done)
+            XCTAssertEqual(names(in: vendorFolder), [])
+            XCTAssertNil(state(model().recordName))
+        }
+
+        func testARefusedInstallThatCantRemoveItsStageKeepsTheJournal() throws {
+            // The staging file is made normally; only its removal after the refusal fails.
+            nonisolated(unsafe) var armed = false
+            at(.beforeInstallPublish) {
+                try Data("theirs".utf8).write(to: self.file())
+                armed = true
+            }
+            stageHook = { directory, name in
+                guard armed else { return unlinkat(directory, name, 0) }
+                errno = EIO
+                return -1
+            }
+            XCTAssertThrowsError(try install())
+            XCTAssertNotNil(state(model().recordName))
+            XCTAssertTrue(names(in: vendorFolder).contains(model().stageName))
+            XCTAssertEqual(try Data(contentsOf: file()), Data("theirs".utf8))
+
+            stageHook = nil
+            checkpoint = { _ in }
+            XCTAssertEqual(try recover(), .done)
+            XCTAssertEqual(names(in: vendorFolder), [model().productFile])
+            XCTAssertNil(state(model().recordName))
+        }
+
+        func testAStageThatIsAlreadyGoneIsNotAnError() throws {
+            crash(at: .afterInstallPreference)
+            XCTAssertThrowsError(try install())
+            try FileManager.default.removeItem(at: vendorFolder.appendingPathComponent(model().stageName))
+
+            checkpoint = { _ in }
+            failStageRemoval(with: ENOENT)
+            XCTAssertEqual(try recover(), .done)
+            XCTAssertNil(state(model().recordName))
+        }
+
+        func testAStageThatVanishesBeforePublishingIsAnErrorNotAnInstall() throws {
+            let stage = vendorFolder.appendingPathComponent(model().stageName)
+            at(.beforeInstallPublish) { try FileManager.default.removeItem(at: stage) }
+            XCTAssertThrowsError(try install())
+            XCTAssertFalse(FileManager.default.fileExists(atPath: file().path))
+            XCTAssertNil(state(model().installedName))
         }
 
         // MARK: A pending change when another model took the folder
@@ -1265,7 +1371,7 @@
             try FileManager.default.removeItem(at: file())
             nonisolated(unsafe) var failed = false
             checkpoint = { step in
-                guard step == .syncDirectory, !failed else { return }
+                guard step == .syncDirectory("vendor"), !failed else { return }
                 failed = true
                 throw HiDPITransaction.Failure.io("disk")
             }
