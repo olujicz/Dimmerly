@@ -703,6 +703,7 @@ final class ScreenshotStageTests: XCTestCase {
             "MenuBarDisplayControls.swift", // Which rows are expanded; presentation only, reset on close
             "KeyboardShortcutManager.swift", // Shortcut recording UI state
             "ScreenBlanker.swift", // Runs only on an explicit Turn Off
+            "HiDPIModeManager.swift", // Settings-only; re-reads override files each time, holds no display state
             "ScreenSleepState.swift", // Read-only sleep/wake flag; holds no display state
         ]
         let sources = URL(fileURLWithPath: #filePath)

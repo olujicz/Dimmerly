@@ -2,7 +2,7 @@
 //  HiDPIOverrideTests.swift
 //  DimmerlyTests
 //
-//  Unit tests for HiDPI override sizes, file contents, ownership, status and commands.
+//  Unit tests for HiDPI override sizes, file contents, ownership and status.
 //
 
 #if !APPSTORE
@@ -96,24 +96,33 @@
             XCTAssertEqual(try HiDPIOverride.ownership(ofPlistData: HiDPIOverride.plistData(for: display)), .dimmerly)
         }
 
-        func testForeignHiDPIOnlyFileIsReplaceable() throws {
+        func testForeignHiDPIOnlyFileIsRecognisedAsHiDPIOnly() throws {
             let data = try plist([
                 "DisplayProductName": "ANMITE (HiDPI)",
                 "DisplayVendorID": 0x4A8B,
                 "DisplayProductID": 0x2555,
                 "scale-resolutions": [Data([0, 0, 7, 0x40])],
             ])
-            XCTAssertEqual(HiDPIOverride.ownership(ofPlistData: data), .other(replaceable: true))
+            XCTAssertEqual(HiDPIOverride.ownership(ofPlistData: data), .other(hiDPIOnly: true))
         }
 
-        func testForeignFileWithOtherKeysIsNotReplaceable() throws {
+        func testMarkedFileThatGainedOtherSettingsIsNotDimmerlys() throws {
+            var plist = try XCTUnwrap(PropertyListSerialization.propertyList(
+                from: HiDPIOverride.plistData(for: display), format: nil
+            ) as? [String: Any])
+            plist["IODisplayEDID"] = Data([0, 0xFF])
+            let data = try self.plist(plist)
+            XCTAssertEqual(HiDPIOverride.ownership(ofPlistData: data), .other(hiDPIOnly: false))
+        }
+
+        func testForeignFileWithOtherKeysIsNotHiDPIOnly() throws {
             let data = try plist([
                 "DisplayVendorID": 0x4A8B,
                 "DisplayProductID": 0x2555,
                 "IODisplayEDID": Data([0, 0xFF]),
             ])
-            XCTAssertEqual(HiDPIOverride.ownership(ofPlistData: data), .other(replaceable: false))
-            XCTAssertEqual(HiDPIOverride.ownership(ofPlistData: Data("not a plist".utf8)), .other(replaceable: false))
+            XCTAssertEqual(HiDPIOverride.ownership(ofPlistData: data), .other(hiDPIOnly: false))
+            XCTAssertEqual(HiDPIOverride.ownership(ofPlistData: Data("not a plist".utf8)), .other(hiDPIOnly: false))
         }
 
         // MARK: Status
@@ -124,7 +133,7 @@
             XCTAssertEqual(status(.none, expected, []), .off)
             XCTAssertEqual(status(.dimmerly, expected, []), .restartToEnable)
             XCTAssertEqual(status(.dimmerly, expected, offered, installedBeforeLastRestart: true), .on)
-            XCTAssertEqual(status(.other(replaceable: true), expected, offered), .otherOverride(replaceable: true))
+            XCTAssertEqual(status(.other(hiDPIOnly: true), expected, offered), .otherOverride(hiDPIOnly: true))
         }
 
         func testRestartToRemoveOnlyAfterDimmerlyRemovedALoadedFile() {
@@ -193,57 +202,6 @@
             // The 1x 1600 × 900 that System Settings lists beside the HiDPI one must not read
             // as native.
             XCTAssertEqual(choice(1600, 900, 1600, 900), .lowResolution(HiDPISize(width: 1600, height: 900)))
-        }
-
-        // MARK: Commands
-
-        func testInstallCommandCopiesAsRootAndSetsTheWindowServerFlag() {
-            let command = HiDPIOverride.installCommand(
-                stagedFile: URL(fileURLWithPath: "/private/tmp/it's staged.plist"),
-                destination: HiDPIOverride.fileURL(vendorID: 0x4A8B, productID: 0x2555),
-                expectedCurrentFile: nil
-            )
-            XCTAssertEqual(
-                command,
-                "[ ! -e '/Library/Displays/Contents/Resources/Overrides/"
-                    + "DisplayVendorID-4a8b/DisplayProductID-2555' ] && "
-                    + "/bin/mkdir -p '/Library/Displays/Contents/Resources/Overrides/DisplayVendorID-4a8b' && "
-                    + "/usr/bin/install -m 0644 -o root -g wheel '/private/tmp/it'\\''s staged.plist' "
-                    + "'/Library/Displays/Contents/Resources/Overrides/DisplayVendorID-4a8b/DisplayProductID-2555' && "
-                    + "/usr/bin/defaults write /Library/Preferences/com.apple.windowserver "
-                    + "DisplayResolutionEnabled -bool YES"
-            )
-        }
-
-        func testInstallCommandOnlyReplacesTheFileDimmerlyRead() {
-            let destination = HiDPIOverride.fileURL(vendorID: 0x4A8B, productID: 0x2555)
-            let command = HiDPIOverride.installCommand(
-                stagedFile: URL(fileURLWithPath: "/private/tmp/new.plist"),
-                destination: destination,
-                expectedCurrentFile: URL(fileURLWithPath: "/private/tmp/old.plist")
-            )
-            XCTAssertTrue(command.hasPrefix("/usr/bin/cmp -s '/private/tmp/old.plist' '\(destination.path)' && "))
-        }
-
-        func testRemoveCommandKeepsTheFlagWhileOtherOverridesRemain() {
-            let file = HiDPIOverride.fileURL(vendorID: 0x4A8B, productID: 0x2555)
-            let snapshot = URL(fileURLWithPath: "/private/tmp/old.plist")
-            let keep = HiDPIOverride.removeCommand(
-                file: file, expectedCurrentFile: snapshot, clearWindowServerFlag: false
-            )
-            XCTAssertTrue(keep.hasPrefix(
-                "/usr/bin/cmp -s '/private/tmp/old.plist' '\(file.path)' && "
-                    + "/bin/rm -f '\(file.path)' && { /bin/rmdir "
-            ))
-            XCTAssertFalse(keep.contains("defaults delete"))
-
-            let clear = HiDPIOverride.removeCommand(
-                file: file, expectedCurrentFile: snapshot, clearWindowServerFlag: true
-            )
-            XCTAssertTrue(clear.hasSuffix(
-                "{ /usr/bin/defaults delete /Library/Preferences/com.apple.windowserver "
-                    + "DisplayResolutionEnabled 2>/dev/null || true; }"
-            ))
         }
 
         // MARK: Helpers

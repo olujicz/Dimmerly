@@ -9,6 +9,7 @@
 
 #if !APPSTORE
 
+    import CryptoKit
     import Foundation
 
     /// One external display, described by the values its override file is keyed on.
@@ -67,9 +68,10 @@
     enum HiDPIOverrideOwnership: Equatable {
         case none
         case dimmerly
-        /// Written by someone else. `replaceable` is true when it holds nothing but HiDPI
-        /// sizes, so replacing it with Dimmerly's file loses nothing.
-        case other(replaceable: Bool)
+        /// Written by someone else, or by Dimmerly and since extended with other settings.
+        /// Dimmerly never replaces or removes it. `hiDPIOnly` is true when it holds nothing
+        /// but HiDPI sizes, which only changes what Settings says about it.
+        case other(hiDPIOnly: Bool)
     }
 
     /// What Settings shows for a display.
@@ -86,13 +88,11 @@
         /// Dimmerly's file was removed; the sizes stay until the next restart.
         case restartToRemove
         /// Another tool's override file is installed.
-        case otherOverride(replaceable: Bool)
+        case otherOverride(hiDPIOnly: Bool)
 
         enum Action {
             case turnOn
             case turnOff
-            /// Replaces another app's HiDPI-only file with Dimmerly's.
-            case manage
         }
 
         /// What the row's button does in this state, or nil when it has none. Settings and
@@ -103,8 +103,7 @@
             // so changing your mind before restarting needs no restart at all.
             case .off, .restartToRemove: .turnOn
             case .on, .restartToEnable, .notAccepted: .turnOff
-            case .otherOverride(replaceable: true): .manage
-            case .otherOverride(replaceable: false): nil
+            case .otherOverride: nil
             }
         }
 
@@ -126,7 +125,7 @@
         static let maximumNativeWidth = 3840
         static let minimumNativeWidth = 1280
 
-        /// Keys a pure HiDPI override holds. A foreign file with only these is safe to replace.
+        /// Keys a pure HiDPI override holds. A file with other keys carries someone else's settings.
         static let hiDPIOnlyKeys: Set<String> = [
             "DisplayProductName", "DisplayVendorID", "DisplayProductID",
             "scale-resolutions", "default-resolution", ownershipKey,
@@ -198,13 +197,15 @@
             guard let plist = try? PropertyListSerialization.propertyList(from: data, format: nil)
                 as? [String: Any]
             else {
-                return .other(replaceable: false)
+                return .other(hiDPIOnly: false)
             }
-            if plist[ownershipKey] as? Bool == true {
+            // The marker alone doesn't make a file removable: once another tool adds settings
+            // to it, removing the file would discard them.
+            let isHiDPIOnly = Set(plist.keys).isSubset(of: hiDPIOnlyKeys) && plist["scale-resolutions"] != nil
+            if plist[ownershipKey] as? Bool == true, isHiDPIOnly {
                 return .dimmerly
             }
-            let isHiDPIOnly = Set(plist.keys).isSubset(of: hiDPIOnlyKeys) && plist["scale-resolutions"] != nil
-            return .other(replaceable: isHiDPIOnly)
+            return .other(hiDPIOnly: isHiDPIOnly)
         }
 
         // MARK: Status
@@ -236,8 +237,8 @@
                 // come from Dimmerly's earlier file, as after turning HiDPI off and on again
                 // without restarting; sizes from another app's file it replaced don't count.
                 return sizesOffered && loadedFileRemovedThisBoot ? .on : .restartToEnable
-            case let .other(replaceable):
-                return .otherOverride(replaceable: replaceable)
+            case let .other(hiDPIOnly):
+                return .otherOverride(hiDPIOnly: hiDPIOnly)
             case .none:
                 return sizesOffered && loadedFileRemovedThisBoot ? .restartToRemove : .off
             }
@@ -245,40 +246,152 @@
 
         // MARK: Privileged commands
 
-        /// Copies the prepared file into place as root and lets WindowServer use the added sizes.
-        ///
-        /// The password prompt can stay open for a while, so the command first checks that the
-        /// destination still holds what Dimmerly read before asking: a copy of it at
-        /// `expectedCurrentFile`, or nothing when that is nil. If another app changed it in the
-        /// meantime, the command stops before touching anything.
-        static func installCommand(stagedFile: URL, destination: URL, expectedCurrentFile: URL?) -> String {
-            let unchanged = expectedCurrentFile.map {
-                "/usr/bin/cmp -s \(shellQuoted($0.path)) \(shellQuoted(destination.path))"
-            } ?? "[ ! -e \(shellQuoted(destination.path)) ]"
-            return [
-                unchanged,
-                "/bin/mkdir -p \(shellQuoted(destination.deletingLastPathComponent().path))",
-                "/usr/bin/install -m 0644 -o root -g wheel "
-                    + "\(shellQuoted(stagedFile.path)) \(shellQuoted(destination.path))",
-                "/usr/bin/defaults write \(windowServerDomain) \(windowServerKey) -bool YES",
-            ].joined(separator: " && ")
+        /// Where the privileged commands work, and who must own it. Tests point this at a
+        /// temporary folder owned by the current user; the app always uses `.system`.
+        struct SystemLocation {
+            var overridesRoot: URL = HiDPIOverride.overridesRoot
+            /// Every folder from here down to the vendor folder must be a real directory owned
+            /// by `ownerUID` that nobody else can write to, or the command stops.
+            var trustedBase = URL(fileURLWithPath: "/Library")
+            var ownerUID: UInt32 = 0
+            var ownerGID: UInt32 = 0
+            var windowServerDomain = HiDPIOverride.windowServerDomain
+
+            static let system = SystemLocation()
         }
 
-        /// Removes the file and its vendor folder if empty. Clears the WindowServer flag only
-        /// when no override files remain, since other overrides may depend on it. Like
-        /// `installCommand`, it stops if the file no longer matches `expectedCurrentFile`.
-        static func removeCommand(file: URL, expectedCurrentFile: URL, clearWindowServerFlag: Bool) -> String {
-            var steps = [
-                "/usr/bin/cmp -s \(shellQuoted(expectedCurrentFile.path)) \(shellQuoted(file.path))",
-                "/bin/rm -f \(shellQuoted(file.path))",
-                "{ /bin/rmdir \(shellQuoted(file.deletingLastPathComponent().path)) 2>/dev/null || true; }",
+        /// Adds the display's override file as root and lets WindowServer use the added sizes.
+        ///
+        /// Everything root needs travels inside the command: the file's contents, its digest
+        /// and the paths. Nothing is read from a location the user, or an app running as the
+        /// user, could change while the password prompt is open. Root checks that the folders
+        /// are trustworthy, that the contents decode to what the digest says and to Dimmerly's
+        /// own file for this display, and that no file exists yet.
+        ///
+        /// The file is prepared beside its destination and moved into place last, after the
+        /// WindowServer flag is set. If the move fails, the flag goes back to its earlier value.
+        static func installCommand(
+            for display: HiDPIDisplayIdentity,
+            location: SystemLocation = .system
+        ) throws -> String {
+            let contents = try plistData(for: display)
+            let destination = fileURL(
+                vendorID: display.vendorID, productID: display.productID, root: location.overridesRoot
+            )
+            let directory = destination.deletingLastPathComponent()
+            guard let checks = folderChecks(for: directory, location: location, create: true) else {
+                return "/usr/bin/false"
+            }
+            let digest = sha256Hex(contents)
+            let flag = "\(shellQuoted(location.windowServerDomain)) \(shellQuoted(windowServerKey))"
+            let owner = "\(location.ownerUID):\(location.ownerGID)"
+            var lines = preamble(ownerUID: location.ownerUID) + checks + [
+                "DEST=\(shellQuoted(destination.path))",
+                "TMP=\(shellQuoted(directory.path))/.dimmerly-hidpi-$$",
+                "abort() { /bin/rm -f \"$TMP\"; exit 1; }",
+                "[ ! -e \"$DEST\" ] && [ ! -L \"$DEST\" ] || exit 1",
+                "printf '%s' \(shellQuoted(contents.base64EncodedString())) | /usr/bin/base64 -D > \"$TMP\" || abort",
+                "[ \"$(digest \"$TMP\")\" = \(shellQuoted(digest)) ] || abort",
             ]
-            if clearWindowServerFlag {
-                steps.append(
-                    "{ /usr/bin/defaults delete \(windowServerDomain) \(windowServerKey) 2>/dev/null || true; }"
+            for (key, value) in [
+                (ownershipKey, "true"),
+                ("DisplayVendorID", String(display.vendorID)),
+                ("DisplayProductID", String(display.productID)),
+            ] {
+                lines.append(
+                    "[ \"$(/usr/bin/plutil -extract \(shellQuoted(key)) raw -o - \"$TMP\" 2>/dev/null)\" "
+                        + "= \(shellQuoted(value)) ] || abort"
                 )
             }
-            return steps.joined(separator: " && ")
+            lines += [
+                "/usr/sbin/chown \(owner) \"$TMP\" || abort",
+                "/bin/chmod 644 \"$TMP\" || abort",
+                "CHANGED=0",
+                "undo() {",
+                "  [ \"$CHANGED\" = 1 ] || return 0",
+                "  if [ \"$PRC\" -ne 0 ]; then /usr/bin/defaults delete \(flag); "
+                    + "else /usr/bin/defaults write \(flag) -bool NO; fi",
+                "}",
+                "PRIOR=$(/usr/bin/defaults read \(flag) 2>/dev/null); PRC=$?",
+                "if [ \"$PRC\" -eq 0 ] && [ \"$PRIOR\" = 1 ]; then :",
+                "elif [ \"$PRC\" -ne 0 ] || [ \"$PRIOR\" = 0 ]; then",
+                "  CHANGED=1",
+                // `defaults write` can report success without writing, so read the value back.
+                "  /usr/bin/defaults write \(flag) -bool YES || { undo; abort; }",
+                "  [ \"$(/usr/bin/defaults read \(flag) 2>/dev/null)\" = 1 ] || { undo; abort; }",
+                "else abort; fi",
+                "/bin/mv -f \"$TMP\" \"$DEST\" || { undo; abort; }",
+                "exit 0",
+            ]
+            return lines.joined(separator: "\n")
+        }
+
+        /// Removes the display's override file as root, only if it still holds exactly
+        /// `expectedCurrent`, the bytes Dimmerly read and recognised as its own. Then removes
+        /// the vendor folder if that left it empty.
+        ///
+        /// The WindowServer flag stays as it is: Dimmerly can't tell a flag it set from one the
+        /// user or another tool did, and other overrides may rely on it.
+        static func removeCommand(
+            vendorID: UInt32,
+            productID: UInt32,
+            expectedCurrent: Data,
+            location: SystemLocation = .system
+        ) -> String {
+            let destination = fileURL(vendorID: vendorID, productID: productID, root: location.overridesRoot)
+            let directory = destination.deletingLastPathComponent()
+            guard let checks = folderChecks(for: directory, location: location, create: false) else {
+                return "/usr/bin/false"
+            }
+            let lines = preamble(ownerUID: location.ownerUID) + checks + [
+                "DEST=\(shellQuoted(destination.path))",
+                "[ -f \"$DEST\" ] && [ ! -L \"$DEST\" ] || exit 1",
+                "[ \"$(digest \"$DEST\")\" = \(shellQuoted(sha256Hex(expectedCurrent))) ] || exit 1",
+                "/bin/rm -f \"$DEST\" || exit 1",
+                "/bin/rmdir \(shellQuoted(directory.path)) 2>/dev/null",
+                "exit 0",
+            ]
+            return lines.joined(separator: "\n")
+        }
+
+        static func sha256Hex(_ data: Data) -> String {
+            SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+        }
+
+        /// Shell helpers: `trusted` accepts only a real directory owned by `ownerUID` that group
+        /// and others can't write to, and `digest` prints a file's SHA-256.
+        private static func preamble(ownerUID: UInt32) -> [String] {
+            [
+                "umask 022",
+                "trusted() {",
+                "  [ -d \"$1\" ] && [ ! -L \"$1\" ] || return 1",
+                "  [ \"$(/usr/bin/stat -f %u \"$1\")\" = \(ownerUID) ] || return 1",
+                "  [ $(( 0$(/usr/bin/stat -f %Lp \"$1\") & 022 )) -eq 0 ]",
+                "}",
+                "digest() { /usr/bin/shasum -a 256 < \"$1\" | /usr/bin/cut -d ' ' -f1; }",
+            ]
+        }
+
+        /// One check per folder from the trusted base down to `directory`. When `create` is set,
+        /// a missing folder is made; an existing one must pass `trusted`.
+        private static func folderChecks(for directory: URL, location: SystemLocation, create: Bool) -> [String]? {
+            let base = location.trustedBase.standardizedFileURL.pathComponents
+            let target = directory.standardizedFileURL.pathComponents
+            guard target.count > base.count, Array(target.prefix(base.count)) == base else { return nil }
+            var checks: [String] = []
+            for count in base.count ... target.count {
+                let path = NSString.path(withComponents: Array(target.prefix(count)))
+                let quoted = shellQuoted(path)
+                if create, count > base.count {
+                    checks.append(
+                        "if [ -e \(quoted) ] || [ -L \(quoted) ]; then trusted \(quoted) || exit 1; "
+                            + "else /bin/mkdir -m 755 \(quoted) || exit 1; fi"
+                    )
+                } else {
+                    checks.append("trusted \(quoted) || exit 1")
+                }
+            }
+            return checks
         }
 
         static func shellQuoted(_ value: String) -> String {

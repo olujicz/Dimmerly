@@ -118,12 +118,14 @@
     @Observable
     final class HiDPIModeManager {
         private(set) var displays: [HiDPIDisplayState] = []
-        private(set) var busyDisplayIDs: Set<CGDirectDisplayID> = []
+        /// Models with a change in progress, keyed by `modelKey`. Keyed by model rather than
+        /// display ID, which changes when a monitor is unplugged and plugged back in.
+        private(set) var busyModels: Set<String> = []
         /// The last failure per display, shown under its row until its next change succeeds.
         private(set) var errors: [CGDirectDisplayID: HiDPIModeError] = [:]
 
         @ObservationIgnored private let runner: PrivilegedCommandRunning
-        @ObservationIgnored private let overridesRoot: URL
+        @ObservationIgnored private let location: HiDPIOverride.SystemLocation
         @ObservationIgnored private let defaults: UserDefaults
         /// The display names Settings passed last, reused when a change refreshes the list.
         @ObservationIgnored private var names: [CGDirectDisplayID: String] = [:]
@@ -133,14 +135,22 @@
         /// quitting Dimmerly before the restart.
         static let removalsKey = "HiDPILoadedOverridesRemovedThisBoot"
 
+        /// Settings uses this one, so a change still waiting on the password prompt keeps its
+        /// lock when the Settings window closes and opens again.
+        static let shared = HiDPIModeManager()
+
         init(
             runner: PrivilegedCommandRunning = AppleScriptPrivilegedRunner(),
-            overridesRoot: URL = HiDPIOverride.overridesRoot,
+            location: HiDPIOverride.SystemLocation = .system,
             defaults: UserDefaults = .standard
         ) {
             self.runner = runner
-            self.overridesRoot = overridesRoot
+            self.location = location
             self.defaults = defaults
+        }
+
+        func isBusy(_ display: HiDPIDisplayState) -> Bool {
+            busyModels.contains(Self.modelKey(display.identity))
         }
 
         // MARK: Reading state
@@ -185,7 +195,7 @@
                 // Another tool's override may have renamed the display "<name> (HiDPI)".
                 name: Self.withoutHiDPISuffix(name ?? DisplayNameResolver.name(for: displayID))
             )
-            let fileURL = HiDPIOverride.fileURL(vendorID: vendorID, productID: productID, root: overridesRoot)
+            let fileURL = HiDPIOverride.fileURL(vendorID: vendorID, productID: productID, root: location.overridesRoot)
             let offered = Set(modes.filter(Self.isHiDPI).map { HiDPISize(width: $0.width, height: $0.height) })
             let expected = HiDPIOverride.scaledSizes(nativeWidth: native.width, nativeHeight: native.height)
             let status = HiDPIOverride.status(
@@ -216,27 +226,16 @@
 
         // MARK: Actions
 
-        /// Installs Dimmerly's override file for the display, replacing a HiDPI-only file
-        /// another tool left there.
+        /// Installs Dimmerly's override file for the display. Never replaces a file that is
+        /// already there: the row may be out of date, and the file may belong to someone else.
         func enable(_ display: HiDPIDisplayState) async {
-            guard display.status.action == .turnOn || display.status.action == .manage else { return }
+            guard display.status.action == .turnOn else { return }
             await perform(on: display) {
-                let destination = self.fileURL(for: display)
-                // The row may show a file read a while ago. Read it again, so a file another app
-                // wrote since then is never replaced; the refresh afterwards shows it.
-                let current = Self.readOverride(at: destination)
-                guard current.ownership != .other(replaceable: false) else { return }
+                // The row may show a file read a while ago. Read it again; the refresh afterwards
+                // shows whatever appeared since.
+                guard Self.readOverride(at: self.fileURL(for: display)).ownership == .none else { return }
 
-                let newFile = try Self.stage(HiDPIOverride.plistData(for: display.identity))
-                defer { try? FileManager.default.removeItem(at: newFile) }
-                let snapshot = try current.data.map(Self.stage)
-                defer { snapshot.map { try? FileManager.default.removeItem(at: $0) } }
-
-                let command = HiDPIOverride.installCommand(
-                    stagedFile: newFile,
-                    destination: destination,
-                    expectedCurrentFile: snapshot
-                )
+                let command = try HiDPIOverride.installCommand(for: display.identity, location: self.location)
                 try await self.runner.run(command, prompt: String(
                     localized: "Dimmerly wants to add HiDPI sizes for \(display.identity.name).",
                     comment: "Administrator password prompt when turning on HiDPI; the placeholder is the display name"
@@ -253,12 +252,11 @@
                 guard current.ownership == .dimmerly, let data = current.data else { return }
                 let wasLoaded = Self.predatesBoot(file)
 
-                let snapshot = try Self.stage(data)
-                defer { try? FileManager.default.removeItem(at: snapshot) }
                 let command = HiDPIOverride.removeCommand(
-                    file: file,
-                    expectedCurrentFile: snapshot,
-                    clearWindowServerFlag: !self.otherOverrideFilesExist(besides: file)
+                    vendorID: display.identity.vendorID,
+                    productID: display.identity.productID,
+                    expectedCurrent: data,
+                    location: self.location
                 )
                 try await self.runner.run(command, prompt: String(
                     localized: "Dimmerly wants to remove HiDPI sizes for \(display.identity.name).",
@@ -300,19 +298,20 @@
             guard let mode else { return false }
             var config: CGDisplayConfigRef?
             guard CGBeginDisplayConfiguration(&config) == .success else { return false }
-            CGConfigureDisplayWithDisplayMode(config, displayID, mode, nil)
+            guard CGConfigureDisplayWithDisplayMode(config, displayID, mode, nil) == .success else {
+                CGCancelDisplayConfiguration(config)
+                return false
+            }
             return CGCompleteDisplayConfiguration(config, .permanently) == .success
         }
 
         /// Runs one change at a time per model: identical monitors share one override file, so
         /// all of them show as busy until it finishes.
         private func perform(on display: HiDPIDisplayState, _ work: @escaping () async throws -> Void) async {
-            let ids = Set(displays.filter { $0.identity.isSameModel(as: display.identity) }.map(\.id))
-                .union([display.id])
-            guard busyDisplayIDs.isDisjoint(with: ids) else { return }
-            busyDisplayIDs.formUnion(ids)
+            let model = Self.modelKey(display.identity)
+            guard busyModels.insert(model).inserted else { return }
             defer {
-                busyDisplayIDs.subtract(ids)
+                busyModels.remove(model)
                 refresh()
             }
             do {
@@ -329,52 +328,29 @@
             HiDPIOverride.fileURL(
                 vendorID: display.identity.vendorID,
                 productID: display.identity.productID,
-                root: overridesRoot
+                root: location.overridesRoot
             )
-        }
-
-        /// True when any override file other than `file` exists, from Dimmerly or anyone else.
-        /// Hidden files such as `.DS_Store` don't count.
-        private func otherOverrideFilesExist(besides file: URL) -> Bool {
-            guard let enumerator = FileManager.default.enumerator(
-                at: overridesRoot,
-                includingPropertiesForKeys: [.isRegularFileKey],
-                options: [.skipsHiddenFiles]
-            ) else {
-                return false
-            }
-            for case let url as URL in enumerator
-                where url.standardizedFileURL != file.standardizedFileURL
-                && (try? url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true
-            {
-                return true
-            }
-            return false
         }
 
         // MARK: Override files
 
-        /// The file's contents and who wrote it. A file that exists but can't be read is
-        /// treated as someone else's, so it is never overwritten.
+        /// The file's contents and who wrote it. Anything that exists but isn't a readable
+        /// regular file, such as a symbolic link or a folder, is treated as someone else's, so
+        /// it is never overwritten or removed.
         private static func readOverride(at url: URL) -> (data: Data?, ownership: HiDPIOverrideOwnership) {
-            let data = try? Data(contentsOf: url)
-            if data == nil, FileManager.default.fileExists(atPath: url.path) {
-                return (nil, .other(replaceable: false))
+            // attributesOfItem doesn't follow symbolic links, so a link reports as a link.
+            guard let attributes = try? FileManager.default.attributesOfItem(atPath: url.path) else {
+                return (nil, .none)
+            }
+            guard attributes[.type] as? FileAttributeType == .typeRegular, let data = try? Data(contentsOf: url) else {
+                return (nil, .other(hiDPIOnly: false))
             }
             return (data, HiDPIOverride.ownership(ofPlistData: data))
         }
 
-        /// Writes `data` to a new temporary file for the privileged command to read.
-        private static func stage(_ data: Data) throws -> URL {
-            let url = FileManager.default.temporaryDirectory
-                .appendingPathComponent("dimmerly-hidpi-\(UUID().uuidString).plist")
-            try data.write(to: url)
-            return url
-        }
-
         // MARK: Removals this boot
 
-        private static func modelKey(_ identity: HiDPIDisplayIdentity) -> String {
+        static func modelKey(_ identity: HiDPIDisplayIdentity) -> String {
             "\(String(identity.vendorID, radix: 16))-\(String(identity.productID, radix: 16))"
         }
 

@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		HT00000000000000000011 /* HiDPIOverrideTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = HT00000000000000000001 /* HiDPIOverrideTests.swift */; };
+		HT00000000000000000012 /* HiDPIModeManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = HT00000000000000000002 /* HiDPIModeManagerTests.swift */; };
 		HS00000000000000000011 /* SettingsHiDPISection.swift in Sources */ = {isa = PBXBuildFile; fileRef = HS00000000000000000001 /* SettingsHiDPISection.swift */; };
 		HM00000000000000000011 /* HiDPIModeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = HM00000000000000000001 /* HiDPIModeManager.swift */; };
 		HO00000000000000000011 /* HiDPIOverride.swift in Sources */ = {isa = PBXBuildFile; fileRef = HO00000000000000000001 /* HiDPIOverride.swift */; };
@@ -180,6 +181,7 @@
 
 /* Begin PBXFileReference section */
 		HT00000000000000000001 /* HiDPIOverrideTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiDPIOverrideTests.swift; sourceTree = "<group>"; };
+		HT00000000000000000002 /* HiDPIModeManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiDPIModeManagerTests.swift; sourceTree = "<group>"; };
 		HS00000000000000000001 /* SettingsHiDPISection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsHiDPISection.swift; sourceTree = "<group>"; };
 		HM00000000000000000001 /* HiDPIModeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiDPIModeManager.swift; sourceTree = "<group>"; };
 		HO00000000000000000001 /* HiDPIOverride.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiDPIOverride.swift; sourceTree = "<group>"; };
@@ -544,6 +546,7 @@
 				NT00000000000000000020 /* DimmingScheduleTests.swift */,
 				DN00000000000000000002 /* DisplayNameResolverTests.swift */,
 				HT00000000000000000001 /* HiDPIOverrideTests.swift */,
+				HT00000000000000000002 /* HiDPIModeManagerTests.swift */,
 				T1B2C3D4E5F6A7B8C9D0E300 /* DisplayControllerTests.swift */,
 				HW00000000000000000005 /* HardwareBrightnessManagerTests.swift */,
 				T1B2C3D4E5F6A7B8C9D0E320 /* KeyboardShortcutTests.swift */,
@@ -892,6 +895,7 @@
 				DDADD6A8F394B61338B57630 /* JSONDefaultsArrayStoreTests.swift in Sources */,
 				DN00000000000000000012 /* DisplayNameResolverTests.swift in Sources */,
 				HT00000000000000000011 /* HiDPIOverrideTests.swift in Sources */,
+				HT00000000000000000012 /* HiDPIModeManagerTests.swift in Sources */,
 				CT00000000000000000012 /* ColorTemperatureManagerTests.swift in Sources */,
 				HW00000000000000000014 /* DDCControllerTests.swift in Sources */,
 				HW00000000000000000015 /* HardwareBrightnessManagerTests.swift in Sources */,

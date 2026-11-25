@@ -13,10 +13,9 @@
 
     struct HiDPISettingsSection: View {
         @Environment(BrightnessManager.self) private var brightnessManager
-        /// Owned by Settings: it holds no state worth keeping once the window closes, and
-        /// re-reads the displays and override files each time it appears. Created on first
-        /// appearance rather than as a default value, which SwiftUI would build again on
-        /// every redraw of the parent and then discard.
+        /// The shared manager, so a change waiting on the password prompt keeps its lock when
+        /// Settings closes and reopens. Set on first appearance, and it re-reads the displays
+        /// and override files each time the section appears.
         @State private var manager: HiDPIModeManager?
 
         var body: some View {
@@ -29,7 +28,7 @@
             }
             .onAppear {
                 if manager == nil {
-                    manager = HiDPIModeManager()
+                    manager = .shared
                 }
                 refresh()
             }
@@ -85,7 +84,7 @@
         }
 
         private var isBusy: Bool {
-            manager.busyDisplayIDs.contains(display.id)
+            manager.isBusy(display)
         }
 
         private var showsSizePicker: Bool {
@@ -177,12 +176,12 @@
                     localized: "Restart your Mac to finish turning HiDPI off.",
                     comment: "HiDPI status after the override file was removed"
                 )
-            case .otherOverride(replaceable: true):
+            case .otherOverride(hiDPIOnly: true):
                 String(
                     localized: "Another app set up HiDPI for this display.",
                     comment: "HiDPI status when another tool wrote a HiDPI-only override file"
                 )
-            case .otherOverride(replaceable: false):
+            case .otherOverride(hiDPIOnly: false):
                 String(
                     localized: """
                     Another app installed a display override for this display, \
@@ -204,9 +203,6 @@
             case .turnOff:
                 Button("Turn Off…") { Task { await manager.disable(display) } }
                     .accessibilityLabel(Text("Turn Off HiDPI for \(name)"))
-            case .manage:
-                Button("Manage in Dimmerly…") { Task { await manager.enable(display) } }
-                    .accessibilityLabel(Text("Manage HiDPI for \(name) in Dimmerly"))
             case nil:
                 EmptyView()
             }
