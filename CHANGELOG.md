@@ -7,6 +7,9 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+### Added
+- In the direct download, Settings › Displays has a HiDPI section for external displays below 4K, such as 1080p and 1440p monitors. Turn it on and Dimmerly asks for your administrator password, installs a display override file that makes macOS offer HiDPI sizes for that display, and asks you to restart. After the restart, pick a size there and macOS draws the display at twice the resolution and scales it down, so text looks smoother. Turn it off the same way to remove the file. Dimmerly only removes a file it installed itself and that is still exactly as it wrote it. Any override file from another app, or one another tool has since edited, is left untouched. Turning HiDPI on sets the system's HiDPI preference if it isn't set, and turning it off leaves that preference as it is. The changes are made by a small tool inside the app that runs once with your administrator rights and exits; a change that was interrupted is finished or undone before the next one, and if the original override can't be put back because another file is in its place, Settings shows where it is kept. The App Store edition can't install system files, so it doesn't have this section. Translated in every shipped language except Russian.
+
 ## [1.5.1] - Unreleased
 
 ### Added

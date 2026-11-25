@@ -127,7 +127,7 @@ jobs:
         run: bash .github/scripts/install-swiftformat.sh
 
       - name: Check Formatting
-        run: swiftformat Dimmerly DimmerlyTests DimmerlyWidget --config .swiftformat --lint
+        run: swiftformat Dimmerly DimmerlyTests DimmerlyWidget DimmerlyHiDPIHelper --config .swiftformat --lint
 
   lint:
     needs: changes
@@ -142,7 +142,7 @@ jobs:
         run: brew install swiftlint
 
       - name: Lint
-        run: swiftlint lint --config .swiftlint.yml --quiet --strict Dimmerly DimmerlyTests DimmerlyWidget
+        run: swiftlint lint --config .swiftlint.yml --quiet --strict Dimmerly DimmerlyTests DimmerlyWidget DimmerlyHiDPIHelper
 
   test:
     needs: changes

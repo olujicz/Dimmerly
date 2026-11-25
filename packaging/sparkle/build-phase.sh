@@ -25,11 +25,13 @@ problems=()
 [[ " ${OTHER_LDFLAGS:-} " != *Sparkle* ]] || problems+=("OTHER_LDFLAGS links Sparkle")
 [[ " ${EXCLUDED_SOURCE_FILE_NAMES:-} " == *" Sparkle.framework "* ]] ||
     problems+=("EXCLUDED_SOURCE_FILE_NAMES doesn't exclude Sparkle.framework, so it would be embedded")
+[[ " ${EXCLUDED_SOURCE_FILE_NAMES:-} " == *" DimmerlyHiDPIHelper "* ]] ||
+    problems+=("EXCLUDED_SOURCE_FILE_NAMES doesn't exclude DimmerlyHiDPIHelper, so the HiDPI helper would be embedded")
 updater_keys="$(/usr/bin/python3 -I -c 'import plistlib, sys
 with open(sys.argv[1], "rb") as f:
     print(" ".join(sorted(key for key in plistlib.load(f) if key.startswith("SU"))))' "$TARGET_BUILD_DIR/$INFOPLIST_PATH")"
 [[ -z "$updater_keys" ]] || problems+=("Info.plist has updater keys: $updater_keys")
 for problem in ${problems[@]+"${problems[@]}"}; do
-    echo "error: App Store build must not contain Sparkle: $problem" >&2
+    echo "error: App Store build: $problem" >&2
 done
 (( ${#problems[@]} == 0 ))

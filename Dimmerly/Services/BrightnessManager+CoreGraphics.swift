@@ -101,7 +101,7 @@ extension BrightnessManager {
     }
 
     /// CoreGraphics reports 0 for "not provided" and all-ones for "unknown".
-    private static func isUsableDisplayMetadata(_ value: UInt32) -> Bool {
+    nonisolated static func isUsableDisplayMetadata(_ value: UInt32) -> Bool {
         value != 0 && value != UInt32.max
     }
 }
