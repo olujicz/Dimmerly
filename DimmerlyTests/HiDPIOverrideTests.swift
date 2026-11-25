@@ -123,49 +123,26 @@
             let offered = Set(expected)
             XCTAssertEqual(status(.none, expected, []), .off)
             XCTAssertEqual(status(.dimmerly, expected, []), .restartToEnable)
-            XCTAssertEqual(status(.dimmerly, expected, offered), .on)
+            XCTAssertEqual(status(.dimmerly, expected, offered, installedBeforeLastRestart: true), .on)
             XCTAssertEqual(status(.other(replaceable: true), expected, offered), .otherOverride(replaceable: true))
         }
 
-        func testRestartToRemoveOnlyAfterDimmerlyRemovedItsFile() {
+        func testRestartToRemoveOnlyAfterDimmerlyRemovedALoadedFile() {
             let expected = HiDPIOverride.scaledSizes(nativeWidth: 1920, nativeHeight: 1080)
-            XCTAssertEqual(
-                HiDPIOverride.status(
-                    ownership: .none, expectedSizes: expected, offeredHiDPISizes: Set(expected),
-                    removedSinceLastRestart: true
-                ),
-                .restartToRemove
-            )
+            XCTAssertEqual(status(.none, expected, Set(expected), loadedFileRemoved: true), .restartToRemove)
             // Sizes on offer with no file and no removal this boot aren't Dimmerly's doing.
             XCTAssertEqual(status(.none, expected, Set(expected)), .off)
         }
 
-        func testReplacedForeignOverrideWaitsForARestart() {
+        func testTurningBackOnBeforeRestartingIsOnAtOnce() {
             let expected = HiDPIOverride.scaledSizes(nativeWidth: 1920, nativeHeight: 1080)
-            // macOS still offers the other app's sizes, which only partly overlap Dimmerly's.
-            let foreign: Set = [
-                HiDPISize(width: 1600, height: 900), HiDPISize(width: 1680, height: 945),
-            ]
-            XCTAssertEqual(status(.dimmerly, expected, foreign), .restartToEnable)
-            // A gap in the run means a different file too.
-            let gapped = Set([expected[0], expected[2]])
-            XCTAssertEqual(status(.dimmerly, expected, gapped), .restartToEnable)
-            // Once macOS has read Dimmerly's file at boot, any expected size means it's on.
-            XCTAssertEqual(
-                HiDPIOverride.status(
-                    ownership: .dimmerly, expectedSizes: expected, offeredHiDPISizes: foreign,
-                    installedBeforeLastRestart: true
-                ),
-                .on
-            )
+            XCTAssertEqual(status(.dimmerly, expected, Set(expected), loadedFileRemoved: true), .on)
         }
 
-        func testOfferedSizesMatchIgnoresSizesOutsideDimmerlysRange() {
+        func testReplacedForeignOverrideWaitsForARestart() {
             let expected = HiDPIOverride.scaledSizes(nativeWidth: 1920, nativeHeight: 1080)
-            let offered = Set(expected).union([HiDPISize(width: 960, height: 540)])
-            XCTAssertTrue(HiDPIOverride.offeredSizesMatch(expected: expected, offered: offered))
-            XCTAssertFalse(HiDPIOverride.offeredSizesMatch(expected: expected, offered: []))
-            XCTAssertFalse(HiDPIOverride.offeredSizesMatch(expected: [], offered: offered))
+            // macOS still offers the other app's sizes, which may overlap Dimmerly's.
+            XCTAssertEqual(status(.dimmerly, expected, Set(expected)), .restartToEnable)
         }
 
         func testStatusReportsAnOverrideMacOSIgnoredAfterARestart() {
@@ -198,7 +175,7 @@
         func testStatusCountsTheOverrideAsActiveWhenMacOSDropsSomeSizes() {
             let expected = HiDPIOverride.scaledSizes(nativeWidth: 3440, nativeHeight: 1440)
             let smallestOnly = Set(expected.suffix(2))
-            XCTAssertEqual(status(.dimmerly, expected, smallestOnly), .on)
+            XCTAssertEqual(status(.dimmerly, expected, smallestOnly, installedBeforeLastRestart: true), .on)
         }
 
         func testStatusIgnoresHiDPISizesMacOSOffersOnItsOwn() {
@@ -274,9 +251,17 @@
         private func status(
             _ ownership: HiDPIOverrideOwnership,
             _ expected: [HiDPISize],
-            _ offered: Set<HiDPISize>
+            _ offered: Set<HiDPISize>,
+            installedBeforeLastRestart: Bool = false,
+            loadedFileRemoved: Bool = false
         ) -> HiDPIOverrideStatus {
-            HiDPIOverride.status(ownership: ownership, expectedSizes: expected, offeredHiDPISizes: offered)
+            HiDPIOverride.status(
+                ownership: ownership,
+                expectedSizes: expected,
+                offeredHiDPISizes: offered,
+                installedBeforeLastRestart: installedBeforeLastRestart,
+                loadedFileRemovedThisBoot: loadedFileRemoved
+            )
         }
 
         private func choice(_ width: Int, _ height: Int, _ pixelWidth: Int, _ pixelHeight: Int) -> HiDPIModeChoice {

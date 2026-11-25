@@ -19,6 +19,11 @@
         let nativeWidth: Int
         let nativeHeight: Int
         let name: String
+
+        /// Override files are keyed by maker and model, so identical monitors share one.
+        func isSameModel(as other: HiDPIDisplayIdentity) -> Bool {
+            vendorID == other.vendorID && productID == other.productID
+        }
     }
 
     /// A logical ("looks like") size in points. Its HiDPI mode draws twice as many pixels.
@@ -82,6 +87,32 @@
         case restartToRemove
         /// Another tool's override file is installed.
         case otherOverride(replaceable: Bool)
+
+        enum Action {
+            case turnOn
+            case turnOff
+            /// Replaces another app's HiDPI-only file with Dimmerly's.
+            case manage
+        }
+
+        /// What the row's button does in this state, or nil when it has none. Settings and
+        /// `HiDPIModeManager` both follow this, so they can't disagree.
+        var action: Action? {
+            switch self {
+            // After Turn Off, the sizes stay until the restart; Turn On puts the file back,
+            // so changing your mind before restarting needs no restart at all.
+            case .off, .restartToRemove: .turnOn
+            case .on, .restartToEnable, .notAccepted: .turnOff
+            case .otherOverride(replaceable: true): .manage
+            case .otherOverride(replaceable: false): nil
+            }
+        }
+
+        /// Once removed, the sizes stay offered until the restart, but picking one then would
+        /// be a dead end.
+        var allowsSizeChange: Bool {
+            self != .restartToRemove
+        }
     }
 
     enum HiDPIOverride {
@@ -110,7 +141,12 @@
             nativeWidth: Int,
             nativeHeight: Int
         ) -> Bool {
-            guard !isBuiltIn, isUsableID(vendorID), isUsableID(productID) else { return false }
+            guard !isBuiltIn,
+                  BrightnessManager.isUsableDisplayMetadata(vendorID),
+                  BrightnessManager.isUsableDisplayMetadata(productID)
+            else {
+                return false
+            }
             return nativeWidth >= minimumNativeWidth && nativeWidth < maximumNativeWidth && nativeHeight > 0
         }
 
@@ -131,12 +167,8 @@
 
         // MARK: Files
 
-        static func vendorDirectory(vendorID: UInt32, root: URL = overridesRoot) -> URL {
-            root.appendingPathComponent("DisplayVendorID-\(String(vendorID, radix: 16))", isDirectory: true)
-        }
-
         static func fileURL(vendorID: UInt32, productID: UInt32, root: URL = overridesRoot) -> URL {
-            vendorDirectory(vendorID: vendorID, root: root)
+            root.appendingPathComponent("DisplayVendorID-\(String(vendorID, radix: 16))", isDirectory: true)
                 .appendingPathComponent("DisplayProductID-\(String(productID, radix: 16))")
         }
 
@@ -183,15 +215,16 @@
         ///     than the GPU allows (6K on base M-series chips), which hits wide panels.
         ///   - installedBeforeLastRestart: whether the file predates the current boot, so macOS
         ///     has already had its chance to read it.
-        ///   - removedSinceLastRestart: whether Dimmerly removed its file for this display
-        ///     since the current boot. Without it, sizes on offer with no file aren't Dimmerly's
-        ///     to explain, so the display counts as off.
+        ///   - loadedFileRemovedThisBoot: whether Dimmerly removed a file of its own that macOS
+        ///     had read at the current boot. Its sizes stay on offer until the restart, and
+        ///     this is the only way sizes on offer can be Dimmerly's while its current file, if
+        ///     any, is unread.
         static func status(
             ownership: HiDPIOverrideOwnership,
             expectedSizes: [HiDPISize],
             offeredHiDPISizes: Set<HiDPISize>,
             installedBeforeLastRestart: Bool = false,
-            removedSinceLastRestart: Bool = false
+            loadedFileRemovedThisBoot: Bool = false
         ) -> HiDPIOverrideStatus {
             let sizesOffered = expectedSizes.contains { offeredHiDPISizes.contains($0) }
             switch ownership {
@@ -199,29 +232,15 @@
                 if installedBeforeLastRestart {
                     return sizesOffered ? .on : .notAccepted
                 }
-                // macOS hasn't read the new file yet, so the sizes on offer come from the
-                // file it read at boot. They count only when they look like Dimmerly's own, as
-                // after turning HiDPI off and on again without restarting; sizes from another
-                // app's file that Dimmerly just replaced don't.
-                return offeredSizesMatch(expected: expectedSizes, offered: offeredHiDPISizes)
-                    ? .on : .restartToEnable
+                // macOS hasn't read the new file yet. Its sizes are on offer only when they
+                // come from Dimmerly's earlier file, as after turning HiDPI off and on again
+                // without restarting; sizes from another app's file it replaced don't count.
+                return sizesOffered && loadedFileRemovedThisBoot ? .on : .restartToEnable
             case let .other(replaceable):
                 return .otherOverride(replaceable: replaceable)
             case .none:
-                return sizesOffered && removedSinceLastRestart ? .restartToRemove : .off
+                return sizesOffered && loadedFileRemovedThisBoot ? .restartToRemove : .off
             }
-        }
-
-        /// True when the HiDPI sizes macOS offers in Dimmerly's range are exactly Dimmerly's,
-        /// less any it dropped. macOS drops the largest sizes first, when their doubled image
-        /// is too big for the GPU, so what remains is an unbroken run of the smallest ones.
-        static func offeredSizesMatch(expected: [HiDPISize], offered: Set<HiDPISize>) -> Bool {
-            guard let largest = expected.first?.width, let smallest = expected.last?.width else {
-                return false
-            }
-            let inRange = offered.filter { (smallest ... largest).contains($0.width) }
-            guard !inRange.isEmpty, inRange.isSubset(of: expected) else { return false }
-            return expected.suffix(inRange.count).allSatisfy(inRange.contains)
         }
 
         // MARK: Privileged commands
@@ -267,10 +286,6 @@
         }
 
         // MARK: Helpers
-
-        private static func isUsableID(_ value: UInt32) -> Bool {
-            value != 0 && value != 0xFFFF_FFFF
-        }
 
         private static func bigEndian(_ values: [Int]) -> Data {
             var data = Data(capacity: values.count * 4)

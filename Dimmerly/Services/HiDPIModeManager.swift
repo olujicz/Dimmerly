@@ -125,10 +125,13 @@
         @ObservationIgnored private let runner: PrivilegedCommandRunning
         @ObservationIgnored private let overridesRoot: URL
         @ObservationIgnored private let defaults: UserDefaults
+        /// The display names Settings passed last, reused when a change refreshes the list.
+        @ObservationIgnored private var names: [CGDirectDisplayID: String] = [:]
 
-        /// Models whose override Dimmerly removed, keyed by `modelKey`, each with the boot time
-        /// it was removed in. Kept in defaults so the restart note survives quitting Dimmerly.
-        static let removalsKey = "HiDPIOverridesRemovedThisBoot"
+        /// Models whose Dimmerly file macOS had read at boot and Dimmerly then removed, keyed
+        /// by `modelKey`, each with that boot's time. Kept in defaults so the state survives
+        /// quitting Dimmerly before the restart.
+        static let removalsKey = "HiDPILoadedOverridesRemovedThisBoot"
 
         init(
             runner: PrivilegedCommandRunning = AppleScriptPrivilegedRunner(),
@@ -142,9 +145,19 @@
 
         // MARK: Reading state
 
-        func refresh(names: [CGDirectDisplayID: String] = [:]) {
-            displays = BrightnessManager.activeDisplayIDs().compactMap { displayID in
+        func refresh(names: [CGDirectDisplayID: String]) {
+            self.names = names
+            refresh()
+        }
+
+        /// Assigns only when something changed, so screen events that don't concern HiDPI,
+        /// such as rearranging displays, don't redraw the section.
+        private func refresh() {
+            let updated = BrightnessManager.activeDisplayIDs().compactMap { displayID in
                 state(for: displayID, name: names[displayID])
+            }
+            if updated != displays {
+                displays = updated
             }
         }
 
@@ -170,7 +183,7 @@
                 nativeWidth: native.width,
                 nativeHeight: native.height,
                 // Another tool's override may have renamed the display "<name> (HiDPI)".
-                name: Self.withoutHiDPISuffix(name ?? Self.screenName(for: displayID) ?? String(displayID))
+                name: Self.withoutHiDPISuffix(name ?? DisplayNameResolver.name(for: displayID))
             )
             let fileURL = HiDPIOverride.fileURL(vendorID: vendorID, productID: productID, root: overridesRoot)
             let offered = Set(modes.filter(Self.isHiDPI).map { HiDPISize(width: $0.width, height: $0.height) })
@@ -180,7 +193,7 @@
                 expectedSizes: expected,
                 offeredHiDPISizes: offered,
                 installedBeforeLastRestart: Self.predatesBoot(fileURL),
-                removedSinceLastRestart: wasRemovedThisBoot(identity)
+                loadedFileRemovedThisBoot: loadedFileWasRemovedThisBoot(identity)
             )
             let current = CGDisplayCopyDisplayMode(displayID).map { mode in
                 HiDPIModeChoice(
@@ -206,9 +219,7 @@
         /// Installs Dimmerly's override file for the display, replacing a HiDPI-only file
         /// another tool left there.
         func enable(_ display: HiDPIDisplayState) async {
-            guard [.off, .restartToRemove, .otherOverride(replaceable: true)].contains(display.status) else {
-                return
-            }
+            guard display.status.action == .turnOn || display.status.action == .manage else { return }
             await perform(on: display) {
                 let destination = self.fileURL(for: display)
                 // The row may show a file read a while ago. Read it again, so a file another app
@@ -216,32 +227,31 @@
                 let current = Self.readOverride(at: destination)
                 guard current.ownership != .other(replaceable: false) else { return }
 
-                var staged: [URL] = []
-                defer { staged.forEach { try? FileManager.default.removeItem(at: $0) } }
                 let newFile = try Self.stage(HiDPIOverride.plistData(for: display.identity))
-                staged.append(newFile)
+                defer { try? FileManager.default.removeItem(at: newFile) }
                 let snapshot = try current.data.map(Self.stage)
-                if let snapshot {
-                    staged.append(snapshot)
-                }
+                defer { snapshot.map { try? FileManager.default.removeItem(at: $0) } }
 
                 let command = HiDPIOverride.installCommand(
                     stagedFile: newFile,
                     destination: destination,
                     expectedCurrentFile: snapshot
                 )
-                try await self.runner.run(command, prompt: Self.installPrompt(for: display))
-                self.setRemovedThisBoot(false, for: display.identity)
+                try await self.runner.run(command, prompt: String(
+                    localized: "Dimmerly wants to add HiDPI sizes for \(display.identity.name).",
+                    comment: "Administrator password prompt when turning on HiDPI; the placeholder is the display name"
+                ))
             }
         }
 
         /// Removes Dimmerly's override file. Files written by other tools are never removed.
         func disable(_ display: HiDPIDisplayState) async {
-            guard [.on, .restartToEnable, .notAccepted].contains(display.status) else { return }
+            guard display.status.action == .turnOff else { return }
             await perform(on: display) {
                 let file = self.fileURL(for: display)
                 let current = Self.readOverride(at: file)
                 guard current.ownership == .dimmerly, let data = current.data else { return }
+                let wasLoaded = Self.predatesBoot(file)
 
                 let snapshot = try Self.stage(data)
                 defer { try? FileManager.default.removeItem(at: snapshot) }
@@ -250,15 +260,21 @@
                     expectedCurrentFile: snapshot,
                     clearWindowServerFlag: !self.otherOverrideFilesExist(besides: file)
                 )
-                try await self.runner.run(command, prompt: Self.removePrompt(for: display))
-                self.setRemovedThisBoot(true, for: display.identity)
+                try await self.runner.run(command, prompt: String(
+                    localized: "Dimmerly wants to remove HiDPI sizes for \(display.identity.name).",
+                    comment: "Administrator password prompt when turning off HiDPI; the placeholder is the display name"
+                ))
+                if wasLoaded {
+                    self.recordLoadedFileRemoval(for: display.identity)
+                }
             }
         }
 
         /// Switches the display to a HiDPI size or to its native 1x mode. The choice is saved,
-        /// so it holds after a restart. A low-resolution mode is only ever shown, never chosen.
+        /// so it holds after a restart. The screen-parameters notification that follows a
+        /// switch refreshes the list.
         func select(_ choice: HiDPIModeChoice, for display: HiDPIDisplayState) {
-            guard choice != display.current else { return }
+            guard display.status.allowsSizeChange, choice != display.current else { return }
             let modes = Self.allModes(for: display.id)
             let candidates: [CGDisplayMode]
             switch choice {
@@ -272,11 +288,12 @@
                         && $0.height == display.identity.nativeHeight
                 }
             case .lowResolution:
+                // The picker lists a low-resolution mode only while it is the current mode,
+                // which the guard above already returns for.
                 return
             }
             let switched = Self.apply(Self.bestMode(in: candidates), to: display.id)
             errors[display.id] = switched ? nil : .modeSwitchFailed
-            refresh(names: currentNames)
         }
 
         private static func apply(_ mode: CGDisplayMode?, to displayID: CGDirectDisplayID) -> Bool {
@@ -287,20 +304,16 @@
             return CGCompleteDisplayConfiguration(config, .permanently) == .success
         }
 
-        private var currentNames: [CGDirectDisplayID: String] {
-            Dictionary(displays.map { ($0.id, $0.identity.name) }, uniquingKeysWith: { first, _ in first })
-        }
-
         /// Runs one change at a time per model: identical monitors share one override file, so
         /// all of them show as busy until it finishes.
         private func perform(on display: HiDPIDisplayState, _ work: @escaping () async throws -> Void) async {
-            let ids = Set(displays.filter { Self.sameModel($0.identity, display.identity) }.map(\.id))
+            let ids = Set(displays.filter { $0.identity.isSameModel(as: display.identity) }.map(\.id))
                 .union([display.id])
             guard busyDisplayIDs.isDisjoint(with: ids) else { return }
             busyDisplayIDs.formUnion(ids)
             defer {
                 busyDisplayIDs.subtract(ids)
-                refresh(names: currentNames)
+                refresh()
             }
             do {
                 try await work()
@@ -359,49 +372,26 @@
             return url
         }
 
-        private static func sameModel(_ lhs: HiDPIDisplayIdentity, _ rhs: HiDPIDisplayIdentity) -> Bool {
-            lhs.vendorID == rhs.vendorID && lhs.productID == rhs.productID
-        }
-
         // MARK: Removals this boot
 
         private static func modelKey(_ identity: HiDPIDisplayIdentity) -> String {
             "\(String(identity.vendorID, radix: 16))-\(String(identity.productID, radix: 16))"
         }
 
-        private func wasRemovedThisBoot(_ identity: HiDPIDisplayIdentity) -> Bool {
+        private func loadedFileWasRemovedThisBoot(_ identity: HiDPIDisplayIdentity) -> Bool {
             guard let boot = Self.bootDate?.timeIntervalSince1970 else { return false }
             let removals = defaults.dictionary(forKey: Self.removalsKey) as? [String: Double] ?? [:]
             return removals[Self.modelKey(identity)] == boot
         }
 
-        /// Records or forgets a removal. Entries from earlier boots are dropped on each write.
-        private func setRemovedThisBoot(_ removed: Bool, for identity: HiDPIDisplayIdentity) {
+        /// Entries from earlier boots are dropped on each write. Nothing clears an entry for the
+        /// current boot: macOS keeps the removed file's sizes until the restart either way.
+        private func recordLoadedFileRemoval(for identity: HiDPIDisplayIdentity) {
             guard let boot = Self.bootDate?.timeIntervalSince1970 else { return }
             var removals = (defaults.dictionary(forKey: Self.removalsKey) as? [String: Double] ?? [:])
                 .filter { $0.value == boot }
-            removals[Self.modelKey(identity)] = removed ? boot : nil
-            if removals.isEmpty {
-                defaults.removeObject(forKey: Self.removalsKey)
-            } else {
-                defaults.set(removals, forKey: Self.removalsKey)
-            }
-        }
-
-        // MARK: Prompts
-
-        private static func installPrompt(for display: HiDPIDisplayState) -> String {
-            String(
-                localized: "Dimmerly wants to add HiDPI sizes for \(display.identity.name).",
-                comment: "Administrator password prompt when turning on HiDPI; the placeholder is the display name"
-            )
-        }
-
-        private static func removePrompt(for display: HiDPIDisplayState) -> String {
-            String(
-                localized: "Dimmerly wants to remove HiDPI sizes for \(display.identity.name).",
-                comment: "Administrator password prompt when turning off HiDPI; the placeholder is the display name"
-            )
+            removals[Self.modelKey(identity)] = boot
+            defaults.set(removals, forKey: Self.removalsKey)
         }
 
         // MARK: Display modes
@@ -454,12 +444,6 @@
         private static func withoutHiDPISuffix(_ name: String) -> String {
             let suffix = " (HiDPI)"
             return name.hasSuffix(suffix) ? String(name.dropLast(suffix.count)) : name
-        }
-
-        private static func screenName(for displayID: CGDirectDisplayID) -> String? {
-            NSScreen.screens.first {
-                ($0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value == displayID
-            }?.localizedName
         }
     }
 

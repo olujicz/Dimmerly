@@ -60,17 +60,10 @@
                 HiDPIDisplayRow(
                     display: display,
                     manager: manager,
-                    sharesModel: sharesModel(display, in: manager)
+                    sharesModel: manager.displays.contains {
+                        $0.id != display.id && $0.identity.isSameModel(as: display.identity)
+                    }
                 )
-            }
-        }
-
-        /// Override files are keyed by maker and model, so identical monitors share one.
-        private func sharesModel(_ display: HiDPIDisplayState, in manager: HiDPIModeManager) -> Bool {
-            manager.displays.contains {
-                $0.id != display.id
-                    && $0.identity.vendorID == display.identity.vendorID
-                    && $0.identity.productID == display.identity.productID
             }
         }
 
@@ -95,10 +88,8 @@
             manager.busyDisplayIDs.contains(display.id)
         }
 
-        /// The sizes the picker can choose from. Once removed, the sizes stay offered until
-        /// the restart, but picking one then would be a dead end, so the picker hides.
         private var showsSizePicker: Bool {
-            !display.availableSizes.isEmpty && display.status != .restartToRemove
+            !display.availableSizes.isEmpty && display.status.allowsSizeChange
         }
 
         /// One line per display, like the rest of Settings: the name on the left, the state and
@@ -206,19 +197,17 @@
 
         @ViewBuilder
         private var actionButton: some View {
-            switch display.status {
-            // After Turn Off, the sizes stay until the restart; Turn On puts the file back,
-            // so changing your mind before restarting needs no restart at all.
-            case .off, .restartToRemove:
+            switch display.status.action {
+            case .turnOn:
                 Button("Turn On…") { Task { await manager.enable(display) } }
                     .accessibilityLabel(Text("Turn On HiDPI for \(name)"))
-            case .on, .restartToEnable, .notAccepted:
+            case .turnOff:
                 Button("Turn Off…") { Task { await manager.disable(display) } }
                     .accessibilityLabel(Text("Turn Off HiDPI for \(name)"))
-            case .otherOverride(replaceable: true):
+            case .manage:
                 Button("Manage in Dimmerly…") { Task { await manager.enable(display) } }
                     .accessibilityLabel(Text("Manage HiDPI for \(name) in Dimmerly"))
-            case .otherOverride(replaceable: false):
+            case nil:
                 EmptyView()
             }
         }
@@ -269,7 +258,9 @@
                     """
                 )
             case let .hiDPI(size):
-                if size == display.availableSizes.first, display.availableSizes.count > 1 {
+                // With a single size, neither end of the range is worth naming.
+                guard display.availableSizes.count > 1 else { return sizeText(size) }
+                if size == display.availableSizes.first {
                     return String(
                         localized: "\(sizeText(size)) (More space)",
                         comment: """
@@ -278,7 +269,7 @@
                         """
                     )
                 }
-                if size == display.availableSizes.last, display.availableSizes.count > 1 {
+                if size == display.availableSizes.last {
                     return String(
                         localized: "\(sizeText(size)) (Larger text)",
                         comment: """
