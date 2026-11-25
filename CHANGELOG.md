@@ -7,7 +7,7 @@ Semantic Versioning.
 
 ## [Unreleased]
 
-## [1.5.1]
+## [1.5.1] - 2026-11-26
 
 ### Added
 - The direct download adds HiDPI for external displays below 4K, including 1080p and 1440p monitors. In Settings › Displays › HiDPI, choose **Turn On…**, authorize the change with an administrator password, and restart your Mac. Then choose a HiDPI size to have macOS render at twice the resolution for sharper text.
