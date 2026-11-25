@@ -70,12 +70,6 @@
             "value" : "Copyright © 2026 Zoran Olujic. Todos os direitos reservados."
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "© Zoran Olujic, 2026. Все права защищены."
-          }
-        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -147,12 +141,6 @@
             "value" : "O Dimmerly usa sua localização para calcular os horários de nascer e pôr do sol para os agendamentos e a temperatura de cor automática."
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dimmerly использует ваше местоположение, чтобы рассчитать время восхода и заката для расписаний и автоматической настройки цветовой температуры."
-          }
-        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -222,12 +210,6 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "O Dimmerly usa sua localização para calcular os horários de nascer e pôr do sol para os agendamentos e a temperatura de cor automática."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dimmerly использует ваше местоположение, чтобы рассчитать время восхода и заката для расписаний и автоматической настройки цветовой температуры."
           }
         },
         "sr" : {

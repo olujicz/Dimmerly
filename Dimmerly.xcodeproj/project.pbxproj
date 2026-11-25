@@ -661,7 +661,6 @@
 				ko,
 				nl,
 				"pt-BR",
-				ru,
 				sr,
 				"zh-Hans",
 				Base,

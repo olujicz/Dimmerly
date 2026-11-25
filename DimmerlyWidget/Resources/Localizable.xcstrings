@@ -57,12 +57,6 @@
             "value" : "Adicionar predefinições no Dimmerly"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Добавьте пресеты в Dimmerly"
-          }
-        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -132,12 +126,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aplica a predefinição de brilho que você escolher."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Применяет выбранный пресет яркости."
           }
         },
         "sr" : {
@@ -212,12 +200,6 @@
             "value" : "Aplica uma predefinição de brilho salva."
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Применяет сохранённый пресет яркости."
-          }
-        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -290,12 +272,6 @@
             "value" : "Aplicar %@"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Применить «%@»"
-          }
-        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -365,12 +341,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aplicar predefinição"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Применить пресет"
           }
         },
         "sr" : {
@@ -445,12 +415,6 @@
             "value" : "Aplicar predefinição (Widget)"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Применить пресет (виджет)"
-          }
-        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -520,12 +484,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tonalidade quente automática"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Автонастройка теплоты"
           }
         },
         "sr" : {
@@ -599,12 +557,6 @@
             "value" : "Tonalidade quente automática (controle)"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Автонастройка теплоты (элемент управления)"
-          }
-        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -674,12 +626,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Escolher predefinição"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Выбрать пресет"
           }
         },
         "sr" : {
@@ -753,12 +699,6 @@
             "value" : "Escolha a predefinição de brilho que este controle aplica."
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Выберите пресет яркости, который будет применять этот элемент управления."
-          }
-        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -827,12 +767,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Escurecer telas"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Приглушить дисплеи"
           }
         },
         "sr" : {
@@ -904,12 +838,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Escurecer telas (controle)"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Приглушить дисплеи (элемент управления)"
           }
         },
         "sr" : {
@@ -984,12 +912,6 @@
             "value" : "Escurecer telas (Widget)"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Приглушить дисплеи (виджет)"
-          }
-        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1059,12 +981,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Escurecido"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Приглушены"
           }
         },
         "sr" : {
@@ -1143,12 +1059,6 @@
             "value" : "O Dimmerly não encontrou esta predefinição. Ela pode ter sido excluída."
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dimmerly не удалось найти этот пресет. Возможно, он удалён."
-          }
-        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1218,12 +1128,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Não foi possível abrir o Dimmerly para controlar as telas."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Не удалось открыть Dimmerly для управления дисплеями."
           }
         },
         "sr" : {
@@ -1297,12 +1201,6 @@
             "value" : "O Dimmerly não concluiu a ação nas telas. Tente novamente."
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dimmerly не удалось выполнить действие с дисплеями. Повторите попытку."
-          }
-        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1372,12 +1270,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Escurece todas as telas conectadas ou reativa as telas que o Dimmerly escureceu."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Приглушает все подключённые дисплеи или будит дисплеи, приглушённые Dimmerly."
           }
         },
         "sr" : {
@@ -1452,12 +1344,6 @@
             "value" : "Escurece todas as telas conectadas."
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Приглушает все подключённые дисплеи."
-          }
-        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1527,12 +1413,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Escurecimento das telas"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Приглушение дисплеев"
           }
         },
         "sr" : {
@@ -1606,12 +1486,6 @@
             "value" : "Ativado"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Включено"
-          }
-        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1681,12 +1555,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Predefinição"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Пресет"
           }
         },
         "sr" : {
@@ -1761,12 +1629,6 @@
             "value" : "ID da predefinição"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Идентификатор пресета"
-          }
-        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1837,12 +1699,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Escureça rapidamente todas as telas conectadas."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Быстро приглушает все подключённые дисплеи."
           }
         },
         "sr" : {
@@ -1917,12 +1773,6 @@
             "value" : "Escureça rapidamente as telas ou aplique predefinições de brilho."
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Быстро приглушает дисплеи или применяет пресеты яркости."
-          }
-        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1992,12 +1842,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Desligue rapidamente todas as telas conectadas."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Быстро выключает все подключённые дисплеи."
           }
         },
         "sr" : {
@@ -2071,12 +1915,6 @@
             "value" : "Mostra se o Dimmerly está escurecendo uma tela e escurece ou reativa suas telas."
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Показывает, приглушены ли дисплеи в Dimmerly, и позволяет приглушить или разбудить их."
-          }
-        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2148,12 +1986,6 @@
             "value" : "Desligar monitores"
           }
         },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Выключить дисплеи"
-          }
-        },
         "sr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2223,12 +2055,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ativa ou desativa a tonalidade quente automática da tela."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Включает или выключает автоматическое изменение теплоты дисплея."
           }
         },
         "sr" : {

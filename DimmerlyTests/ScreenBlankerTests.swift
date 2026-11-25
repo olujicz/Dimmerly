@@ -936,14 +936,22 @@ extension ScreenBlankerTests {
                 let harness = makeHarness()
                 harness.sut.requireEscapeToDismiss = escapeOnly
 
+                let partialHints: [CGDirectDisplayID: BlankingOverlayWakeHint] = escapeOnly ? [:] : [7: .click]
                 harness.sut.blankDisplay(7)
-                XCTAssertEqual(harness.windows.wakeHints, [7: .click])
+                XCTAssertEqual(harness.windows.wakeHints, partialHints)
                 XCTAssertTrue(harness.input.startPolicies.isEmpty)
                 harness.windows.pressOverlay(of: 7)
                 XCTAssertTrue(harness.sut.isDisplayBlanked(7), "The initiating click is still in the grace period")
                 harness.clock.now += 1
                 harness.windows.pressOverlay(of: 7)
-                XCTAssertFalse(harness.sut.isDisplayBlanked(7))
+                XCTAssertEqual(
+                    harness.sut.isDisplayBlanked(7),
+                    escapeOnly,
+                    "Escape only ignores a click on a dimmed display; any input wakes it"
+                )
+                if escapeOnly {
+                    harness.sut.unblankDisplay(7)
+                }
 
                 harness.sut.blankDisplay(7)
                 harness.sut.blankDisplay(9)
@@ -958,7 +966,9 @@ extension ScreenBlankerTests {
 
                 harness.displays.activeDisplayIDs.append(11)
                 harness.sut.displayTopologyDidChange()
-                XCTAssertEqual(harness.windows.wakeHints, [7: .click, 9: .click])
+                let partialPairHints: [CGDirectDisplayID: BlankingOverlayWakeHint] =
+                    escapeOnly ? [:] : [7: .click, 9: .click]
+                XCTAssertEqual(harness.windows.wakeHints, partialPairHints)
                 harness.displays.activeDisplayIDs.removeLast()
                 harness.sut.displayTopologyDidChange()
                 XCTAssertEqual(harness.windows.wakeHints, fullHints)
@@ -966,6 +976,19 @@ extension ScreenBlankerTests {
                 try harness.input.sendWake()
                 XCTAssertTrue(harness.sut.blankedDisplayIDs.isEmpty)
             }
+        }
+    #endif
+
+    #if APPSTORE
+        func testClickWakesOneDimmedDisplayInTheAppStoreEditionEvenWithEscapeOnlySaved() {
+            let harness = makeHarness()
+            harness.sut.requireEscapeToDismiss = true
+
+            harness.sut.blankDisplay(7)
+            harness.clock.now += 1
+            harness.windows.pressOverlay(of: 7)
+
+            XCTAssertFalse(harness.sut.isDisplayBlanked(7))
         }
     #endif
 
