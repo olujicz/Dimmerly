@@ -31651,6 +31651,77 @@
           }
         }
       }
+    },
+    "Dimmerly kept the original display override at %@ because another file is in its place. Move or delete the file in the way, then try again." : {
+      "comment" : "HiDPI settings error: a removal was interrupted and the original override file is kept at the path in the placeholder",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly kept the original display override at %@ because another file is in its place. Move or delete the file in the way, then try again."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly hat die ursprüngliche Display-Überschreibung unter %@ aufbewahrt, weil dort eine andere Datei liegt. Verschiebe oder lösche die Datei im Weg und versuche es dann erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly conservó el archivo de ajuste de pantalla original en %@ porque hay otro archivo en su lugar. Mueve o elimina el archivo que estorba y vuelve a intentarlo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly a conservé le fichier de remplacement d’affichage d’origine dans %@, car un autre fichier occupe sa place. Déplacez ou supprimez le fichier gênant, puis réessayez."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly ha conservato il file di override del display originale in %@ perché un altro file occupa il suo posto. Sposta o elimina il file in questione e riprova."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "元のディスプレイオーバーライドファイルは、別のファイルがその場所にあるため、%@に保管されています。邪魔しているファイルを移動または削除してから、もう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "원래의 디스플레이 오버라이드 파일이 있던 자리에 다른 파일이 있어 %@에 보관했습니다. 방해가 되는 파일을 이동하거나 삭제한 후 다시 시도하십시오."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly heeft het oorspronkelijke beeldschermoverride-bestand bewaard op %@, omdat er een ander bestand op de plek staat. Verplaats of verwijder het bestand dat in de weg zit en probeer het opnieuw."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "O Dimmerly manteve o arquivo original de substituição de tela em %@ porque outro arquivo está no lugar dele. Mova ou apague o arquivo no caminho e tente novamente."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly je sačuvao originalni fajl za izmenu ekrana na lokaciji %@ jer se na njegovom mestu nalazi drugi fajl. Premesti ili obriši fajl koji smeta, pa pokušaj ponovo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "由于原位置已有其他文件，Dimmerly 已将原始显示器覆盖文件保留在 %@。请移动或删除阻碍的文件，然后重试。"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

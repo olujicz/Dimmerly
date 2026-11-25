@@ -2,10 +2,11 @@
 //  HiDPIModeManagerTests.swift
 //  DimmerlyTests
 //
-//  Tests for the HiDPI privileged commands and the manager that runs them. Every file lives in
-//  a temporary folder owned by the current user, and the commands run as that user against a
-//  stand-in WindowServer preference file, so nothing under /Library changes and no password
-//  is asked for.
+//  Tests for the HiDPI helper's transaction logic and for the manager that drives it. The
+//  transaction runs in this process against a temporary folder owned by the current user,
+//  with a stand-in for the system preference and test checkpoints that change the filesystem
+//  at chosen moments or stop dead like a crash. Nothing under /Library changes and no
+//  password is asked for.
 //
 
 #if !APPSTORE
@@ -13,348 +14,760 @@
     @testable import Dimmerly
     import XCTest
 
+    /// A stand-in for `DisplayResolutionEnabled`.
+    private final class FakePreference: @unchecked Sendable {
+        private let lock = NSLock()
+        private var enabled: Bool?
+        private var writes = 0
+
+        init(_ value: Bool?) {
+            enabled = value
+        }
+
+        var value: Bool? {
+            lock.withLock { enabled }
+        }
+
+        var writeCount: Int {
+            lock.withLock { writes }
+        }
+
+        func isEnabled() -> Bool {
+            lock.withLock { enabled == true }
+        }
+
+        func enable() {
+            lock.withLock {
+                enabled = true
+                writes += 1
+            }
+        }
+    }
+
     @MainActor
-    final class HiDPIModeManagerTests: XCTestCase {
-        private let identity = HiDPIDisplayIdentity(
+    class HiDPIFixtureTestCase: XCTestCase {
+        let identity = HiDPIDisplayIdentity(
             vendorID: 0x4A8B, productID: 0x2555, nativeWidth: 1920, nativeHeight: 1080, name: "ANMITE"
         )
-        private var base: URL = .init(fileURLWithPath: "/")
-        private var location = HiDPIOverride.SystemLocation()
-        private var suiteName = ""
-        private var defaults = UserDefaults.standard
+        fileprivate var base = URL(fileURLWithPath: "/")
+        fileprivate var preference = FakePreference(nil)
+        nonisolated(unsafe) var checkpoint: (HiDPITransaction.Step) throws -> Void = { _ in }
 
         override func setUpWithError() throws {
             base = try URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
                 .resolvingSymlinksInPath()
                 .appendingPathComponent("hidpi-tests-\(UUID().uuidString)", isDirectory: true)
             try FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
-            location = HiDPIOverride.SystemLocation(
-                overridesRoot: base.appendingPathComponent("Overrides", isDirectory: true),
-                trustedBase: base,
-                ownerUID: getuid(),
-                ownerGID: getgid(),
-                windowServerDomain: base.appendingPathComponent("windowserver").path
-            )
-            suiteName = "HiDPIModeManagerTests-\(UUID().uuidString)"
-            defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+            preference = FakePreference(nil)
+            checkpoint = { _ in }
         }
 
         override func tearDownWithError() throws {
             try? FileManager.default.removeItem(at: base)
-            defaults.removePersistentDomain(forName: suiteName)
         }
 
-        // MARK: Install command
-
-        func testInstallWritesDimmerlysFileAndSetsTheFlagWhenAbsent() throws {
-            XCTAssertEqual(try runInstall(), 0)
-
-            let data = try Data(contentsOf: file)
-            XCTAssertEqual(data, try HiDPIOverride.plistData(for: identity))
-            XCTAssertEqual(HiDPIOverride.ownership(ofPlistData: data), .dimmerly)
-            XCTAssertEqual(flag(), true)
-            XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: vendorFolder.path).count, 1)
+        var overridesRoot: URL {
+            base.appendingPathComponent("Overrides", isDirectory: true)
         }
 
-        func testInstallLeavesAnEnabledFlagAloneAndEnablesADisabledOne() throws {
-            writeFlag(true)
-            XCTAssertEqual(try runInstall(), 0)
-            XCTAssertEqual(flag(), true)
-
-            try FileManager.default.removeItem(at: vendorFolder)
-            writeFlag(false)
-            XCTAssertEqual(try runInstall(), 0)
-            XCTAssertEqual(flag(), true)
+        var stateRoot: URL {
+            base.appendingPathComponent("State", isDirectory: true)
         }
 
-        func testInstallRefusesAnExistingFileAndKeepsItsBytes() throws {
-            let foreign = Data("someone else's".utf8)
-            try seed(foreign)
-            XCTAssertNotEqual(try runInstall(), 0)
-            XCTAssertEqual(try Data(contentsOf: file), foreign)
-            XCTAssertNil(flag())
+        func model(_ product: UInt32? = nil) -> HiDPITransaction.Model {
+            .init(vendorID: identity.vendorID, productID: product ?? identity.productID)
         }
 
-        func testInstallRefusesASymbolicLinkAtTheDestination() throws {
-            try FileManager.default.createDirectory(at: vendorFolder, withIntermediateDirectories: true)
-            let target = base.appendingPathComponent("elsewhere")
-            try Data("x".utf8).write(to: target)
-            try FileManager.default.createSymbolicLink(at: file, withDestinationURL: target)
-
-            XCTAssertNotEqual(try runInstall(), 0)
-            XCTAssertEqual(try Data(contentsOf: target), Data("x".utf8))
-        }
-
-        func testInstallRefusesAFolderOthersCanWrite() throws {
-            try FileManager.default.createDirectory(at: vendorFolder, withIntermediateDirectories: true)
-            try FileManager.default.setAttributes([.posixPermissions: 0o777], ofItemAtPath: vendorFolder.path)
-
-            XCTAssertNotEqual(try runInstall(), 0)
-            XCTAssertFalse(FileManager.default.fileExists(atPath: file.path))
-            XCTAssertNil(flag())
-        }
-
-        func testInstallRefusesAFolderWithAnACLEntry() throws {
-            try FileManager.default.createDirectory(at: vendorFolder, withIntermediateDirectories: true)
-            XCTAssertEqual(try Self.run("/bin/chmod", ["+a", "everyone allow add_file", vendorFolder.path]), 0)
-
-            XCTAssertNotEqual(try runInstall(), 0)
-            XCTAssertFalse(FileManager.default.fileExists(atPath: file.path))
-        }
-
-        func testInstallLeavesNoStagingFilesBehind() throws {
-            XCTAssertEqual(try runInstall(), 0)
-            XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: vendorFolder.path).count, 1)
-        }
-
-        func testInstallThatCannotStageTouchesNeitherTheFileNorTheFlag() throws {
-            writeFlag(false)
-            try FileManager.default.createDirectory(at: vendorFolder, withIntermediateDirectories: true)
-            try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: vendorFolder.path)
-            defer {
-                try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: vendorFolder.path)
-            }
-
-            XCTAssertNotEqual(try runInstall(), 0)
-            XCTAssertFalse(FileManager.default.fileExists(atPath: file.path))
-            XCTAssertEqual(flag(), false)
-        }
-
-        func testInstallRefusesASymbolicLinkInTheFolderPath() throws {
-            let elsewhere = base.appendingPathComponent("elsewhere", isDirectory: true)
-            try FileManager.default.createDirectory(at: elsewhere, withIntermediateDirectories: true)
-            try FileManager.default.createSymbolicLink(at: location.overridesRoot, withDestinationURL: elsewhere)
-
-            XCTAssertNotEqual(try runInstall(), 0)
-            XCTAssertTrue(try FileManager.default.contentsOfDirectory(atPath: elsewhere.path).isEmpty)
-        }
-
-        func testInstallThatCannotSetTheFlagLeavesNoFileAndNoTemporaryCopy() throws {
-            // A folder where the preference file belongs makes the write fail.
-            try FileManager.default.createDirectory(
-                at: URL(fileURLWithPath: location.windowServerDomain + ".plist"), withIntermediateDirectories: true
+        func file(_ product: UInt32? = nil) -> URL {
+            HiDPIOverride.fileURL(
+                vendorID: identity.vendorID, productID: product ?? identity.productID, root: overridesRoot
             )
-            let broken = location
-
-            XCTAssertNotEqual(try runShell(HiDPIOverride.installCommand(for: identity, location: broken)), 0)
-            XCTAssertFalse(FileManager.default.fileExists(atPath: file.path))
-            XCTAssertTrue(try FileManager.default.contentsOfDirectory(atPath: vendorFolder.path).isEmpty)
         }
 
-        func testInstallCarriesItsFileInsideTheCommand() throws {
-            let command = try HiDPIOverride.installCommand(for: identity, location: location)
-            let payload = try HiDPIOverride.plistData(for: identity).base64EncodedString()
-            XCTAssertTrue(command.contains(payload))
-            XCTAssertFalse(command.contains(NSTemporaryDirectory() + "dimmerly-hidpi"))
+        var vendorFolder: URL {
+            file().deletingLastPathComponent()
         }
 
-        // MARK: Remove command
-
-        func testRemoveDeletesTheFileAndItsEmptyFolderAndKeepsTheFlag() throws {
-            XCTAssertEqual(try runInstall(), 0)
-            let installed = try Data(contentsOf: file)
-
-            XCTAssertEqual(try runRemove(expecting: installed), 0)
-            XCTAssertFalse(FileManager.default.fileExists(atPath: vendorFolder.path))
-            XCTAssertEqual(flag(), true)
+        func contents(_ product: UInt32? = nil) throws -> Data {
+            try HiDPIOverride.plistData(for: HiDPIDisplayIdentity(
+                vendorID: identity.vendorID,
+                productID: product ?? identity.productID,
+                nativeWidth: identity.nativeWidth,
+                nativeHeight: identity.nativeHeight,
+                name: identity.name
+            ))
         }
 
-        func testRemoveNeverTouchesAFlagDimmerlyDidNotSet() throws {
-            try seed(HiDPIOverride.plistData(for: identity))
-            XCTAssertEqual(flag(), nil)
-            XCTAssertEqual(try runRemove(expecting: Data(contentsOf: file)), 0)
-            XCTAssertNil(flag())
-
-            writeFlag(true)
-            try seed(HiDPIOverride.plistData(for: identity))
-            XCTAssertEqual(try runRemove(expecting: Data(contentsOf: file)), 0)
-            XCTAssertEqual(flag(), true)
+        var configuration: HiDPITransaction.Configuration {
+            var configuration = HiDPITransaction.Configuration()
+            configuration.trustedBase = base.path
+            configuration.overridesComponents = ["Overrides"]
+            configuration.stateComponents = ["State"]
+            configuration.ownerUID = getuid()
+            configuration.ownerGID = getgid()
+            configuration.requiresRoot = false
+            configuration.bootTime = { Date(timeIntervalSince1970: 2_000_000_000) }
+            let preference = preference
+            configuration.preferenceIsEnabled = { preference.isEnabled() }
+            configuration.enablePreference = { preference.enable() }
+            configuration.checkpoint = checkpoint
+            return configuration
         }
 
-        func testRemoveStopsWhenTheFileChangedAfterItWasRead() throws {
-            let original = try HiDPIOverride.plistData(for: identity)
-            try seed(original)
-            var edited = try XCTUnwrap(PropertyListSerialization.propertyList(
-                from: original, format: nil
-            ) as? [String: Any])
-            edited["default-resolution"] = Data([0, 0, 7, 0x80, 0, 0, 4, 0x38])
-            let changed = try PropertyListSerialization.data(fromPropertyList: edited, format: .xml, options: 0)
-            try changed.write(to: file)
-
-            XCTAssertNotEqual(try runRemove(expecting: original), 0)
-            XCTAssertEqual(try Data(contentsOf: file), changed)
-            XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: vendorFolder.path).count, 1)
+        func install(_ product: UInt32? = nil) throws -> HiDPITransaction.Outcome {
+            try HiDPITransaction.install(
+                model: model(product), contents: contents(product), configuration: configuration
+            )
         }
 
-        func testRemoveKeepsAFolderThatHoldsOtherFiles() throws {
-            let original = try HiDPIOverride.plistData(for: identity)
-            try seed(original)
-            let other = vendorFolder.appendingPathComponent("DisplayProductID-9999")
-            try Data("other".utf8).write(to: other)
-
-            XCTAssertEqual(try runRemove(expecting: original), 0)
-            XCTAssertTrue(FileManager.default.fileExists(atPath: other.path))
+        func remove(_ product: UInt32? = nil, digest: String? = nil) throws -> HiDPITransaction.Outcome {
+            try HiDPITransaction.remove(
+                model: model(product),
+                expectedDigest: digest ?? HiDPIOverride.sha256Hex(contents(product)),
+                configuration: configuration
+            )
         }
 
-        func testRemoveRefusesASymbolicLink() throws {
-            let target = base.appendingPathComponent("elsewhere")
-            let original = try HiDPIOverride.plistData(for: identity)
-            try original.write(to: target)
+        func recover(_ product: UInt32? = nil) throws -> HiDPITransaction.Outcome {
+            try HiDPITransaction.recover(model: model(product), configuration: configuration)
+        }
+
+        func seed(_ data: Data, product: UInt32? = nil) throws {
             try FileManager.default.createDirectory(at: vendorFolder, withIntermediateDirectories: true)
-            try FileManager.default.createSymbolicLink(at: file, withDestinationURL: target)
-
-            XCTAssertNotEqual(try runRemove(expecting: original), 0)
-            XCTAssertTrue(FileManager.default.fileExists(atPath: target.path))
+            try data.write(to: file(product))
         }
 
-        // MARK: Exact-path publishing, recovery and preference folder
-
-        /// Runs `publish SRC DEST` from the command's own helpers.
-        private func publish(_ source: URL, to destination: URL) throws -> Int32 {
-            let lines = HiDPIOverride.preamble(ownerUID: getuid()) + [
-                "publish \(HiDPIOverride.shellQuoted(source.path)) \(HiDPIOverride.shellQuoted(destination.path))",
-            ]
-            return try runShell(lines.joined(separator: "\n"))
+        func state(_ name: String) -> String? {
+            (try? String(contentsOf: stateRoot.appendingPathComponent(name), encoding: .utf8))?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
         }
 
-        func testPublishLinksTheExactPathAndRefusesToReplaceAFile() throws {
-            let source = base.appendingPathComponent("source")
-            let destination = base.appendingPathComponent("dest")
-            try Data("new".utf8).write(to: source)
-            XCTAssertEqual(try publish(source, to: destination), 0)
-            XCTAssertEqual(try Data(contentsOf: destination), Data("new".utf8))
-
-            let occupied = base.appendingPathComponent("occupied")
-            try Data("theirs".utf8).write(to: occupied)
-            XCTAssertNotEqual(try publish(source, to: occupied), 0)
-            XCTAssertEqual(try Data(contentsOf: occupied), Data("theirs".utf8))
+        func names(in folder: URL) -> [String] {
+            ((try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? []).sorted()
         }
 
-        func testPublishFailsInsteadOfLinkingInsideADirectoryThatAppearedAtTheDestination() throws {
-            let source = base.appendingPathComponent("source")
-            try Data("new".utf8).write(to: source)
-            let folder = base.appendingPathComponent("folder", isDirectory: true)
-            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-
-            XCTAssertNotEqual(try publish(source, to: folder), 0)
-            XCTAssertTrue(try FileManager.default.contentsOfDirectory(atPath: folder.path).isEmpty)
-            XCTAssertTrue(FileManager.default.fileExists(atPath: source.path))
+        /// Runs `body` with a checkpoint that fires once, the first time `step` is reached.
+        func at(_ step: HiDPITransaction.Step, _ body: @escaping () throws -> Void) {
+            nonisolated(unsafe) var fired = false
+            checkpoint = { reached in
+                guard reached == step, !fired else { return }
+                fired = true
+                try body()
+            }
         }
 
-        func testPublishFailsInsteadOfLinkingThroughASymbolicLinkToADirectory() throws {
-            let source = base.appendingPathComponent("source")
-            try Data("new".utf8).write(to: source)
+        func crash(at step: HiDPITransaction.Step) {
+            at(step) { throw HiDPITransaction.Crash() }
+        }
+    }
+
+    // MARK: - Install
+
+    final class HiDPIInstallTests: HiDPIFixtureTestCase {
+        func testInstallPublishesTheFileRecordsItAndSetsThePreference() throws {
+            XCTAssertEqual(try install(), .done)
+
+            let data = try contents()
+            XCTAssertEqual(try Data(contentsOf: file()), data)
+            XCTAssertEqual(state(model().installedName), HiDPIOverride.sha256Hex(data))
+            XCTAssertNil(state(model().recordName))
+            XCTAssertEqual(names(in: vendorFolder), [model().productFile])
+            XCTAssertEqual(preference.value, true)
+            let mode = try FileManager.default.attributesOfItem(atPath: file().path)[.posixPermissions] as? Int
+            XCTAssertEqual(mode, 0o644)
+        }
+
+        func testInstallSetsTheSharedPreferenceOnlyWhenItIsNotAlreadyOn() throws {
+            preference = FakePreference(true)
+            XCTAssertEqual(try install(), .done)
+            XCTAssertEqual(preference.writeCount, 0)
+        }
+
+        func testInstallRefusesAnythingAlreadyAtTheDestination() throws {
+            try FileManager.default.createDirectory(at: vendorFolder, withIntermediateDirectories: true)
             let target = base.appendingPathComponent("target", isDirectory: true)
             try FileManager.default.createDirectory(at: target, withIntermediateDirectories: true)
-            let link = base.appendingPathComponent("link")
-            try FileManager.default.createSymbolicLink(at: link, withDestinationURL: target)
 
-            XCTAssertNotEqual(try publish(source, to: link), 0)
-            XCTAssertTrue(try FileManager.default.contentsOfDirectory(atPath: target.path).isEmpty)
+            let occupants: [() throws -> Void] = [
+                { try Data("theirs".utf8).write(to: self.file()) },
+                { try FileManager.default.createDirectory(at: self.file(), withIntermediateDirectories: true) },
+                { try FileManager.default.createSymbolicLink(at: self.file(), withDestinationURL: target) },
+            ]
+            for occupy in occupants {
+                try? FileManager.default.removeItem(at: file())
+                try occupy()
+                guard case .refused = try install() else { return XCTFail("expected a refusal") }
+                XCTAssertEqual(names(in: vendorFolder), [model().productFile])
+                XCTAssertEqual(names(in: target), [])
+                XCTAssertNil(state(model().recordName))
+            }
+            XCTAssertNil(preference.value)
         }
 
-        func testAFileStrandedInHoldingIsPutBackWhenItsPathIsFree() throws {
-            let stranded = Data("foreign".utf8)
-            try seedHold(stranded)
+        func testAnOccupantThatAppearsJustBeforePublishingIsNeverReplacedOrLinkedInto() throws {
+            let target = base.appendingPathComponent("target", isDirectory: true)
+            try FileManager.default.createDirectory(at: target, withIntermediateDirectories: true)
 
-            // The install stops because a file turned up, and that file is the stranded one.
-            XCTAssertNotEqual(try runInstall(), 0)
-            XCTAssertEqual(try Data(contentsOf: file), stranded)
-            XCTAssertEqual(holdFolders().count, 0)
+            let occupants: [() throws -> Void] = [
+                { try Data("theirs".utf8).write(to: self.file()) },
+                { try FileManager.default.createDirectory(at: self.file(), withIntermediateDirectories: true) },
+                { try FileManager.default.createSymbolicLink(at: self.file(), withDestinationURL: target) },
+            ]
+            for occupy in occupants {
+                try? FileManager.default.removeItem(at: file())
+                at(.beforeInstallPublish) { try occupy() }
+                guard case .refused = try install() else { return XCTFail("expected a refusal") }
+
+                // The occupant is untouched, nothing was linked inside it or its target, and
+                // neither the staging file nor the change record is left.
+                XCTAssertEqual(names(in: vendorFolder), [model().productFile])
+                XCTAssertEqual(names(in: target), [])
+                XCTAssertEqual(names(in: file()).filter { $0.hasPrefix(".dimmerly") }, [])
+                XCTAssertNil(state(model().recordName))
+                XCTAssertNil(state(model().installedName))
+            }
         }
 
-        func testAFileStrandedInHoldingStaysPutWhenItsPathIsTaken() throws {
-            let stranded = Data("stranded".utf8)
+        func testACrashBeforePublishingLeavesNothingInstalledAndTheNextChangeCleansUp() throws {
+            crash(at: .afterInstallPreference)
+            XCTAssertThrowsError(try install()) { XCTAssertTrue($0 is HiDPITransaction.Crash) }
+            XCTAssertNotNil(state(model().recordName))
+            XCTAssertTrue(names(in: vendorFolder).contains(model().stageName))
+
+            checkpoint = { _ in }
+            XCTAssertEqual(try recover(), .done)
+            XCTAssertEqual(names(in: vendorFolder), [])
+            XCTAssertNil(state(model().recordName))
+            XCTAssertNil(state(model().installedName))
+        }
+
+        func testACrashAfterPublishingIsRecognisedAsInstalledAndCanBeRemoved() throws {
+            crash(at: .afterInstallPublish)
+            XCTAssertThrowsError(try install())
+            XCTAssertNil(state(model().installedName))
+
+            checkpoint = { _ in }
+            XCTAssertEqual(try recover(), .done)
+            XCTAssertEqual(state(model().installedName), try HiDPIOverride.sha256Hex(contents()))
+            XCTAssertNil(state(model().recordName))
+            XCTAssertEqual(try remove(), .done)
+            XCTAssertFalse(FileManager.default.fileExists(atPath: file().path))
+        }
+
+        func testACrashRightAfterWritingTheRecordIsCleanedUpBeforeTheNextInstall() throws {
+            crash(at: .afterInstallRecord)
+            XCTAssertThrowsError(try install())
+
+            checkpoint = { _ in }
+            XCTAssertEqual(try install(), .done)
+            XCTAssertEqual(names(in: vendorFolder), [model().productFile])
+        }
+
+        func testAFailureSettingThePreferenceLeavesNoFileStageOrRecord() throws {
+            var failing = configuration
+            failing.enablePreference = { throw HiDPITransaction.Failure.io("no") }
+            XCTAssertThrowsError(
+                try HiDPITransaction.install(model: model(), contents: contents(), configuration: failing)
+            )
+            XCTAssertEqual(names(in: vendorFolder), [])
+            XCTAssertNil(state(model().recordName))
+        }
+
+        func testInstallRejectsFoldersItCantTrust() throws {
+            // Writable by others.
+            try FileManager.default.createDirectory(at: vendorFolder, withIntermediateDirectories: true)
+            try FileManager.default.setAttributes([.posixPermissions: 0o777], ofItemAtPath: vendorFolder.path)
+            XCTAssertThrowsError(try install())
+            try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: vendorFolder.path)
+
+            // An ACL entry.
+            XCTAssertEqual(try Self.run("/bin/chmod", ["+a", "everyone allow add_file", vendorFolder.path]), 0)
+            XCTAssertThrowsError(try install())
+            XCTAssertEqual(names(in: vendorFolder), [])
+        }
+
+        func testInstallRejectsASymbolicLinkInTheFolderPath() throws {
+            let elsewhere = base.appendingPathComponent("elsewhere", isDirectory: true)
+            try FileManager.default.createDirectory(at: elsewhere, withIntermediateDirectories: true)
+            try FileManager.default.createSymbolicLink(at: overridesRoot, withDestinationURL: elsewhere)
+
+            XCTAssertThrowsError(try install())
+            XCTAssertEqual(names(in: elsewhere), [])
+        }
+
+        func testInstallRejectsAnUntrustedStateFolder() throws {
+            try FileManager.default.createDirectory(at: stateRoot, withIntermediateDirectories: true)
+            try FileManager.default.setAttributes([.posixPermissions: 0o777], ofItemAtPath: stateRoot.path)
+            XCTAssertThrowsError(try install())
+            XCTAssertFalse(FileManager.default.fileExists(atPath: file().path))
+        }
+
+        func testInstallValidatesWhatItIsAskedToWrite() throws {
+            let good = try XCTUnwrap(PropertyListSerialization.propertyList(
+                from: contents(), format: nil
+            ) as? [String: Any])
+
+            func rejects(_ data: Data, line: UInt = #line) {
+                XCTAssertThrowsError(
+                    try HiDPITransaction.install(model: model(), contents: data, configuration: configuration),
+                    line: line
+                ) { error in
+                    guard case HiDPITransaction.Failure.invalidInput = error else {
+                        return XCTFail("expected invalidInput, got \(error)", line: line)
+                    }
+                }
+            }
+            func serialized(_ plist: [String: Any]) throws -> Data {
+                try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0)
+            }
+
+            rejects(Data())
+            rejects(Data("not a plist".utf8))
+            rejects(Data(count: HiDPITransaction.maximumFileSize + 1))
+            var wrongVendor = good
+            wrongVendor["DisplayVendorID"] = 7
+            try rejects(serialized(wrongVendor))
+            var extra = good
+            extra["IODisplayEDID"] = Data([0, 1])
+            try rejects(serialized(extra))
+            var unmarked = good
+            unmarked.removeValue(forKey: HiDPIOverride.ownershipKey)
+            try rejects(serialized(unmarked))
+            var badSizes = good
+            badSizes["scale-resolutions"] = [Data([1, 2, 3])]
+            try rejects(serialized(badSizes))
+            XCTAssertEqual(names(in: vendorFolder), [])
+        }
+
+        private static func run(_ tool: String, _ arguments: [String]) throws -> Int32 {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: tool)
+            process.arguments = arguments
+            try process.run()
+            process.waitUntilExit()
+            return process.terminationStatus
+        }
+    }
+
+    // MARK: - Removal and recovery
+
+    final class HiDPIRemovalTests: HiDPIFixtureTestCase {
+        func testRemovalDeletesTheFileItsRecordAndTheEmptyFolderAndLeavesThePreference() throws {
+            XCTAssertEqual(try install(), .done)
+            let writes = preference.writeCount
+
+            XCTAssertEqual(try remove(), .done)
+            XCTAssertFalse(FileManager.default.fileExists(atPath: vendorFolder.path))
+            XCTAssertNil(state(model().installedName))
+            XCTAssertNil(state(model().recordName))
+            XCTAssertEqual(preference.writeCount, writes)
+            XCTAssertEqual(preference.value, true)
+        }
+
+        func testRemovalOfAFileMacOSAlreadyReadRecordsTheBootForTheRestartNote() throws {
+            XCTAssertEqual(try install(), .done)
+            // Older than the stand-in boot time, so macOS has had its chance to read it.
+            try FileManager.default.setAttributes(
+                [.modificationDate: Date(timeIntervalSince1970: 1_000)], ofItemAtPath: file().path
+            )
+            XCTAssertEqual(try remove(), .done)
+            XCTAssertEqual(state(model().removedName), "2000000000")
+        }
+
+        func testRemovalRestoresAFileThatIsNotWhatWasExpected() throws {
+            XCTAssertEqual(try install(), .done)
+            let edited = Data("edited by someone else".utf8)
+            try edited.write(to: file())
+
+            guard case .refused = try remove() else { return XCTFail("expected a refusal") }
+            XCTAssertEqual(try Data(contentsOf: file()), edited)
+            XCTAssertEqual(names(in: vendorFolder), [model().productFile])
+            XCTAssertNil(state(model().recordName))
+        }
+
+        func testAFileSwappedInJustBeforeTheHoldIsRestoredNotDeleted() throws {
+            XCTAssertEqual(try install(), .done)
+            let replacement = Data("a replacement".utf8)
+            at(.beforeRemoveHold) {
+                try FileManager.default.removeItem(at: self.file())
+                try replacement.write(to: self.file())
+            }
+
+            guard case .refused = try remove() else { return XCTFail("expected a refusal") }
+            XCTAssertEqual(try Data(contentsOf: file()), replacement)
+        }
+
+        func testASymbolicLinkIsNeverRemovedOrFollowed() throws {
+            let target = base.appendingPathComponent("target")
+            try contents().write(to: target)
+            try FileManager.default.createDirectory(at: vendorFolder, withIntermediateDirectories: true)
+            try FileManager.default.createSymbolicLink(at: file(), withDestinationURL: target)
+
+            guard case .refused = try remove() else { return XCTFail("expected a refusal") }
+            XCTAssertTrue(FileManager.default.fileExists(atPath: target.path))
+            XCTAssertNotNil(try? FileManager.default.destinationOfSymbolicLink(atPath: file().path))
+        }
+
+        func testASymbolicLinkSwappedInBeforeTheHoldIsPutBackAsTheLinkItWas() throws {
+            XCTAssertEqual(try install(), .done)
+            let target = base.appendingPathComponent("target")
+            try Data("referent".utf8).write(to: target)
+            at(.beforeRemoveHold) {
+                try FileManager.default.removeItem(at: self.file())
+                try FileManager.default.createSymbolicLink(at: self.file(), withDestinationURL: target)
+            }
+
+            guard case .refused = try remove() else { return XCTFail("expected a refusal") }
+            // Still the original link, not a second hard link to what it pointed at.
+            XCTAssertEqual(try FileManager.default.destinationOfSymbolicLink(atPath: file().path), target.path)
+            XCTAssertEqual(try Data(contentsOf: target), Data("referent".utf8))
+        }
+
+        func testWhenSomethingTakesThePathTheOriginalStaysHeldAndItsLocationIsReported() throws {
+            XCTAssertEqual(try install(), .done)
             let occupant = Data("occupant".utf8)
-            try seedHold(stranded)
-            try occupant.write(to: file)
+            let edited = Data("edited".utf8)
+            let target = file()
+            checkpoint = { step in
+                if step == .beforeRemoveHold {
+                    try edited.write(to: target)
+                }
+                if step == .afterRemoveHold {
+                    try occupant.write(to: target)
+                }
+            }
 
-            XCTAssertNotEqual(try runRemove(expecting: Data("other".utf8)), 0)
-            XCTAssertEqual(try Data(contentsOf: file), occupant)
-            XCTAssertEqual(try Data(contentsOf: holdFolders()[0].appendingPathComponent("file")), stranded)
+            let held = try remove()
+            let holdPath = vendorFolder.appendingPathComponent(model().holdName).path
+            XCTAssertEqual(held, .held(path: holdPath))
+            XCTAssertEqual(try Data(contentsOf: file()), occupant)
+            XCTAssertEqual(try Data(contentsOf: URL(fileURLWithPath: holdPath)), edited)
+
+            // Every later change for the model reports the same place until the way is clear.
+            checkpoint = { _ in }
+            XCTAssertEqual(try install(), .held(path: holdPath))
+            XCTAssertEqual(try recover(), .held(path: holdPath))
+            XCTAssertEqual(try Data(contentsOf: URL(fileURLWithPath: holdPath)), edited)
+
+            try FileManager.default.removeItem(at: file())
+            XCTAssertEqual(try recover(), .done)
+            XCTAssertEqual(try Data(contentsOf: file()), edited)
+            XCTAssertEqual(names(in: vendorFolder), [model().productFile])
+            XCTAssertNil(state(model().recordName))
         }
 
-        func testRemovalFinishesAnInterruptedRemovalOfDimmerlysOwnFile() throws {
-            let own = try HiDPIOverride.plistData(for: identity)
-            try seedHold(own)
+        func testACrashAfterTheHoldIsFinishedByTheNextChange() throws {
+            XCTAssertEqual(try install(), .done)
+            crash(at: .afterRemoveHold)
+            XCTAssertThrowsError(try remove())
+            XCTAssertFalse(FileManager.default.fileExists(atPath: file().path))
+            XCTAssertTrue(names(in: vendorFolder).contains(model().holdName))
 
-            XCTAssertEqual(try runRemove(expecting: own), 0)
+            checkpoint = { _ in }
+            XCTAssertEqual(try recover(), .done)
+            XCTAssertFalse(FileManager.default.fileExists(atPath: vendorFolder.path))
+            XCTAssertNil(state(model().installedName))
+            XCTAssertNil(state(model().recordName))
+        }
+
+        func testACrashAfterTheHeldFileWasDeletedLeavesNoStaleRecords() throws {
+            XCTAssertEqual(try install(), .done)
+            crash(at: .afterRemoveUnlink)
+            XCTAssertThrowsError(try remove())
+            XCTAssertNotNil(state(model().recordName))
+
+            checkpoint = { _ in }
+            XCTAssertEqual(try recover(), .done)
+            XCTAssertNil(state(model().installedName))
+            XCTAssertNil(state(model().recordName))
+        }
+
+        func testACrashAfterTheHoldOfAFileThatWasNotTheExpectedOnePutsItBack() throws {
+            try seed(Data("foreign".utf8))
+            crash(at: .afterRemoveHold)
+            XCTAssertThrowsError(try remove(digest: HiDPIOverride.sha256Hex(Data("something else".utf8))))
+
+            checkpoint = { _ in }
+            XCTAssertEqual(try recover(), .done)
+            XCTAssertEqual(try Data(contentsOf: file()), Data("foreign".utf8))
+        }
+
+        // MARK: Different models
+
+        func testModelsUnderOneVendorKeepTheirOwnHeldFilesAndRecords() throws {
+            XCTAssertEqual(try install(0x2555), .done)
+            XCTAssertEqual(try install(0x2556), .done)
+            crash(at: .afterRemoveHold)
+            XCTAssertThrowsError(try remove(0x2555))
+            checkpoint = { _ in }
+
+            // The other model's file and changes are unaffected by the stranded hold.
+            XCTAssertEqual(try Data(contentsOf: file(0x2556)), try contents(0x2556))
+            XCTAssertEqual(try remove(0x2556), .done)
+            XCTAssertTrue(names(in: vendorFolder).contains(model(0x2555).holdName))
+            XCTAssertFalse(names(in: vendorFolder).contains(model(0x2556).holdName))
+
+            // Recovering one model never restores the other's file to the wrong path.
+            XCTAssertEqual(try recover(0x2556), .done)
+            XCTAssertFalse(FileManager.default.fileExists(atPath: file(0x2556).path))
+            XCTAssertEqual(try recover(0x2555), .done)
             XCTAssertFalse(FileManager.default.fileExists(atPath: vendorFolder.path))
         }
 
-        func testInstallRefusesAnUntrustedPreferenceFolder() throws {
-            let prefs = base.appendingPathComponent("prefs", isDirectory: true)
-            try FileManager.default.createDirectory(at: prefs, withIntermediateDirectories: true)
-            try FileManager.default.setAttributes([.posixPermissions: 0o777], ofItemAtPath: prefs.path)
-            var untrusted = location
-            untrusted.windowServerDomain = prefs.appendingPathComponent("windowserver").path
-
-            XCTAssertNotEqual(try runShell(HiDPIOverride.installCommand(for: identity, location: untrusted)), 0)
-            XCTAssertFalse(FileManager.default.fileExists(atPath: file.path))
-            XCTAssertNil(NSDictionary(contentsOf: URL(fileURLWithPath: untrusted.windowServerDomain + ".plist")))
+        func testRemovingOneModelKeepsTheVendorFolderForTheOther() throws {
+            XCTAssertEqual(try install(0x2555), .done)
+            XCTAssertEqual(try install(0x2556), .done)
+            XCTAssertEqual(try remove(0x2555), .done)
+            XCTAssertEqual(names(in: vendorFolder), [model(0x2556).productFile])
         }
 
-        func testAnInstallThatLandedButReportedFailureIsStillRecognisedAsDimmerlys() async {
-            let flaky = makeManager { command in
-                guard try Self.shell(command) == 0 else { throw HiDPIModeError.commandFailed }
-                throw HiDPIModeError.commandFailed // the result was lost after the file landed
+        func testChangesToSeveralModelsAtOnceAllLand() throws {
+            let products: [UInt32] = [0x2501, 0x2502, 0x2503, 0x2504, 0x2505, 0x2506]
+            let payloads = try products.map { try contents($0) }
+            nonisolated(unsafe) let configuration = configuration
+            let vendor = identity.vendorID
+            let results = LockedList()
+            DispatchQueue.concurrentPerform(iterations: products.count) { index in
+                let target = HiDPITransaction.Model(vendorID: vendor, productID: products[index])
+                do {
+                    let outcome = try HiDPITransaction.install(
+                        model: target, contents: payloads[index], configuration: configuration
+                    )
+                    results.append(outcome == .done ? "done" : "\(outcome)")
+                } catch {
+                    results.append("\(error)")
+                }
             }
-            await flaky.enable(row(id: 1, status: .off))
-            XCTAssertEqual(flaky.errors[1], .commandFailed)
+            XCTAssertEqual(results.values, Array(repeating: "done", count: products.count))
+            XCTAssertEqual(names(in: vendorFolder).count, products.count)
+        }
+    }
 
-            let remover = makeManager { command in
-                guard try Self.shell(command) == 0 else { throw HiDPIModeError.commandFailed }
+    private final class LockedList: @unchecked Sendable {
+        private let lock = NSLock()
+        private var stored: [String] = []
+
+        var values: [String] {
+            lock.withLock { stored }
+        }
+
+        func append(_ value: String) {
+            lock.withLock { stored.append(value) }
+        }
+    }
+
+    // MARK: - Command line and invocation
+
+    final class HiDPIHelperCommandTests: HiDPIFixtureTestCase {
+        func testParsingAcceptsOnlyTheThreeOperationsWithStrictArguments() throws {
+            let plist = try contents()
+            XCTAssertEqual(
+                HiDPIHelperCommand.parse(["install", "19083", "9557", plist.base64EncodedString()]),
+                .install(vendorID: 19083, productID: 9557, contents: plist)
+            )
+            let digest = HiDPIOverride.sha256Hex(plist)
+            XCTAssertEqual(
+                HiDPIHelperCommand.parse(["remove", "1", "2", digest]),
+                .remove(vendorID: 1, productID: 2, digest: digest)
+            )
+            XCTAssertEqual(HiDPIHelperCommand.parse(["recover", "1", "2"]), .recover(vendorID: 1, productID: 2))
+
+            let bad: [[String]] = [
+                [], ["install"], ["recover", "1"], ["recover", "0", "2"], ["recover", "1", "4294967295"],
+                ["recover", "-1", "2"], ["recover", "1", "2x"], ["recover", "1", "99999999999"],
+                ["recover", "1", "2", "extra"], ["remove", "1", "2", "ABC"],
+                ["remove", "1", "2", String(repeating: "g", count: 64)],
+                ["install", "1", "2", "!!!"], ["install", "1", "2", ""], ["delete", "1", "2"],
+                ["recover", "1", "../2"],
+            ]
+            for arguments in bad {
+                XCTAssertNil(HiDPIHelperCommand.parse(arguments), "\(arguments)")
             }
-            await remover.disable(row(id: 1, status: .on))
-            XCTAssertFalse(FileManager.default.fileExists(atPath: file.path))
         }
 
-        func testAnInstallThatNeverLandedLeavesNoRecordBehind() async throws {
-            let manager = makeManager { _ in throw HiDPIModeError.cancelled }
-            await manager.enable(row(id: 1, status: .off))
-            try HiDPIOverride.plistData(for: identity).write(to: { try seed(Data()); return file }())
-
-            let calls = CallCounter()
-            let remover = makeManager { _ in calls.increment() }
-            await remover.disable(row(id: 1, status: .on))
-            XCTAssertEqual(calls.count, 0)
+        func testRequestsRoundTripThroughTheirArguments() throws {
+            let requests: [HiDPIHelperCommand.Request] = try [
+                .install(vendorID: 7, productID: 8, contents: contents()),
+                .remove(vendorID: 7, productID: 8, digest: HiDPIOverride.sha256Hex(contents())),
+                .recover(vendorID: 7, productID: 8),
+            ]
+            for request in requests {
+                XCTAssertEqual(HiDPIHelperCommand.parse(request.arguments), request)
+            }
         }
 
-        // MARK: Manager
+        func testExitCodesTellTheAppWhatHappened() throws {
+            nonisolated(unsafe) var messages: [String] = []
+            func run(_ arguments: [String], _ configuration: HiDPITransaction.Configuration) -> Int32 {
+                HiDPIHelperCommand.run(arguments, configuration: configuration) { messages.append($0) }
+            }
+            let request = try HiDPIHelperCommand.Request.install(
+                vendorID: 0x4A8B, productID: 0x2555, contents: contents()
+            )
+
+            XCTAssertEqual(run(["nonsense"], configuration), HiDPIHelperCommand.ExitCode.invalidInput)
+            XCTAssertEqual(run(request.arguments, configuration), HiDPIHelperCommand.ExitCode.done)
+            XCTAssertEqual(run(request.arguments, configuration), HiDPIHelperCommand.ExitCode.refused)
+
+            var needsRoot = configuration
+            needsRoot.requiresRoot = true
+            if geteuid() != 0 {
+                XCTAssertEqual(run(["recover", "1", "2"], needsRoot), HiDPIHelperCommand.ExitCode.unsafe)
+            }
+
+            // A held original is reported with its location.
+            let digest = try HiDPIOverride.sha256Hex(contents())
+            var conflicted = configuration
+            let occupant = Data("occupant".utf8)
+            let target = file()
+            conflicted.checkpoint = { step in
+                if step == .beforeRemoveHold {
+                    try Data("edited".utf8).write(to: target)
+                }
+                if step == .afterRemoveHold {
+                    try occupant.write(to: target)
+                }
+            }
+            messages = []
+            XCTAssertEqual(
+                run(["remove", "19083", "9557", digest], conflicted), HiDPIHelperCommand.ExitCode.held
+            )
+            XCTAssertEqual(
+                HiDPIHelperInvocation.heldPath(in: messages.joined(separator: "\n")),
+                vendorFolder.appendingPathComponent(model().holdName).path
+            )
+        }
+
+        func testHeldPathIsReadFromOsascriptErrorText() {
+            let text = "execution error: DIMMERLY-HELD /Library/Displays/x/.dimmerly-hold.a-b (3)\n"
+            XCTAssertEqual(HiDPIHelperInvocation.heldPath(in: text), "/Library/Displays/x/.dimmerly-hold.a-b")
+            XCTAssertNil(HiDPIHelperInvocation.heldPath(in: "execution error: failed (1)"))
+        }
+
+        // MARK: The root script around the helper
+
+        private func runScript(helper: String, digest: String?, arguments: [String]) throws -> Int32 {
+            let helperURL = URL(fileURLWithPath: helper)
+            let data = try Data(contentsOf: helperURL)
+            let script = HiDPIHelperInvocation.scriptText(
+                arguments: arguments,
+                helper: helperURL,
+                helperDigest: digest ?? HiDPIOverride.sha256Hex(data),
+                teamID: nil,
+                scratchRoot: base.path
+            )
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/bin/sh")
+            process.arguments = ["-c", script]
+            process.standardOutput = FileHandle.nullDevice
+            process.standardError = FileHandle.nullDevice
+            try process.run()
+            process.waitUntilExit()
+            return process.terminationStatus
+        }
+
+        /// A stand-in helper that only exits with a chosen code.
+        private func stubHelper(exitCode: Int) throws -> String {
+            let url = base.appendingPathComponent("stub-\(exitCode)")
+            try Data("#!/bin/sh\nexit \(exitCode)\n".utf8).write(to: url)
+            try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: url.path)
+            return url.path
+        }
+
+        func testTheScriptRunsAVerifiedCopyOnceAndPassesItsExitCodeBack() throws {
+            let ok = try stubHelper(exitCode: 0)
+            XCTAssertEqual(try runScript(helper: ok, digest: nil, arguments: ["recover", "1", "2"]), 0)
+            let failing = try stubHelper(exitCode: 7)
+            XCTAssertEqual(try runScript(helper: failing, digest: nil, arguments: ["recover", "1", "2"]), 7)
+            // The private folder is removed afterwards.
+            XCTAssertEqual(names(in: base).filter { $0.hasPrefix("dimmerly-hidpi.") }, [])
+        }
+
+        func testTheScriptRefusesAHelperThatDoesNotMatchTheDigestTheAppCalculated() throws {
+            let wrong = HiDPIOverride.sha256Hex(Data("tampered".utf8))
+            let stub = try stubHelper(exitCode: 0)
+            XCTAssertEqual(try runScript(helper: stub, digest: wrong, arguments: ["recover", "1", "2"]), 4)
+            XCTAssertEqual(names(in: base).filter { $0.hasPrefix("dimmerly-hidpi.") }, [])
+        }
+
+        func testTheBuiltHelperRefusesToRunWithoutAdministratorRights() throws {
+            guard geteuid() != 0 else { return }
+            let helper = HiDPIHelperInvocation.helperURL()
+            guard FileManager.default.isExecutableFile(atPath: helper.path) else {
+                return XCTFail("the helper isn't embedded in the app bundle at \(helper.path)")
+            }
+            // As an ordinary user the real helper exits before touching anything.
+            XCTAssertEqual(
+                try runScript(helper: helper.path, digest: nil, arguments: ["recover", "19083", "9557"]),
+                HiDPIHelperCommand.ExitCode.unsafe
+            )
+        }
+    }
+
+    // MARK: - Manager
+
+    final class HiDPIManagerTests: HiDPIFixtureTestCase {
+        /// Runs requests through the real transaction in this process, as the helper would.
+        private func makeManager(
+            _ handler: (@Sendable (HiDPIHelperCommand.Request) async throws -> Void)? = nil
+        ) -> HiDPIModeManager {
+            nonisolated(unsafe) let configuration = configuration
+            let executing: @Sendable (HiDPIHelperCommand.Request) async throws -> Void = { request in
+                nonisolated(unsafe) var message = ""
+                let code = HiDPIHelperCommand.run(request.arguments, configuration: configuration) { message += $0 }
+                if code == HiDPIHelperCommand.ExitCode.held,
+                   let path = HiDPIHelperInvocation.heldPath(in: message)
+                {
+                    throw HiDPIModeError.held(path: path)
+                }
+                guard code == 0 else { throw HiDPIModeError.commandFailed }
+            }
+            return HiDPIModeManager(
+                runner: ClosureRunner(handler: handler ?? executing), overridesRoot: overridesRoot, stateRoot: stateRoot
+            )
+        }
+
+        private func row(
+            id: CGDirectDisplayID, status: HiDPIOverrideStatus, identity: HiDPIDisplayIdentity? = nil
+        ) -> HiDPIDisplayState {
+            HiDPIDisplayState(
+                id: id, identity: identity ?? self.identity, status: status, availableSizes: [], current: nil
+            )
+        }
 
         func testCancellingThePasswordPromptChangesNothingAndShowsNoError() async {
             let manager = makeManager { _ in throw HiDPIModeError.cancelled }
             let display = row(id: 1, status: .off)
-
             await manager.enable(display)
-
             XCTAssertTrue(manager.errors.isEmpty)
             XCTAssertFalse(manager.isBusy(display))
-            XCTAssertFalse(FileManager.default.fileExists(atPath: file.path))
+            XCTAssertFalse(FileManager.default.fileExists(atPath: file().path))
         }
 
         func testAFailedCommandShowsAnErrorAndReleasesTheLock() async {
             let manager = makeManager { _ in throw HiDPIModeError.commandFailed }
             let display = row(id: 1, status: .off)
-
             await manager.enable(display)
-
             XCTAssertEqual(manager.errors[1], .commandFailed)
             XCTAssertFalse(manager.isBusy(display))
         }
 
-        func testTurnOnAndTurnOffRunTheCommandsEndToEnd() async throws {
-            let manager = makeManager { command in
-                guard try Self.shell(command) == 0 else { throw HiDPIModeError.commandFailed }
-            }
-
+        func testAHeldOriginalIsShownWithItsLocation() async throws {
+            let manager = makeManager { _ in throw HiDPIModeError.held(path: "/somewhere/.dimmerly-hold.x") }
             await manager.enable(row(id: 1, status: .off))
-            XCTAssertEqual(try HiDPIOverride.ownership(ofPlistData: Data(contentsOf: file)), .dimmerly)
+            XCTAssertEqual(manager.errors[1], .held(path: "/somewhere/.dimmerly-hold.x"))
+            XCTAssertTrue(try XCTUnwrap(manager.errors[1]?.errorDescription).contains("/somewhere/.dimmerly-hold.x"))
+        }
+
+        func testTurnOnAndTurnOffRunEndToEnd() async throws {
+            let manager = makeManager()
+            await manager.enable(row(id: 1, status: .off))
+            XCTAssertEqual(try HiDPIOverride.ownership(ofPlistData: Data(contentsOf: file())), .dimmerly)
             XCTAssertNil(manager.errors[1])
 
             await manager.disable(row(id: 1, status: .on))
-            XCTAssertFalse(FileManager.default.fileExists(atPath: file.path))
-            XCTAssertEqual(flag(), true)
+            XCTAssertFalse(FileManager.default.fileExists(atPath: file().path))
+            XCTAssertEqual(preference.value, true)
             XCTAssertNil(manager.errors[1])
         }
 
@@ -367,61 +780,49 @@
                 options: 0
             )
             try seed(foreign)
-
             await manager.enable(row(id: 1, status: .off))
-
             XCTAssertEqual(calls.count, 0)
-            XCTAssertEqual(try Data(contentsOf: file), foreign)
-        }
-
-        func testTurnOffNeverRemovesAFileDimmerlyNoLongerOwns() async throws {
-            let calls = CallCounter()
-            let manager = makeManager { _ in calls.increment() }
-            var edited = try XCTUnwrap(PropertyListSerialization.propertyList(
-                from: HiDPIOverride.plistData(for: identity), format: nil
-            ) as? [String: Any])
-            edited["IODisplayEDID"] = Data([0, 0xFF])
-            let changed = try PropertyListSerialization.data(fromPropertyList: edited, format: .xml, options: 0)
-            try seed(changed)
-
-            await manager.disable(row(id: 1, status: .on))
-
-            XCTAssertEqual(calls.count, 0)
-            XCTAssertEqual(try Data(contentsOf: file), changed)
+            XCTAssertEqual(try Data(contentsOf: file()), foreign)
         }
 
         func testTurnOffLeavesAFileThatAnotherToolEditedAfterDimmerlyInstalledIt() async throws {
-            let installer = makeManager { command in
-                guard try Self.shell(command) == 0 else { throw HiDPIModeError.commandFailed }
-            }
+            let installer = makeManager()
             await installer.enable(row(id: 1, status: .off))
 
             // Still carries Dimmerly's marker and only HiDPI keys, but the product name changed.
             var edited = try XCTUnwrap(PropertyListSerialization.propertyList(
-                from: Data(contentsOf: file), format: nil
+                from: Data(contentsOf: file()), format: nil
             ) as? [String: Any])
             edited["DisplayProductName"] = "Renamed"
             let changed = try PropertyListSerialization.data(fromPropertyList: edited, format: .xml, options: 0)
-            try changed.write(to: file)
+            try changed.write(to: file())
 
             let calls = CallCounter()
-            let remover = makeManager { _ in calls.increment() }
-            await remover.disable(row(id: 1, status: .on))
-
+            await makeManager { _ in calls.increment() }.disable(row(id: 1, status: .on))
             XCTAssertEqual(calls.count, 0)
-            XCTAssertEqual(try Data(contentsOf: file), changed)
+            XCTAssertEqual(try Data(contentsOf: file()), changed)
         }
 
         func testTurnOffLeavesAMarkedFileDimmerlyHasNoRecordOfInstalling() async throws {
             let calls = CallCounter()
-            let manager = makeManager { _ in calls.increment() }
-            let handBuilt = try HiDPIOverride.plistData(for: identity)
+            let handBuilt = try contents()
             try seed(handBuilt)
-
-            await manager.disable(row(id: 1, status: .on))
-
+            await makeManager { _ in calls.increment() }.disable(row(id: 1, status: .on))
             XCTAssertEqual(calls.count, 0)
-            XCTAssertEqual(try Data(contentsOf: file), handBuilt)
+            XCTAssertEqual(try Data(contentsOf: file()), handBuilt)
+        }
+
+        func testAnInstallWhoseResultWasLostIsStillRemovableAfterRecovery() async throws {
+            crash(at: .afterInstallPublish)
+            let flaky = makeManager()
+            await flaky.enable(row(id: 1, status: .off))
+            XCTAssertEqual(flaky.errors[1], .commandFailed)
+
+            // The file landed but nothing recorded it; the next change finishes the record.
+            checkpoint = { _ in }
+            XCTAssertEqual(try recover(), .done)
+            await makeManager().disable(row(id: 1, status: .on))
+            XCTAssertFalse(FileManager.default.fileExists(atPath: file().path))
         }
 
         func testRowsThatOfferNoActionDoNothing() async {
@@ -446,7 +847,6 @@
 
             let first = Task { await manager.enable(original) }
             await Self.firstSignal(of: entered)
-
             XCTAssertTrue(manager.isBusy(reconnected))
             await manager.enable(reconnected)
             XCTAssertEqual(calls.count, 1)
@@ -470,87 +870,8 @@
                 vendorID: 0x1E6D, productID: 0x5B11, nativeWidth: 2560, nativeHeight: 1440, name: "Other"
             )
             XCTAssertFalse(manager.isBusy(row(id: 2, status: .off, identity: otherModel)))
-
             releaseSignal.yield()
             await first.value
-        }
-
-        // MARK: Helpers
-
-        private var vendorFolder: URL {
-            file.deletingLastPathComponent()
-        }
-
-        private var file: URL {
-            HiDPIOverride.fileURL(
-                vendorID: identity.vendorID, productID: identity.productID, root: location.overridesRoot
-            )
-        }
-
-        private func row(
-            id: CGDirectDisplayID,
-            status: HiDPIOverrideStatus,
-            identity: HiDPIDisplayIdentity? = nil
-        ) -> HiDPIDisplayState {
-            HiDPIDisplayState(
-                id: id,
-                identity: identity ?? self.identity,
-                status: status,
-                availableSizes: [],
-                current: nil
-            )
-        }
-
-        private func makeManager(
-            _ handler: @escaping @Sendable (String) async throws -> Void
-        ) -> HiDPIModeManager {
-            HiDPIModeManager(runner: ClosureRunner(handler: handler), location: location, defaults: defaults)
-        }
-
-        private func seed(_ data: Data) throws {
-            try FileManager.default.createDirectory(at: vendorFolder, withIntermediateDirectories: true)
-            try data.write(to: file)
-        }
-
-        private func runInstall() throws -> Int32 {
-            try runShell(HiDPIOverride.installCommand(for: identity, location: location))
-        }
-
-        private func runRemove(expecting data: Data) throws -> Int32 {
-            try runShell(HiDPIOverride.removeCommand(
-                vendorID: identity.vendorID,
-                productID: identity.productID,
-                expectedCurrent: data,
-                location: location
-            ))
-        }
-
-        private func seedHold(_ data: Data) throws {
-            let hold = vendorFolder.appendingPathComponent(".dimmerly-hold.ABCD1234", isDirectory: true)
-            try FileManager.default.createDirectory(at: hold, withIntermediateDirectories: true)
-            try data.write(to: hold.appendingPathComponent("file"))
-        }
-
-        private func holdFolders() -> [URL] {
-            let names = (try? FileManager.default.contentsOfDirectory(atPath: vendorFolder.path)) ?? []
-            return names.filter { $0.hasPrefix(".dimmerly-hold.") }
-                .map { vendorFolder.appendingPathComponent($0, isDirectory: true) }
-        }
-
-        private func writeFlag(_ value: Bool) {
-            let plist = [HiDPIOverride.windowServerKey: value]
-            try? (plist as NSDictionary).write(to: URL(fileURLWithPath: location.windowServerDomain + ".plist"))
-        }
-
-        /// The stand-in preference's value, or nil when it isn't set.
-        private func flag() -> Bool? {
-            let url = URL(fileURLWithPath: location.windowServerDomain + ".plist")
-            guard let plist = NSDictionary(contentsOf: url) else { return nil }
-            return plist[HiDPIOverride.windowServerKey] as? Bool
-        }
-
-        private func runShell(_ command: String) throws -> Int32 {
-            try Self.shell(command)
         }
 
         private nonisolated static func firstSignal(of stream: AsyncStream<Void>) async {
@@ -558,33 +879,13 @@
                 return
             }
         }
-
-        private nonisolated static func run(_ tool: String, _ arguments: [String]) throws -> Int32 {
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: tool)
-            process.arguments = arguments
-            try process.run()
-            process.waitUntilExit()
-            return process.terminationStatus
-        }
-
-        private nonisolated static func shell(_ command: String) throws -> Int32 {
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/bin/sh")
-            process.arguments = ["-c", command]
-            process.standardOutput = FileHandle.nullDevice
-            process.standardError = FileHandle.nullDevice
-            try process.run()
-            process.waitUntilExit()
-            return process.terminationStatus
-        }
     }
 
     private struct ClosureRunner: PrivilegedCommandRunning {
-        let handler: @Sendable (String) async throws -> Void
+        let handler: @Sendable (HiDPIHelperCommand.Request) async throws -> Void
 
-        func run(_ command: String, prompt _: String) async throws {
-            try await handler(command)
+        func run(_ request: HiDPIHelperCommand.Request, prompt _: String) async throws {
+            try await handler(request)
         }
     }
 

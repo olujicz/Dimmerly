@@ -439,7 +439,8 @@
           "Off",
           "macOS didn’t use the HiDPI sizes for this display. Turn HiDPI off to remove the file.",
           "Applies to all displays of this model.",
-          "Turning HiDPI on also sets a system-wide display preference. It stays on when you turn HiDPI off."
+          "Turning HiDPI on also sets a system-wide display preference. It stays on when you turn HiDPI off.",
+          "Dimmerly kept the original display override at %@ because another file is in its place. Move or delete the file in the way, then try again."
         ],
         "es": [
           "Click to wake",
@@ -474,7 +475,8 @@
           "Off",
           "macOS didn’t use the HiDPI sizes for this display. Turn HiDPI off to remove the file.",
           "Applies to all displays of this model.",
-          "Turning HiDPI on also sets a system-wide display preference. It stays on when you turn HiDPI off."
+          "Turning HiDPI on also sets a system-wide display preference. It stays on when you turn HiDPI off.",
+          "Dimmerly kept the original display override at %@ because another file is in its place. Move or delete the file in the way, then try again."
         ],
         "fr": [
           "\"%@\" will be permanently deleted.",
@@ -543,7 +545,8 @@
           "Off",
           "macOS didn’t use the HiDPI sizes for this display. Turn HiDPI off to remove the file.",
           "Applies to all displays of this model.",
-          "Turning HiDPI on also sets a system-wide display preference. It stays on when you turn HiDPI off."
+          "Turning HiDPI on also sets a system-wide display preference. It stays on when you turn HiDPI off.",
+          "Dimmerly kept the original display override at %@ because another file is in its place. Move or delete the file in the way, then try again."
         ],
         "it": [
           "Click to wake",
@@ -578,7 +581,8 @@
           "Off",
           "macOS didn’t use the HiDPI sizes for this display. Turn HiDPI off to remove the file.",
           "Applies to all displays of this model.",
-          "Turning HiDPI on also sets a system-wide display preference. It stays on when you turn HiDPI off."
+          "Turning HiDPI on also sets a system-wide display preference. It stays on when you turn HiDPI off.",
+          "Dimmerly kept the original display override at %@ because another file is in its place. Move or delete the file in the way, then try again."
         ],
         "ja": [
           "%@ brightness",
@@ -680,7 +684,8 @@
           "Off",
           "macOS didn’t use the HiDPI sizes for this display. Turn HiDPI off to remove the file.",
           "Applies to all displays of this model.",
-          "Turning HiDPI on also sets a system-wide display preference. It stays on when you turn HiDPI off."
+          "Turning HiDPI on also sets a system-wide display preference. It stays on when you turn HiDPI off.",
+          "Dimmerly kept the original display override at %@ because another file is in its place. Move or delete the file in the way, then try again."
         ],
         "ko": [
           "%@ is a standard system shortcut. Try a different combination.",
@@ -716,7 +721,8 @@
           "Off",
           "macOS didn’t use the HiDPI sizes for this display. Turn HiDPI off to remove the file.",
           "Applies to all displays of this model.",
-          "Turning HiDPI on also sets a system-wide display preference. It stays on when you turn HiDPI off."
+          "Turning HiDPI on also sets a system-wide display preference. It stays on when you turn HiDPI off.",
+          "Dimmerly kept the original display override at %@ because another file is in its place. Move or delete the file in the way, then try again."
         ],
         "nl": [
           "Apply",
@@ -753,7 +759,8 @@
           "Off",
           "macOS didn’t use the HiDPI sizes for this display. Turn HiDPI off to remove the file.",
           "Applies to all displays of this model.",
-          "Turning HiDPI on also sets a system-wide display preference. It stays on when you turn HiDPI off."
+          "Turning HiDPI on also sets a system-wide display preference. It stays on when you turn HiDPI off.",
+          "Dimmerly kept the original display override at %@ because another file is in its place. Move or delete the file in the way, then try again."
         ],
         "pt-br": [
           "Click to wake",
@@ -788,7 +795,8 @@
           "Off",
           "macOS didn’t use the HiDPI sizes for this display. Turn HiDPI off to remove the file.",
           "Applies to all displays of this model.",
-          "Turning HiDPI on also sets a system-wide display preference. It stays on when you turn HiDPI off."
+          "Turning HiDPI on also sets a system-wide display preference. It stays on when you turn HiDPI off.",
+          "Dimmerly kept the original display override at %@ because another file is in its place. Move or delete the file in the way, then try again."
         ],
         "ru": [
           "Click to wake",
@@ -831,7 +839,8 @@
           "Off",
           "macOS didn’t use the HiDPI sizes for this display. Turn HiDPI off to remove the file.",
           "Applies to all displays of this model.",
-          "Turning HiDPI on also sets a system-wide display preference. It stays on when you turn HiDPI off."
+          "Turning HiDPI on also sets a system-wide display preference. It stays on when you turn HiDPI off.",
+          "Dimmerly kept the original display override at %@ because another file is in its place. Move or delete the file in the way, then try again."
         ],
         "zh-hans": [
           "Click to wake",
@@ -868,7 +877,8 @@
           "Off",
           "macOS didn’t use the HiDPI sizes for this display. Turn HiDPI off to remove the file.",
           "Applies to all displays of this model.",
-          "Turning HiDPI on also sets a system-wide display preference. It stays on when you turn HiDPI off."
+          "Turning HiDPI on also sets a system-wide display preference. It stays on when you turn HiDPI off.",
+          "Dimmerly kept the original display override at %@ because another file is in its place. Move or delete the file in the way, then try again."
         ]
       }
     },

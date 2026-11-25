@@ -9,7 +9,6 @@
 
 #if !APPSTORE
 
-    import CryptoKit
     import Foundation
 
     /// One external display, described by the values its override file is keyed on.
@@ -244,202 +243,28 @@
             }
         }
 
-        // MARK: Privileged commands
+        // MARK: Privileged changes
 
-        /// Where the privileged commands work, and who must own it. Tests point this at a
-        /// temporary folder owned by the current user; the app always uses `.system`.
-        struct SystemLocation {
-            var overridesRoot: URL = HiDPIOverride.overridesRoot
-            /// Every folder from here down to the vendor folder must be a real directory owned
-            /// by `ownerUID` that nobody else can write to, or the command stops.
-            var trustedBase = URL(fileURLWithPath: "/Library")
-            var ownerUID: UInt32 = 0
-            var ownerGID: UInt32 = 0
-            var windowServerDomain = HiDPIOverride.windowServerDomain
+        /// Where the privileged helper keeps its root-owned records, which Dimmerly only reads.
+        static let stateRoot = URL(fileURLWithPath: "/Library/Application Support/Dimmerly/HiDPI")
 
-            static let system = SystemLocation()
-        }
-
-        /// Adds the display's override file as root and sets the WindowServer flag if it isn't set.
-        ///
-        /// Everything root needs travels inside the command: the file's contents, its digest
-        /// and the paths. Nothing is read from a location the user, or an app running as the
-        /// user, could change while the password prompt is open. Root checks that the folders
-        /// are trustworthy, that the contents decode to what the digest says and to Dimmerly's
-        /// own file for this display, and that no file exists yet.
-        ///
-        /// The file is staged under a fresh unique name beside its destination and published
-        /// with a hard link, which fails instead of replacing anything that appeared since the
-        /// check. The flag is set first and never rolled back: another model's override may
-        /// have started relying on it meanwhile, and a leftover `true` is harmless.
-        /// - Parameter contents: The file to install; defaults to `plistData(for:)`.
-        static func installCommand(
-            for display: HiDPIDisplayIdentity,
-            contents: Data? = nil,
-            location: SystemLocation = .system
-        ) throws -> String {
-            let contents = try contents ?? plistData(for: display)
-            let destination = fileURL(
-                vendorID: display.vendorID, productID: display.productID, root: location.overridesRoot
-            )
-            let directory = destination.deletingLastPathComponent()
-            guard let checks = folderChecks(for: directory, location: location, create: true) else {
-                return "/usr/bin/false"
+        /// Names of a model's record files, shared with the helper.
+        static func stateFile(_ kind: String, vendorID: UInt32, productID: UInt32, root: URL = stateRoot) -> URL {
+            let model = HiDPITransaction.Model(vendorID: vendorID, productID: productID)
+            let name = switch kind {
+            case "installed": model.installedName
+            case "removed": model.removedName
+            default: model.recordName
             }
-            let flag = "\(shellQuoted(location.windowServerDomain)) \(shellQuoted(windowServerKey))"
-            var lines = preamble(ownerUID: location.ownerUID) + checks + [
-                "DEST=\(shellQuoted(destination.path))",
-                "DIR=\(shellQuoted(directory.path))",
-            ] + recoverHeldFiles + [
-                "[ ! -e \"$DEST\" ] && [ ! -L \"$DEST\" ] || exit 1",
-                "TMP=$(/usr/bin/mktemp \(shellQuoted(directory.path + "/.dimmerly-hidpi.XXXXXXXX"))) || exit 1",
-                "abort() { /bin/rm -f \"$TMP\"; exit 1; }",
-                "printf '%s' \(shellQuoted(contents.base64EncodedString())) | /usr/bin/base64 -D > \"$TMP\" || abort",
-                "[ \"$(digest \"$TMP\")\" = \(shellQuoted(sha256Hex(contents))) ] || abort",
-            ]
-            for (key, value) in [
-                (ownershipKey, "true"),
-                ("DisplayVendorID", String(display.vendorID)),
-                ("DisplayProductID", String(display.productID)),
-            ] {
-                lines.append(
-                    "[ \"$(/usr/bin/plutil -extract \(shellQuoted(key)) raw -o - \"$TMP\" 2>/dev/null)\" "
-                        + "= \(shellQuoted(value)) ] || abort"
-                )
-            }
-            lines += [
-                "/usr/sbin/chown \(location.ownerUID):\(location.ownerGID) \"$TMP\" || abort",
-                "/bin/chmod 644 \"$TMP\" || abort",
-                "if [ \"$(/usr/bin/defaults read \(flag) 2>/dev/null)\" != 1 ]; then",
-                "  trusted \(shellQuoted(preferenceFolder(of: location))) || abort",
-                "  /usr/bin/defaults write \(flag) -bool YES || abort",
-                // `defaults write` can report success without writing, so read the value back.
-                "  [ \"$(/usr/bin/defaults read \(flag) 2>/dev/null)\" = 1 ] || abort",
-                "fi",
-                "publish \"$TMP\" \"$DEST\" || abort",
-                "/bin/rm -f \"$TMP\"",
-                "exit 0",
-            ]
-            return lines.joined(separator: "\n")
-        }
-
-        /// Removes the display's override file as root, only if it still holds exactly
-        /// `expectedCurrent`, the bytes Dimmerly installed. Then removes the vendor folder if
-        /// that left it empty.
-        ///
-        /// The file is first moved into a fresh folder of its own, and only that moved copy is
-        /// checked and deleted. If it turns out not to match, it is linked back, or left in
-        /// that folder when something new has taken its place, never deleted.
-        ///
-        /// The WindowServer flag stays as it is: other overrides may rely on it.
-        static func removeCommand(
-            vendorID: UInt32,
-            productID: UInt32,
-            expectedCurrent: Data,
-            location: SystemLocation = .system
-        ) -> String {
-            let destination = fileURL(vendorID: vendorID, productID: productID, root: location.overridesRoot)
-            let directory = destination.deletingLastPathComponent()
-            guard let checks = folderChecks(for: directory, location: location, create: false) else {
-                return "/usr/bin/false"
-            }
-            let lines = preamble(ownerUID: location.ownerUID) + checks + [
-                "DEST=\(shellQuoted(destination.path))",
-                "DIR=\(shellQuoted(directory.path))",
-            ] + recoverHeldFiles + [
-                "[ -f \"$DEST\" ] && [ ! -L \"$DEST\" ] || exit 1",
-                "HOLD=$(/usr/bin/mktemp -d \(shellQuoted(directory.path + "/.dimmerly-hold.XXXXXXXX"))) || exit 1",
-                "/bin/mv -n \"$DEST\" \"$HOLD/file\" || { /bin/rmdir \"$HOLD\"; exit 1; }",
-                "if [ -f \"$HOLD/file\" ] && [ ! -L \"$HOLD/file\" ] "
-                    + "&& [ \"$(digest \"$HOLD/file\")\" = \(shellQuoted(sha256Hex(expectedCurrent))) ]; then",
-                "  /bin/rm -rf \"$HOLD\" || exit 1",
-                "  /bin/rmdir \(shellQuoted(directory.path)) 2>/dev/null",
-                "  exit 0",
-                "fi",
-                // Not ours: put it back if the path is still free, else say where it is.
-                "if publish \"$HOLD/file\" \"$DEST\"; then /bin/rm -rf \"$HOLD\"; exit 1; fi",
-                "echo \"Dimmerly kept the override at $HOLD/file\" >&2",
-                "exit 3",
-            ]
-            return lines.joined(separator: "\n")
-        }
-
-        private static func preferenceFolder(of location: SystemLocation) -> String {
-            URL(fileURLWithPath: location.windowServerDomain).deletingLastPathComponent().path
-        }
-
-        static func sha256Hex(_ data: Data) -> String {
-            SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
-        }
-
-        /// Shell helpers.
-        /// - `trusted`: accepts only a real directory owned by `ownerUID`, with no ACL entry, that
-        ///   group and others can't write to. A metadata read that fails or returns something
-        ///   unexpected rejects the folder.
-        /// - `digest`: prints a file's SHA-256.
-        /// - `publish SRC DEST`: links SRC at DEST without replacing anything, then confirms DEST
-        ///   is that very file. `ln` puts the link inside DEST when DEST is a directory or a link
-        ///   to one, so in that case the stray link is removed and the call fails.
-        static func preamble(ownerUID: UInt32) -> [String] {
-            [
-                "umask 022",
-                "trusted() {",
-                "  [ -d \"$1\" ] && [ ! -L \"$1\" ] || return 1",
-                "  o=$(/usr/bin/stat -f %u \"$1\") || return 1",
-                "  [ \"$o\" = \(ownerUID) ] || return 1",
-                "  m=$(/usr/bin/stat -f %Lp \"$1\") || return 1",
-                "  case \"$m\" in ''|*[!0-7]*) return 1;; esac",
-                "  [ $(( 0$m & 022 )) -eq 0 ] || return 1",
-                // The listing is one line without ACL entries; each entry adds a line.
-                "  l=$(/bin/ls -lde \"$1\") || return 1",
-                "  [ -n \"$l\" ] || return 1",
-                "  [ \"$(printf '%s\\n' \"$l\" | /usr/bin/wc -l | /usr/bin/tr -d ' ')\" = 1 ]",
-                "}",
-                "digest() { /usr/bin/shasum -a 256 < \"$1\" | /usr/bin/cut -d ' ' -f1; }",
-                "publish() {",
-                "  /bin/ln \"$1\" \"$2\" 2>/dev/null || return 1",
-                "  if [ -f \"$2\" ] && [ ! -L \"$2\" ] && [ \"$1\" -ef \"$2\" ]; then return 0; fi",
-                "  stray=\"$2/${1##*/}\"",
-                "  if [ \"$stray\" -ef \"$1\" ]; then /bin/rm -f \"$stray\"; fi",
-                "  return 1",
-                "}",
-            ]
-        }
-
-        /// Puts back a file an interrupted removal left in a holding folder, but only when the
-        /// original path is free. Otherwise the holding folder stays as it is.
-        private static let recoverHeldFiles = [
-            "for H in \"$DIR\"/.dimmerly-hold.*; do",
-            "  [ -d \"$H\" ] && [ ! -L \"$H\" ] && [ -f \"$H/file\" ] && [ ! -L \"$H/file\" ] || continue",
-            "  [ ! -e \"$DEST\" ] && [ ! -L \"$DEST\" ] || continue",
-            "  publish \"$H/file\" \"$DEST\" && /bin/rm -rf \"$H\"",
-            "done",
-        ]
-
-        /// One check per folder from the trusted base down to `directory`. When `create` is set,
-        /// a missing folder is made; an existing one must pass `trusted`.
-        private static func folderChecks(for directory: URL, location: SystemLocation, create: Bool) -> [String]? {
-            let base = location.trustedBase.standardizedFileURL.pathComponents
-            let target = directory.standardizedFileURL.pathComponents
-            guard target.count > base.count, Array(target.prefix(base.count)) == base else { return nil }
-            var checks: [String] = []
-            for count in base.count ... target.count {
-                let path = NSString.path(withComponents: Array(target.prefix(count)))
-                let quoted = shellQuoted(path)
-                if create, count > base.count {
-                    checks.append(
-                        "if [ -e \(quoted) ] || [ -L \(quoted) ]; then trusted \(quoted) || exit 1; "
-                            + "else /bin/mkdir -m 755 \(quoted) && trusted \(quoted) || exit 1; fi"
-                    )
-                } else {
-                    checks.append("trusted \(quoted) || exit 1")
-                }
-            }
-            return checks
+            return root.appendingPathComponent(name)
         }
 
         static func shellQuoted(_ value: String) -> String {
             "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
+        }
+
+        static func sha256Hex(_ data: Data) -> String {
+            HiDPITransaction.sha256Hex(data)
         }
 
         // MARK: Helpers

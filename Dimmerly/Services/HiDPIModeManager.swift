@@ -12,18 +12,22 @@
     import CoreGraphics
     import Foundation
     import os
+    import Security
 
-    /// Runs a shell command as root after the standard macOS administrator prompt.
+    /// Runs one helper request as root after the standard macOS administrator prompt.
     protocol PrivilegedCommandRunning: Sendable {
         /// Returns normally on success. Throws `HiDPIModeError.cancelled` when the user
-        /// dismisses the prompt.
-        func run(_ command: String, prompt: String) async throws
+        /// dismisses the prompt and `HiDPIModeError.held` when the helper left the original
+        /// override aside because its path is taken.
+        func run(_ request: HiDPIHelperCommand.Request, prompt: String) async throws
     }
 
     enum HiDPIModeError: LocalizedError, Equatable {
         case cancelled
         case commandFailed
         case modeSwitchFailed
+        /// An earlier removal kept the original override at `path`, and another file is in its place.
+        case held(path: String)
 
         var errorDescription: String? {
             switch self {
@@ -45,15 +49,29 @@
                     """,
                     comment: "HiDPI settings error shown under a display when changing its size fails"
                 )
+            case let .held(path):
+                String(
+                    localized: """
+                    Dimmerly kept the original display override at \(path) because another file is in its place. \
+                    Move or delete the file in the way, then try again.
+                    """,
+                    comment: """
+                    HiDPI settings error: a removal was interrupted and the original override file \
+                    is kept at the path in the placeholder
+                    """
+                )
             }
         }
     }
 
     /// Asks for the administrator password with AppleScript's `do shell script`, run through
-    /// `osascript` so the app stays responsive while the prompt is open. The command and the
+    /// `osascript` so the app stays responsive while the prompt is open. The script copies the
+    /// helper tool into a fresh folder only root can write, checks the copy against the digest
+    /// and signing team of the one in the app, and runs that copy once. The script and the
     /// prompt are passed as arguments, never spliced into the script source.
     struct AppleScriptPrivilegedRunner: PrivilegedCommandRunning {
-        func run(_ command: String, prompt: String) async throws {
+        func run(_ request: HiDPIHelperCommand.Request, prompt: String) async throws {
+            let command = try HiDPIHelperInvocation.script(for: request)
             let process = Process()
             process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
             process.arguments = [
@@ -88,6 +106,8 @@
                         continuation.resume()
                     } else if output.contains("-128") {
                         continuation.resume(throwing: HiDPIModeError.cancelled)
+                    } else if let path = HiDPIHelperInvocation.heldPath(in: output) {
+                        continuation.resume(throwing: HiDPIModeError.held(path: path))
                     } else {
                         continuation.resume(throwing: HiDPIModeError.commandFailed)
                     }
@@ -100,6 +120,99 @@
                     continuation.resume(throwing: HiDPIModeError.commandFailed)
                 }
             }
+        }
+    }
+
+    /// Builds the root script that runs the helper tool from the app bundle.
+    enum HiDPIHelperInvocation {
+        static let helperName = "DimmerlyHiDPIHelper"
+
+        static func helperURL(in bundle: Bundle = .main) -> URL {
+            bundle.bundleURL.appendingPathComponent("Contents/MacOS/\(helperName)")
+        }
+
+        /// - Parameters:
+        ///   - helper: The helper tool to run.
+        ///   - teamID: The signing team the helper must carry, or nil for a build without one.
+        ///   - scratchRoot: Where root makes its private folder.
+        static func script(
+            for request: HiDPIHelperCommand.Request,
+            helper: URL = helperURL(),
+            teamID: String? = signingTeam(),
+            scratchRoot: String = "/var/db"
+        ) throws -> String {
+            guard let data = try? Data(contentsOf: helper) else { throw HiDPIModeError.commandFailed }
+            if let teamID, !isSigned(helper, byTeam: teamID) {
+                throw HiDPIModeError.commandFailed
+            }
+            return scriptText(
+                arguments: request.arguments, helper: helper, helperDigest: HiDPITransaction.sha256Hex(data),
+                teamID: teamID, scratchRoot: scratchRoot
+            )
+        }
+
+        static func scriptText(
+            arguments: [String], helper: URL, helperDigest: String, teamID: String?, scratchRoot: String
+        ) -> String {
+            let quote = HiDPIOverride.shellQuoted
+            var lines = [
+                "D=$(/usr/bin/mktemp -d \(quote(scratchRoot + "/dimmerly-hidpi.XXXXXXXX"))) || exit 4",
+                "fail() { /bin/rm -rf \"$D\"; echo 'Dimmerly: the helper failed verification' >&2; exit 4; }",
+                "/bin/cp \(quote(helper.path)) \"$D/helper\" || fail",
+                "/usr/sbin/chown \"$(/usr/bin/id -u):$(/usr/bin/id -g)\" \"$D/helper\" || fail",
+                "/bin/chmod 755 \"$D/helper\" || fail",
+                "[ \"$(/usr/bin/shasum -a 256 < \"$D/helper\" | /usr/bin/cut -d ' ' -f1)\" "
+                    + "= \(quote(helperDigest)) ] || fail",
+            ]
+            if let teamID {
+                let requirement = "=anchor apple generic and certificate leaf[subject.OU] = \"\(teamID)\""
+                lines.append("/usr/bin/codesign --verify --strict -R \(quote(requirement)) \"$D/helper\" || fail")
+            }
+            lines += [
+                "\"$D/helper\" " + arguments.map(quote).joined(separator: " "),
+                "rc=$?",
+                "/bin/rm -rf \"$D\"",
+                "exit $rc",
+            ]
+            return lines.joined(separator: "\n")
+        }
+
+        /// The path after the helper's held-original marker in osascript's error text.
+        static func heldPath(in output: String) -> String? {
+            guard let range = output.range(of: HiDPIHelperCommand.heldMarker + " ") else { return nil }
+            let path = output[range.upperBound...].prefix { !$0.isWhitespace && $0 != "\"" && $0 != "(" }
+            return path.isEmpty ? nil : String(path)
+        }
+
+        /// The Team ID the running app is signed with, or nil for an unsigned or ad-hoc build.
+        static func signingTeam() -> String? {
+            var code: SecCode?
+            var staticCode: SecStaticCode?
+            var information: CFDictionary?
+            guard SecCodeCopySelf([], &code) == errSecSuccess, let code,
+                  SecCodeCopyStaticCode(code, [], &staticCode) == errSecSuccess, let staticCode,
+                  SecCodeCopySigningInformation(
+                      staticCode, SecCSFlags(rawValue: kSecCSSigningInformation), &information
+                  ) == errSecSuccess,
+                  let info = information as? [String: Any]
+            else {
+                return nil
+            }
+            return info[kSecCodeInfoTeamIdentifier as String] as? String
+        }
+
+        private static func isSigned(_ file: URL, byTeam teamID: String) -> Bool {
+            var staticCode: SecStaticCode?
+            var requirement: SecRequirement?
+            let text = "anchor apple generic and certificate leaf[subject.OU] = \"\(teamID)\""
+            guard SecStaticCodeCreateWithPath(file as CFURL, [], &staticCode) == errSecSuccess, let staticCode,
+                  SecRequirementCreateWithString(text as CFString, [], &requirement) == errSecSuccess,
+                  let requirement
+            else {
+                return false
+            }
+            return SecStaticCodeCheckValidity(staticCode, SecCSFlags(rawValue: kSecCSStrictValidate), requirement)
+                == errSecSuccess
         }
     }
 
@@ -125,18 +238,11 @@
         private(set) var errors: [CGDirectDisplayID: HiDPIModeError] = [:]
 
         @ObservationIgnored private let runner: PrivilegedCommandRunning
-        @ObservationIgnored private let location: HiDPIOverride.SystemLocation
-        @ObservationIgnored private let defaults: UserDefaults
+        @ObservationIgnored private let overridesRoot: URL
+        /// The helper's root-owned records, which Dimmerly only reads.
+        @ObservationIgnored private let stateRoot: URL
         /// The display names Settings passed last, reused when a change refreshes the list.
         @ObservationIgnored private var names: [CGDirectDisplayID: String] = [:]
-
-        /// Models whose Dimmerly file macOS had read at boot and Dimmerly then removed, keyed
-        /// by `modelKey`, each with that boot's time. Kept in defaults so the state survives
-        /// quitting Dimmerly before the restart.
-        static let removalsKey = "HiDPILoadedOverridesRemovedThisBoot"
-        /// SHA-256 of the file Dimmerly installed, per model. A file that no longer matches has
-        /// been edited by someone else and is left alone.
-        static let installedKey = "HiDPIInstalledOverrideDigests"
 
         /// Settings uses this one, so a change still waiting on the password prompt keeps its
         /// lock when the Settings window closes and opens again.
@@ -144,12 +250,12 @@
 
         init(
             runner: PrivilegedCommandRunning = AppleScriptPrivilegedRunner(),
-            location: HiDPIOverride.SystemLocation = .system,
-            defaults: UserDefaults = .standard
+            overridesRoot: URL = HiDPIOverride.overridesRoot,
+            stateRoot: URL = HiDPIOverride.stateRoot
         ) {
             self.runner = runner
-            self.location = location
-            self.defaults = defaults
+            self.overridesRoot = overridesRoot
+            self.stateRoot = stateRoot
         }
 
         func isBusy(_ display: HiDPIDisplayState) -> Bool {
@@ -168,6 +274,15 @@
         private func refresh() {
             let updated = BrightnessManager.activeDisplayIDs().compactMap { displayID in
                 state(for: displayID, name: names[displayID])
+            }
+            // A removal that was interrupted and can't put the original back stays on screen
+            // until the user clears the way and the next change finishes it.
+            for display in updated {
+                if let path = heldOriginal(display.identity) {
+                    errors[display.id] = .held(path: path)
+                } else if case .held = errors[display.id] {
+                    errors[display.id] = nil
+                }
             }
             if updated != displays {
                 displays = updated
@@ -198,7 +313,7 @@
                 // Another tool's override may have renamed the display "<name> (HiDPI)".
                 name: Self.withoutHiDPISuffix(name ?? DisplayNameResolver.name(for: displayID))
             )
-            let fileURL = HiDPIOverride.fileURL(vendorID: vendorID, productID: productID, root: location.overridesRoot)
+            let fileURL = HiDPIOverride.fileURL(vendorID: vendorID, productID: productID, root: overridesRoot)
             let offered = Set(modes.filter(Self.isHiDPI).map { HiDPISize(width: $0.width, height: $0.height) })
             let expected = HiDPIOverride.scaledSizes(nativeWidth: native.width, nativeHeight: native.height)
             let status = HiDPIOverride.status(
@@ -238,23 +353,12 @@
                 // shows whatever appeared since.
                 guard Self.readOverride(at: self.fileURL(for: display)).ownership == .none else { return }
 
-                let contents = try HiDPIOverride.plistData(for: display.identity)
-                let command = try HiDPIOverride.installCommand(
-                    for: display.identity, contents: contents, location: self.location
+                let request = try HiDPIHelperCommand.Request.install(
+                    vendorID: display.identity.vendorID,
+                    productID: display.identity.productID,
+                    contents: HiDPIOverride.plistData(for: display.identity)
                 )
-                // Recorded before the prompt: if Dimmerly stops or loses the result after the
-                // install lands, the file is still recognised as its own at the next launch.
-                let digest = HiDPIOverride.sha256Hex(contents)
-                self.setInstalledDigest(digest, for: display.identity)
-                defer {
-                    // Whatever the outcome, keep the record only if the file is the one installed.
-                    let landed = Self.readOverride(at: self.fileURL(for: display)).data
-                        .map(HiDPIOverride.sha256Hex) == digest
-                    if !landed {
-                        self.setInstalledDigest(nil, for: display.identity)
-                    }
-                }
-                try await self.runner.run(command, prompt: String(
+                try await self.runner.run(request, prompt: String(
                     localized: "Dimmerly wants to add HiDPI sizes for \(display.identity.name).",
                     comment: "Administrator password prompt when turning on HiDPI; the placeholder is the display name"
                 ))
@@ -265,25 +369,18 @@
         func disable(_ display: HiDPIDisplayState) async {
             guard display.status.action == .turnOff else { return }
             await perform(on: display) {
-                let file = self.fileURL(for: display)
-                let current = self.ownedOverride(at: file, identity: display.identity)
+                let current = self.ownedOverride(at: self.fileURL(for: display), identity: display.identity)
                 guard current.ownership == .dimmerly, let data = current.data else { return }
-                let wasLoaded = Self.predatesBoot(file)
 
-                let command = HiDPIOverride.removeCommand(
+                let request = HiDPIHelperCommand.Request.remove(
                     vendorID: display.identity.vendorID,
                     productID: display.identity.productID,
-                    expectedCurrent: data,
-                    location: self.location
+                    digest: HiDPIOverride.sha256Hex(data)
                 )
-                try await self.runner.run(command, prompt: String(
+                try await self.runner.run(request, prompt: String(
                     localized: "Dimmerly wants to remove HiDPI sizes for \(display.identity.name).",
                     comment: "Administrator password prompt when turning off HiDPI; the placeholder is the display name"
                 ))
-                self.setInstalledDigest(nil, for: display.identity)
-                if wasLoaded {
-                    self.recordLoadedFileRemoval(for: display.identity)
-                }
             }
         }
 
@@ -338,6 +435,8 @@
                 errors[display.id] = nil
             } catch HiDPIModeError.cancelled {
                 // Dismissing the password prompt changes nothing and isn't an error.
+            } catch let error as HiDPIModeError {
+                errors[display.id] = error
             } catch {
                 errors[display.id] = .commandFailed
             }
@@ -347,7 +446,7 @@
             HiDPIOverride.fileURL(
                 vendorID: display.identity.vendorID,
                 productID: display.identity.productID,
-                root: location.overridesRoot
+                root: overridesRoot
             )
         }
 
@@ -367,49 +466,62 @@
             return (data, HiDPIOverride.ownership(ofPlistData: data))
         }
 
-        // MARK: Installed digests
+        /// Identifies a model for the busy lock, the same way the helper keys its own records.
+        static func modelKey(_ identity: HiDPIDisplayIdentity) -> String {
+            HiDPITransaction.Model(vendorID: identity.vendorID, productID: identity.productID).key
+        }
+
+        // MARK: Helper records
 
         /// Like `readOverride`, but a file carrying Dimmerly's marker counts as Dimmerly's only
-        /// while it is byte for byte what Dimmerly installed. Otherwise another tool edited it,
-        /// and it is treated as that tool's.
+        /// while it is byte for byte what the helper installed, as its root-owned record says.
+        /// Otherwise another tool edited it, or Dimmerly never installed it, and it is left alone.
         private func ownedOverride(
             at url: URL, identity: HiDPIDisplayIdentity
         ) -> (data: Data?, ownership: HiDPIOverrideOwnership) {
             let read = Self.readOverride(at: url)
             guard read.ownership == .dimmerly, let data = read.data else { return read }
-            let digests = defaults.dictionary(forKey: Self.installedKey) as? [String: String] ?? [:]
-            guard digests[Self.modelKey(identity)] == HiDPIOverride.sha256Hex(data) else {
+            guard installedDigest(identity) == HiDPIOverride.sha256Hex(data) else {
                 return (data, .other(hiDPIOnly: false))
             }
             return read
         }
 
-        private func setInstalledDigest(_ digest: String?, for identity: HiDPIDisplayIdentity) {
-            var digests = defaults.dictionary(forKey: Self.installedKey) as? [String: String] ?? [:]
-            digests[Self.modelKey(identity)] = digest
-            defaults.set(digests, forKey: Self.installedKey)
+        private func stateFile(_ kind: String, _ identity: HiDPIDisplayIdentity) -> URL {
+            HiDPIOverride.stateFile(
+                kind, vendorID: identity.vendorID, productID: identity.productID, root: stateRoot
+            )
         }
 
-        // MARK: Removals this boot
-
-        static func modelKey(_ identity: HiDPIDisplayIdentity) -> String {
-            "\(String(identity.vendorID, radix: 16))-\(String(identity.productID, radix: 16))"
+        private func installedDigest(_ identity: HiDPIDisplayIdentity) -> String? {
+            guard let text = try? String(contentsOf: stateFile("installed", identity), encoding: .utf8) else {
+                return nil
+            }
+            return text.trimmingCharacters(in: .whitespacesAndNewlines)
         }
 
+        /// The helper writes the boot time here when it removes a file macOS had read at boot.
         private func loadedFileWasRemovedThisBoot(_ identity: HiDPIDisplayIdentity) -> Bool {
-            guard let boot = Self.bootDate?.timeIntervalSince1970 else { return false }
-            let removals = defaults.dictionary(forKey: Self.removalsKey) as? [String: Double] ?? [:]
-            return removals[Self.modelKey(identity)] == boot
+            guard let boot = Self.bootDate?.timeIntervalSince1970,
+                  let text = try? String(contentsOf: stateFile("removed", identity), encoding: .utf8),
+                  let recorded = Int(text.trimmingCharacters(in: .whitespacesAndNewlines))
+            else {
+                return false
+            }
+            return recorded == Int(boot)
         }
 
-        /// Entries from earlier boots are dropped on each write. Nothing clears an entry for the
-        /// current boot: macOS keeps the removed file's sizes until the restart either way.
-        private func recordLoadedFileRemoval(for identity: HiDPIDisplayIdentity) {
-            guard let boot = Self.bootDate?.timeIntervalSince1970 else { return }
-            var removals = (defaults.dictionary(forKey: Self.removalsKey) as? [String: Double] ?? [:])
-                .filter { $0.value == boot }
-            removals[Self.modelKey(identity)] = boot
-            defaults.set(removals, forKey: Self.removalsKey)
+        /// Where the helper keeps the original override of an interrupted removal, when another
+        /// file has taken its path; nil otherwise.
+        private func heldOriginal(_ identity: HiDPIDisplayIdentity) -> String? {
+            guard let data = try? Data(contentsOf: stateFile("record", identity)),
+                  let record = HiDPITransaction.Record(data: data), record.conflict
+            else {
+                return nil
+            }
+            let model = HiDPITransaction.Model(vendorID: identity.vendorID, productID: identity.productID)
+            return overridesRoot.appendingPathComponent(model.vendorFolder)
+                .appendingPathComponent(model.holdName).path
         }
 
         // MARK: Display modes

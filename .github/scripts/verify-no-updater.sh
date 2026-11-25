@@ -32,6 +32,12 @@ while IFS= read -r -d '' framework; do
     fail "bundle contains ${framework#"$bundle"/}"
 done < <(find "$bundle" -name 'Sparkle.framework' -print0)
 
+# The HiDPI helper installs system files as root, which the sandboxed App Store edition can't
+# do and shouldn't carry.
+if [[ -e "$bundle/Contents/MacOS/DimmerlyHiDPIHelper" ]]; then
+    fail "bundle contains the HiDPI helper Contents/MacOS/DimmerlyHiDPIHelper"
+fi
+
 # The bundle must name a main executable that exists; otherwise there's nothing to check.
 main_executable="$(plutil -extract CFBundleExecutable raw -o - "$bundle/Contents/Info.plist" 2>/dev/null || true)"
 if [[ -z "$main_executable" ]]; then
