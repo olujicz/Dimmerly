@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		HT00000000000000000011 /* HiDPIOverrideTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = HT00000000000000000001 /* HiDPIOverrideTests.swift */; };
+		HS00000000000000000011 /* SettingsHiDPISection.swift in Sources */ = {isa = PBXBuildFile; fileRef = HS00000000000000000001 /* SettingsHiDPISection.swift */; };
+		HM00000000000000000011 /* HiDPIModeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = HM00000000000000000001 /* HiDPIModeManager.swift */; };
+		HO00000000000000000011 /* HiDPIOverride.swift in Sources */ = {isa = PBXBuildFile; fileRef = HO00000000000000000001 /* HiDPIOverride.swift */; };
 		SP0000000000000000000002 /* Sparkle.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = SP0000000000000000000001 /* Sparkle.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		05024BFD6B91C5336F8E4CC1 /* AlertPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 473CD46DB2D77DD4EB8463DA /* AlertPresenter.swift */; };
 		34887812E1B9FF228147D4A5 /* KeyboardShortcut.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1B045C3D2AA639266BC0483 /* KeyboardShortcut.swift */; };
@@ -175,6 +179,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		HT00000000000000000001 /* HiDPIOverrideTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiDPIOverrideTests.swift; sourceTree = "<group>"; };
+		HS00000000000000000001 /* SettingsHiDPISection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsHiDPISection.swift; sourceTree = "<group>"; };
+		HM00000000000000000001 /* HiDPIModeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiDPIModeManager.swift; sourceTree = "<group>"; };
+		HO00000000000000000001 /* HiDPIOverride.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiDPIOverride.swift; sourceTree = "<group>"; };
 		SP0000000000000000000001 /* Sparkle.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Sparkle.framework; path = Vendor/Sparkle/Sparkle.framework; sourceTree = SOURCE_ROOT; };
 		15EF8DD088138249EA3B9ED2 /* LaunchAtLoginManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginManager.swift; sourceTree = "<group>"; };
 		473CD46DB2D77DD4EB8463DA /* AlertPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertPresenter.swift; sourceTree = "<group>"; };
@@ -357,6 +365,7 @@
 				SC00000000000000000005 /* ScheduleViews.swift */,
 				VS00000000000000000001 /* SettingsGeneralTab.swift */,
 				VS00000000000000000002 /* SettingsDisplayTab.swift */,
+				HS00000000000000000001 /* SettingsHiDPISection.swift */,
 				VS00000000000000000003 /* SettingsScheduleTab.swift */,
 				VS00000000000000000004 /* SettingsShortcutsTab.swift */,
 				VS00000000000000000005 /* SettingsAboutTab.swift */,
@@ -479,6 +488,8 @@
 				RP00000000000000000002 /* RatingPrompt.swift */,
 				C3F49B65767256F001CAD0B6 /* JSONDefaultsArrayStore.swift */,
 				PT00000000000000000001 /* PollingTimer.swift */,
+				HM00000000000000000001 /* HiDPIModeManager.swift */,
+				HO00000000000000000001 /* HiDPIOverride.swift */,
 				15EF8DD088138249EA3B9ED2 /* LaunchAtLoginManager.swift */,
 				SC00000000000000000003 /* LocationProvider.swift */,
 				4938628BCBDB203349940ACE /* KeyboardShortcutManager.swift */,
@@ -532,6 +543,7 @@
 				HW00000000000000000004 /* DDCControllerTests.swift */,
 				NT00000000000000000020 /* DimmingScheduleTests.swift */,
 				DN00000000000000000002 /* DisplayNameResolverTests.swift */,
+				HT00000000000000000001 /* HiDPIOverrideTests.swift */,
 				T1B2C3D4E5F6A7B8C9D0E300 /* DisplayControllerTests.swift */,
 				HW00000000000000000005 /* HardwareBrightnessManagerTests.swift */,
 				T1B2C3D4E5F6A7B8C9D0E320 /* KeyboardShortcutTests.swift */,
@@ -794,6 +806,7 @@
 				E8A1B2C3D4E5F6A7B8C9D001 /* ScreenBlanker.swift in Sources */,
 				VS00000000000000000011 /* SettingsGeneralTab.swift in Sources */,
 				VS00000000000000000012 /* SettingsDisplayTab.swift in Sources */,
+				HS00000000000000000011 /* SettingsHiDPISection.swift in Sources */,
 				VS00000000000000000013 /* SettingsScheduleTab.swift in Sources */,
 				VS00000000000000000014 /* SettingsShortcutsTab.swift in Sources */,
 				VS00000000000000000015 /* SettingsAboutTab.swift in Sources */,
@@ -836,6 +849,8 @@
 				WW00000000000000000011 /* WorkspaceWakeMonitor.swift in Sources */,
 				SSS000000000000000000011 /* ScreenSleepState.swift in Sources */,
 				PT00000000000000000011 /* PollingTimer.swift in Sources */,
+				HM00000000000000000011 /* HiDPIModeManager.swift in Sources */,
+				HO00000000000000000011 /* HiDPIOverride.swift in Sources */,
 				B384217D3A68010EA915DE22 /* JSONDefaultsArrayStore.swift in Sources */,
 				DC00000000000000000011 /* DDCPacketCodec.swift in Sources */,
 				HW00000000000000000011 /* DDCController.swift in Sources */,
@@ -876,6 +891,7 @@
 				PT00000000000000000012 /* PollingTimerTests.swift in Sources */,
 				DDADD6A8F394B61338B57630 /* JSONDefaultsArrayStoreTests.swift in Sources */,
 				DN00000000000000000012 /* DisplayNameResolverTests.swift in Sources */,
+				HT00000000000000000011 /* HiDPIOverrideTests.swift in Sources */,
 				CT00000000000000000012 /* ColorTemperatureManagerTests.swift in Sources */,
 				HW00000000000000000014 /* DDCControllerTests.swift in Sources */,
 				HW00000000000000000015 /* HardwareBrightnessManagerTests.swift in Sources */,

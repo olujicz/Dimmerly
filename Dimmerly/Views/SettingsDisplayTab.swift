@@ -27,9 +27,23 @@ struct DisplaySettingsTab: View {
 
             #if !APPSTORE
                 hardwareControlSection
+
+                if showsHiDPISection {
+                    HiDPISettingsSection()
+                }
             #endif
         }
         .formStyle(.grouped)
+    }
+
+    /// The HiDPI section lists the real displays and override files, so staged screenshot
+    /// runs leave it out.
+    private var showsHiDPISection: Bool {
+        #if DEBUG
+            !ScreenshotStage.isActive
+        #else
+            true
+        #endif
     }
 
     // MARK: - Dimming

@@ -29734,6 +29734,1994 @@
           }
         }
       }
+    },
+    "Draws external displays below 4K at twice the resolution and scales the image down, so text looks smoother. Changes need your administrator password and a restart." : {
+      "comment" : "Description at the top of the HiDPI section in Settings › Displays",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Zeichnet externe Bildschirme unter 4K mit doppelter Auflösung und skaliert das Bild herunter, damit Text glatter aussieht. Änderungen erfordern dein Administratorpasswort und einen Neustart."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Draws external displays below 4K at twice the resolution and scales the image down, so text looks smoother. Changes need your administrator password and a restart."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dibuja las pantallas externas de menos de 4K al doble de resolución y reduce la imagen para que el texto se vea más suave. Los cambios requieren tu contraseña de administrador y reiniciar."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Affiche les écrans externes de moins de 4K en double résolution, puis réduit l’image pour que le texte soit plus net. Les modifications nécessitent votre mot de passe administrateur et un redémarrage."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Disegna gli schermi esterni sotto il 4K al doppio della risoluzione e riduce l’immagine, così il testo appare più nitido. Le modifiche richiedono la password di amministratore e un riavvio."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "4K未満の外部ディスプレイを2倍の解像度で描画して縮小し、文字をより滑らかに表示します。変更には管理者パスワードと再起動が必要です。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "4K 미만의 외장 디스플레이를 두 배 해상도로 그린 다음 축소하여 텍스트를 더 매끄럽게 표시합니다. 변경하려면 관리자 암호와 재시동이 필요합니다."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tekent externe schermen onder 4K op dubbele resolutie en schaalt het beeld omlaag, zodat tekst er gladder uitziet. Voor wijzigingen zijn je beheerderswachtwoord en een herstart nodig."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Desenha telas externas abaixo de 4K com o dobro da resolução e reduz a imagem, para que o texto fique mais suave. As alterações exigem sua senha de administrador e uma reinicialização."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Iscrtava spoljne ekrane ispod 4K u dvostrukoj rezoluciji i smanjuje sliku, pa tekst izgleda glađe. Za izmene su potrebni tvoja administratorska lozinka i ponovno pokretanje."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "以两倍分辨率绘制低于 4K 的外接显示器，再将画面缩小，使文字显示更平滑。更改需要管理员密码并重新启动。"
+          }
+        }
+      }
+    },
+    "No external display below 4K is connected." : {
+      "comment" : "HiDPI section in Settings when no eligible external display is connected",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Kein externer Bildschirm unter 4K angeschlossen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No external display below 4K is connected."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "No hay ninguna pantalla externa de menos de 4K conectada."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aucun écran externe de moins de 4K n’est connecté."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nessuno schermo esterno sotto il 4K è collegato."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "4K未満の外部ディスプレイが接続されていません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "4K 미만의 외장 디스플레이가 연결되어 있지 않습니다."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Er is geen extern scherm onder 4K aangesloten."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nenhuma tela externa abaixo de 4K está conectada."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nijedan spoljni ekran ispod 4K nije povezan."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "未连接低于 4K 的外接显示器。"
+          }
+        }
+      }
+    },
+    "HiDPI" : {
+      "comment" : "Section header in Settings › Displays; HiDPI is a technical term kept as is",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "HiDPI"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HiDPI"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "HiDPI"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "HiDPI"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "HiDPI"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "HiDPI"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "HiDPI"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "HiDPI"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "HiDPI"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "HiDPI"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "HiDPI"
+          }
+        }
+      }
+    },
+    "Size" : {
+      "comment" : "Picker label in the HiDPI section: the size the display's interface looks like",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Größe"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Size"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tamaño"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Taille"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimensione"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "サイズ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "크기"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Grootte"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tamanho"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Veličina"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "尺寸"
+          }
+        }
+      }
+    },
+    "Native (%@)" : {
+      "comment" : "HiDPI size picker option for the display's native 1x mode; the placeholder is a size such as 1920 × 1080",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nativ (%@)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Native (%@)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nativo (%@)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Native (%@)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nativa (%@)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ネイティブ（%@）"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "기본(%@)"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Oorspronkelijk (%@)"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Nativo (%@)"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Izvorna (%@)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "原生（%@）"
+          }
+        }
+      }
+    },
+    "The size the interface looks like. Smaller sizes make everything larger." : {
+      "comment" : "Help tag on the HiDPI size picker",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wie groß die Oberfläche wirkt. Kleinere Größen zeigen alles größer an."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The size the interface looks like. Smaller sizes make everything larger."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "El tamaño que aparenta la interfaz. Los tamaños más pequeños agrandan todo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "La taille apparente de l’interface. Une taille plus petite agrandit tout."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "La dimensione apparente dell’interfaccia. Dimensioni più piccole ingrandiscono tutto."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "インターフェイスの見た目のサイズです。小さいサイズを選ぶと、すべてが大きく表示されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "인터페이스가 보이는 크기입니다. 크기가 작을수록 모든 항목이 크게 표시됩니다."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Hoe groot de interface eruitziet. Bij een kleinere grootte wordt alles groter."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "O tamanho aparente da interface. Tamanhos menores deixam tudo maior."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Prividna veličina interfejsa. Manja veličina sve prikazuje većim."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "界面看起来的尺寸。尺寸越小，所有内容显示越大。"
+          }
+        }
+      }
+    },
+    "Turn On…" : {
+      "comment" : "Button in the HiDPI section; asks for the administrator password, then installs the override",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Einschalten…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn On…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Activar…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Activer…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Attiva…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "オンにする…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "켜기…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Schakel in…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ativar…"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Uključi…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "打开…"
+          }
+        }
+      }
+    },
+    "Turn Off…" : {
+      "comment" : "Button in the HiDPI section; asks for the administrator password, then removes the override",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ausschalten…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn Off…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Desactivar…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Désactiver…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Disattiva…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "オフにする…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "끄기…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Schakel uit…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Desativar…"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Isključi…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "关闭…"
+          }
+        }
+      }
+    },
+    "Manage in Dimmerly…" : {
+      "comment" : "Button in the HiDPI section; replaces another app's HiDPI override with Dimmerly's",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "In Dimmerly verwalten…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manage in Dimmerly…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gestionar en Dimmerly…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gérer dans Dimmerly…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gestisci in Dimmerly…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerlyで管理…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly에서 관리…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Beheer in Dimmerly…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gerenciar no Dimmerly…"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Upravljaj kroz Dimmerly…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "在 Dimmerly 中管理…"
+          }
+        }
+      }
+    },
+    "Restart your Mac to use the HiDPI sizes." : {
+      "comment" : "HiDPI status after the override file was installed",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Starte deinen Mac neu, um die HiDPI-Größen zu verwenden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart your Mac to use the HiDPI sizes."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Reinicia tu Mac para usar los tamaños HiDPI."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Redémarrez votre Mac pour utiliser les tailles HiDPI."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Riavvia il Mac per usare le dimensioni HiDPI."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "HiDPIサイズを使用するには、Macを再起動してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "HiDPI 크기를 사용하려면 Mac을 재시동하십시오."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Start je Mac opnieuw op om de HiDPI-groottes te gebruiken."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Reinicie o Mac para usar os tamanhos HiDPI."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ponovo pokreni Mac za korišćenje HiDPI veličina."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "请重新启动 Mac 以使用 HiDPI 尺寸。"
+          }
+        }
+      }
+    },
+    "Restart your Mac to finish turning HiDPI off." : {
+      "comment" : "HiDPI status after the override file was removed",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Starte deinen Mac neu, um HiDPI vollständig auszuschalten."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart your Mac to finish turning HiDPI off."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Reinicia tu Mac para terminar de desactivar HiDPI."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Redémarrez votre Mac pour terminer la désactivation de HiDPI."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Riavvia il Mac per completare la disattivazione di HiDPI."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "HiDPIのオフを完了するには、Macを再起動してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "HiDPI 끄기를 완료하려면 Mac을 재시동하십시오."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Start je Mac opnieuw op om HiDPI volledig uit te schakelen."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Reinicie o Mac para concluir a desativação do HiDPI."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ponovo pokreni Mac da se HiDPI potpuno isključi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "请重新启动 Mac 以完成关闭 HiDPI。"
+          }
+        }
+      }
+    },
+    "Another app set up HiDPI for this display." : {
+      "comment" : "HiDPI status when another tool wrote a HiDPI-only override file",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Eine andere App hat HiDPI für dieses Display eingerichtet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Another app set up HiDPI for this display."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Otra app configuró HiDPI para esta pantalla."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Une autre app a configuré HiDPI pour cet écran."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Un’altra app ha configurato HiDPI per questo schermo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "別のアプリがこのディスプレイのHiDPIを設定しています。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "다른 앱이 이 디스플레이의 HiDPI를 설정했습니다."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Een andere app heeft HiDPI voor dit scherm ingesteld."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Outro app configurou o HiDPI para esta tela."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Druga aplikacija je podesila HiDPI za ovaj ekran."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "另一个 App 已为此显示器设置 HiDPI。"
+          }
+        }
+      }
+    },
+    "Another app installed a display override for this display, so Dimmerly leaves it alone." : {
+      "comment" : "HiDPI status when another tool wrote an override file with other settings; Dimmerly does not touch it",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Eine andere App hat für dieses Display eine Display-Überschreibung installiert, daher lässt Dimmerly sie unverändert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Another app installed a display override for this display, so Dimmerly leaves it alone."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Otra app instaló un archivo de anulación para esta pantalla, así que Dimmerly no lo modifica."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Une autre app a installé un fichier de remplacement pour cet écran ; Dimmerly n’y touche donc pas."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Un’altra app ha installato un file di override per questo schermo, quindi Dimmerly non lo modifica."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "別のアプリがこのディスプレイのオーバーライドファイルをインストールしているため、Dimmerlyは変更しません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "다른 앱이 이 디스플레이에 대한 오버라이드 파일을 설치했으므로 Dimmerly는 변경하지 않습니다."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Een andere app heeft een override-bestand voor dit scherm geïnstalleerd, dus Dimmerly laat het ongemoeid."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Outro app instalou um arquivo de substituição para esta tela, então o Dimmerly não o altera."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Druga aplikacija je instalirala datoteku za zamenu podešavanja ovog ekrana, pa je Dimmerly ne menja."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "另一个 App 已为此显示器安装覆盖文件，因此 Dimmerly 不会更改它。"
+          }
+        }
+      }
+    },
+    "Dimmerly wants to add HiDPI sizes for %@." : {
+      "comment" : "Administrator password prompt when turning on HiDPI; the placeholder is the display name",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly möchte HiDPI-Größen für %@ hinzufügen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly wants to add HiDPI sizes for %@."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly quiere añadir tamaños HiDPI para %@."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly souhaite ajouter des tailles HiDPI pour %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly vuole aggiungere le dimensioni HiDPI per %@."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerlyが%@のHiDPIサイズを追加しようとしています。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly에서 %@ 디스플레이에 HiDPI 크기를 추가하려고 합니다."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly wil HiDPI-groottes toevoegen voor %@."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "O Dimmerly quer adicionar tamanhos HiDPI para %@."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly želi da doda HiDPI veličine za ekran %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly 想要为“%@”添加 HiDPI 尺寸。"
+          }
+        }
+      }
+    },
+    "Dimmerly wants to remove HiDPI sizes for %@." : {
+      "comment" : "Administrator password prompt when turning off HiDPI; the placeholder is the display name",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly möchte HiDPI-Größen für %@ entfernen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly wants to remove HiDPI sizes for %@."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly quiere eliminar los tamaños HiDPI de %@."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly souhaite supprimer les tailles HiDPI pour %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly vuole rimuovere le dimensioni HiDPI per %@."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerlyが%@のHiDPIサイズを削除しようとしています。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly에서 %@ 디스플레이의 HiDPI 크기를 제거하려고 합니다."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly wil HiDPI-groottes verwijderen voor %@."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "O Dimmerly quer remover os tamanhos HiDPI de %@."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly želi da ukloni HiDPI veličine za ekran %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly 想要移除“%@”的 HiDPI 尺寸。"
+          }
+        }
+      }
+    },
+    "Changing HiDPI for %@" : {
+      "comment" : "VoiceOver label for the spinner while a HiDPI change for a display is in progress; the placeholder is the display name",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "HiDPI für %@ wird geändert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Changing HiDPI for %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Cambiando HiDPI de %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Modification de HiDPI pour %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Modifica di HiDPI per %@ in corso"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@のHiDPIを変更中"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ 디스플레이의 HiDPI 변경 중"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "HiDPI voor %@ wordt gewijzigd"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Alterando o HiDPI de %@"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Menja se HiDPI za ekran %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "正在更改“%@”的 HiDPI"
+          }
+        }
+      }
+    },
+    "Turn On HiDPI for %@" : {
+      "comment" : "VoiceOver label for the Turn On… button; the placeholder is the display name",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "HiDPI für %@ einschalten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn On HiDPI for %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Activar HiDPI para %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Activer HiDPI pour %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Attiva HiDPI per %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@のHiDPIをオンにする"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ 디스플레이의 HiDPI 켜기"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Schakel HiDPI in voor %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ativar HiDPI para %@"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Uključi HiDPI za ekran %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "为“%@”打开 HiDPI"
+          }
+        }
+      }
+    },
+    "Turn Off HiDPI for %@" : {
+      "comment" : "VoiceOver label for the Turn Off… button; the placeholder is the display name",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "HiDPI für %@ ausschalten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn Off HiDPI for %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Desactivar HiDPI para %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Désactiver HiDPI pour %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Disattiva HiDPI per %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@のHiDPIをオフにする"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ 디스플레이의 HiDPI 끄기"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Schakel HiDPI uit voor %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Desativar HiDPI para %@"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Isključi HiDPI za ekran %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "为“%@”关闭 HiDPI"
+          }
+        }
+      }
+    },
+    "Manage HiDPI for %@ in Dimmerly" : {
+      "comment" : "VoiceOver label for the Manage in Dimmerly… button; the placeholder is the display name",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "HiDPI für %@ in Dimmerly verwalten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manage HiDPI for %@ in Dimmerly"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gestionar HiDPI de %@ en Dimmerly"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gérer HiDPI pour %@ dans Dimmerly"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gestisci HiDPI per %@ in Dimmerly"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@のHiDPIをDimmerlyで管理"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly에서 %@ 디스플레이의 HiDPI 관리"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Beheer HiDPI voor %@ in Dimmerly"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gerenciar o HiDPI de %@ no Dimmerly"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Upravljaj HiDPI podešavanjem za ekran %@ kroz Dimmerly"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "在 Dimmerly 中管理“%@”的 HiDPI"
+          }
+        }
+      }
+    },
+    "Size for %@" : {
+      "comment" : "VoiceOver label for the HiDPI size picker; the placeholder is the display name",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Größe für %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Size for %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tamaño de %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Taille pour %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimensione per %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@のサイズ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ 디스플레이 크기"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Grootte voor %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Tamanho de %@"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Veličina za ekran %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "“%@”的尺寸"
+          }
+        }
+      }
+    },
+    "%@ (low resolution)" : {
+      "comment" : "HiDPI size picker: the display runs a blurry 1x mode that isn't native; the placeholder is a size such as 1600 × 900",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ (niedrige Auflösung)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (low resolution)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ (baja resolución)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ (basse résolution)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ (bassa risoluzione)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@（低解像度）"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@(저해상도)"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ (lage resolutie)"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ (baixa resolução)"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ (niska rezolucija)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@（低分辨率）"
+          }
+        }
+      }
+    },
+    "%@ (More space)" : {
+      "comment" : "HiDPI size picker: the largest size, which fits the most on screen; the placeholder is a size such as 1856 × 1044",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ (Mehr Platz)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (More space)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ (Más espacio)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ (Plus d’espace)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ (Più spazio)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@（スペースを拡大）"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@(더 많은 공간)"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ (Meer ruimte)"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ (Mais espaço)"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ (Više prostora)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@（更多空间）"
+          }
+        }
+      }
+    },
+    "%@ (Larger text)" : {
+      "comment" : "HiDPI size picker: the smallest size, which shows everything largest; the placeholder is a size such as 1472 × 828",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ (Größerer Text)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (Larger text)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ (Texto más grande)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ (Texte plus grand)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ (Testo più grande)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@（文字を拡大）"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@(더 큰 텍스트)"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ (Grotere tekst)"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ (Texto maior)"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ (Veći tekst)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@（更大字体）"
+          }
+        }
+      }
+    },
+    "The HiDPI change didn’t complete. Try again, and enter the password of an administrator account." : {
+      "comment" : "HiDPI settings error shown under a display when installing or removing the override fails",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Die HiDPI-Änderung wurde nicht abgeschlossen. Versuche es erneut und gib das Passwort eines Administratoraccounts ein."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The HiDPI change didn’t complete. Try again, and enter the password of an administrator account."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "El cambio de HiDPI no se completó. Vuelve a intentarlo e introduce la contraseña de una cuenta de administrador."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "La modification HiDPI n’a pas abouti. Réessayez et saisissez le mot de passe d’un compte administrateur."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "La modifica HiDPI non è stata completata. Riprova e inserisci la password di un account amministratore."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "HiDPIの変更を完了できませんでした。管理者アカウントのパスワードを入力して、もう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "HiDPI 변경을 완료하지 못했습니다. 관리자 계정의 암호를 입력하여 다시 시도하십시오."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "De HiDPI-wijziging is niet voltooid. Probeer het opnieuw en voer het wachtwoord van een beheerdersaccount in."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "A alteração do HiDPI não foi concluída. Tente novamente e digite a senha de uma conta de administrador."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "HiDPI izmena nije dovršena. Pokušaj ponovo i unesi lozinku administratorskog naloga."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "HiDPI 更改未完成。请输入管理员账户的密码后重试。"
+          }
+        }
+      }
+    },
+    "macOS didn’t switch to that size. Try another size, or choose one in System Settings > Displays." : {
+      "comment" : "HiDPI settings error shown under a display when changing its size fails",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "macOS hat nicht auf diese Größe umgestellt. Probiere eine andere Größe oder wähle eine in Systemeinstellungen > Displays."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS didn’t switch to that size. Try another size, or choose one in System Settings > Displays."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "macOS no cambió a ese tamaño. Prueba otro tamaño o elige uno en Ajustes del Sistema > Pantallas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "macOS n’a pas pu passer à cette taille. Essayez une autre taille ou choisissez-en une dans Réglages Système > Moniteurs."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "macOS non è passato a questa dimensione. Prova un’altra dimensione o scegline una in Impostazioni di Sistema > Monitor."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "macOSはこのサイズに切り替えませんでした。別のサイズを試すか、システム設定 > ディスプレイで選択してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "macOS가 해당 크기로 전환하지 않았습니다. 다른 크기를 시도하거나 시스템 설정 > 디스플레이에서 선택하십시오."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "macOS is niet naar die grootte overgeschakeld. Probeer een andere grootte of kies er een in Systeeminstellingen > Beeldschermen."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "O macOS não mudou para esse tamanho. Tente outro tamanho ou escolha um em Ajustes do Sistema > Telas."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "macOS nije prebacio na tu veličinu. Probaj drugu veličinu ili je izaberi u Sistemskim podešavanjima > Ekrani."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "macOS 未切换到该尺寸。请尝试其他尺寸，或在“系统设置 > 显示器”中选择。"
+          }
+        }
+      }
+    },
+    "Off" : {
+      "comment" : "HiDPI status beside a display name: Dimmerly’s HiDPI sizes are off for it",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aus"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Desactivado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Désactivé"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Disattivo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "オフ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "끔"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Uit"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Desativado"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Isključeno"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "已关闭"
+          }
+        }
+      }
+    },
+    "macOS didn’t use the HiDPI sizes for this display. Turn HiDPI off to remove the file." : {
+      "comment" : "HiDPI note when the override was installed before the last restart but macOS ignores it, as some docks and adapters do",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "macOS hat die HiDPI-Größen für dieses Display nicht übernommen. Schalte HiDPI aus, um die Datei zu entfernen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS didn’t use the HiDPI sizes for this display. Turn HiDPI off to remove the file."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "macOS no usó los tamaños HiDPI para esta pantalla. Desactiva HiDPI para eliminar el archivo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "macOS n’a pas utilisé les tailles HiDPI pour cet écran. Désactivez HiDPI pour supprimer le fichier."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "macOS non ha usato le dimensioni HiDPI per questo schermo. Disattiva HiDPI per rimuovere il file."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "macOSはこのディスプレイでHiDPIサイズを使用しませんでした。ファイルを削除するには、HiDPIをオフにしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "macOS가 이 디스플레이에 HiDPI 크기를 사용하지 않았습니다. 파일을 제거하려면 HiDPI를 끄십시오."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "macOS heeft de HiDPI-groottes voor dit scherm niet gebruikt. Schakel HiDPI uit om het bestand te verwijderen."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "O macOS não usou os tamanhos HiDPI para esta tela. Desative o HiDPI para remover o arquivo."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "macOS nije koristio HiDPI veličine za ovaj ekran. Isključi HiDPI da bi se datoteka uklonila."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "macOS 未对此显示器使用 HiDPI 尺寸。请关闭 HiDPI 以移除该文件。"
+          }
+        }
+      }
+    },
+    "Applies to all displays of this model." : {
+      "comment" : "HiDPI note under a display when an identical monitor is also connected; both share one override file",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gilt für alle Displays dieses Modells."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Applies to all displays of this model."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Se aplica a todas las pantallas de este modelo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "S’applique à tous les écrans de ce modèle."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Si applica a tutti gli schermi di questo modello."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "このモデルのすべてのディスプレイに適用されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "이 모델의 모든 디스플레이에 적용됩니다."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Geldt voor alle schermen van dit model."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vale para todas as telas deste modelo."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Važi za sve ekrane ovog modela."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "适用于此型号的所有显示器。"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"
