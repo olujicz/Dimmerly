@@ -590,19 +590,14 @@
                 return nil
             }
             let lines = text.split(separator: "\n").map(String.init)
-            guard lines.count == 2, lines[1].hasPrefix("id=") else { return nil }
+            guard lines.count == 2, lines[1].hasPrefix("id=\(HiDPITransaction.identityPrefix)") else { return nil }
             return (lines[0], String(lines[1].dropFirst(3)))
         }
 
-        /// `device:inode`, in the form the helper records; nil when the file can't be inspected.
+        /// The file's identity in the form the helper records (volume UUID and inode); nil when it
+        /// can't be determined, which never matches a record.
         private static func fileIdentity(of url: URL) -> String? {
-            guard let attributes = try? FileManager.default.attributesOfItem(atPath: url.path),
-                  let device = attributes[.systemNumber] as? Int,
-                  let inode = attributes[.systemFileNumber] as? Int
-            else {
-                return nil
-            }
-            return "\(device):\(inode)"
+            HiDPITransaction.identity(ofPath: url.path)
         }
 
         /// The helper writes the boot time here when it removes a file macOS had read at boot.

@@ -42,6 +42,10 @@
             /// moment or to stop dead, as a crash would.
             var checkpoint: (Step) throws -> Void = { _ in }
             /// Removes a staging file; tests replace it to make the call fail with a chosen errno.
+            /// The persistent identifier of the volume a descriptor is on. Tests replace it.
+            var volumeUUID: (Int32) throws -> String = { try HiDPITransaction.volumeUUID(of: $0) }
+            /// Applied to every `stat` the identity is built from; tests use it to renumber the device.
+            var adjustStat: (inout stat) -> Void = { _ in }
             var unlinkStage: (Int32, String) -> Int32 = { unlinkat($0, $1, 0) }
 
             static var system: Configuration {
@@ -212,7 +216,9 @@
             }
             guard context.hasVendor else { return .refused("there is no override folder for this display") }
 
-            guard let current = try readRegular(context.vendorFD, model.productFile, maximum: maximumFileSize) else {
+            guard let current = try readRegular(
+                context.vendorFD, model.productFile, maximum: maximumFileSize, identifiedBy: configuration
+            ) else {
                 return .refused("the override file is missing or isn't a regular file")
             }
             // Only the very file this helper published: its own root-owned record names the digest
@@ -262,7 +268,9 @@
             var isExpected = false
             // A read that fails for any reason but "it isn't a regular file" throws, leaving the
             // journal: the held entry is only deleted when it is positively the published file.
-            if let held = try readRegular(context.vendorFD, model.holdName, maximum: maximumFileSize) {
+            if let held = try readRegular(
+                context.vendorFD, model.holdName, maximum: maximumFileSize, identifiedBy: context.configuration
+            ) {
                 isExpected = !identity.isEmpty && held.identity == identity && sha256Hex(held.data) == expectedDigest
             }
 
@@ -322,7 +330,10 @@
                 try context.sync(context.vendorFD, "vendor")
                 // Ownership is claimed only for the very file that was staged (same identity, same
                 // bytes). A read that fails throws, so the journal stays until it can be answered.
-                if let current = try readRegular(context.vendorFD, model.productFile, maximum: maximumFileSize),
+                if let current = try readRegular(
+                       context.vendorFD, model.productFile, maximum: maximumFileSize,
+                       identifiedBy: context.configuration
+                   ),
                    !record.identity.isEmpty, current.identity == record.identity,
                    sha256Hex(current.data) == record.digest
                 {
@@ -389,9 +400,44 @@
             return (info.st_mode & S_IFMT) == S_IFREG ? .regular : .other
         }
 
-        /// A file's identity on its volume; a rename keeps it.
-        private static func identity(of info: stat) -> String {
-            "\(info.st_dev):\(info.st_ino)"
+        /// A file's identity: the volume's persistent UUID and the file's inode, version-tagged.
+        /// The device number in `stat` can change from one boot to the next, so it is never part of
+        /// it. Anything that can't be determined throws, so an unknown identity never matches.
+        static let identityPrefix = "v2:"
+
+        private static func identity(of fd: Int32, _ info: stat, _ configuration: Configuration) throws -> String {
+            var adjusted = info
+            configuration.adjustStat(&adjusted)
+            let volume = try configuration.volumeUUID(fd)
+            guard !volume.isEmpty, adjusted.st_ino != 0 else { throw Failure.io("couldn't identify a file") }
+            return "\(identityPrefix)\(volume):\(adjusted.st_ino)"
+        }
+
+        /// The UUID of the volume `fd` is on (`ATTR_VOL_UUID`), which survives renumbering of the
+        /// device across restarts. Throws when the volume has none or it can't be read.
+        static func volumeUUID(of fd: Int32) throws -> String {
+            var request = attrlist()
+            request.bitmapcount = u_short(ATTR_BIT_MAP_COUNT)
+            request.volattr = attrgroup_t(ATTR_VOL_INFO) | attrgroup_t(ATTR_VOL_UUID)
+            // A length, then the 16-byte UUID.
+            var buffer = [UInt8](repeating: 0, count: 4 + 16)
+            guard fgetattrlist(fd, &request, &buffer, buffer.count, 0) == 0 else {
+                throw Failure.io("couldn't read the volume's identifier (\(errno))")
+            }
+            let uuid = Array(buffer[4 ..< 20])
+            guard uuid.contains(where: { $0 != 0 }) else { throw Failure.io("the volume has no identifier") }
+            return NSUUID(uuidBytes: uuid).uuidString
+        }
+
+        /// The identity of the file at `path`, or nil if it can't be determined. Settings uses this to
+        /// compare with the helper's record, so both sides build it the same way.
+        static func identity(ofPath path: String, configuration: Configuration = .system) -> String? {
+            let fd = open(path, O_RDONLY | O_NOFOLLOW | O_CLOEXEC)
+            guard fd >= 0 else { return nil }
+            defer { close(fd) }
+            var info = stat()
+            guard fstat(fd, &info) == 0, (info.st_mode & S_IFMT) == S_IFREG else { return nil }
+            return try? identity(of: fd, info, configuration)
         }
 
         /// A regular file's bytes and identity, read from one descriptor without following links.
@@ -399,7 +445,7 @@
         /// failure to open, inspect or read it throws, so callers never mistake a transient error for
         /// "not ours" or "not there".
         private static func readRegular(
-            _ directory: Int32, _ name: String, maximum: Int
+            _ directory: Int32, _ name: String, maximum: Int, identifiedBy configuration: Configuration? = nil
         ) throws -> (data: Data, identity: String)? {
             let fd = openat(directory, name, O_RDONLY | O_NOFOLLOW | O_CLOEXEC)
             if fd < 0 {
@@ -427,7 +473,7 @@
                     return nil
                 }
             }
-            return (data, identity(of: info))
+            return try (data, configuration.map { try identity(of: fd, info, $0) } ?? "")
         }
 
         static func installedText(digest: String, identity: String) -> Data {
@@ -440,7 +486,8 @@
                 return nil
             }
             let lines = (String(bytes: file.data, encoding: .utf8) ?? "").split(separator: "\n").map(String.init)
-            guard lines.count == 2, lines[0].count == 64, lines[1].hasPrefix("id=") else { return nil }
+            // A record without the current identity format (from an earlier build) is not adopted.
+            guard lines.count == 2, lines[0].count == 64, lines[1].hasPrefix("id=\(identityPrefix)") else { return nil }
             return (lines[0], String(lines[1].dropFirst(3)))
         }
 
@@ -462,7 +509,7 @@
             guard fsync(fd) == 0 else { throw Failure.io("couldn't save the staging file") }
             var info = stat()
             guard fstat(fd, &info) == 0 else { throw Failure.io("couldn't read the staging file") }
-            return identity(of: info)
+            return try identity(of: fd, info, context.configuration)
         }
 
         fileprivate static func writeAll(_ fd: Int32, _ data: Data) throws {

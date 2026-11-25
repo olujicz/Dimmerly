@@ -55,6 +55,8 @@
         fileprivate var preference = FakePreference(nil)
         nonisolated(unsafe) var checkpoint: (HiDPITransaction.Step) throws -> Void = { _ in }
         nonisolated(unsafe) var stageHook: ((Int32, String) -> Int32)?
+        nonisolated(unsafe) var volumeHook: ((Int32) throws -> String)?
+        nonisolated(unsafe) var statHook: ((inout stat) -> Void)?
 
         override func setUpWithError() throws {
             base = try URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
@@ -64,6 +66,8 @@
             preference = FakePreference(nil)
             checkpoint = { _ in }
             stageHook = nil
+            volumeHook = nil
+            statHook = nil
         }
 
         override func tearDownWithError() throws {
@@ -118,6 +122,12 @@
             if let stageHook {
                 configuration.unlinkStage = stageHook
             }
+            if let volumeHook {
+                configuration.volumeUUID = volumeHook
+            }
+            if let statHook {
+                configuration.adjustStat = statHook
+            }
             return configuration
         }
 
@@ -155,12 +165,9 @@
                 .map { String($0.dropFirst(3)) }
         }
 
-        /// `device:inode` as the helper records it.
+        /// The file's identity as the helper records it (volume UUID and inode).
         func fileIdentity(_ url: URL) throws -> String {
-            let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
-            let device = try XCTUnwrap(attributes[.systemNumber] as? Int)
-            let inode = try XCTUnwrap(attributes[.systemFileNumber] as? Int)
-            return "\(device):\(inode)"
+            try XCTUnwrap(HiDPITransaction.identity(ofPath: url.path))
         }
 
         func state(_ name: String) -> String? {
@@ -842,6 +849,103 @@
             XCTAssertEqual(try Data(contentsOf: file()), identical)
             XCTAssertNil(state(model().recordName))
             XCTAssertEqual(names(in: vendorFolder), [model().productFile])
+        }
+
+        // MARK: Identity that survives a renumbered device
+
+        func testTheIdentityUsesThePersistentVolumeUUIDNotTheDeviceNumber() throws {
+            let uuid = try XCTUnwrap(
+                try base.resourceValues(forKeys: [.volumeUUIDStringKey]).volumeUUIDString
+            )
+            let fd = open(base.path, O_RDONLY)
+            defer { close(fd) }
+            XCTAssertEqual(try HiDPITransaction.volumeUUID(of: fd), uuid)
+
+            XCTAssertEqual(try install(), .done)
+            let identity = try XCTUnwrap(installedIdentity())
+            XCTAssertTrue(identity.hasPrefix("v2:\(uuid):"), identity)
+            XCTAssertEqual(identity, try fileIdentity(file()))
+        }
+
+        func testRemovalAndRecoveryStillWorkAfterTheDeviceNumberChanges() throws {
+            XCTAssertEqual(try install(), .done)
+            statHook = { $0.st_dev &+= 7 } // as after a restart that numbers the volume differently
+            XCTAssertEqual(try remove(), .done)
+            XCTAssertFalse(FileManager.default.fileExists(atPath: file().path))
+            statHook = nil
+
+            crash(at: .afterInstallPublish)
+            XCTAssertThrowsError(try install())
+            checkpoint = { _ in }
+            statHook = { $0.st_dev &+= 11 }
+            XCTAssertEqual(try recover(), .done)
+            XCTAssertNotNil(installedDigest(), "the published file was recognised after the renumbering")
+            XCTAssertEqual(try remove(), .done)
+        }
+
+        func testAFileOnADifferentVolumeIdentityIsNeverTreatedAsOwned() throws {
+            XCTAssertEqual(try install(), .done)
+            volumeHook = { _ in "00000000-0000-0000-0000-00000000ABCD" }
+            guard case .refused = try remove() else { return XCTFail("expected a refusal") }
+            XCTAssertEqual(try Data(contentsOf: file()), try contents())
+        }
+
+        func testRecoveryUnderADifferentVolumeNeverClaimsAFile() throws {
+            crash(at: .afterInstallPublish)
+            XCTAssertThrowsError(try install())
+            checkpoint = { _ in }
+            volumeHook = { _ in "00000000-0000-0000-0000-00000000ABCD" }
+            XCTAssertEqual(try recover(), .done)
+            XCTAssertNil(state(model().installedName))
+            XCTAssertEqual(try Data(contentsOf: file()), try contents())
+        }
+
+        func testAnIdentityThatCantBeDeterminedFailsClosed() throws {
+            volumeHook = { _ in throw HiDPITransaction.Failure.io("no volume identifier") }
+            XCTAssertThrowsError(try install())
+            XCTAssertFalse(FileManager.default.fileExists(atPath: file().path))
+
+            volumeHook = nil
+            XCTAssertEqual(try install(), .done)
+            volumeHook = { _ in throw HiDPITransaction.Failure.io("no volume identifier") }
+            XCTAssertThrowsError(try remove())
+            XCTAssertNil(state(model().recordName), "nothing was journaled or moved")
+            XCTAssertEqual(try Data(contentsOf: file()), try contents())
+            volumeHook = nil
+            XCTAssertEqual(try remove(), .done)
+        }
+
+        func testAnIdentityThatFailsDuringRecoveryKeepsTheJournal() throws {
+            crash(at: .afterInstallPublish)
+            XCTAssertThrowsError(try install())
+            checkpoint = { _ in }
+            volumeHook = { _ in throw HiDPITransaction.Failure.io("no volume identifier") }
+            XCTAssertThrowsError(try recover())
+            XCTAssertNotNil(state(model().recordName))
+
+            volumeHook = nil
+            XCTAssertEqual(try recover(), .done)
+            XCTAssertNotNil(installedDigest())
+        }
+
+        func testRecordsFromAnEarlierPRBuildAreNotAdopted() throws {
+            XCTAssertEqual(try install(), .done)
+            let digest = try XCTUnwrap(installedDigest())
+            // The earlier format: device number and inode.
+            let legacy = "\(digest)\nid=16777234:1234\n"
+            try Data(legacy.utf8).write(to: stateRoot.appendingPathComponent(model().installedName))
+
+            guard case .refused = try remove() else { return XCTFail("expected a refusal") }
+            XCTAssertEqual(try Data(contentsOf: file()), try contents(), "the live file is never deleted")
+
+            // A legacy install journal doesn't claim the file either.
+            try FileManager.default.removeItem(at: stateRoot.appendingPathComponent(model().installedName))
+            let journal = "op=install\ndigest=\(digest)\nloaded=0\nconflict=0\nid=16777234:1234\n"
+            try Data(journal.utf8).write(to: stateRoot.appendingPathComponent(model().recordName))
+            XCTAssertEqual(try recover(), .done)
+            XCTAssertNil(state(model().installedName))
+            XCTAssertNil(state(model().recordName))
+            XCTAssertEqual(try Data(contentsOf: file()), try contents())
         }
 
         // MARK: Durability across recovery
@@ -1570,6 +1674,27 @@
             await makeManager { _ in calls.increment() }.disable(row(id: 1, status: .on))
             XCTAssertEqual(calls.count, 0)
             XCTAssertEqual(try Data(contentsOf: file()), identical)
+        }
+
+        func testTurnOffStillWorksAfterTheDeviceNumberChangesAndRefusesAnEarlierBuildsRecord() async throws {
+            let installer = makeManager()
+            await installer.enable(row(id: 1, status: .off))
+            let calls = CallCounter()
+
+            // Settings compares the volume UUID and inode, so a device number that changed after a
+            // restart doesn't matter; a record in the earlier format does not match.
+            statHook = { $0.st_dev &+= 5 }
+            await makeManager().disable(row(id: 1, status: .on))
+            XCTAssertFalse(FileManager.default.fileExists(atPath: file().path))
+
+            statHook = nil
+            await installer.enable(row(id: 1, status: .off))
+            let digest = try XCTUnwrap(installedDigest())
+            try Data("\(digest)\nid=16777234:1\n".utf8)
+                .write(to: stateRoot.appendingPathComponent(model().installedName))
+            await makeManager { _ in calls.increment() }.disable(row(id: 1, status: .on))
+            XCTAssertEqual(calls.count, 0)
+            XCTAssertTrue(FileManager.default.fileExists(atPath: file().path))
         }
 
         func testCancellingThePasswordPromptChangesNothingAndShowsNoError() async {
