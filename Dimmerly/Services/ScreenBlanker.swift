@@ -195,9 +195,11 @@ final class ScreenBlanker {
     /// still on, a press on a dark display's overlay has nothing else to catch it. Once the
     /// monitor is armed (or a global session runs) it owns wake input, grace period included, and
     /// the press is left to it. The same grace period as the other wakes applies, so the click
-    /// that blanked the display cannot immediately wake it again.
+    /// that blanked the display cannot immediately wake it again. An Escape-only setting (direct
+    /// edition) ignores the press, as it did before overlays reported clicks.
     func overlayWasPressed(_ displayID: CGDirectDisplayID) {
-        guard !state.isGlobal,
+        guard !wakesOnlyOnEscape,
+              !state.isGlobal,
               !state.recoveryArmed,
               state.perDisplayCovered.contains(displayID),
               clock.now - (state.perDisplayBlankedAt[displayID] ?? activationTime) >= gracePeriod
@@ -427,7 +429,11 @@ final class ScreenBlanker {
 
     private func updatePerDisplayWakeHints() {
         #if !APPSTORE
-            let hint: BlankingOverlayWakeHint? = state.recoveryArmed ? (wakesOnlyOnEscape ? .escape : nil) : .click
+            let hint: BlankingOverlayWakeHint? = switch (state.recoveryArmed, wakesOnlyOnEscape) {
+            case (true, true): .escape
+            case (false, false): .click
+            default: nil
+            }
             for displayID in state.perDisplayCovered.sorted() {
                 windows.setWakeHint(hint, for: displayID)
             }
@@ -452,6 +458,23 @@ final class ScreenBlanker {
             return nil
         }
         return alreadyCovered.union(readyDisplayIDs)
+    }
+
+    /// How a display dimmed from the menu can be woken, mirroring the sessions' behavior: a click
+    /// reaches it only in partial coverage without Escape only (`overlayWasPressed`), and the
+    /// keyboard monitor, which honors Escape only, runs only once every display is covered.
+    enum DimWakeInstruction: Equatable {
+        /// Click the display now; any key once every display is black.
+        case clickOrAnyKey
+        /// Escape only with other displays still on: restore it from the menu; Esc once all are black.
+        case restoreFromMenuThenEscape
+        /// Escape only and this display is the last one on: Esc.
+        case escape
+    }
+
+    static func dimWakeInstruction(wakesOnlyOnEscape: Bool, completesCoverage: Bool) -> DimWakeInstruction {
+        guard wakesOnlyOnEscape else { return .clickOrAnyKey }
+        return completesCoverage ? .escape : .restoreFromMenuThenEscape
     }
 
     static func shouldEnablePerDisplayRecovery(

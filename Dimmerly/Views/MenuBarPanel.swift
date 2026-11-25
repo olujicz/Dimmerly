@@ -391,6 +391,10 @@ private struct MenuBarDisplaySliders: View {
             DisplayBrightnessRow(
                 display: display,
                 isBlanked: ScreenBlanker.shared.isDisplayBlanked(display.id),
+                dimmingCompletesCoverage: ScreenBlanker.shouldEnablePerDisplayRecovery(
+                    blankedDisplayIDs: ScreenBlanker.shared.blankedDisplayIDs.union([display.id]),
+                    activeDisplayIDs: brightnessManager.displays.map(\.id)
+                ),
                 isAutoColorTemp: colorTempManager.isActive,
                 onChange: { newValue in
                     brightnessManager.setBrightness(for: display.id, to: newValue)

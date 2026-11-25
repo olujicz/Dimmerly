@@ -7,16 +7,13 @@ Semantic Versioning.
 
 ## [Unreleased]
 
-### Added
-- Dimmerly and its widget are available in Russian.
-
 ## [1.5.1] - Unreleased
 
 ### Added
 - The App Store edition asks for a rating at most once per version, and only after you have used Dimmerly for a week, applied presets on at least three days, and closed the menu bar panel. It never asks on first launch, while a display is blanked, or while the panel is open. Nothing about your use leaves your Mac. The direct download never asks.
 
 ### Changed
-- In the App Store edition, dimmed displays now wake with any key or click. The "Escape key only" option is gone there: Mission Control and other system overviews take the Esc key, which could leave a dimmed screen with no way to wake it. If you dim only one display, click its black screen to wake it, and the VoiceOver hint on the dim button says so. If you had chosen Escape only, Dimmerly turns on "Ignore mouse movement" for you instead. The direct download keeps both options. Translated in every shipped language.
+- In the App Store edition, dimmed displays now wake with any key or click. The "Escape key only" option is gone there: Mission Control and other system overviews take the Esc key, which could leave a dimmed screen with no way to wake it. If you dim only one display, click its black screen to wake it, and the VoiceOver hint on the dim button says so. If you had chosen Escape only, Dimmerly turns on "Ignore mouse movement" for you instead. The direct download keeps both options: with Escape only chosen and other displays still on, a click on a dimmed display does nothing, it shows no hint, and you restore it from the menu (the dim button's VoiceOver hint says so); once every display is black, including a Mac with one display, Esc wakes them and the screens say "Press Esc to wake". With Escape only off, a click wakes a dimmed display while another is on, and it says "Click to wake". Translated in every shipped language.
 
 ### Fixed
 - A brightness, warmth or contrast change made just before a monitor is unplugged is saved with that monitor and is back when it reconnects, even under a different display ID.

@@ -397,12 +397,14 @@
           "Dimmerly could not dim the selected display.",
           "Restore Display",
           "Restores the display to its previous brightness",
-          "Turns the display black. Click it to wake it while another display is on. Press Esc when all displays are black."
+          "Turns the display black. While another display is on, restore it from the menu. Press Esc once every display is black.",
+          "Turns the display black. Press Esc to wake it."
         ],
         "es": [
           "Click to wake",
           "Dimmerly could not dim the selected display.",
-          "Turns the display black. Click it to wake it while another display is on. Press Esc when all displays are black."
+          "Turns the display black. While another display is on, restore it from the menu. Press Esc once every display is black.",
+          "Turns the display black. Press Esc to wake it."
         ],
         "fr": [
           "\"%@\" will be permanently deleted.",
@@ -430,7 +432,8 @@
           "This display does not support DDC/CI hardware control. Common reasons: built-in HDMI on M1/M2 Macs, DisplayLink adapters, or the monitor has DDC/CI disabled in its OSD settings. Software brightness control (gamma) is still available.",
           "Transition: %d minutes",
           "Tries native brightness control for compatible external Apple and LG displays. Support varies by model; software brightness remains the fallback.",
-          "Turns the display black. Click it to wake it while another display is on. Press Esc when all displays are black.",
+          "Turns the display black. While another display is on, restore it from the menu. Press Esc once every display is black.",
+          "Turns the display black. Press Esc to wake it.",
           "Update \"%@\"?",
           "What brightness percentage should I set?",
           "What contrast percentage should I set?",
@@ -446,7 +449,8 @@
         "it": [
           "Click to wake",
           "Dimmerly could not dim the selected display.",
-          "Turns the display black. Click it to wake it while another display is on. Press Esc when all displays are black."
+          "Turns the display black. While another display is on, restore it from the menu. Press Esc once every display is black.",
+          "Turns the display black. Press Esc to wake it."
         ],
         "ja": [
           "%@ brightness",
@@ -516,7 +520,8 @@
           "This shortcut conflicts with %@.",
           "Transition: %d minutes",
           "Tuner 1",
-          "Turns the display black. Click it to wake it while another display is on. Press Esc when all displays are black.",
+          "Turns the display black. While another display is on, restore it from the menu. Press Esc once every display is black.",
+          "Turns the display black. Press Esc to wake it.",
           "Write delay: %d ms",
           "no DDC/CI reply, unplug the monitor from power for a minute"
         ],
@@ -524,37 +529,43 @@
           "%@ is a standard system shortcut. Try a different combination.",
           "Click to wake",
           "Dimmerly could not dim the selected display.",
-          "Turns the display black. Click it to wake it while another display is on. Press Esc when all displays are black."
+          "Turns the display black. While another display is on, restore it from the menu. Press Esc once every display is black.",
+          "Turns the display black. Press Esc to wake it."
         ],
         "nl": [
           "Apply",
           "Click to wake",
           "Dimmerly could not dim the selected display.",
           "Try Again",
-          "Turns the display black. Click it to wake it while another display is on. Press Esc when all displays are black."
+          "Turns the display black. While another display is on, restore it from the menu. Press Esc once every display is black.",
+          "Turns the display black. Press Esc to wake it."
         ],
         "pt-br": [
           "Click to wake",
           "Dimmerly could not dim the selected display.",
-          "Turns the display black. Click it to wake it while another display is on. Press Esc when all displays are black."
+          "Turns the display black. While another display is on, restore it from the menu. Press Esc once every display is black.",
+          "Turns the display black. Press Esc to wake it."
         ],
         "ru": [
           "Click to wake",
           "Dimmerly could not dim the selected display.",
           "Minimum delay between DDC writes (increase if monitor is unresponsive)",
           "Only wake the screen on keyboard input, a mouse click or scrolling, not mouse movement",
-          "Turns the display black. Click it to wake it while another display is on. Press Esc when all displays are black."
+          "Turns the display black. While another display is on, restore it from the menu. Press Esc once every display is black.",
+          "Turns the display black. Press Esc to wake it."
         ],
         "sr": [
           "Click to wake",
           "Dimmerly could not dim the selected display.",
-          "Turns the display black. Click it to wake it while another display is on. Press Esc when all displays are black."
+          "Turns the display black. While another display is on, restore it from the menu. Press Esc once every display is black.",
+          "Turns the display black. Press Esc to wake it."
         ],
         "zh-hans": [
           "Click to wake",
           "Dimmerly could not dim the selected display.",
           "Turns off all displays and locks your Mac, just like closing the lid. To control how quickly your password is required, adjust your Lock Screen settings.",
-          "Turns the display black. Click it to wake it while another display is on. Press Esc when all displays are black.",
+          "Turns the display black. While another display is on, restore it from the menu. Press Esc once every display is black.",
+          "Turns the display black. Press Esc to wake it.",
           "Use at least two modifier keys, including Control (⌃) or Command (⌘)."
         ]
       }

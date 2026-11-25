@@ -99,6 +99,7 @@
 		SB00000000000000000011 /* ScreenBlankerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SB00000000000000000001 /* ScreenBlankerTests.swift */; };
 		BW0000000000000000000011 /* BlankingWakePolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BW0000000000000000000001 /* BlankingWakePolicyTests.swift */; };
 		SB00000000000000000012 /* ScreenBlankerCaptureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SB00000000000000000002 /* ScreenBlankerCaptureTests.swift */; };
+		DW00000000000000000012 /* DimWakeInstructionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DW00000000000000000002 /* DimWakeInstructionTests.swift */; };
 		SC00000000000000000011 /* DimmingSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC00000000000000000001 /* DimmingSchedule.swift */; };
 		SC00000000000000000012 /* SolarCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC00000000000000000002 /* SolarCalculator.swift */; };
 		SC00000000000000000013 /* LocationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC00000000000000000003 /* LocationProvider.swift */; };
@@ -265,6 +266,7 @@
 		SB00000000000000000001 /* ScreenBlankerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenBlankerTests.swift; sourceTree = "<group>"; };
 		BW0000000000000000000001 /* BlankingWakePolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlankingWakePolicyTests.swift; sourceTree = "<group>"; };
 		SB00000000000000000002 /* ScreenBlankerCaptureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenBlankerCaptureTests.swift; sourceTree = "<group>"; };
+		DW00000000000000000002 /* DimWakeInstructionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DimWakeInstructionTests.swift; sourceTree = "<group>"; };
 		SC00000000000000000001 /* DimmingSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DimmingSchedule.swift; sourceTree = "<group>"; };
 		SC00000000000000000002 /* SolarCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolarCalculator.swift; sourceTree = "<group>"; };
 		SC00000000000000000003 /* LocationProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationProvider.swift; sourceTree = "<group>"; };
@@ -546,6 +548,7 @@
 				SB00000000000000000001 /* ScreenBlankerTests.swift */,
 				BW0000000000000000000001 /* BlankingWakePolicyTests.swift */,
 				SB00000000000000000002 /* ScreenBlankerCaptureTests.swift */,
+				DW00000000000000000002 /* DimWakeInstructionTests.swift */,
 				SH00000000000000000001 /* SharedConstantsTests.swift */,
 				CP00000000000000000002 /* ControlCenterControlTests.swift */,
 				NT00000000000000000010 /* SolarCalculatorTests.swift */,
@@ -661,7 +664,6 @@
 				ko,
 				nl,
 				"pt-BR",
-				ru,
 				sr,
 				"zh-Hans",
 				Base,
@@ -881,6 +883,7 @@
 				SB00000000000000000011 /* ScreenBlankerTests.swift in Sources */,
 				BW0000000000000000000011 /* BlankingWakePolicyTests.swift in Sources */,
 				SB00000000000000000012 /* ScreenBlankerCaptureTests.swift in Sources */,
+				DW00000000000000000012 /* DimWakeInstructionTests.swift in Sources */,
 				SH00000000000000000011 /* SharedConstantsTests.swift in Sources */,
 				CP00000000000000000012 /* ControlCenterControlTests.swift in Sources */,
 				IT00000000000000000011 /* IdleTimerManagerTests.swift in Sources */,
