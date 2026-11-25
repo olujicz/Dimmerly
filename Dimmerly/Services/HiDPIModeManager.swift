@@ -123,9 +123,52 @@
         }
     }
 
+    /// What the helper must be: the tool this app was built with, signed under the release team.
+    enum HiDPIHelperIdentity {
+        /// The signing identifier of `DimmerlyHiDPIHelper` as Xcode embeds it.
+        static let identifier = "DimmerlyHiDPIHelper"
+
+        /// The code requirement the helper must satisfy. A release build also requires a
+        /// Developer ID Application certificate; development builds accept any Apple-issued
+        /// certificate of the team.
+        static func requirement(team: String, developerID: Bool) -> String {
+            var text = "identifier \"\(identifier)\" and anchor apple generic "
+                + "and certificate leaf[subject.OU] = \"\(team)\""
+            if developerID {
+                text += " and certificate 1[field.1.2.840.113635.100.6.2.6] exists"
+                    + " and certificate leaf[field.1.2.840.113635.100.6.1.13] exists"
+            }
+            return text
+        }
+
+        enum Trust: Equatable {
+            /// The helper must satisfy this requirement, in the app and again as a private copy.
+            case requirement(String)
+            /// Development builds without a signing team: the digest alone.
+            case digestOnly
+        }
+
+        /// How much to trust the helper. A build that isn't a development build and can't name its
+        /// signing team gets nil: it must not ask for an administrator password.
+        static func trust(team: String?, isDevelopmentBuild: Bool) -> Trust? {
+            if let team {
+                return .requirement(requirement(team: team, developerID: !isDevelopmentBuild))
+            }
+            return isDevelopmentBuild ? .digestOnly : nil
+        }
+
+        static var isDevelopmentBuild: Bool {
+            #if DEBUG
+                true
+            #else
+                false
+            #endif
+        }
+    }
+
     /// Builds the root script that runs the helper tool from the app bundle.
     enum HiDPIHelperInvocation {
-        static let helperName = "DimmerlyHiDPIHelper"
+        static let helperName = HiDPIHelperIdentity.identifier
 
         static func helperURL(in bundle: Bundle = .main) -> URL {
             bundle.bundleURL.appendingPathComponent("Contents/MacOS/\(helperName)")
@@ -133,26 +176,30 @@
 
         /// - Parameters:
         ///   - helper: The helper tool to run.
-        ///   - teamID: The signing team the helper must carry, or nil for a build without one.
+        ///   - trust: How to verify the helper; nil refuses to build a script.
         ///   - scratchRoot: Where root makes its private folder.
         static func script(
             for request: HiDPIHelperCommand.Request,
             helper: URL = helperURL(),
-            teamID: String? = signingTeam(),
+            trust: HiDPIHelperIdentity.Trust? = HiDPIHelperIdentity.trust(
+                team: signingTeam(), isDevelopmentBuild: HiDPIHelperIdentity.isDevelopmentBuild
+            ),
             scratchRoot: String = "/var/db"
         ) throws -> String {
-            guard let data = try? Data(contentsOf: helper) else { throw HiDPIModeError.commandFailed }
-            if let teamID, !isSigned(helper, byTeam: teamID) {
-                throw HiDPIModeError.commandFailed
+            guard let trust, let data = try? Data(contentsOf: helper) else { throw HiDPIModeError.commandFailed }
+            var requirement: String?
+            if case let .requirement(text) = trust {
+                guard isSigned(helper, requirement: text) else { throw HiDPIModeError.commandFailed }
+                requirement = text
             }
             return scriptText(
                 arguments: request.arguments, helper: helper, helperDigest: HiDPITransaction.sha256Hex(data),
-                teamID: teamID, scratchRoot: scratchRoot
+                requirement: requirement, scratchRoot: scratchRoot
             )
         }
 
         static func scriptText(
-            arguments: [String], helper: URL, helperDigest: String, teamID: String?, scratchRoot: String
+            arguments: [String], helper: URL, helperDigest: String, requirement: String?, scratchRoot: String
         ) -> String {
             let quote = HiDPIOverride.shellQuoted
             var lines = [
@@ -164,9 +211,8 @@
                 "[ \"$(/usr/bin/shasum -a 256 < \"$D/helper\" | /usr/bin/cut -d ' ' -f1)\" "
                     + "= \(quote(helperDigest)) ] || fail",
             ]
-            if let teamID {
-                let requirement = "=anchor apple generic and certificate leaf[subject.OU] = \"\(teamID)\""
-                lines.append("/usr/bin/codesign --verify --strict -R \(quote(requirement)) \"$D/helper\" || fail")
+            if let requirement {
+                lines.append("/usr/bin/codesign --verify --strict -R \(quote("=" + requirement)) \"$D/helper\" || fail")
             }
             lines += [
                 "\"$D/helper\" " + arguments.map(quote).joined(separator: " "),
@@ -184,7 +230,8 @@
             return path.isEmpty ? nil : String(path)
         }
 
-        /// The Team ID the running app is signed with, or nil for an unsigned or ad-hoc build.
+        /// The Team ID the running app is signed with, or nil for an unsigned or ad-hoc build, or
+        /// when the signature can't be read.
         static func signingTeam() -> String? {
             var code: SecCode?
             var staticCode: SecStaticCode?
@@ -201,10 +248,9 @@
             return info[kSecCodeInfoTeamIdentifier as String] as? String
         }
 
-        private static func isSigned(_ file: URL, byTeam teamID: String) -> Bool {
+        static func isSigned(_ file: URL, requirement text: String) -> Bool {
             var staticCode: SecStaticCode?
             var requirement: SecRequirement?
-            let text = "anchor apple generic and certificate leaf[subject.OU] = \"\(teamID)\""
             guard SecStaticCodeCreateWithPath(file as CFURL, [], &staticCode) == errSecSuccess, let staticCode,
                   SecRequirementCreateWithString(text as CFString, [], &requirement) == errSecSuccess,
                   let requirement
@@ -225,6 +271,28 @@
         let availableSizes: [HiDPISize]
         /// The mode the display runs in now, or nil when macOS doesn't report one.
         let current: HiDPIModeChoice?
+        /// A change to this model was interrupted, or its original override is held. The helper's
+        /// record says so, and the only thing to do is let the helper finish or undo it.
+        var recoveryPending = false
+
+        enum PrimaryAction: Equatable {
+            case turnOn
+            case turnOff
+            case finishPendingChange
+        }
+
+        /// What the row's button does: finishing a pending change comes before everything else,
+        /// including rows that otherwise offer no action.
+        var primaryAction: PrimaryAction? {
+            if recoveryPending {
+                return .finishPendingChange
+            }
+            switch status.action {
+            case .turnOn: return .turnOn
+            case .turnOff: return .turnOff
+            case nil: return nil
+            }
+        }
     }
 
     @MainActor
@@ -338,7 +406,8 @@
                 identity: identity,
                 status: status,
                 availableSizes: offered.filter { expected.contains($0) }.sorted(by: >),
-                current: current
+                current: current,
+                recoveryPending: FileManager.default.fileExists(atPath: stateFile("record", identity).path)
             )
         }
 
@@ -347,7 +416,7 @@
         /// Installs Dimmerly's override file for the display. Never replaces a file that is
         /// already there: the row may be out of date, and the file may belong to someone else.
         func enable(_ display: HiDPIDisplayState) async {
-            guard display.status.action == .turnOn else { return }
+            guard display.primaryAction == .turnOn else { return }
             await perform(on: display) {
                 // The row may show a file read a while ago. Read it again; the refresh afterwards
                 // shows whatever appeared since.
@@ -367,7 +436,7 @@
 
         /// Removes Dimmerly's override file. Files written by other tools are never removed.
         func disable(_ display: HiDPIDisplayState) async {
-            guard display.status.action == .turnOff else { return }
+            guard display.primaryAction == .turnOff else { return }
             await perform(on: display) {
                 let current = self.ownedOverride(at: self.fileURL(for: display), identity: display.identity)
                 guard current.ownership == .dimmerly, let data = current.data else { return }
@@ -380,6 +449,24 @@
                 try await self.runner.run(request, prompt: String(
                     localized: "Dimmerly wants to remove HiDPI sizes for \(display.identity.name).",
                     comment: "Administrator password prompt when turning off HiDPI; the placeholder is the display name"
+                ))
+            }
+        }
+
+        /// Lets the helper finish or undo an interrupted change for the display's model. It works
+        /// from any row, including ones that are otherwise stuck behind a file in the way.
+        func recoverPendingChange(_ display: HiDPIDisplayState) async {
+            guard display.primaryAction == .finishPendingChange else { return }
+            await perform(on: display) {
+                let request = HiDPIHelperCommand.Request.recover(
+                    vendorID: display.identity.vendorID, productID: display.identity.productID
+                )
+                try await self.runner.run(request, prompt: String(
+                    localized: "Dimmerly wants to finish a HiDPI change for \(display.identity.name).",
+                    comment: """
+                    Administrator password prompt when finishing an interrupted HiDPI change; \
+                    the placeholder is the display name
+                    """
                 ))
             }
         }

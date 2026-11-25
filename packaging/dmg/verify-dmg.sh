@@ -242,6 +242,14 @@ if [[ -d "$app_path" ]]; then
     if [[ -x "$helper" ]]; then
         pass "app contains the HiDPI helper"
         check_signature "$helper" "HiDPI helper"
+        # The same identity the app demands before it asks for a password: the helper's own
+        # identifier, the release team, and a Developer ID Application certificate.
+        helper_requirement="=identifier \"DimmerlyHiDPIHelper\" and anchor apple generic and certificate leaf[subject.OU] = \"${expected_team_id}\" and certificate 1[field.1.2.840.113635.100.6.2.6] exists and certificate leaf[field.1.2.840.113635.100.6.1.13] exists"
+        if codesign --verify --strict -R "$helper_requirement" "$helper" 2>/dev/null; then
+            pass "HiDPI helper satisfies the identifier, team and Developer ID requirement"
+        else
+            fail "HiDPI helper does not satisfy the identifier, team and Developer ID requirement"
+        fi
         helper_architectures="$(lipo -archs "$helper" 2>/dev/null || true)"
         if [[ " $helper_architectures " == *" arm64 "* && " $helper_architectures " == *" x86_64 "* ]]; then
             pass "HiDPI helper is universal ($helper_architectures)"

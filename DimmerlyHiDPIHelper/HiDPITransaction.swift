@@ -56,6 +56,11 @@
             case afterRemoveRecord
             case afterRemoveHold
             case afterRemoveUnlink
+            /// Each state-file write or delete and each directory sync, before it happens; tests
+            /// throw here to stand in for a failing disk.
+            case writeState(String)
+            case deleteState(String)
+            case syncDirectory
         }
 
         /// Thrown by a test checkpoint to stop without any cleanup, as a killed process would.
@@ -154,6 +159,7 @@
             try context.writeRecord(Record(operation: .install, digest: digest, loaded: false, conflict: false))
             try configuration.checkpoint(.afterInstallRecord)
 
+            var published = false
             do {
                 try writeStage(context, contents: contents)
                 if try !configuration.preferenceIsEnabled() {
@@ -167,8 +173,9 @@
                     try cleanUpInstall(context)
                     return .refused("an override file appeared for this display")
                 }
+                published = true
                 try configuration.checkpoint(.afterInstallPublish)
-                fsync(context.vendorFD)
+                try context.sync(context.vendorFD)
                 try context.writeState(model.installedName, Data((digest + "\n").utf8))
                 try context.deleteState(model.removedName)
                 try context.deleteRecord()
@@ -176,7 +183,11 @@
             } catch let crash as Crash {
                 throw crash
             } catch {
-                try? cleanUpInstall(context)
+                // Once the file is published the journal is all that says whose it is; it stays
+                // until the outcome is recorded, and the next change finishes the job.
+                if !published {
+                    try? cleanUpInstall(context)
+                }
                 throw error
             }
         }
@@ -192,6 +203,13 @@
 
             guard case .regular = try entryKind(context.vendorFD, model.productFile) else {
                 return .refused("the override file is missing or isn't a regular file")
+            }
+            // Only a file this helper installed: its own root-owned record must name the digest.
+            let installed = try readFile(context.stateFD, model.installedName, maximum: 128)
+            guard installed.map({ (String(bytes: $0, encoding: .utf8) ?? "")
+                    .trimmingCharacters(in: .whitespacesAndNewlines) }) == expectedDigest
+            else {
+                return .refused("the helper has no record of installing this file")
             }
             let loaded = try predatesBoot(context.vendorFD, model.productFile, configuration)
             try context.writeRecord(Record(operation: .remove, digest: expectedDigest, loaded: loaded, conflict: false))
@@ -235,7 +253,7 @@
                     throw Failure.io("couldn't delete the removed override")
                 }
                 try context.configuration.checkpoint(.afterRemoveUnlink)
-                fsync(context.vendorFD)
+                try context.sync(context.vendorFD)
                 try context.deleteState(model.installedName)
                 try context.deleteRecord()
                 _ = unlinkat(context.overridesFD, model.vendorFolder, AT_REMOVEDIR)
@@ -243,6 +261,8 @@
             }
 
             if try exclusiveRename(context.vendorFD, model.holdName, context.vendorFD, model.productFile) {
+                // The journal goes only after the restored entry is durable.
+                try context.sync(context.vendorFD)
                 try context.deleteRecord()
                 return .refused("the override file isn't the one Dimmerly installed")
             }
@@ -539,11 +559,6 @@
                     return current
                 }
                 do {
-                    let overrides = try open(configuration.overridesComponents, create: createFolders)
-                    let vendor = try HiDPITransaction.openTrusted(
-                        child: model.vendorFolder, of: overrides, create: createFolders, configuration: configuration
-                    )
-                    opened.append(vendor)
                     let state = try open(configuration.stateComponents, create: true)
                     // Racing creators of the same file can see a spurious ENOENT from the file system,
                     // so a missing-file error from O_CREAT is retried briefly.
@@ -555,15 +570,19 @@
                         lock = openat(state, model.lockName, O_RDWR | O_CREAT | O_NOFOLLOW | O_CLOEXEC, 0o600)
                     }
                     guard lock >= 0 else { throw Failure.io("couldn't open the lock file (\(errno))") }
+                    opened.append(lock)
                     var locked = flock(lock, LOCK_EX)
                     while locked != 0, errno == EINTR {
                         locked = flock(lock, LOCK_EX)
                     }
-                    guard locked == 0 else {
-                        let code = errno
-                        Darwin.close(lock)
-                        throw Failure.io("couldn't lock the display model (\(code))")
-                    }
+                    guard locked == 0 else { throw Failure.io("couldn't lock the display model (\(errno))") }
+                    // Only under the lock: another change may be deleting the vendor folder, and a
+                    // descriptor opened before the lock could point at a folder that is already gone.
+                    let overrides = try open(configuration.overridesComponents, create: createFolders)
+                    let vendor = try HiDPITransaction.openTrusted(
+                        child: model.vendorFolder, of: overrides, create: createFolders, configuration: configuration
+                    )
+                    opened.append(vendor)
                     overridesFD = overrides
                     vendorFD = vendor
                     stateFD = state
@@ -586,7 +605,14 @@
 
             // State files live in a root-owned folder and are replaced atomically.
 
+            /// Flushes a directory's entries to disk; a failure is an error, not something to ignore.
+            func sync(_ directory: Int32) throws {
+                try configuration.checkpoint(.syncDirectory)
+                guard fsync(directory) == 0 else { throw Failure.io("couldn't save a folder to disk") }
+            }
+
             func writeState(_ name: String, _ data: Data) throws {
+                try configuration.checkpoint(.writeState(name))
                 let temporary = ".\(name).tmp"
                 _ = unlinkat(stateFD, temporary, 0)
                 let fd = openat(stateFD, temporary, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0o600)
@@ -600,14 +626,15 @@
                     _ = unlinkat(stateFD, temporary, 0)
                     throw Failure.io("couldn't save a state file")
                 }
-                fsync(stateFD)
+                try sync(stateFD)
             }
 
             func deleteState(_ name: String) throws {
+                try configuration.checkpoint(.deleteState(name))
                 if unlinkat(stateFD, name, 0) != 0, errno != ENOENT {
                     throw Failure.io("couldn't delete a state file")
                 }
-                fsync(stateFD)
+                try sync(stateFD)
             }
 
             func writeRecord(_ record: Record) throws {
@@ -711,23 +738,36 @@
             }
 
             /// The preference's folder must be trusted, and an existing file must be a regular
-            /// file owned by root that others can't write.
+            /// file owned by root that others can't write, with no ACL.
             private static func checkFile() throws {
                 let configuration = Configuration.system
                 let folder = try HiDPITransaction.openTrusted(
                     path: "/Library/Preferences", configuration: configuration
                 )
                 defer { close(folder) }
-                var info = stat()
-                if fstatat(folder, "com.apple.windowserver.plist", &info, AT_SYMLINK_NOFOLLOW) != 0 {
+                try checkFile(named: "com.apple.windowserver.plist", in: folder, configuration: configuration)
+            }
+
+            static func checkFile(named name: String, in folder: Int32, configuration: Configuration) throws {
+                let fd = openat(folder, name, O_RDONLY | O_NOFOLLOW | O_CLOEXEC)
+                if fd < 0 {
                     if errno == ENOENT {
                         return
                     }
                     throw Failure.unsafe("can't read the display preference file")
                 }
-                guard (info.st_mode & S_IFMT) == S_IFREG, info.st_uid == 0, info.st_mode & 0o022 == 0 else {
+                defer { close(fd) }
+                var info = stat()
+                guard fstat(fd, &info) == 0, (info.st_mode & S_IFMT) == S_IFREG,
+                      info.st_uid == configuration.ownerUID, info.st_mode & 0o022 == 0
+                else {
                     throw Failure.unsafe("the display preference file isn't safe to change")
                 }
+                if let acl = acl_get_fd_np(fd, ACL_TYPE_EXTENDED) {
+                    acl_free(UnsafeMutableRawPointer(acl))
+                    throw Failure.unsafe("the display preference file has an ACL")
+                }
+                guard errno == ENOENT else { throw Failure.unsafe("can't read the display preference file's ACL") }
             }
         }
     }

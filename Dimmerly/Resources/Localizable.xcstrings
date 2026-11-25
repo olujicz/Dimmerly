@@ -31722,6 +31722,290 @@
           }
         }
       }
+    },
+    "Finish Change…" : {
+      "comment" : "HiDPI button that lets the helper finish or undo an interrupted change",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finish Change…"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Änderung abschließen…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Terminar cambio…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Terminer la modification…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Completa modifica…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "変更を完了…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "변경 완료…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Wijziging afronden…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Concluir alteração…"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Završi promenu…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "完成更改…"
+          }
+        }
+      }
+    },
+    "Finish HiDPI change for %@" : {
+      "comment" : "VoiceOver label for the finish-change button; the placeholder is the display name",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finish HiDPI change for %@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "HiDPI-Änderung für %@ abschließen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Terminar el cambio de HiDPI para %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Terminer la modification HiDPI pour %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Completa la modifica HiDPI per %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@のHiDPI変更を完了"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@의 HiDPI 변경 완료"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "HiDPI-wijziging voor %@ afronden"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Concluir a alteração de HiDPI para %@"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Završi HiDPI promenu za %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "完成 %@ 的 HiDPI 更改"
+          }
+        }
+      }
+    },
+    "A HiDPI change for this display didn’t finish. Finish it before making another change." : {
+      "comment" : "HiDPI note under a display whose earlier change was interrupted",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A HiDPI change for this display didn’t finish. Finish it before making another change."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Eine HiDPI-Änderung für dieses Display wurde nicht abgeschlossen. Schließe sie ab, bevor du eine weitere Änderung vornimmst."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Un cambio de HiDPI para esta pantalla no se completó. Termínalo antes de hacer otro cambio."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Une modification HiDPI de cet écran n’a pas abouti. Terminez-la avant d’en faire une autre."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Una modifica HiDPI per questo schermo non è stata completata. Completala prima di farne un’altra."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "このディスプレイのHiDPI変更が完了していません。別の変更を行う前に完了してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "이 디스플레이의 HiDPI 변경이 완료되지 않았습니다. 다른 변경을 하기 전에 완료하십시오."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Een HiDPI-wijziging voor dit beeldscherm is niet voltooid. Rond die af voordat je iets anders wijzigt."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Uma alteração de HiDPI para esta tela não foi concluída. Conclua-a antes de fazer outra alteração."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "HiDPI promena za ovaj ekran nije završena. Završi je pre nego što napraviš drugu promenu."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "此显示器的 HiDPI 更改未完成。请先完成它，再进行其他更改。"
+          }
+        }
+      }
+    },
+    "Dimmerly wants to finish a HiDPI change for %@." : {
+      "comment" : "Administrator password prompt when finishing an interrupted HiDPI change; the placeholder is the display name",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimmerly wants to finish a HiDPI change for %@."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly möchte eine HiDPI-Änderung für %@ abschließen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly quiere terminar un cambio de HiDPI para %@."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly souhaite terminer une modification HiDPI pour %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly vuole completare una modifica HiDPI per %@."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerlyが%@のHiDPI変更を完了しようとしています。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly이(가) %@의 HiDPI 변경을 완료하려고 합니다."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly wil een HiDPI-wijziging voor %@ afronden."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "O Dimmerly quer concluir uma alteração de HiDPI para %@."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly želi da završi HiDPI promenu za %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dimmerly 想要完成 %@ 的 HiDPI 更改。"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

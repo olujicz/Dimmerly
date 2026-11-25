@@ -339,6 +339,35 @@
             XCTAssertEqual(names(in: vendorFolder), [])
         }
 
+        func testTheExistingPreferenceFileMustBeSafeToChange() throws {
+            let folder = base.appendingPathComponent("prefs", isDirectory: true)
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            let name = "com.apple.windowserver.plist"
+            let path = folder.appendingPathComponent(name)
+            let fd = open(folder.path, O_RDONLY | O_DIRECTORY)
+            defer { close(fd) }
+            func check() throws {
+                try HiDPITransaction.SystemPreference.checkFile(named: name, in: fd, configuration: configuration)
+            }
+
+            XCTAssertNoThrow(try check()) // absent
+            try Data("x".utf8).write(to: path)
+            XCTAssertNoThrow(try check())
+
+            try FileManager.default.setAttributes([.posixPermissions: 0o666], ofItemAtPath: path.path)
+            XCTAssertThrowsError(try check())
+            try FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: path.path)
+
+            XCTAssertEqual(try Self.run("/bin/chmod", ["+a", "everyone allow write", path.path]), 0)
+            XCTAssertThrowsError(try check())
+            try FileManager.default.removeItem(at: path)
+
+            let target = base.appendingPathComponent("target")
+            try Data("x".utf8).write(to: target)
+            try FileManager.default.createSymbolicLink(at: path, withDestinationURL: target)
+            XCTAssertThrowsError(try check())
+        }
+
         private static func run(_ tool: String, _ arguments: [String]) throws -> Int32 {
             let process = Process()
             process.executableURL = URL(fileURLWithPath: tool)
@@ -483,13 +512,30 @@
         }
 
         func testACrashAfterTheHoldOfAFileThatWasNotTheExpectedOnePutsItBack() throws {
-            try seed(Data("foreign".utf8))
+            XCTAssertEqual(try install(), .done)
+            let foreign = Data("foreign".utf8)
+            try foreign.write(to: file())
             crash(at: .afterRemoveHold)
-            XCTAssertThrowsError(try remove(digest: HiDPIOverride.sha256Hex(Data("something else".utf8))))
+            XCTAssertThrowsError(try remove())
 
             checkpoint = { _ in }
             XCTAssertEqual(try recover(), .done)
-            XCTAssertEqual(try Data(contentsOf: file()), Data("foreign".utf8))
+            XCTAssertEqual(try Data(contentsOf: file()), foreign)
+        }
+
+        func testRemovalRefusesAFileTheHelperHasNoRecordOfInstalling() throws {
+            try seed(contents())
+            guard case .refused = try remove() else { return XCTFail("expected a refusal") }
+            XCTAssertEqual(try Data(contentsOf: file()), try contents())
+            XCTAssertNil(state(model().recordName))
+        }
+
+        func testRemovalRefusesADigestThatIsNotTheInstalledOne() throws {
+            XCTAssertEqual(try install(), .done)
+            guard case .refused = try remove(digest: HiDPIOverride.sha256Hex(Data("other".utf8))) else {
+                return XCTFail("expected a refusal")
+            }
+            XCTAssertEqual(try Data(contentsOf: file()), try contents())
         }
 
         // MARK: Different models
@@ -540,6 +586,138 @@
             }
             XCTAssertEqual(results.values, Array(repeating: "done", count: products.count))
             XCTAssertEqual(names(in: vendorFolder).count, products.count)
+        }
+
+        // MARK: Failing disk
+
+        private struct DiskFailure: Error {}
+
+        /// Fails the first time `matches` accepts a step reached after `after` was seen.
+        private func failDisk(
+            after: HiDPITransaction.Step? = nil, at matches: @escaping (HiDPITransaction.Step) -> Bool
+        ) {
+            nonisolated(unsafe) var armed = after == nil
+            nonisolated(unsafe) var fired = false
+            checkpoint = { step in
+                if step == after {
+                    armed = true
+                }
+                guard armed, !fired, matches(step) else { return }
+                fired = true
+                throw DiskFailure()
+            }
+        }
+
+        func testAFailureWritingTheInstalledRecordAfterPublishingKeepsTheJournal() throws {
+            let installed = model().installedName
+            failDisk { $0 == .writeState(installed) }
+            XCTAssertThrowsError(try install())
+            // Published, journal kept, no ownership record yet.
+            XCTAssertEqual(try Data(contentsOf: file()), try contents())
+            XCTAssertNotNil(state(model().recordName))
+            XCTAssertNil(state(installed))
+
+            checkpoint = { _ in }
+            XCTAssertEqual(try recover(), .done)
+            XCTAssertEqual(state(installed), try HiDPIOverride.sha256Hex(contents()))
+            XCTAssertNil(state(model().recordName))
+        }
+
+        func testAFailedSyncAfterPublishingKeepsTheJournal() throws {
+            failDisk(after: .afterInstallPublish) { $0 == .syncDirectory }
+            XCTAssertThrowsError(try install())
+            XCTAssertNotNil(state(model().recordName))
+            XCTAssertTrue(FileManager.default.fileExists(atPath: file().path))
+
+            checkpoint = { _ in }
+            XCTAssertEqual(try recover(), .done)
+            XCTAssertNotNil(state(model().installedName))
+            XCTAssertNil(state(model().recordName))
+        }
+
+        func testAFailureDeletingTheJournalAtTheEndOfAnInstallIsFinishedLater() throws {
+            let record = model().recordName
+            failDisk { $0 == .deleteState(record) }
+            XCTAssertThrowsError(try install())
+            XCTAssertNotNil(state(model().installedName))
+
+            checkpoint = { _ in }
+            XCTAssertEqual(try recover(), .done)
+            XCTAssertNil(state(record))
+            XCTAssertEqual(try remove(), .done)
+        }
+
+        func testAFailureWritingTheJournalBeforeAnythingChangesLeavesNothingBehind() throws {
+            let record = model().recordName
+            failDisk { $0 == .writeState(record) }
+            XCTAssertThrowsError(try install())
+            XCTAssertEqual(names(in: vendorFolder), [])
+            XCTAssertNil(state(record))
+        }
+
+        func testAFailedSyncAfterRestoringAnOriginalKeepsTheJournalAndTheFile() throws {
+            XCTAssertEqual(try install(), .done)
+            let edited = Data("edited".utf8)
+            try edited.write(to: file())
+            failDisk(after: .afterRemoveHold) { $0 == .syncDirectory }
+            XCTAssertThrowsError(try remove())
+            XCTAssertEqual(try Data(contentsOf: file()), edited)
+            XCTAssertNotNil(state(model().recordName))
+
+            checkpoint = { _ in }
+            XCTAssertEqual(try recover(), .done)
+            XCTAssertEqual(try Data(contentsOf: file()), edited)
+            XCTAssertNil(state(model().recordName))
+        }
+
+        func testAFailureDeletingTheInstalledRecordAfterRemovalIsFinishedLater() throws {
+            XCTAssertEqual(try install(), .done)
+            let installed = model().installedName
+            failDisk(after: .afterRemoveUnlink) { $0 == .deleteState(installed) }
+            XCTAssertThrowsError(try remove())
+            XCTAssertNotNil(state(model().recordName))
+
+            checkpoint = { _ in }
+            XCTAssertEqual(try recover(), .done)
+            XCTAssertNil(state(installed))
+            XCTAssertNil(state(model().recordName))
+        }
+
+        // MARK: Last removal against another install
+
+        func testTheLastRemovalInAVendorFolderNeverStrandsAnotherModelsInstall() throws {
+            for round in 0 ..< 40 {
+                try? FileManager.default.removeItem(at: base.appendingPathComponent("Overrides"))
+                try? FileManager.default.removeItem(at: stateRoot)
+                XCTAssertEqual(try install(0x2555), .done, "round \(round)")
+
+                nonisolated(unsafe) let configuration = configuration
+                let vendor = identity.vendorID
+                let first = try contents(0x2555)
+                let second = try contents(0x2556)
+                let results = LockedList()
+                DispatchQueue.concurrentPerform(iterations: 2) { index in
+                    do {
+                        let outcome = index == 0
+                            ? try HiDPITransaction.remove(
+                                model: .init(vendorID: vendor, productID: 0x2555),
+                                expectedDigest: HiDPIOverride.sha256Hex(first),
+                                configuration: configuration
+                            )
+                            : try HiDPITransaction.install(
+                                model: .init(vendorID: vendor, productID: 0x2556),
+                                contents: second,
+                                configuration: configuration
+                            )
+                        results.append("\(index):\(outcome)")
+                    } catch {
+                        results.append("\(index):\(error)")
+                    }
+                }
+                XCTAssertEqual(results.values.sorted(), ["0:done", "1:done"], "round \(round)")
+                XCTAssertEqual(try Data(contentsOf: file(0x2556)), second, "round \(round)")
+                XCTAssertFalse(FileManager.default.fileExists(atPath: file(0x2555).path))
+            }
         }
     }
 
@@ -644,6 +822,61 @@
             XCTAssertNil(HiDPIHelperInvocation.heldPath(in: "execution error: failed (1)"))
         }
 
+        // MARK: Who may be run as root
+
+        func testAReleaseBuildThatCantNameItsTeamRefusesToBuildAScript() throws {
+            XCTAssertNil(HiDPIHelperIdentity.trust(team: nil, isDevelopmentBuild: false))
+            XCTAssertEqual(HiDPIHelperIdentity.trust(team: nil, isDevelopmentBuild: true), .digestOnly)
+            XCTAssertThrowsError(try HiDPIHelperInvocation.script(
+                for: .recover(vendorID: 1, productID: 2), trust: nil
+            ))
+        }
+
+        func testTheReleaseRequirementNamesTheIdentifierTheTeamAndDeveloperID() {
+            let release = HiDPIHelperIdentity.requirement(team: "ABCDE12345", developerID: true)
+            XCTAssertTrue(release.contains("identifier \"DimmerlyHiDPIHelper\""))
+            XCTAssertTrue(release.contains("certificate leaf[subject.OU] = \"ABCDE12345\""))
+            XCTAssertTrue(release.contains("1.2.840.113635.100.6.2.6"))
+            XCTAssertTrue(release.contains("1.2.840.113635.100.6.1.13"))
+            XCTAssertEqual(
+                HiDPIHelperIdentity.trust(team: "ABCDE12345", isDevelopmentBuild: false), .requirement(release)
+            )
+            let development = HiDPIHelperIdentity.requirement(team: "ABCDE12345", developerID: false)
+            XCTAssertFalse(development.contains("1.2.840.113635.100.6.1.13"))
+        }
+
+        func testTheScriptChecksThePrivateCopyAgainstTheRequirementWhenThereIsOne() {
+            let text = HiDPIHelperInvocation.scriptText(
+                arguments: ["recover", "1", "2"],
+                helper: URL(fileURLWithPath: "/tmp/h"),
+                helperDigest: String(repeating: "a", count: 64),
+                requirement: HiDPIHelperIdentity.requirement(team: "ABCDE12345", developerID: true),
+                scratchRoot: "/var/db"
+            )
+            XCTAssertTrue(text.contains("/usr/bin/codesign --verify --strict -R '=identifier"))
+            XCTAssertTrue(text.contains("\"$D/helper\" || fail"))
+        }
+
+        func testTheEmbeddedHelperMeetsTheDevelopmentRequirementAndNotAWrongOne() throws {
+            guard let team = HiDPIHelperInvocation.signingTeam() else {
+                throw XCTSkip("this build has no signing team")
+            }
+            let helper = HiDPIHelperInvocation.helperURL()
+            XCTAssertTrue(HiDPIHelperInvocation.isSigned(
+                helper, requirement: HiDPIHelperIdentity.requirement(team: team, developerID: false)
+            ))
+            XCTAssertFalse(HiDPIHelperInvocation.isSigned(
+                helper, requirement: HiDPIHelperIdentity.requirement(team: "ZZZZZZZZZZ", developerID: false)
+            ))
+            XCTAssertFalse(HiDPIHelperInvocation.isSigned(
+                helper, requirement: "identifier \"SomethingElse\" and anchor apple generic"
+            ))
+            // A development certificate isn't a Developer ID Application certificate.
+            XCTAssertFalse(HiDPIHelperInvocation.isSigned(
+                helper, requirement: HiDPIHelperIdentity.requirement(team: team, developerID: true)
+            ))
+        }
+
         // MARK: The root script around the helper
 
         private func runScript(helper: String, digest: String?, arguments: [String]) throws -> Int32 {
@@ -653,7 +886,7 @@
                 arguments: arguments,
                 helper: helperURL,
                 helperDigest: digest ?? HiDPIOverride.sha256Hex(data),
-                teamID: nil,
+                requirement: nil,
                 scratchRoot: base.path
             )
             let process = Process()
@@ -733,6 +966,107 @@
             HiDPIDisplayState(
                 id: id, identity: identity ?? self.identity, status: status, availableSizes: [], current: nil
             )
+        }
+
+        // MARK: Recovery from Settings
+
+        func testAPendingChangeComesBeforeEveryOtherActionEvenWhenTheRowOffersNone() {
+            for status: HiDPIOverrideStatus in [.off, .on, .restartToEnable, .otherOverride(hiDPIOnly: false)] {
+                var display = row(id: 1, status: status)
+                display.recoveryPending = true
+                XCTAssertEqual(display.primaryAction, .finishPendingChange, "\(status)")
+            }
+            XCTAssertEqual(row(id: 1, status: .off).primaryAction, .turnOn)
+            XCTAssertEqual(row(id: 1, status: .on).primaryAction, .turnOff)
+            XCTAssertNil(row(id: 1, status: .otherOverride(hiDPIOnly: true)).primaryAction)
+        }
+
+        func testALostInstallResultIsFinishedFromTheSettingsRecoveryAction() async {
+            crash(at: .afterInstallPublish)
+            let manager = makeManager()
+            await manager.enable(row(id: 1, status: .off))
+            XCTAssertEqual(manager.errors[1], .commandFailed)
+
+            // Settings sees the file but no ownership record, plus the pending journal.
+            var stuck = row(id: 1, status: .otherOverride(hiDPIOnly: false))
+            stuck.recoveryPending = true
+            checkpoint = { _ in }
+            let recovering = makeManager()
+            await recovering.enable(stuck)
+            await recovering.disable(stuck)
+            XCTAssertNotNil(state(model().recordName), "ordinary actions don't run on a pending row")
+
+            await recovering.recoverPendingChange(stuck)
+            XCTAssertNil(recovering.errors[1])
+            XCTAssertNil(state(model().recordName))
+            await recovering.disable(row(id: 1, status: .on))
+            XCTAssertFalse(FileManager.default.fileExists(atPath: file().path))
+        }
+
+        func testAnInterruptedRemovalIsFinishedFromTheSettingsRecoveryAction() async throws {
+            XCTAssertEqual(try install(), .done)
+            crash(at: .afterRemoveHold)
+            let manager = makeManager()
+            await manager.disable(row(id: 1, status: .on))
+            XCTAssertFalse(FileManager.default.fileExists(atPath: file().path))
+
+            var pending = row(id: 1, status: .off)
+            pending.recoveryPending = true
+            checkpoint = { _ in }
+            let recovering = makeManager()
+            await recovering.recoverPendingChange(pending)
+            XCTAssertNil(recovering.errors[1])
+            XCTAssertFalse(FileManager.default.fileExists(atPath: vendorFolder.path))
+        }
+
+        func testAHeldOriginalShowsItsLocationAndIsRestoredOnceTheWayIsClear() async throws {
+            XCTAssertEqual(try install(), .done)
+            let edited = Data("edited".utf8)
+            let occupant = Data("occupant".utf8)
+            let target = file()
+            checkpoint = { step in
+                if step == .beforeRemoveHold {
+                    try edited.write(to: target)
+                }
+                if step == .afterRemoveHold {
+                    try occupant.write(to: target)
+                }
+            }
+            let manager = makeManager()
+            await manager.disable(row(id: 1, status: .on))
+            let holdPath = vendorFolder.appendingPathComponent(model().holdName).path
+            XCTAssertEqual(manager.errors[1], .held(path: holdPath))
+
+            // The row is stuck behind the occupant, yet the recovery action is still there.
+            var pending = row(id: 1, status: .otherOverride(hiDPIOnly: false))
+            pending.recoveryPending = true
+            checkpoint = { _ in }
+            let recovering = makeManager()
+            await recovering.recoverPendingChange(pending)
+            XCTAssertEqual(recovering.errors[1], .held(path: holdPath))
+
+            try FileManager.default.removeItem(at: file())
+            await recovering.recoverPendingChange(pending)
+            XCTAssertNil(recovering.errors[1])
+            XCTAssertEqual(try Data(contentsOf: file()), edited)
+        }
+
+        func testRecoveryOnlyRunsForARowThatHasAPendingChange() async {
+            let calls = CallCounter()
+            let manager = makeManager { _ in calls.increment() }
+            await manager.recoverPendingChange(row(id: 1, status: .off))
+            XCTAssertEqual(calls.count, 0)
+        }
+
+        func testCancellingTheRecoveryPromptChangesNothing() async {
+            crash(at: .afterInstallPublish)
+            await makeManager().enable(row(id: 1, status: .off))
+            var pending = row(id: 1, status: .otherOverride(hiDPIOnly: false))
+            pending.recoveryPending = true
+            let manager = makeManager { _ in throw HiDPIModeError.cancelled }
+            await manager.recoverPendingChange(pending)
+            XCTAssertTrue(manager.errors.isEmpty)
+            XCTAssertNotNil(state(model().recordName))
         }
 
         func testCancellingThePasswordPromptChangesNothingAndShowsNoError() async {

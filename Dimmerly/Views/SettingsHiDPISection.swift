@@ -158,7 +158,13 @@
 
         /// Explains states that need more than the row shows. On and Off need no note.
         private var note: String? {
-            switch display.status {
+            if display.recoveryPending {
+                return String(
+                    localized: "A HiDPI change for this display didn’t finish. Finish it before making another change.",
+                    comment: "HiDPI note under a display whose earlier change was interrupted"
+                )
+            }
+            return switch display.status {
             case .off, .on:
                 nil
             case .restartToEnable:
@@ -202,7 +208,10 @@
 
         @ViewBuilder
         private var actionButton: some View {
-            switch display.status.action {
+            switch display.primaryAction {
+            case .finishPendingChange:
+                Button("Finish Change…") { Task { await manager.recoverPendingChange(display) } }
+                    .accessibilityLabel(Text("Finish HiDPI change for \(name)"))
             case .turnOn:
                 Button("Turn On…") { Task { await manager.enable(display) } }
                     .accessibilityLabel(Text("Turn On HiDPI for \(name)"))
